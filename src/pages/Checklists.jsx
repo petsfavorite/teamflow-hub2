@@ -665,7 +665,7 @@ export default function Checklists() {
               </div>
             </div>
             <div>
-              <label className="text-sm font-medium text-slate-900 block mb-2">Assign to Teams</label>
+              <label className="text-sm font-medium text-slate-900 block mb-2">Assign Teams</label>
               <div className="max-h-40 overflow-y-auto space-y-2 p-2 bg-slate-50 rounded-lg border border-slate-200">
                 {teams.map(t => (
                   <label key={t.id} className="flex items-center gap-2 cursor-pointer">
