@@ -702,7 +702,7 @@ export default function Checklists() {
                 custom_frequency_day_of_month: editForm.custom_frequency_day_of_month
               });
             }} disabled={editTemplateMutation.isPending} className="bg-indigo-600 hover:bg-indigo-700 gap-2">
-              {editTemplateMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Save
+              {editTemplateMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Assign
             </Button>
           </DialogFooter>
           </DialogContent>
