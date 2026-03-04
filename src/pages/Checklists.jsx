@@ -122,42 +122,14 @@ export default function Checklists() {
 
             <div className="space-y-3">
               {items.map((item, i) => (
-                <div key={i} className={`p-4 rounded-xl border transition-all ${item.checked ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-slate-200'}`}>
-                  <div className="flex items-start gap-3">
-                    <Checkbox
-                      checked={item.checked}
-                      onCheckedChange={() => toggleItem(i)}
-                      className="mt-0.5"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start gap-2 mb-1">
-                        {item.sop_id ? (
-                          <Link to={createPageUrl('SOPDetail') + `?id=${item.sop_id}`} className="text-sm font-medium text-indigo-600 hover:text-indigo-700 underline">
-                            {item.label}
-                          </Link>
-                        ) : (
-                          <span className={`text-sm font-medium ${item.checked ? 'text-emerald-700 line-through' : 'text-slate-800'}`}>
-                            {item.label}
-                          </span>
-                        )}
-                      </div>
-                      {item.assigned_to_name && (
-                        <p className="text-xs text-slate-500 mb-2">Assigned to: {item.assigned_to_name}</p>
-                      )}
-                      {item.checked && (
-                        <p className="text-xs text-emerald-600 mb-2">
-                          ✓ Checked by {item.checked_by_name} at {new Date(item.checked_at).toLocaleString()}
-                        </p>
-                      )}
-                      <Textarea
-                        placeholder="Add notes (optional)"
-                        value={notes[i] || ''}
-                        onChange={e => setNotes({ ...notes, [i]: e.target.value })}
-                        className="mt-2 text-xs h-16 resize-none"
-                      />
-                    </div>
-                  </div>
-                </div>
+                <ChecklistItemRow
+                  key={i}
+                  item={item}
+                  index={i}
+                  notes={notes}
+                  onNotesChange={(index, value) => setNotes({ ...notes, [index]: value })}
+                  onItemUpdate={updateItem}
+                />
               ))}
             </div>
 
