@@ -58,6 +58,12 @@ export default function Dashboard() {
     enabled: canManage,
   });
 
+  const { data: pendingSOPs = [] } = useQuery({
+    queryKey: ['pending-sops-dash'],
+    queryFn: () => base44.entities.SOP.filter({ status: 'pending_approval' }, '-updated_date', 20),
+    enabled: canApprove,
+  });
+
   const { data: tasks = [] } = useQuery({
     queryKey: ['tasks-dash'],
     queryFn: () => base44.entities.Task.filter({ assigned_to_email: user?.email }, '-created_date', 10),
