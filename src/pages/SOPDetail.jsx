@@ -174,6 +174,7 @@ export default function SOPDetail() {
               <Button variant="outline" className="gap-2"><History className="w-4 h-4" /> History</Button>
             </Link>
           )}
+          <SOPQRCode sop={sop} />
           {canManage && (
             <Link to={createPageUrl('SOPEditor') + `?id=${sop.id}`}>
               <Button variant="outline" className="gap-2"><Pencil className="w-4 h-4" /> Edit</Button>
