@@ -231,18 +231,57 @@ export default function Checklists() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium text-sm text-slate-800">{t.title}</p>
-                      <p className="text-xs text-slate-400">{t.items?.length} items · {t.frequency}</p>
+                      <p className="text-xs text-slate-400">{t.items?.length} items · {t.recurrence_type}</p>
                     </div>
-                    <Link to={createPageUrl('ChecklistEditor') + `?id=${t.id}`}>
-                      <Button variant="ghost" size="sm">Edit</Button>
-                    </Link>
+                    <div className="flex gap-1">
+                      <Link to={createPageUrl('ChecklistEditor') + `?id=${t.id}`}>
+                        <Button variant="ghost" size="sm">Edit</Button>
+                      </Link>
+                      {(isSuperAdmin || isAdmin) && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => {
+                            setTemplateToDelete(t);
+                            setDeleteDialogOpen(true);
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
             ))}
           </div>
-        </div>
-      )}
+          </div>
+          )}
+
+          <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Checklist Template</DialogTitle>
+          </DialogHeader>
+          <p className="text-slate-600">
+            Are you sure you want to delete "<strong>{templateToDelete?.title}</strong>"? This action cannot be undone. Checklist history will be preserved.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={() => deleteMutation.mutate(templateToDelete.id)}
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Delete
+            </Button>
+          </DialogFooter>
+          </DialogContent>
+          </Dialog>
     </div>
   );
 }
