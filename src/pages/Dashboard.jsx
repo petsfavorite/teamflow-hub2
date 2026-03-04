@@ -51,11 +51,24 @@ export default function Dashboard() {
     queryFn: () => base44.entities.ExternalLink.list('order', 50),
   });
 
+  const { data: incidents = [] } = useQuery({
+    queryKey: ['incidents-dash'],
+    queryFn: () => base44.entities.IncidentReport.filter({ status: 'open' }, '-created_date', 5),
+    enabled: canManage,
+  });
+
+  const { data: tasks = [] } = useQuery({
+    queryKey: ['tasks-dash'],
+    queryFn: () => base44.entities.Task.filter({ assigned_to_email: user?.email }, '-created_date', 10),
+    enabled: !!user?.email,
+  });
+
   const myChecklists = checklists.filter(c =>
     !c.assigned_to || c.assigned_to.length === 0 || c.assigned_to.includes(user?.email)
   );
 
-  const openMaintenance = maintenanceRequests.filter(r => r.status === 'submitted' || r.status === 'in_progress');
+  const openMaintenance = maintenanceRequests.filter(r => r.status === 'open' || r.status === 'in_progress');
+  const myPendingTasks = tasks.filter(t => t.status === 'pending' || t.status === 'in_progress');
 
   return (
     <div className="space-y-8">
