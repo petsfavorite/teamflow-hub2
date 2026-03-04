@@ -110,7 +110,7 @@ export default function Assets() {
            ).map(asset => {
             const maintenance = getMaintenanceStatus(asset);
             return (
-              <Card key={asset.id} className="border-0 shadow-sm hover:shadow-md transition-all">
+              <Card key={asset.id} className="border-0 shadow-sm hover:shadow-md transition-all cursor-pointer" onClick={() => setSelectedAsset(asset)}>
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -130,20 +130,20 @@ export default function Assets() {
                     </div>
                     <div className="flex gap-1.5 flex-shrink-0">
                       {asset.manual_url && (
-                        <a href={asset.manual_url} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded hover:bg-slate-100">
+                        <a href={asset.manual_url} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded hover:bg-slate-100" onClick={e => e.stopPropagation()}>
                           <ExternalLink className="w-4 h-4 text-slate-400" />
                         </a>
                       )}
                       {asset.sop_id && (
-                        <Link to={createPageUrl('SOPDetail') + `?id=${asset.sop_id}`} className="p-1.5 rounded hover:bg-indigo-50">
+                        <Link to={createPageUrl('SOPDetail') + `?id=${asset.sop_id}`} className="p-1.5 rounded hover:bg-indigo-50" onClick={e => e.stopPropagation()}>
                           <span className="text-xs text-indigo-600 font-medium px-1">SOP</span>
                         </Link>
                       )}
-                      <button onClick={() => setSelectedAsset(asset)} className="p-1.5 rounded hover:bg-slate-100">
-                        <span className="text-xs text-slate-600 font-medium px-1">View</span>
-                      </button>
                       {(isSuperAdmin || isAdmin || isManager) && (
-                        <button onClick={() => startEdit(asset)} className="p-1.5 rounded hover:bg-slate-100">
+                        <button onClick={(e) => {
+                          e.stopPropagation();
+                          startEdit(asset);
+                        }} className="p-1.5 rounded hover:bg-slate-100">
                           <Pencil className="w-4 h-4 text-slate-400" />
                         </button>
                       )}
