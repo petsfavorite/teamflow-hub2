@@ -103,7 +103,7 @@ export default function Analytics() {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
         <StatCard icon={BookOpen} label="Published SOPs" value={publishedSOPs.length} color="bg-indigo-600" />
         <StatCard icon={CheckSquare} label="Completions (30d)" value={recent.length} color="bg-emerald-600" />
-        <StatCard icon={Wrench} label="Open Maintenance" value={openMaintenance.length} color="bg-amber-600" sub={openMaintenance.length > 0 ? 'needs attention' : 'all clear'} />
+        <StatCard icon={Wrench} label="Open Maintenance" value={openMaintenance.length} color="bg-amber-600" sub={openMaintenance.length > 0 ? 'Needs attention' : 'All clear'} />
         <StatCard icon={AlertTriangle} label="Open Incidents" value={openIncidents.length} color="bg-red-600" />
         <StatCard icon={Clock} label="Pending Tasks" value={pendingTasks.length} color="bg-purple-600" />
       </div>
