@@ -185,19 +185,14 @@ export default function UserManagement() {
             <Button variant="outline" onClick={() => setEditingUser(null)}>Cancel</Button>
             <Button
               onClick={() => {
-                const updates = { full_name: editName };
-                if (isSuperAdmin || isAdmin || (isManager && editingUser?.id !== user?.id && (editingUser?.role === 'user' || !editingUser?.role))) {
-                  updates.role = editRole;
+                if (editName !== editingUser?.full_name) {
+                  updateNameMutation.mutate({ id: editingUser.id, full_name: editName });
                 }
-                if (editName !== editingUser?.full_name || editRole !== (editingUser?.role || 'user')) {
-                  if (editName !== editingUser?.full_name && editRole === (editingUser?.role || 'user')) {
-                    updateNameMutation.mutate({ id: editingUser.id, full_name: editName });
-                  } else {
-                    updateRoleMutation.mutate({ id: editingUser.id, ...updates });
-                  }
+                if (editRole !== (editingUser?.role || 'user') && (isSuperAdmin || isAdmin || (isManager && editingUser?.id !== user?.id && (editingUser?.role === 'user' || !editingUser?.role)))) {
+                  updateRoleMutation.mutate({ id: editingUser.id, role: editRole });
                 }
               }}
-              disabled={updateNameMutation.isPending || updateRoleMutation.isPending || editName === editingUser?.full_name && editRole === (editingUser?.role || 'user')}
+              disabled={updateNameMutation.isPending || updateRoleMutation.isPending || (editName === editingUser?.full_name && editRole === (editingUser?.role || 'user'))}
               className="bg-indigo-600 hover:bg-indigo-700 gap-2"
             >
               {(updateNameMutation.isPending || updateRoleMutation.isPending) && <Loader2 className="w-4 h-4 animate-spin" />} Save Changes
