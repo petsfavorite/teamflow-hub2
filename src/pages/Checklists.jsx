@@ -25,7 +25,7 @@ export default function Checklists() {
 
   const { data: publishedTemplates = [], isLoading } = useQuery({
     queryKey: ['checklist-templates-published'],
-    queryFn: () => base44.entities.ChecklistTemplate.filter({ status: 'published' }, '-created_date', 100),
+    queryFn: () => base44.entities.ChecklistTemplate.filter({ status: ['published', 'active'] }, '-created_date', 100),
   });
 
   const { data: allTemplates = [] } = useQuery({

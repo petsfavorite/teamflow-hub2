@@ -40,7 +40,7 @@ export default function Dashboard() {
 
   const { data: checklists = [] } = useQuery({
     queryKey: ['checklists-assigned'],
-    queryFn: () => base44.entities.ChecklistTemplate.filter({ status: 'active' }),
+    queryFn: () => base44.entities.ChecklistTemplate.filter({ status: ['published', 'active'] }),
   });
 
   const { data: maintenanceRequests = [] } = useQuery({
