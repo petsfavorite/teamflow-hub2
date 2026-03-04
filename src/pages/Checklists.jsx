@@ -185,8 +185,46 @@ export default function Checklists() {
     });
   };
 
-  const updateNotes = (index, value) => {
-    setNotes(prev => ({ ...prev, [index]: value }));
+  const updateNotes = async (index, value) => {
+    setNotes(prev => {
+      const updated = { ...prev, [index]: value };
+      // Auto-save with updated notes
+      const itemsWithNotes = items.map((item, i) => ({
+        ...item,
+        notes: updated[i] || ''
+      }));
+      saveChecklistProgress(itemsWithNotes);
+      return updated;
+    });
+  };
+
+  const saveChecklistProgress = async (currentItems) => {
+    if (!activeChecklist) return;
+    
+    try {
+      // Find or create in-progress completion record
+      if (activeChecklist.completionId) {
+        // Update existing record
+        await base44.entities.ChecklistCompletion.update(activeChecklist.completionId, {
+          completed_items: currentItems,
+          status: 'in_progress'
+        });
+      } else {
+        // Create new in-progress record
+        const completion = await base44.entities.ChecklistCompletion.create({
+          checklist_template_id: activeChecklist.id,
+          checklist_title: activeChecklist.title,
+          completed_by: user?.email,
+          completed_by_name: user?.full_name,
+          completed_items: currentItems,
+          completion_date: new Date().toISOString().split('T')[0],
+          status: 'in_progress'
+        });
+        setActiveChecklist(prev => ({ ...prev, completionId: completion.id }));
+      }
+    } catch (error) {
+      console.error('Error saving checklist progress:', error);
+    }
   };
 
   const submitChecklist = async () => {
