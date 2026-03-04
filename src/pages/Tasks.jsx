@@ -31,7 +31,7 @@ const emptyForm = {
   assigned_teams: [], 
   due_date: '', 
   priority: 'medium', 
-  recurrence_type: 'once',
+  recurrence_type: 'daily',
   custom_frequency_type: 'days',
   custom_frequency_value: 1,
   custom_frequency_days: [],
@@ -195,18 +195,14 @@ export default function Tasks() {
             </div>
 
             <div className="space-y-2">
-              <Label>Recurrence</Label>
+              <Label>Frequency</Label>
               <Select value={form.recurrence_type} onValueChange={v => setForm({ ...form, recurrence_type: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="once">Once</SelectItem>
                   <SelectItem value="daily">Daily</SelectItem>
-                  <SelectItem value="weekdays">Weekdays</SelectItem>
-                  <SelectItem value="specific_days">Specific Days</SelectItem>
+                  <SelectItem value="weekly">Weekly</SelectItem>
                   <SelectItem value="monthly">Monthly</SelectItem>
-                  <SelectItem value="every_x_months">Every X Months</SelectItem>
-                  <SelectItem value="annually">Annually</SelectItem>
-                  <SelectItem value="manual">Manual</SelectItem>
+                  <SelectItem value="as_needed">As Needed</SelectItem>
                   <SelectItem value="custom">Custom</SelectItem>
                 </SelectContent>
               </Select>
@@ -259,44 +255,6 @@ export default function Tasks() {
                     <Input type="number" min="1" max="31" value={form.custom_frequency_day_of_month} onChange={e => setForm({ ...form, custom_frequency_day_of_month: parseInt(e.target.value) || 1 })} />
                   </div>
                 )}
-              </div>
-            )}
-
-            {form.recurrence_type === 'specific_days' && (
-              <div className="space-y-2">
-                <Label>Days of Week</Label>
-                <div className="grid grid-cols-2 gap-2 p-2 bg-slate-50 rounded-lg border border-slate-200">
-                  {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((day, idx) => (
-                    <label key={idx} className="flex items-center gap-2 text-sm">
-                      <Checkbox
-                        checked={form.recurrence_days_of_week?.includes(idx)}
-                        onCheckedChange={checked => {
-                          setForm(prev => ({
-                            ...prev,
-                            recurrence_days_of_week: checked
-                              ? [...(prev.recurrence_days_of_week || []), idx]
-                              : (prev.recurrence_days_of_week || []).filter(d => d !== idx)
-                          }));
-                        }}
-                      />
-                      {day}
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {(form.recurrence_type === 'monthly' || form.recurrence_type === 'every_x_months') && (
-              <div className="space-y-2">
-                <Label>Day of Month</Label>
-                <Input type="number" min="1" max="31" value={form.recurrence_day_of_month} onChange={e => setForm({ ...form, recurrence_day_of_month: parseInt(e.target.value) || 1 })} />
-              </div>
-            )}
-
-            {form.recurrence_type === 'every_x_months' && (
-              <div className="space-y-2">
-                <Label>Every X Months</Label>
-                <Input type="number" min="1" value={form.recurrence_interval_months} onChange={e => setForm({ ...form, recurrence_interval_months: parseInt(e.target.value) || 1 })} />
               </div>
             )}
 
