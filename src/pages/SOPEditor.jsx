@@ -13,7 +13,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import ReactQuill from 'react-quill';
-import { ArrowLeft, Save, Loader2, History } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, History, Users, User } from 'lucide-react';
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 
 export default function SOPEditor() {

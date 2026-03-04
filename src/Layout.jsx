@@ -24,6 +24,7 @@ const navItems = [
   { label: 'Analytics', icon: BarChart2, page: 'Analytics', roles: ['admin', 'manager', 'super_admin'] },
   { label: 'App Links', icon: ExternalLink, page: 'ExternalLinks', roles: ['admin', 'manager', 'user', 'super_admin'] },
   { label: 'SOP Assistant', icon: MessageSquare, page: 'SOPAssistant', roles: ['admin', 'manager', 'user', 'super_admin'] },
+  { label: 'Teams', icon: Users, page: 'Teams', roles: ['admin', 'manager', 'user', 'super_admin'] },
   { label: 'Users', icon: Users, page: 'UserManagement', roles: ['admin', 'manager', 'super_admin'] },
   { label: 'Dev Checklist', icon: Rocket, page: 'DevChecklist', roles: ['super_admin'] },
 ];
