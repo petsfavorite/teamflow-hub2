@@ -36,6 +36,8 @@ export default function Assets() {
   const [newNoteAttachment, setNewNoteAttachment] = useState(null);
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const [user, setUser] = useState(null);
+  const [sopSearch, setSopSearch] = useState('');
+  const [taskSearch, setTaskSearch] = useState('');
 
   useEffect(() => {
     base44.auth.me().then(u => setUser(u)).catch(() => setUser(null));
