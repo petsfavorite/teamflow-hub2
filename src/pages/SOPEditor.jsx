@@ -52,6 +52,36 @@ export default function SOPEditor() {
     enabled: !!(isAdmin || isSuperAdmin),
   });
 
+  const { data: sopTags = [], refetch: refetchTags } = useQuery({
+    queryKey: ['sop-tags'],
+    queryFn: () => base44.entities.SOPTag.list('name', 200),
+  });
+
+  const [newTagInput, setNewTagInput] = useState('');
+  const [addingTag, setAddingTag] = useState(false);
+
+  const handleAddTag = async () => {
+    const trimmed = newTagInput.trim().toLowerCase();
+    if (!trimmed) return;
+    setAddingTag(true);
+    await base44.entities.SOPTag.create({ name: trimmed });
+    await refetchTags();
+    setNewTagInput('');
+    setAddingTag(false);
+  };
+
+  const handleDeleteTag = async (tagId) => {
+    await base44.entities.SOPTag.delete(tagId);
+    await refetchTags();
+  };
+
+  const toggleFormTag = (tagName) => {
+    const current = form.tags || [];
+    const updated = current.includes(tagName) ? current.filter(t => t !== tagName) : [...current, tagName];
+    set('tags', updated);
+    setTagsInput(updated.join(', '));
+  };
+
   const { data: existing } = useQuery({
     queryKey: ['sop-edit', id],
     queryFn: async () => {
