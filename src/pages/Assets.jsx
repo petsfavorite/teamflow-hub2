@@ -208,17 +208,34 @@ export default function Assets() {
                 </div>
               )}
 
-              {(selectedAsset.manual_url || selectedAsset.sop_id) && (
-                <div className="flex gap-2 pt-2 border-t">
-                  {selectedAsset.manual_url && (
-                    <a href={selectedAsset.manual_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-sm font-medium">
-                      <ExternalLink className="w-4 h-4" /> Manual
-                    </a>
-                  )}
-                  {selectedAsset.sop_id && (
-                    <Link to={createPageUrl('SOPDetail') + `?id=${selectedAsset.sop_id}`} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium">
-                      <span>View SOP</span>
-                    </Link>
+              {(selectedAsset.manual_url || selectedAsset.sop_id || selectedAsset.task_ids?.length > 0) && (
+                <div className="flex flex-col gap-2 pt-2 border-t">
+                  <div className="flex gap-2">
+                    {selectedAsset.manual_url && (
+                      <a href={selectedAsset.manual_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-sm font-medium">
+                        <ExternalLink className="w-4 h-4" /> Manual
+                      </a>
+                    )}
+                    {selectedAsset.sop_id && (
+                      <Link to={createPageUrl('SOPDetail') + `?id=${selectedAsset.sop_id}`} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium">
+                        <span>View SOP</span>
+                      </Link>
+                    )}
+                  </div>
+                  {selectedAsset.task_ids?.length > 0 && (
+                    <div className="text-xs text-slate-600">
+                      <p className="font-medium mb-1.5">Attached Tasks:</p>
+                      <div className="space-y-1">
+                        {selectedAsset.task_ids.map(taskId => {
+                          const task = allTasks.find(t => t.id === taskId);
+                          return task ? (
+                            <div key={taskId} className="text-xs bg-slate-50 px-2 py-1 rounded">
+                              {task.title}
+                            </div>
+                          ) : null;
+                        })}
+                      </div>
+                    </div>
                   )}
                 </div>
               )}
