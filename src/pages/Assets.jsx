@@ -210,20 +210,28 @@ export default function Assets() {
                 </div>
               )}
 
-              {(selectedAsset.manual_url || selectedAsset.sop_id || selectedAsset.task_ids?.length > 0) && (
-                <div className="flex flex-col gap-2 pt-2 border-t">
-                  <div className="flex gap-2">
-                    {selectedAsset.manual_url && (
-                      <a href={selectedAsset.manual_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-sm font-medium">
-                        <ExternalLink className="w-4 h-4" /> Manual
-                      </a>
-                    )}
-                    {selectedAsset.sop_id && (
-                      <Link to={createPageUrl('SOPDetail') + `?id=${selectedAsset.sop_id}`} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium">
-                        <span>View SOP</span>
-                      </Link>
-                    )}
-                  </div>
+              {(selectedAsset.manual_url || selectedAsset.sop_ids?.length > 0 || selectedAsset.task_ids?.length > 0) && (
+                <div className="flex flex-col gap-3 pt-3 border-t">
+                  {selectedAsset.manual_url && (
+                    <a href={selectedAsset.manual_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-sm font-medium w-fit">
+                      <ExternalLink className="w-4 h-4" /> Manual
+                    </a>
+                  )}
+                  {selectedAsset.sop_ids?.length > 0 && (
+                    <div className="text-xs text-slate-600">
+                      <p className="font-medium mb-1.5">Linked SOPs:</p>
+                      <div className="space-y-1">
+                        {selectedAsset.sop_ids.map(sopId => {
+                          const sop = sops.find(s => s.id === sopId);
+                          return sop ? (
+                            <Link key={sopId} to={createPageUrl('SOPDetail') + `?id=${sopId}`} className="block text-xs bg-slate-50 px-2 py-1 rounded hover:bg-indigo-50 text-indigo-600">
+                              {sop.title}
+                            </Link>
+                          ) : null;
+                        })}
+                      </div>
+                    </div>
+                  )}
                   {selectedAsset.task_ids?.length > 0 && (
                     <div className="text-xs text-slate-600">
                       <p className="font-medium mb-1.5">Attached Tasks:</p>
@@ -239,6 +247,27 @@ export default function Assets() {
                       </div>
                     </div>
                   )}
+                </div>
+              )}
+
+              {selectedAsset.notes_log?.length > 0 && (
+                <div className="pt-4 border-t">
+                  <p className="text-sm font-medium text-slate-900 mb-3">Notes Log</p>
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {selectedAsset.notes_log.map((log, idx) => (
+                      <div key={idx} className="text-xs bg-slate-50 rounded p-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-slate-700">{log.note}</p>
+                            <div className="text-xs text-slate-400 mt-1">
+                              {log.added_by_name} • {log.date}
+                              {log.attachment_url && <span className="ml-1">📎</span>}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
