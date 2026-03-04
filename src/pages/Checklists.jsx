@@ -10,7 +10,8 @@ import StatusBadge from '../components/shared/StatusBadge';
 import ChecklistItemRow from '../components/checklist/ChecklistItemRow';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CheckSquare, Plus, Send, Loader2, Clock } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { CheckSquare, Plus, Send, Loader2, Clock, Trash2 } from 'lucide-react';
 import { toast } from "sonner";
 
 export default function Checklists() {
