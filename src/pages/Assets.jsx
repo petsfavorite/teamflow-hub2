@@ -25,10 +25,11 @@ const emptyForm = {
 };
 
 export default function Assets() {
-  const { canManage, isAdmin } = useCurrentUser();
+  const { canManage, isAdmin, isSuperAdmin, isManager } = useCurrentUser();
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [editingAsset, setEditingAsset] = useState(null);
+  const [selectedAsset, setSelectedAsset] = useState(null);
   const [form, setForm] = useState(emptyForm);
 
   const { data: assets = [], isLoading } = useQuery({
