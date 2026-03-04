@@ -88,11 +88,13 @@ export default function Checklists() {
       : []
   );
 
-  const myTemplates = publishedTemplates.filter(t => {
-    const assignedToMe = t.assigned_to_emails?.includes(user?.email);
-    const inMyTeam = t.assigned_teams?.some(teamId => myTeamIds.has(teamId));
-    return (assignedToMe || inMyTeam) && t.status !== 'closed';
-  });
+  const myTemplates = publishedTemplates
+    .filter(t => t.status === 'published' && t.status !== 'closed')
+    .filter(t => {
+      const assignedToMe = t.assigned_to_emails?.includes(user?.email);
+      const inMyTeam = t.assigned_teams?.some(teamId => myTeamIds.has(teamId));
+      return assignedToMe || inMyTeam;
+    });
 
   const submitMutation = useMutation({
     mutationFn: async (data) => {
