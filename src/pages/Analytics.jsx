@@ -10,7 +10,7 @@ import { differenceInDays, parseISO, format, subDays } from 'date-fns';
 
 const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
 
-function StatCard({ icon: Icon, label, value, sub, color }) {
+function StatCard({ icon: IconComp, label, value, sub, color }) {
   return (
     <Card className="border-0 shadow-sm">
       <CardContent className="p-5">
@@ -21,7 +21,7 @@ function StatCard({ icon: Icon, label, value, sub, color }) {
             {sub && <p className="text-xs text-slate-400 mt-1">{sub}</p>}
           </div>
           <div className={`w-12 h-12 rounded-2xl ${color} flex items-center justify-center`}>
-            <Icon className="w-6 h-6 text-white" />
+            <IconComp className="w-6 h-6 text-white" />
           </div>
         </div>
       </CardContent>
