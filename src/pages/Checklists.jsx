@@ -634,7 +634,7 @@ export default function Checklists() {
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-slate-900 block mb-2">Assign to Users</label>
+              <label className="text-sm font-medium text-slate-900 block mb-2">Assign Users</label>
               <div className="max-h-40 overflow-y-auto space-y-2 p-2 bg-slate-50 rounded-lg border border-slate-200">
                 {allUsers.map(u => (
                   <label key={u.id} className="flex items-center gap-2 cursor-pointer">
