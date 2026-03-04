@@ -1,2 +1,8 @@
-// This file will be auto-populated from the Floof app's Dashboard page
-// Rename from Dashboard.js to KennelDashboard.js to avoid naming conflict
+export default function KennelDashboard() {
+  return (
+    <div className="p-8">
+      <h1 className="text-3xl font-bold text-slate-900">Kennel Dashboard</h1>
+      <p className="text-slate-500 mt-2">Welcome to the kennel monitoring system.</p>
+    </div>
+  );
+}
