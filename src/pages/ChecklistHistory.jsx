@@ -177,9 +177,32 @@ export default function ChecklistHistory() {
           )}
           <DialogFooter>
             {!editing ? (
-              <Button onClick={() => setEditing(true)} variant="outline" className="gap-2">
-                <Pencil className="w-4 h-4" /> Edit
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  className="gap-2"
+                  onClick={async () => {
+                    const response = await base44.functions.invoke('exportChecklistHistoryPDF', {
+                      checklist_completion_id: selected.id
+                    });
+                    const blob = new Blob([response.data], { type: 'application/pdf' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${selected.checklist_title.replace(/[^a-z0-9]/gi, '_')}_${selected.completion_date}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    a.remove();
+                    toast.success('PDF exported');
+                  }}
+                >
+                  <Download className="w-4 h-4" /> Export PDF
+                </Button>
+                <Button onClick={() => setEditing(true)} variant="outline" className="gap-2">
+                  <Pencil className="w-4 h-4" /> Edit
+                </Button>
+              </div>
             ) : (
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => setEditing(false)}>Cancel</Button>
