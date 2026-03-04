@@ -67,6 +67,7 @@ import Settings from './pages/Settings';
 import Tasks from './pages/Tasks';
 import Teams from './pages/Teams';
 import UserManagement from './pages/UserManagement';
+import ChecklistAssignmentEditor from './pages/ChecklistAssignmentEditor';
 import __Layout from './Layout.jsx';
 
 
@@ -91,6 +92,7 @@ export const PAGES = {
     "Tasks": Tasks,
     "Teams": Teams,
     "UserManagement": UserManagement,
+    "ChecklistAssignmentEditor": ChecklistAssignmentEditor,
 }
 
 export const pagesConfig = {
