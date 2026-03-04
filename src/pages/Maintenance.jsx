@@ -28,6 +28,7 @@ export default function Maintenance() {
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const [expandedNotesLog, setExpandedNotesLog] = useState(false);
   const [showCompleted, setShowCompleted] = useState(false);
+  const [completedSearch, setCompletedSearch] = useState('');
 
   const { data: requests = [], isLoading } = useQuery({
     queryKey: ['maintenance-requests'],
