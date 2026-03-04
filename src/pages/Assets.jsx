@@ -127,7 +127,10 @@ export default function Assets() {
                           <span className="text-xs text-indigo-600 font-medium px-1">SOP</span>
                         </Link>
                       )}
-                      {canManage && (
+                      <button onClick={() => setSelectedAsset(asset)} className="p-1.5 rounded hover:bg-slate-100">
+                        <span className="text-xs text-slate-600 font-medium px-1">View</span>
+                      </button>
+                      {(isSuperAdmin || isAdmin || isManager) && (
                         <button onClick={() => startEdit(asset)} className="p-1.5 rounded hover:bg-slate-100">
                           <Pencil className="w-4 h-4 text-slate-400" />
                         </button>
