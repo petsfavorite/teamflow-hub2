@@ -47,9 +47,25 @@ export default function SOPEditor() {
     }
   }, [existing]);
 
+  const isManagerOnly = isManager && !isAdmin && !isSuperAdmin;
+
   const saveMutation = useMutation({
     mutationFn: async (data) => {
       const tags = tagsInput.split(',').map(t => t.trim()).filter(Boolean);
+
+      // Managers submit for approval instead of directly saving
+      if (isManagerOnly && id) {
+        return base44.entities.SOP.update(id, {
+          pending_content: data.content,
+          pending_summary: data.summary,
+          pending_tags: tags,
+          pending_change_summary: changeSummary || 'Manager update',
+          pending_submitted_by: user?.email,
+          pending_submitted_by_name: user?.full_name,
+          status: 'pending_approval',
+        });
+      }
+
       const sopData = { ...data, tags, last_updated_by: user?.email, last_updated_by_name: user?.full_name };
 
       let result;
@@ -78,7 +94,11 @@ export default function SOPEditor() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sops'] });
       queryClient.invalidateQueries({ queryKey: ['sop-versions'] });
-      toast.success(id ? 'SOP updated' : 'SOP created');
+      if (isManagerOnly && id) {
+        toast.success('Edit submitted for admin approval');
+      } else {
+        toast.success(id ? 'SOP updated' : 'SOP created');
+      }
       navigate(createPageUrl('SOPs'));
     },
   });
