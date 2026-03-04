@@ -33,6 +33,18 @@ export default function SOPEditor() {
   const [tagsInput, setTagsInput] = useState('');
   const [changeSummary, setChangeSummary] = useState('');
 
+  const { data: teams = [] } = useQuery({
+    queryKey: ['teams'],
+    queryFn: () => base44.entities.Team.list('name', 100),
+    enabled: !!(isAdmin || isSuperAdmin),
+  });
+
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ['all-users-sop'],
+    queryFn: () => base44.entities.User.list('full_name', 500),
+    enabled: !!(isAdmin || isSuperAdmin),
+  });
+
   const { data: existing } = useQuery({
     queryKey: ['sop-edit', id],
     queryFn: async () => {
