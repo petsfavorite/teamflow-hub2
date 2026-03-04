@@ -15,7 +15,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { BookOpen, Plus, Search, Tag, Clock, Trash2 } from 'lucide-react';
 
 export default function SOPs() {
-  const { isAdmin, canManage } = useCurrentUser();
+  const { isAdmin, isSuperAdmin, canManage } = useCurrentUser();
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
