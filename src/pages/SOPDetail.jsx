@@ -47,6 +47,57 @@ export default function SOPDetail() {
     enabled: canManage,
   });
 
+  const approveMutation = useMutation({
+    mutationFn: async (approve) => {
+      if (approve) {
+        return base44.entities.SOP.update(id, {
+          content: sop.pending_content,
+          summary: sop.pending_summary,
+          tags: sop.pending_tags,
+          version: (sop.version || 1) + 1,
+          last_updated_by: sop.pending_submitted_by,
+          last_updated_by_name: sop.pending_submitted_by_name,
+          status: 'published',
+          pending_content: null,
+          pending_summary: null,
+          pending_tags: null,
+          pending_change_summary: null,
+          pending_submitted_by: null,
+          pending_submitted_by_name: null,
+        }).then(async (result) => {
+          await base44.entities.SOPVersion.create({
+            sop_id: id,
+            version_number: (sop.version || 1) + 1,
+            title: sop.title,
+            content: sop.pending_content,
+            summary: sop.pending_summary,
+            tags: sop.pending_tags,
+            category: sop.category,
+            change_summary: sop.pending_change_summary || 'Manager update (approved)',
+            created_by_name: sop.pending_submitted_by_name,
+          });
+          return result;
+        });
+      } else {
+        return base44.entities.SOP.update(id, {
+          status: sop.status === 'pending_approval' ? 'draft' : sop.status,
+          pending_content: null,
+          pending_summary: null,
+          pending_tags: null,
+          pending_change_summary: null,
+          pending_submitted_by: null,
+          pending_submitted_by_name: null,
+        });
+      }
+    },
+    onSuccess: (_, approve) => {
+      toast.success(approve ? 'Changes approved and published!' : 'Changes rejected');
+      queryClient.invalidateQueries({ queryKey: ['sop', id] });
+      queryClient.invalidateQueries({ queryKey: ['sops'] });
+      queryClient.invalidateQueries({ queryKey: ['sop-versions'] });
+    },
+  });
+
   const ackMutation = useMutation({
     mutationFn: () => base44.entities.SOPAcknowledgement.create({
       sop_id: id,
