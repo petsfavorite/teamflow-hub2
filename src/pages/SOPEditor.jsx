@@ -146,12 +146,12 @@ export default function SOPEditor() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Status</Label>
-              <Select value={form.status} onValueChange={v => setForm({ ...form, status: v })}>
+              <Select value={form.status} onValueChange={v => setForm({ ...form, status: v })} disabled={isManagerOnly && !!id}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="published">Published</SelectItem>
-                  <SelectItem value="archived">Archived</SelectItem>
+                  {!isManagerOnly && <SelectItem value="published">Published</SelectItem>}
+                  {!isManagerOnly && <SelectItem value="archived">Archived</SelectItem>}
                 </SelectContent>
               </Select>
             </div>
