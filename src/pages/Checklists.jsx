@@ -694,7 +694,11 @@ export default function Checklists() {
                 auto_close_time: editForm.auto_close_time,
                 assigned_to_emails: editForm.assigned_to_emails,
                 assigned_to_names: editForm.assigned_to_names,
-                assigned_teams: editForm.assigned_teams
+                assigned_teams: editForm.assigned_teams,
+                custom_frequency_type: editForm.custom_frequency_type,
+                custom_frequency_value: editForm.custom_frequency_value,
+                custom_frequency_days: editForm.custom_frequency_days,
+                custom_frequency_day_of_month: editForm.custom_frequency_day_of_month
               });
             }} disabled={editTemplateMutation.isPending} className="bg-indigo-600 hover:bg-indigo-700 gap-2">
               {editTemplateMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Save
