@@ -237,7 +237,42 @@ export default function SOPEditor() {
             </div>
           </div>
 
-          <div className="space-y-2"><Label>Tags (comma separated)</Label><Input value={tagsInput} onChange={e => setTagsInput(e.target.value)} placeholder="safety, kennel, opening" /></div>
+          <div className="space-y-2">
+            <Label className="flex items-center gap-1.5"><Tag className="w-3.5 h-3.5" /> Tags</Label>
+            <div className="flex flex-wrap gap-2 p-3 border border-slate-200 rounded-lg bg-slate-50 min-h-[48px]">
+              {sopTags.map(tag => {
+                const selected = (form.tags || []).includes(tag.name);
+                return (
+                  <div key={tag.id} className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer transition-colors ${selected ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-100'}`}>
+                    <span onClick={() => toggleFormTag(tag.name)}>{tag.name}</span>
+                    {(isAdmin || isSuperAdmin) && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDeleteTag(tag.id); }}
+                        className={`ml-0.5 rounded-full hover:bg-black/10 p-0.5 ${selected ? 'text-indigo-200 hover:text-white' : 'text-slate-400 hover:text-red-500'}`}
+                      >
+                        <X className="w-2.5 h-2.5" />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+              {sopTags.length === 0 && <p className="text-xs text-slate-400">No tags yet</p>}
+            </div>
+            {(isAdmin || isSuperAdmin) && (
+              <div className="flex gap-2">
+                <Input
+                  value={newTagInput}
+                  onChange={e => setNewTagInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleAddTag()}
+                  placeholder="Create new tag..."
+                  className="h-8 text-sm"
+                />
+                <Button size="sm" variant="outline" onClick={handleAddTag} disabled={addingTag || !newTagInput.trim()} className="gap-1">
+                  <Plus className="w-3.5 h-3.5" /> Add
+                </Button>
+              </div>
+            )}
+          </div>
           <div className="space-y-2"><Label>Summary <span className="text-slate-400 text-xs">(brief description for search)</span></Label><Textarea value={form.summary} onChange={e => set('summary', e.target.value)} placeholder="One sentence summary" rows={2} /></div>
 
           {id && (
