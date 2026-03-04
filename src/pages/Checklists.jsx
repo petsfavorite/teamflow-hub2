@@ -15,7 +15,7 @@ import { CheckSquare, Plus, Send, Loader2, Clock } from 'lucide-react';
 import { toast } from "sonner";
 
 export default function Checklists() {
-  const { user, isAdmin, canManage } = useCurrentUser();
+  const { user, isSuperAdmin, isAdmin, isManager, canManage } = useCurrentUser();
   const queryClient = useQueryClient();
   const [activeChecklist, setActiveChecklist] = useState(null);
   const [items, setItems] = useState([]);
@@ -23,12 +23,26 @@ export default function Checklists() {
 
   const { data: templates = [], isLoading } = useQuery({
     queryKey: ['checklist-templates'],
-    queryFn: () => base44.entities.ChecklistTemplate.filter({ status: 'active' }, '-created_date', 100),
+    queryFn: () => base44.entities.ChecklistTemplate.filter({ status: 'published' }, '-created_date', 100),
   });
 
-  const myTemplates = templates.filter(t =>
-    !t.assigned_to || t.assigned_to.length === 0 || t.assigned_to.includes(user?.email)
+  const { data: teams = [] } = useQuery({
+    queryKey: ['teams'],
+    queryFn: () => base44.entities.Team.list(),
+    enabled: canManage,
+  });
+
+  const myTeamIds = new Set(
+    canManage 
+      ? teams.filter(t => t.member_emails?.includes(user?.email)).map(t => t.id)
+      : []
   );
+
+  const myTemplates = templates.filter(t => {
+    const assignedToMe = t.assigned_to_emails?.includes(user?.email);
+    const inMyTeam = t.assigned_teams?.some(teamId => myTeamIds.has(teamId));
+    return assignedToMe || inMyTeam;
+  });
 
   const submitMutation = useMutation({
     mutationFn: (data) => base44.entities.ChecklistCompletion.create(data),
