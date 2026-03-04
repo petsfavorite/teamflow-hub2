@@ -49,6 +49,12 @@ export default function Checklists() {
     custom_frequency_days: [],
     custom_frequency_day_of_month: 1
   });
+  const [assignedFilters, setAssignedFilters] = useState({
+    dueTime: '',
+    team: '',
+    individual: '',
+    frequency: ''
+  });
 
   const { data: publishedTemplates = [], isLoading } = useQuery({
     queryKey: ['checklist-templates-published'],
