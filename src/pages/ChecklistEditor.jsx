@@ -225,27 +225,52 @@ export default function ChecklistEditor() {
             </div>
           )}
 
-          <div className="space-y-2">
-            <Label>Assign to (comma-separated emails, leave empty for everyone)</Label>
-            <Input value={assignInput} onChange={e => setAssignInput(e.target.value)} placeholder="user1@email.com, user2@email.com" />
-            {users.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-2">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Assign to Users</Label>
+              <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 bg-slate-50 rounded-lg border border-slate-200">
                 {users.map(u => (
-                  <button
-                    key={u.id}
-                    type="button"
-                    onClick={() => {
-                      const emails = assignInput.split(',').map(e => e.trim()).filter(Boolean);
-                      if (!emails.includes(u.email)) {
-                        setAssignInput([...emails, u.email].join(', '));
-                      }
-                    }}
-                    className="text-xs px-2 py-1 rounded-full bg-slate-100 hover:bg-indigo-100 text-slate-600 hover:text-indigo-700 transition-colors"
-                  >
-                    + {u.full_name || u.email}
-                  </button>
+                  <label key={u.id} className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={selectedUsers.includes(u.email)}
+                      onCheckedChange={checked => {
+                        setSelectedUsers(checked
+                          ? [...selectedUsers, u.email]
+                          : selectedUsers.filter(e => e !== u.email)
+                        );
+                      }}
+                    />
+                    {u.full_name || u.email}
+                  </label>
                 ))}
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Assign to Teams</Label>
+              <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 bg-slate-50 rounded-lg border border-slate-200">
+                {teams.map(t => (
+                  <label key={t.id} className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={selectedTeams.includes(t.id)}
+                      onCheckedChange={checked => {
+                        setSelectedTeams(checked
+                          ? [...selectedTeams, t.id]
+                          : selectedTeams.filter(id => id !== t.id)
+                        );
+                      }}
+                    />
+                    {t.name}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {selectedUsers.length > 0 && (
+              <div className="text-sm text-slate-600">Selected {selectedUsers.length} user(s)</div>
+            )}
+            {selectedTeams.length > 0 && (
+              <div className="text-sm text-slate-600">Selected {selectedTeams.length} team(s)</div>
             )}
           </div>
 
