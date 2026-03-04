@@ -28,6 +28,7 @@ export default function SOPEditor() {
   const [form, setForm] = useState({
     title: '', category: '', content: '', summary: '', tags: [], status: 'draft',
     version: 1, requires_acknowledgement: false, acknowledgement_due_days: 3,
+    acknowledgement_assigned_emails: [], acknowledgement_assigned_teams: [],
   });
   const [tagsInput, setTagsInput] = useState('');
   const [changeSummary, setChangeSummary] = useState('');
