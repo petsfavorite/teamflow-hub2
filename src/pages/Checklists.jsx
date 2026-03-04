@@ -618,6 +618,92 @@ export default function Checklists() {
           </DialogContent>
           </Dialog>
 
+          <Dialog open={frequencyDialogOpen} onOpenChange={setFrequencyDialogOpen}>
+          <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Frequency - "{templateToEdit?.title}"</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Frequency</Label>
+              <Select value={frequencyForm.recurrence_type} onValueChange={(value) => setFrequencyForm({ ...frequencyForm, recurrence_type: value })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="one_time">One Time Only</SelectItem>
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="weekly">Weekly</SelectItem>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                  <SelectItem value="as_needed">As Needed</SelectItem>
+                  <SelectItem value="custom">Custom</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {frequencyForm.recurrence_type === 'custom' && (
+              <div className="space-y-4 bg-slate-50 p-4 rounded-lg border border-slate-200">
+                <div className="space-y-2">
+                  <Label>Repeat every</Label>
+                  <div className="flex gap-2 items-end">
+                    <Input type="number" min="1" value={frequencyForm.custom_frequency_value} onChange={e => setFrequencyForm({ ...frequencyForm, custom_frequency_value: parseInt(e.target.value) || 1 })} className="w-20" />
+                    <Select value={frequencyForm.custom_frequency_type} onValueChange={v => setFrequencyForm({ ...frequencyForm, custom_frequency_type: v })}>
+                      <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="days">Day(s)</SelectItem>
+                        <SelectItem value="weeks">Week(s)</SelectItem>
+                        <SelectItem value="months">Month(s)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {frequencyForm.custom_frequency_type === 'weeks' && (
+                  <div className="space-y-2">
+                    <Label>On these days</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((day, idx) => (
+                        <label key={idx} className="flex items-center gap-2 text-sm">
+                          <input type="checkbox" checked={frequencyForm.custom_frequency_days?.includes(idx)} onChange={e => setFrequencyForm(prev => ({ ...prev, custom_frequency_days: e.target.checked ? [...(prev.custom_frequency_days || []), idx] : (prev.custom_frequency_days || []).filter(d => d !== idx) }))} className="w-4 h-4 rounded border-slate-300" />
+                          {day}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {frequencyForm.custom_frequency_type === 'months' && (
+                  <div className="space-y-2">
+                    <Label>On day of month</Label>
+                    <Input type="number" min="1" max="31" value={frequencyForm.custom_frequency_day_of_month} onChange={e => setFrequencyForm({ ...frequencyForm, custom_frequency_day_of_month: parseInt(e.target.value) || 1 })} />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" onClick={() => setFrequencyDialogOpen(false)}>Cancel</Button>
+            <Button 
+              variant="destructive"
+              onClick={() => cancelFutureAssignmentsMutation.mutate(templateToEdit.id)}
+              disabled={cancelFutureAssignmentsMutation.isPending}
+            >
+              {cancelFutureAssignmentsMutation.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+              Cancel Future
+            </Button>
+            <Button onClick={() => {
+              updateFrequencyMutation.mutate({
+                recurrence_type: frequencyForm.recurrence_type,
+                custom_frequency_type: frequencyForm.custom_frequency_type,
+                custom_frequency_value: frequencyForm.custom_frequency_value,
+                custom_frequency_days: frequencyForm.custom_frequency_days,
+                custom_frequency_day_of_month: frequencyForm.custom_frequency_day_of_month
+              });
+            }} disabled={updateFrequencyMutation.isPending} className="bg-indigo-600 hover:bg-indigo-700 gap-2">
+              {updateFrequencyMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Update
+            </Button>
+          </DialogFooter>
+          </DialogContent>
+          </Dialog>
+
           <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
           <DialogContent className="max-w-md">
           <DialogHeader>
