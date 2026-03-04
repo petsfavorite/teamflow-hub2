@@ -153,8 +153,9 @@ export default function Assets() {
               </Card>
             );
           })}
-        </div>
-      )}
+          </div>
+          </div>
+          )}
 
       <Dialog open={!!selectedAsset} onOpenChange={() => setSelectedAsset(null)}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
