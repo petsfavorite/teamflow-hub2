@@ -158,26 +158,17 @@ export default function Tasks() {
       )}
 
       <Dialog open={showNew} onOpenChange={setShowNew}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Assign Task</DialogTitle></DialogHeader>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Create Task</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2"><Label>Task Title</Label><Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="What needs to be done?" /></div>
             <div className="space-y-2"><Label>Description</Label><Textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={2} /></div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Assign To</Label>
-                <Select value={form.assigned_to_email} onValueChange={v => {
-                  const u = users.find(u => u.email === v);
-                  setForm({ ...form, assigned_to_email: v, assigned_to_name: u?.full_name || '' });
-                }}>
-                  <SelectTrigger><SelectValue placeholder="Select person" /></SelectTrigger>
-                  <SelectContent>
-                    {users.map(u => <SelectItem key={u.id} value={u.email}>{u.full_name || u.email}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2"><Label>Due Date</Label><Input type="date" value={form.due_date} onChange={e => setForm({ ...form, due_date: e.target.value })} /></div>
+
+            <div className="space-y-2">
+              <Label>Due Date</Label>
+              <Input type="date" value={form.due_date} onChange={e => setForm({ ...form, due_date: e.target.value })} />
             </div>
+
             <div className="space-y-2">
               <Label>Priority</Label>
               <Select value={form.priority} onValueChange={v => setForm({ ...form, priority: v })}>
@@ -190,10 +181,55 @@ export default function Tasks() {
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="space-y-2">
+              <Label>Assign to Users</Label>
+              <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto p-2 bg-slate-50 rounded-lg border border-slate-200">
+                {users.map(u => (
+                  <label key={u.id} className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={form.assigned_to_emails.includes(u.email)}
+                      onCheckedChange={checked => {
+                        const emails = checked
+                          ? [...form.assigned_to_emails, u.email]
+                          : form.assigned_to_emails.filter(e => e !== u.email);
+                        const names = checked
+                          ? [...form.assigned_to_names, u.full_name || u.email]
+                          : form.assigned_to_names.filter((_, i) => form.assigned_to_emails[i] !== u.email);
+                        setForm({ ...form, assigned_to_emails: emails, assigned_to_names: names });
+                      }}
+                    />
+                    {u.full_name || u.email}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Assign to Teams</Label>
+              <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto p-2 bg-slate-50 rounded-lg border border-slate-200">
+                {teams.map(t => (
+                  <label key={t.id} className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={form.assigned_teams.includes(t.id)}
+                      onCheckedChange={checked => {
+                        setForm({
+                          ...form,
+                          assigned_teams: checked
+                            ? [...form.assigned_teams, t.id]
+                            : form.assigned_teams.filter(id => id !== t.id)
+                        });
+                      }}
+                    />
+                    {t.name}
+                  </label>
+                ))}
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowNew(false)}>Cancel</Button>
-            <Button onClick={() => createMutation.mutate({ ...form, created_by_name: user?.full_name })} disabled={createMutation.isPending || !form.title} className="bg-indigo-600 hover:bg-indigo-700 gap-2">
+            <Button onClick={() => createMutation.mutate({ ...form, created_by_name: user?.full_name })} disabled={createMutation.isPending || !form.title || (form.assigned_to_emails.length === 0 && form.assigned_teams.length === 0)} className="bg-indigo-600 hover:bg-indigo-700 gap-2">
               {createMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Create Task
             </Button>
           </DialogFooter>
