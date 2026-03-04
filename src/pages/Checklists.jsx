@@ -11,7 +11,7 @@ import ChecklistItemRow from '../components/checklist/ChecklistItemRow';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { CheckSquare, Plus, Send, Loader2, Clock, Trash2 } from 'lucide-react';
+import { CheckSquare, Plus, Send, Loader2, Clock, Trash2, Share2, X } from 'lucide-react';
 import { toast } from "sonner";
 
 export default function Checklists() {
@@ -22,6 +22,9 @@ export default function Checklists() {
   const [notes, setNotes] = useState({});
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [templateToDelete, setTemplateToDelete] = useState(null);
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [templateToAssign, setTemplateToAssign] = useState(null);
+  const [assignForm, setAssignForm] = useState({ emails: [], teams: [] });
 
   const { data: publishedTemplates = [], isLoading } = useQuery({
     queryKey: ['checklist-templates-published'],
@@ -37,6 +40,12 @@ export default function Checklists() {
   const { data: teams = [] } = useQuery({
     queryKey: ['teams'],
     queryFn: () => base44.entities.Team.list(),
+    enabled: canManage,
+  });
+
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ['users-all'],
+    queryFn: () => base44.entities.User.list(),
     enabled: canManage,
   });
 
@@ -70,6 +79,18 @@ export default function Checklists() {
       setDeleteDialogOpen(false);
       setTemplateToDelete(null);
       queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
+    },
+  });
+
+  const assignMutation = useMutation({
+    mutationFn: (data) => base44.entities.ChecklistTemplate.update(templateToAssign.id, data),
+    onSuccess: () => {
+      toast.success('Checklist assigned!');
+      setAssignDialogOpen(false);
+      setTemplateToAssign(null);
+      setAssignForm({ emails: [], teams: [] });
+      queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
+      queryClient.invalidateQueries({ queryKey: ['checklist-templates-published'] });
     },
   });
 
@@ -237,6 +258,18 @@ export default function Checklists() {
                       <Link to={createPageUrl('ChecklistEditor') + `?id=${t.id}`}>
                         <Button variant="ghost" size="sm">Edit</Button>
                       </Link>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 gap-1"
+                        onClick={() => {
+                          setTemplateToAssign(t);
+                          setAssignForm({ emails: t.assigned_to_emails || [], teams: t.assigned_teams || [] });
+                          setAssignDialogOpen(true);
+                        }}
+                      >
+                        <Share2 className="w-4 h-4" /> Assign
+                      </Button>
                       {(isSuperAdmin || isAdmin) && (
                         <Button 
                           variant="ghost" 
