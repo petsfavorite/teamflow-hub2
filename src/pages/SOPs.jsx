@@ -28,6 +28,14 @@ export default function SOPs() {
       : base44.entities.SOP.filter({ status: 'published' }, '-updated_date', 200),
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (sopId) => base44.entities.SOP.delete(sopId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sops-all'] });
+      setDeleteConfirm(null);
+    },
+  });
+
   const categories = [...new Set(sops.map(s => s.category).filter(Boolean))];
 
   const filtered = sops.filter(s => {
