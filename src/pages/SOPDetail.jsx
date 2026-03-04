@@ -13,7 +13,8 @@ import { toast } from "sonner";
 export default function SOPDetail() {
   const params = new URLSearchParams(window.location.search);
   const id = params.get('id');
-  const { user, canManage } = useCurrentUser();
+  const { user, canManage, isAdmin, isSuperAdmin } = useCurrentUser();
+  const canApprove = isAdmin || isSuperAdmin;
   const queryClient = useQueryClient();
 
   const { data: sop, isLoading } = useQuery({
