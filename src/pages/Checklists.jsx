@@ -62,9 +62,19 @@ export default function Checklists() {
   };
 
   const toggleItem = (index) => {
-    setItems(prev => prev.map((item, i) =>
-      i === index ? { ...item, checked: !item.checked, checked_at: !item.checked ? new Date().toISOString() : null } : item
-    ));
+    setItems(prev => prev.map((item, i) => {
+      if (i === index) {
+        const isChecking = !item.checked;
+        return {
+          ...item,
+          checked: isChecking,
+          checked_at: isChecking ? new Date().toISOString() : null,
+          checked_by_email: isChecking ? user?.email : null,
+          checked_by_name: isChecking ? user?.full_name : null,
+        };
+      }
+      return item;
+    }));
   };
 
   const submitChecklist = () => {
@@ -105,10 +115,26 @@ export default function Checklists() {
                       onCheckedChange={() => toggleItem(i)}
                       className="mt-0.5"
                     />
-                    <div className="flex-1">
-                      <span className={`text-sm font-medium ${item.checked ? 'text-emerald-700 line-through' : 'text-slate-800'}`}>
-                        {item.label}
-                      </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start gap-2 mb-1">
+                        {item.sop_id ? (
+                          <Link to={createPageUrl('SOPDetail') + `?id=${item.sop_id}`} className="text-sm font-medium text-indigo-600 hover:text-indigo-700 underline">
+                            {item.label}
+                          </Link>
+                        ) : (
+                          <span className={`text-sm font-medium ${item.checked ? 'text-emerald-700 line-through' : 'text-slate-800'}`}>
+                            {item.label}
+                          </span>
+                        )}
+                      </div>
+                      {item.assigned_to_name && (
+                        <p className="text-xs text-slate-500 mb-2">Assigned to: {item.assigned_to_name}</p>
+                      )}
+                      {item.checked && (
+                        <p className="text-xs text-emerald-600 mb-2">
+                          ✓ Checked by {item.checked_by_name} at {new Date(item.checked_at).toLocaleString()}
+                        </p>
+                      )}
                       <Textarea
                         placeholder="Add notes (optional)"
                         value={notes[i] || ''}
