@@ -103,59 +103,59 @@ export default function Assets() {
             className="max-w-md"
           />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-           {assets.filter(asset => 
-             asset.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-             asset.location_detail?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-             asset.category.toLowerCase().includes(searchQuery.toLowerCase())
-           ).map(asset => {
-            const maintenance = getMaintenanceStatus(asset);
-            return (
-              <Card key={asset.id} className="border-0 shadow-sm hover:shadow-md transition-all cursor-pointer" onClick={() => setSelectedAsset(asset)}>
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-3 flex-1 min-w-0">
-                      <div className="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center text-xl flex-shrink-0">
-                        {categoryIcons[asset.category] || '📦'}
+            {assets.filter(asset => 
+              asset.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              asset.location_detail?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              asset.category.toLowerCase().includes(searchQuery.toLowerCase())
+            ).map(asset => {
+              const maintenance = getMaintenanceStatus(asset);
+              return (
+                <Card key={asset.id} className="border-0 shadow-sm hover:shadow-md transition-all cursor-pointer" onClick={() => setSelectedAsset(asset)}>
+                  <CardContent className="p-5">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
+                        <div className="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center text-xl flex-shrink-0">
+                          {categoryIcons[asset.category] || '📦'}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-slate-900">{asset.name}</p>
+                          <p className="text-xs text-slate-400 mt-0.5">{asset.location_detail || asset.category}</p>
+                          {maintenance && (
+                            <span className={`inline-block mt-2 text-xs px-2 py-0.5 rounded-full font-medium ${maintenance.color}`}>
+                              <Wrench className="w-3 h-3 inline mr-1" />{maintenance.label}
+                            </span>
+                          )}
+                          {asset.status !== 'active' && <StatusBadge status={asset.status} className="mt-2" />}
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <p className="font-semibold text-slate-900">{asset.name}</p>
-                        <p className="text-xs text-slate-400 mt-0.5">{asset.location_detail || asset.category}</p>
-                        {maintenance && (
-                          <span className={`inline-block mt-2 text-xs px-2 py-0.5 rounded-full font-medium ${maintenance.color}`}>
-                            <Wrench className="w-3 h-3 inline mr-1" />{maintenance.label}
-                          </span>
+                      <div className="flex gap-1.5 flex-shrink-0">
+                        {asset.manual_url && (
+                          <a href={asset.manual_url} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded hover:bg-slate-100" onClick={e => e.stopPropagation()}>
+                            <ExternalLink className="w-4 h-4 text-slate-400" />
+                          </a>
                         )}
-                        {asset.status !== 'active' && <StatusBadge status={asset.status} className="mt-2" />}
+                        {asset.sop_id && (
+                          <Link to={createPageUrl('SOPDetail') + `?id=${asset.sop_id}`} className="p-1.5 rounded hover:bg-indigo-50" onClick={e => e.stopPropagation()}>
+                            <span className="text-xs text-indigo-600 font-medium px-1">SOP</span>
+                          </Link>
+                        )}
+                        {(isSuperAdmin || isAdmin || isManager) && (
+                          <button onClick={(e) => {
+                            e.stopPropagation();
+                            startEdit(asset);
+                          }} className="p-1.5 rounded hover:bg-slate-100">
+                            <Pencil className="w-4 h-4 text-slate-400" />
+                          </button>
+                        )}
                       </div>
                     </div>
-                    <div className="flex gap-1.5 flex-shrink-0">
-                      {asset.manual_url && (
-                        <a href={asset.manual_url} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded hover:bg-slate-100" onClick={e => e.stopPropagation()}>
-                          <ExternalLink className="w-4 h-4 text-slate-400" />
-                        </a>
-                      )}
-                      {asset.sop_id && (
-                        <Link to={createPageUrl('SOPDetail') + `?id=${asset.sop_id}`} className="p-1.5 rounded hover:bg-indigo-50" onClick={e => e.stopPropagation()}>
-                          <span className="text-xs text-indigo-600 font-medium px-1">SOP</span>
-                        </Link>
-                      )}
-                      {(isSuperAdmin || isAdmin || isManager) && (
-                        <button onClick={(e) => {
-                          e.stopPropagation();
-                          startEdit(asset);
-                        }} className="p-1.5 rounded hover:bg-slate-100">
-                          <Pencil className="w-4 h-4 text-slate-400" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
-          </div>
-          )}
+        </div>
+      )}
 
       <Dialog open={!!selectedAsset} onOpenChange={() => setSelectedAsset(null)}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
