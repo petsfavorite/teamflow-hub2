@@ -65,6 +65,7 @@ import SOPVersions from './pages/SOPVersions';
 import SOPs from './pages/SOPs';
 import Tasks from './pages/Tasks';
 import UserManagement from './pages/UserManagement';
+import Teams from './pages/Teams';
 import __Layout from './Layout.jsx';
 
 
@@ -87,6 +88,7 @@ export const PAGES = {
     "SOPs": SOPs,
     "Tasks": Tasks,
     "UserManagement": UserManagement,
+    "Teams": Teams,
 }
 
 export const pagesConfig = {
