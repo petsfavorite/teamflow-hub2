@@ -19,7 +19,7 @@ export function useCurrentUser() {
     fetchUser();
   }, []);
 
-  const isSuperAdmin = user?.role === 'super_admin';
+  const isSuperAdmin = user?.role === 'super_admin' || user?.role === 'admin';
   const isAdmin = user?.role === 'admin' || isSuperAdmin;
   const isManager = user?.role === 'manager';
   const isUser = user?.role === 'user';
