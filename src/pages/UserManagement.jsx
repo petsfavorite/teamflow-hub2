@@ -92,10 +92,13 @@ export default function UserManagement() {
                   </div>
                   <div className="flex items-center gap-3">
                     <RoleBadge role={u.role || 'user'} />
-                    {isAdmin && u.id !== user?.id && (
-                      <Button variant="ghost" size="sm" onClick={() => { setEditingUser(u); setEditRole(u.role || 'user'); }}>
-                        <Pencil className="w-4 h-4 text-slate-400" />
-                      </Button>
+                    {(isSuperAdmin || isAdmin || isManager) && u.id !== user?.id && (
+                      // managers can only assign 'user'; admins can assign up to 'admin'; super_admins can assign any
+                      (isSuperAdmin || isAdmin || (isManager && (u.role === 'user' || !u.role))) && (
+                        <Button variant="ghost" size="sm" onClick={() => { setEditingUser(u); setEditRole(u.role || 'user'); }}>
+                          <Pencil className="w-4 h-4 text-slate-400" />
+                        </Button>
+                      )
                     )}
                   </div>
                 </div>
