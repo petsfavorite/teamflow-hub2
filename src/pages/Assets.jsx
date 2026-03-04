@@ -427,8 +427,77 @@ export default function Assets() {
             )}
             <Button variant="outline" onClick={() => setSelectedAsset(null)}>Close</Button>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+          </Dialog>
+
+          <Dialog open={creatingTaskForAsset} onOpenChange={setCreatingTaskForAsset}>
+          <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Create Task for {selectedAsset?.name}</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2"><Label>Task Title</Label><Input value={newTaskForm.title} onChange={e => setNewTaskForm({ ...newTaskForm, title: e.target.value })} placeholder="What needs to be done?" /></div>
+            <div className="space-y-2"><Label>Description</Label><Textarea value={newTaskForm.description} onChange={e => setNewTaskForm({ ...newTaskForm, description: e.target.value })} rows={2} /></div>
+            <div className="space-y-2">
+              <Label>Assign to Users</Label>
+              <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto p-2 bg-slate-50 rounded-lg border border-slate-200">
+                {users.map(u => (
+                  <label key={u.id} className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={newTaskForm.assigned_to_emails.includes(u.email)}
+                      onCheckedChange={checked => {
+                        const emails = checked
+                          ? [...newTaskForm.assigned_to_emails, u.email]
+                          : newTaskForm.assigned_to_emails.filter(e => e !== u.email);
+                        const names = checked
+                          ? [...newTaskForm.assigned_to_names, u.full_name || u.email]
+                          : newTaskForm.assigned_to_names.filter((_, i) => newTaskForm.assigned_to_emails[i] !== u.email);
+                        setNewTaskForm({ ...newTaskForm, assigned_to_emails: emails, assigned_to_names: names });
+                      }}
+                    />
+                    {u.full_name || u.email}
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Assign to Teams</Label>
+              <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto p-2 bg-slate-50 rounded-lg border border-slate-200">
+                {teams.map(t => (
+                  <label key={t.id} className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={newTaskForm.assigned_to_teams.includes(t.id)}
+                      onCheckedChange={checked => {
+                        setNewTaskForm({
+                          ...newTaskForm,
+                          assigned_to_teams: checked
+                            ? [...newTaskForm.assigned_to_teams, t.id]
+                            : newTaskForm.assigned_to_teams.filter(id => id !== t.id)
+                        });
+                      }}
+                    />
+                    {t.name}
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreatingTaskForAsset(false)}>Cancel</Button>
+            <Button onClick={() => {
+              if (newTaskForm.title && selectedAsset && (newTaskForm.assigned_to_emails.length > 0 || newTaskForm.assigned_to_teams.length > 0)) {
+                createTaskMutation.mutate({
+                  ...newTaskForm,
+                  created_by_name: user?.full_name,
+                  asset_id: selectedAsset.id
+                });
+              } else {
+                toast.error('Please fill in title and assign to at least one user or team');
+              }
+            }} disabled={createTaskMutation.isPending || !newTaskForm.title || (newTaskForm.assigned_to_emails.length === 0 && newTaskForm.assigned_to_teams.length === 0)} className="bg-indigo-600 hover:bg-indigo-700 gap-2">
+              {createTaskMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Create Task
+            </Button>
+          </DialogFooter>
+          </DialogContent>
+          </Dialog>
 
       <Dialog open={showForm} onOpenChange={resetForm}>
       <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
