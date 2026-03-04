@@ -4,22 +4,24 @@ import { createPageUrl } from '@/utils';
 import { useCurrentUser } from './components/hooks/useCurrentUser';
 import {
   BookOpen, CheckSquare, Wrench, ExternalLink, MessageSquare,
-  LayoutDashboard, Users, ChevronLeft, ChevronRight, Menu, X, LogOut, Rocket
+  LayoutDashboard, Users, ChevronLeft, ChevronRight, Menu, X, LogOut
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { base44 } from '@/api/base44Client';
 import RoleBadge from './components/shared/RoleBadge';
 
 const navItems = [
-  { label: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard', roles: ['super_admin', 'admin', 'manager', 'user'] },
-  { label: 'SOPs', icon: BookOpen, page: 'SOPs', roles: ['super_admin', 'admin', 'manager', 'user'] },
-  { label: 'Checklists', icon: CheckSquare, page: 'Checklists', roles: ['super_admin', 'admin', 'manager', 'user'] },
-  { label: 'Checklist History', icon: CheckSquare, page: 'ChecklistHistory', roles: ['super_admin', 'admin', 'manager'] },
-  { label: 'Maintenance', icon: Wrench, page: 'Maintenance', roles: ['super_admin', 'admin', 'manager', 'user'] },
-  { label: 'App Links', icon: ExternalLink, page: 'ExternalLinks', roles: ['super_admin', 'admin', 'manager', 'user'] },
-  { label: 'SOP Assistant', icon: MessageSquare, page: 'SOPAssistant', roles: ['super_admin', 'admin', 'manager', 'user'] },
-  { label: 'Users', icon: Users, page: 'UserManagement', roles: ['super_admin', 'admin', 'manager'] },
-  { label: 'Dev Checklist', icon: Rocket, page: 'DevChecklist', roles: ['super_admin'] },
+  { label: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard', roles: ['admin', 'manager', 'user'] },
+  { label: 'SOPs', icon: BookOpen, page: 'SOPs', roles: ['admin', 'manager', 'user'] },
+  { label: 'Checklists', icon: CheckSquare, page: 'Checklists', roles: ['admin', 'manager', 'user'] },
+  { label: 'Checklist History', icon: CheckSquare, page: 'ChecklistHistory', roles: ['admin', 'manager'] },
+  { label: 'Tasks', icon: ClipboardList, page: 'Tasks', roles: ['admin', 'manager', 'user'] },
+  { label: 'Maintenance', icon: Wrench, page: 'Maintenance', roles: ['admin', 'manager', 'user'] },
+  { label: 'Incidents', icon: AlertTriangle, page: 'IncidentReports', roles: ['admin', 'manager', 'user'] },
+  { label: 'Assets', icon: Boxes, page: 'Assets', roles: ['admin', 'manager', 'user'] },
+  { label: 'App Links', icon: ExternalLink, page: 'ExternalLinks', roles: ['admin', 'manager', 'user'] },
+  { label: 'SOP Assistant', icon: MessageSquare, page: 'SOPAssistant', roles: ['admin', 'manager', 'user'] },
+  { label: 'Users', icon: Users, page: 'UserManagement', roles: ['admin', 'manager'] },
 ];
 
 export default function Layout({ children, currentPageName }) {
