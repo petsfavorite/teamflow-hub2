@@ -67,7 +67,7 @@ export default function ExternalLinks() {
         title="App Links"
         description="Quick access to business applications"
         actions={
-          isAdmin && (
+          canEdit && (
             <Button onClick={() => setShowForm(true)} className="bg-indigo-600 hover:bg-indigo-700 gap-2">
               <Plus className="w-4 h-4" /> Add Link
             </Button>
