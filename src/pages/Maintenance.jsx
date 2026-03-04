@@ -12,16 +12,21 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Wrench, Plus, MapPin, Clock, User, Loader2 } from 'lucide-react';
+import { Checkbox } from "@/components/ui/checkbox";
+import { Wrench, Plus, MapPin, Clock, User, Loader2, ChevronDown, Paperclip } from 'lucide-react';
 import { toast } from "sonner";
 
 export default function Maintenance() {
-  const { user, canManage } = useCurrentUser();
+  const { user, canManage, isSuperAdmin, isAdmin } = useCurrentUser();
   const queryClient = useQueryClient();
   const params = new URLSearchParams(window.location.search);
   const [showNew, setShowNew] = useState(params.get('new') === 'true');
   const [selected, setSelected] = useState(null);
-  const [form, setForm] = useState({ title: '', description: '', location: '', priority: 'medium' });
+  const [form, setForm] = useState({ title: '', description: '', location: '', priority: 'medium', asset_id: null });
+  const [newNote, setNewNote] = useState('');
+  const [newNoteAttachment, setNewNoteAttachment] = useState(null);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const [expandedNotesLog, setExpandedNotesLog] = useState(false);
 
   const { data: requests = [], isLoading } = useQuery({
     queryKey: ['maintenance-requests'],
