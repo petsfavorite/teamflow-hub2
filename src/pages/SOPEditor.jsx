@@ -182,19 +182,67 @@ export default function SOPEditor() {
             </div>
           )}
 
-          <div className="flex items-center gap-4 p-4 bg-amber-50 rounded-xl border border-amber-100">
-            <Switch
-              checked={form.requires_acknowledgement}
-              onCheckedChange={v => setForm({ ...form, requires_acknowledgement: v })}
-            />
-            <div>
-              <p className="font-medium text-sm text-amber-900">Require Staff Acknowledgement</p>
-              <p className="text-xs text-amber-700">Staff must confirm they've read this SOP when published or updated</p>
+          <div className="space-y-4 p-4 bg-amber-50 rounded-xl border border-amber-100">
+            <div className="flex items-center gap-4">
+              <Switch
+                checked={form.requires_acknowledgement}
+                onCheckedChange={v => setForm({ ...form, requires_acknowledgement: v })}
+              />
+              <div className="flex-1">
+                <p className="font-medium text-sm text-amber-900">Require Staff Acknowledgement</p>
+                <p className="text-xs text-amber-700">Staff must confirm they've read this SOP when published or updated</p>
+              </div>
+              {form.requires_acknowledgement && (
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs">Days to acknowledge</Label>
+                  <Input type="number" value={form.acknowledgement_due_days} onChange={e => setForm({ ...form, acknowledgement_due_days: Number(e.target.value) })} className="w-16 h-8 text-sm" />
+                </div>
+              )}
             </div>
+
             {form.requires_acknowledgement && (
-              <div className="ml-auto flex items-center gap-2">
-                <Label className="text-xs">Days to acknowledge</Label>
-                <Input type="number" value={form.acknowledgement_due_days} onChange={e => setForm({ ...form, acknowledgement_due_days: Number(e.target.value) })} className="w-16 h-8 text-sm" />
+              <div className="space-y-3 pt-2 border-t border-amber-200">
+                <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide">Assign to (leave blank for all staff)</p>
+
+                {teams.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-1.5 mb-2 text-xs font-medium text-amber-800"><Users className="w-3.5 h-3.5" /> Teams</div>
+                    <div className="flex flex-wrap gap-2">
+                      {teams.map(team => (
+                        <label key={team.id} className="flex items-center gap-1.5 cursor-pointer bg-white px-2.5 py-1.5 rounded-lg border border-amber-200 hover:bg-amber-50">
+                          <Checkbox
+                            checked={(form.acknowledgement_assigned_teams || []).includes(team.id)}
+                            onCheckedChange={checked => {
+                              const curr = form.acknowledgement_assigned_teams || [];
+                              setForm({ ...form, acknowledgement_assigned_teams: checked ? [...curr, team.id] : curr.filter(t => t !== team.id) });
+                            }}
+                          />
+                          <span className="text-xs text-slate-700">{team.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {allUsers.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-1.5 mb-2 text-xs font-medium text-amber-800"><User className="w-3.5 h-3.5" /> Individuals</div>
+                    <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+                      {allUsers.map(u => (
+                        <label key={u.id} className="flex items-center gap-1.5 cursor-pointer bg-white px-2.5 py-1.5 rounded-lg border border-amber-200 hover:bg-amber-50">
+                          <Checkbox
+                            checked={(form.acknowledgement_assigned_emails || []).includes(u.email)}
+                            onCheckedChange={checked => {
+                              const curr = form.acknowledgement_assigned_emails || [];
+                              setForm({ ...form, acknowledgement_assigned_emails: checked ? [...curr, u.email] : curr.filter(e => e !== u.email) });
+                            }}
+                          />
+                          <span className="text-xs text-slate-700">{u.full_name || u.email}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
