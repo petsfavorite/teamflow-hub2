@@ -524,7 +524,7 @@ export default function Checklists() {
           {/* Filtered Assigned Checklists */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
             {allTemplates
-              .filter(t => t.status === 'published' && t.status !== 'closed')
+              .filter(t => (t.status === 'published' || t.status === 'active') && t.status !== 'closed')
               .filter(t => {
                 // Has assignments
                 if (!(t.assigned_to_emails?.length > 0 || t.assigned_teams?.length > 0)) return false;
