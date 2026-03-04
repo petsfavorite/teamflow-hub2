@@ -24,7 +24,20 @@ const priorityColors = {
   urgent: 'bg-red-100 text-red-700',
 };
 
-const emptyForm = { title: '', description: '', assigned_to_emails: [], assigned_to_names: [], assigned_teams: [], due_date: '', priority: 'medium', recurrence_type: 'once', recurrence_days_of_week: [], recurrence_day_of_month: 1, recurrence_interval_months: 1 };
+const emptyForm = { 
+  title: '', 
+  description: '', 
+  assigned_to_emails: [], 
+  assigned_to_names: [], 
+  assigned_teams: [], 
+  due_date: '', 
+  priority: 'medium', 
+  recurrence_type: 'once',
+  custom_frequency_type: 'days',
+  custom_frequency_value: 1,
+  custom_frequency_days: [],
+  custom_frequency_day_of_month: 1
+};
 
 export default function Tasks() {
   const { user, canManage } = useCurrentUser();
