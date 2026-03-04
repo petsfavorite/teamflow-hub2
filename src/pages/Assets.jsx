@@ -321,14 +321,28 @@ export default function Assets() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2"><Label>Linked SOP (optional)</Label>
-                <Select value={form.sop_id || ''} onValueChange={v => setForm({ ...form, sop_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={null}>None</SelectItem>
-                    {sops.map(s => <SelectItem key={s.id} value={s.id}>{s.title}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+              <div className="space-y-2">
+                <Label>Linked SOPs (optional)</Label>
+                <div className="border rounded-lg p-2 bg-slate-50 max-h-40 overflow-y-auto space-y-1">
+                  {sops.map(sop => (
+                    <label key={sop.id} className="flex items-center gap-2 cursor-pointer p-1 hover:bg-slate-100 rounded text-sm">
+                      <input
+                        type="checkbox"
+                        checked={(form.sop_ids || []).includes(sop.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setForm({ ...form, sop_ids: [...(form.sop_ids || []), sop.id] });
+                          } else {
+                            setForm({ ...form, sop_ids: (form.sop_ids || []).filter(id => id !== sop.id) });
+                          }
+                        }}
+                        className="w-4 h-4"
+                      />
+                      {sop.title}
+                    </label>
+                  ))}
+                  {sops.length === 0 && <p className="text-xs text-slate-400">No published SOPs available</p>}
+                </div>
               </div>
             </div>
             <div className="space-y-2"><Label>Manual URL</Label><Input value={form.manual_url} onChange={e => setForm({ ...form, manual_url: e.target.value })} placeholder="https://..." /></div>
