@@ -138,6 +138,50 @@ export default function Maintenance() {
         </div>
       )}
 
+      {/* Completed Requests (managers and above only) */}
+      {canManage && completedRequests.length > 0 && (
+        <div className="mt-8 border-t pt-6">
+          <button
+            onClick={() => setShowCompleted(!showCompleted)}
+            className="flex items-center gap-2 text-sm font-semibold text-slate-900 hover:text-slate-700 transition-colors mb-4"
+          >
+            <ChevronDown className={`w-4 h-4 transition-transform ${showCompleted ? 'rotate-180' : ''}`} />
+            Completed Requests ({completedRequests.length})
+          </button>
+
+          {showCompleted && (
+            <div className="space-y-3">
+              {completedRequests.map(req => (
+                <Card key={req.id} className="border-0 shadow-sm hover:shadow-md transition-all cursor-pointer bg-emerald-50" onClick={() => setSelected(req)}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-4 min-w-0 flex-1">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                          <Wrench className="w-5 h-5 text-emerald-600" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-slate-900 truncate">{req.title}</p>
+                          <div className="flex items-center gap-3 mt-1 text-xs text-slate-400 flex-wrap">
+                            {req.location && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{req.location}</span>}
+                            {req.asset_name && <span className="flex items-center gap-1">Asset: {req.asset_name}</span>}
+                            <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{new Date(req.created_date).toLocaleDateString()}</span>
+                            <span className="flex items-center gap-1"><User className="w-3 h-3" />{req.requested_by_name || req.requested_by}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <StatusBadge status={req.priority} />
+                        <StatusBadge status={req.status} />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* New Request Dialog */}
       <Dialog open={showNew} onOpenChange={setShowNew}>
         <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
