@@ -302,7 +302,7 @@ export default function Maintenance() {
                 </div>
               )}
 
-              {canManage && !canManage && false && ( /* users cannot edit after creation */
+              {canManage && (
                 <div className="border-t pt-4 space-y-3">
                   <p className="text-sm font-medium text-slate-900">Add Note</p>
                   <Textarea 
