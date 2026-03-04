@@ -568,7 +568,7 @@ export default function Checklists() {
           <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
           <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Open "{templateToEdit?.title}"</DialogTitle>
+            <DialogTitle>Open to Assign "{templateToEdit?.title}"</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
