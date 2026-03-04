@@ -190,7 +190,15 @@ export default function Assets() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={resetForm}>Cancel</Button>
-            <Button onClick={() => saveMutation.mutate(form)} disabled={saveMutation.isPending} className="bg-indigo-600 hover:bg-indigo-700 gap-2">
+            <Button onClick={() => {
+              const payload = { ...form };
+              if (payload.maintenance_interval_days === '' || payload.maintenance_interval_days === null) {
+                delete payload.maintenance_interval_days;
+              } else {
+                payload.maintenance_interval_days = Number(payload.maintenance_interval_days);
+              }
+              saveMutation.mutate(payload);
+            }} disabled={saveMutation.isPending} className="bg-indigo-600 hover:bg-indigo-700 gap-2">
               {saveMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />} {editingAsset ? 'Update' : 'Add'} Asset
             </Button>
           </DialogFooter>
