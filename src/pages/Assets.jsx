@@ -142,10 +142,10 @@ export default function Assets() {
                         }} className="px-3 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-50 rounded">
                           View
                         </button>
-                        {asset.sop_id && (
-                          <Link to={createPageUrl('SOPDetail') + `?id=${asset.sop_id}`} className="p-1.5 rounded hover:bg-indigo-50" onClick={e => e.stopPropagation()}>
-                            <span className="text-xs text-indigo-600 font-medium px-1">SOP</span>
-                          </Link>
+                        {asset.sop_ids?.length > 0 && (
+                        <span className="text-xs text-indigo-600 font-medium px-1 bg-indigo-50 rounded">
+                          {asset.sop_ids.length} SOP{asset.sop_ids.length !== 1 ? 's' : ''}
+                        </span>
                         )}
                         {(isSuperAdmin || isAdmin || isManager) && (
                           <button onClick={(e) => {
