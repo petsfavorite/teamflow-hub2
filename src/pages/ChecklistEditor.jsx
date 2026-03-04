@@ -179,8 +179,8 @@ export default function ChecklistEditor() {
           </div>
 
           <div className="space-y-2">
-            <Label className="flex items-center gap-2"><Clock className="w-4 h-4" /> Auto-Close Time</Label>
-            <p className="text-xs text-slate-500">Time when this checklist should auto-close {form.frequency !== 'as_needed' && form.frequency !== 'custom' && `(applies to each ${form.frequency} occurrence)`}</p>
+            <Label className="flex items-center gap-2"><Clock className="w-4 h-4" /> Due</Label>
+            <p className="text-xs text-slate-500">Time when this checklist is due {form.frequency !== 'as_needed' && form.frequency !== 'custom' && form.frequency !== 'one_time' && `(applies to each ${form.frequency} occurrence)`}</p>
             <Input
               type="time"
               value={form.auto_close_time}
