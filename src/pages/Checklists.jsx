@@ -489,9 +489,6 @@ export default function Checklists() {
                                >
                                  Open to Assign
                                </Button>
-                               <Link to={createPageUrl('ChecklistEditor') + `?id=${t.id}`}>
-                                 <Button variant="ghost" size="sm">Edit</Button>
-                               </Link>
                              </>
                            )}
                           {(canManage) && t.status === 'published' && (
