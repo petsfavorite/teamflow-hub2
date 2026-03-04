@@ -144,6 +144,81 @@ export default function Assets() {
         </div>
       )}
 
+      <Dialog open={!!selectedAsset} onOpenChange={() => setSelectedAsset(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>{selectedAsset?.name}</DialogTitle></DialogHeader>
+          {selectedAsset && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-slate-500 font-medium">Category</p>
+                  <p className="text-sm font-medium">{selectedAsset.category}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500 font-medium">Location</p>
+                  <p className="text-sm font-medium">{selectedAsset.location_detail || '—'}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-slate-500 font-medium">Status</p>
+                  <div className="mt-1"><StatusBadge status={selectedAsset.status} /></div>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500 font-medium">Serial Number</p>
+                  <p className="text-sm font-medium">{selectedAsset.serial_number || '—'}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-slate-500 font-medium">Last Maintenance</p>
+                  <p className="text-sm font-medium">{selectedAsset.last_maintenance_date || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500 font-medium">Next Maintenance Due</p>
+                  <p className="text-sm font-medium">{selectedAsset.next_maintenance_date || '—'}</p>
+                </div>
+              </div>
+
+              {selectedAsset.notes && (
+                <div>
+                  <p className="text-xs text-slate-500 font-medium">Notes</p>
+                  <p className="text-sm mt-1">{selectedAsset.notes}</p>
+                </div>
+              )}
+
+              {(selectedAsset.manual_url || selectedAsset.sop_id) && (
+                <div className="flex gap-2 pt-2 border-t">
+                  {selectedAsset.manual_url && (
+                    <a href={selectedAsset.manual_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-sm font-medium">
+                      <ExternalLink className="w-4 h-4" /> Manual
+                    </a>
+                  )}
+                  {selectedAsset.sop_id && (
+                    <Link to={createPageUrl('SOPDetail') + `?id=${selectedAsset.sop_id}`} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium">
+                      <span>View SOP</span>
+                    </Link>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            {(isSuperAdmin || isAdmin || isManager) && (
+              <Button onClick={() => {
+                setSelectedAsset(null);
+                startEdit(selectedAsset);
+              }} className="bg-indigo-600 hover:bg-indigo-700 gap-2">
+                <Pencil className="w-4 h-4" /> Edit Asset
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => setSelectedAsset(null)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={showForm} onOpenChange={resetForm}>
         <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editingAsset ? 'Edit Asset' : 'Add Asset'}</DialogTitle></DialogHeader>
