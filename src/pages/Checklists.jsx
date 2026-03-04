@@ -161,7 +161,7 @@ export default function Checklists() {
     setCanSubmitWithIncomplete(!template.auto_close_datetime && !template.auto_close_time);
   };
 
-  const updateItem = (index, updates) => {
+  const updateItem = async (index, updates) => {
     setItems(prev => {
       const updated = prev.map((item, i) => {
         if (i === index) {
@@ -179,6 +179,8 @@ export default function Checklists() {
         }
         return item;
       });
+      // Auto-save to in-progress completion
+      saveChecklistProgress(updated);
       return updated;
     });
   };
