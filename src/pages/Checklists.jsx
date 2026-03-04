@@ -800,28 +800,30 @@ export default function Checklists() {
                 ))}
               </div>
             </div>
-            <div>
-              <label className="text-sm font-medium text-slate-900 block mb-2">Assign Teams</label>
-              <div className="max-h-40 overflow-y-auto space-y-2 p-2 bg-slate-50 rounded-lg border border-slate-200">
-                {teams.map(t => (
-                  <label key={t.id} className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={editForm.assigned_teams.includes(t.id)}
-                      onChange={e => {
-                        if (e.target.checked) {
-                          setEditForm({ ...editForm, assigned_teams: [...editForm.assigned_teams, t.id] });
-                        } else {
-                          setEditForm({ ...editForm, assigned_teams: editForm.assigned_teams.filter(id => id !== t.id) });
-                        }
-                      }}
-                      className="w-4 h-4 rounded border-slate-300"
-                    />
-                    <span className="text-sm text-slate-700">{t.name}</span>
-                  </label>
-                ))}
+            {(isSuperAdmin || isAdmin) && (
+              <div>
+                <label className="text-sm font-medium text-slate-900 block mb-2">Assign Teams</label>
+                <div className="max-h-40 overflow-y-auto space-y-2 p-2 bg-slate-50 rounded-lg border border-slate-200">
+                  {teams.map(t => (
+                    <label key={t.id} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={editForm.assigned_teams.includes(t.id)}
+                        onChange={e => {
+                          if (e.target.checked) {
+                            setEditForm({ ...editForm, assigned_teams: [...editForm.assigned_teams, t.id] });
+                          } else {
+                            setEditForm({ ...editForm, assigned_teams: editForm.assigned_teams.filter(id => id !== t.id) });
+                          }
+                        }}
+                        className="w-4 h-4 rounded border-slate-300"
+                      />
+                      <span className="text-sm text-slate-700">{t.name}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
