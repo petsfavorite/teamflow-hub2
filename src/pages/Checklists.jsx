@@ -563,7 +563,7 @@ export default function Checklists() {
                       <p className="text-xs text-slate-600 mb-3">Teams: {t.assigned_teams.map(id => teams.find(tm => tm.id === id)?.name).filter(Boolean).join(', ')}</p>
                     )}
                     <div className="flex gap-1">
-                      <Link to={createPageUrl('ChecklistEditor') + `?id=${t.id}`} className="flex-1">
+                      <Link to={createPageUrl('ChecklistAssignmentEditor') + `?id=${t.id}`} className="flex-1">
                         <Button variant="ghost" size="sm" className="text-slate-600 hover:text-slate-700 hover:bg-slate-50 text-xs w-full">Edit</Button>
                       </Link>
                     </div>
