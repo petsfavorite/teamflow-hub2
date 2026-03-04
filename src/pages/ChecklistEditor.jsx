@@ -98,8 +98,11 @@ export default function ChecklistEditor() {
   };
 
   const handleSave = () => {
-    const assigned_to = assignInput.split(',').map(e => e.trim()).filter(Boolean);
-    saveMutation.mutate({ ...form, assigned_to });
+    saveMutation.mutate({
+      ...form,
+      assigned_to_emails: selectedUsers,
+      assigned_to_teams: selectedTeams
+    });
   };
 
   if (!id && !isAdmin && !isSuperAdmin) {
