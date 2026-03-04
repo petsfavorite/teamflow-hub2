@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import ReactQuill from 'react-quill';
 import { ArrowLeft, Save, Loader2, History, Users, User, Video, AlertTriangle, UserCheck, CheckCircle2, CalendarCheck, X, Plus, Tag } from 'lucide-react';
+import SOPAIImporter from '../components/sop/SOPAIImporter';
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { addDays, format, parseISO, differenceInDays } from 'date-fns';
