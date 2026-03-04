@@ -141,9 +141,9 @@ export default function Checklists() {
     <div>
       <PageHeader
         title="Checklists"
-        description="Complete your assigned daily checklists"
+        description="Complete your assigned checklists"
         actions={
-          isAdmin && (
+          (isSuperAdmin || isAdmin) && (
             <Link to={createPageUrl('ChecklistEditor')}>
               <Button className="bg-indigo-600 hover:bg-indigo-700 gap-2">
                 <Plus className="w-4 h-4" /> New Checklist
