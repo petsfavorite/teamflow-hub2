@@ -576,6 +576,7 @@ export default function Checklists() {
               <Select value={editForm.recurrence_type} onValueChange={(value) => setEditForm({ ...editForm, recurrence_type: value })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="one_time">One Time Only</SelectItem>
                   <SelectItem value="daily">Daily</SelectItem>
                   <SelectItem value="weekly">Weekly</SelectItem>
                   <SelectItem value="monthly">Monthly</SelectItem>
