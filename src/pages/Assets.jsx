@@ -435,8 +435,16 @@ export default function Assets() {
               </div>
               <div className="space-y-2">
                 <Label>Linked SOPs (optional)</Label>
+                <Input
+                  placeholder="Search SOPs..."
+                  value={sopSearch}
+                  onChange={(e) => setSopSearch(e.target.value)}
+                  className="text-xs"
+                />
                 <div className="border rounded-lg p-2 bg-slate-50 max-h-40 overflow-y-auto space-y-1">
-                  {sops.map(sop => (
+                  {sops
+                    .filter(sop => sop.title.toLowerCase().includes(sopSearch.toLowerCase()))
+                    .map(sop => (
                     <label key={sop.id} className="flex items-center gap-2 cursor-pointer p-1 hover:bg-slate-100 rounded text-sm">
                       <input
                         type="checkbox"
@@ -453,7 +461,7 @@ export default function Assets() {
                       {sop.title}
                     </label>
                   ))}
-                  {sops.length === 0 && <p className="text-xs text-slate-400">No published SOPs available</p>}
+                  {sops.filter(sop => sop.title.toLowerCase().includes(sopSearch.toLowerCase())).length === 0 && <p className="text-xs text-slate-400">No SOPs found</p>}
                 </div>
               </div>
             </div>
