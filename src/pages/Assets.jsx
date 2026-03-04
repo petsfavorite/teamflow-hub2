@@ -39,6 +39,8 @@ export default function Assets() {
   const [sopSearch, setSopSearch] = useState('');
   const [taskSearch, setTaskSearch] = useState('');
   const [expandedNotesLog, setExpandedNotesLog] = useState(false);
+  const [creatingTaskForAsset, setCreatingTaskForAsset] = useState(false);
+  const [newTaskForm, setNewTaskForm] = useState({ title: '', description: '', assigned_to_emails: [], assigned_to_names: [], assigned_teams: [] });
 
   useEffect(() => {
     base44.auth.me().then(u => setUser(u)).catch(() => setUser(null));
@@ -67,6 +69,17 @@ export default function Assets() {
       toast.success(editingAsset ? 'Asset updated' : 'Asset added');
       queryClient.invalidateQueries({ queryKey: ['assets'] });
       resetForm();
+    },
+  });
+
+  const createTaskMutation = useMutation({
+    mutationFn: (data) => base44.entities.Task.create(data),
+    onSuccess: () => {
+      toast.success('Task created and linked to asset');
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['assets'] });
+      setCreatingTaskForAsset(false);
+      setNewTaskForm({ title: '', description: '', assigned_to_emails: [], assigned_to_names: [], assigned_teams: [] });
     },
   });
 
@@ -243,7 +256,10 @@ export default function Assets() {
                   )}
                   {selectedAsset.task_ids?.length > 0 && (
                     <div className="text-xs text-slate-600">
-                      <p className="font-medium mb-1.5">Attached Tasks:</p>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <p className="font-medium">Attached Tasks:</p>
+                        <button onClick={() => setCreatingTaskForAsset(true)} className="text-indigo-600 hover:text-indigo-700 font-semibold">+</button>
+                      </div>
                       <div className="space-y-1">
                         {selectedAsset.task_ids.map(taskId => {
                           const task = allTasks.find(t => t.id === taskId);
@@ -255,6 +271,11 @@ export default function Assets() {
                         })}
                       </div>
                     </div>
+                  )}
+                  {!selectedAsset.task_ids?.length && (
+                    <button onClick={() => setCreatingTaskForAsset(true)} className="text-xs text-indigo-600 hover:text-indigo-700 font-medium px-3 py-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 w-fit">
+                      <Plus className="w-3 h-3 inline mr-1" /> Create Task
+                    </button>
                   )}
                 </div>
               )}
