@@ -130,7 +130,7 @@ export default function Maintenance() {
 
       {/* New Request Dialog */}
       <Dialog open={showNew} onOpenChange={setShowNew}>
-        <DialogContent>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>New Maintenance Request</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2"><Label>Title</Label><Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Brief description" /></div>
@@ -149,6 +149,18 @@ export default function Maintenance() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Linked Asset (optional)</Label>
+              <Select value={form.asset_id || ''} onValueChange={v => setForm({ ...form, asset_id: v || null })}>
+                <SelectTrigger><SelectValue placeholder="Select an asset" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={null}>None</SelectItem>
+                  {assets.map(a => (
+                    <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>
