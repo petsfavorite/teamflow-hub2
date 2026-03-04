@@ -15,7 +15,7 @@ import { Users, UserPlus, Pencil, Loader2, Mail } from 'lucide-react';
 import { toast } from "sonner";
 
 export default function UserManagement() {
-  const { user, isAdmin, canManage } = useCurrentUser();
+  const { user, isSuperAdmin, isAdmin, isManager, canManage } = useCurrentUser();
   const queryClient = useQueryClient();
   const [showInvite, setShowInvite] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
