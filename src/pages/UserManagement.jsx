@@ -153,30 +153,54 @@ export default function UserManagement() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Role Dialog */}
+      {/* Edit User Dialog */}
       <Dialog open={!!editingUser} onOpenChange={() => setEditingUser(null)}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Edit Role — {editingUser?.full_name}</DialogTitle></DialogHeader>
-          <div className="space-y-2">
-            <Label>Role</Label>
-            <Select value={editRole} onValueChange={setEditRole}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="user">User</SelectItem>
-                {(isSuperAdmin || isAdmin) && <SelectItem value="manager">Manager</SelectItem>}
-                {(isSuperAdmin || isAdmin) && <SelectItem value="admin">Admin</SelectItem>}
-                {isSuperAdmin && <SelectItem value="super_admin">Super Admin</SelectItem>}
-              </SelectContent>
-            </Select>
+          <DialogHeader><DialogTitle>Edit User — {editingUser?.email}</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Display Name</Label>
+              <Input 
+                value={editName} 
+                onChange={e => setEditName(e.target.value)}
+                placeholder="Full name"
+              />
+            </div>
+            {(isSuperAdmin || isAdmin || (isManager && editingUser?.id !== user?.id && (editingUser?.role === 'user' || !editingUser?.role))) && (
+              <div className="space-y-2">
+                <Label>Role</Label>
+                <Select value={editRole} onValueChange={setEditRole}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="user">User</SelectItem>
+                    {(isSuperAdmin || isAdmin) && <SelectItem value="manager">Manager</SelectItem>}
+                    {(isSuperAdmin || isAdmin) && <SelectItem value="admin">Admin</SelectItem>}
+                    {isSuperAdmin && <SelectItem value="super_admin">Super Admin</SelectItem>}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingUser(null)}>Cancel</Button>
             <Button
-              onClick={() => updateRoleMutation.mutate({ id: editingUser.id, role: editRole })}
-              disabled={updateRoleMutation.isPending}
+              onClick={() => {
+                const updates = { full_name: editName };
+                if (isSuperAdmin || isAdmin || (isManager && editingUser?.id !== user?.id && (editingUser?.role === 'user' || !editingUser?.role))) {
+                  updates.role = editRole;
+                }
+                if (editName !== editingUser?.full_name || editRole !== (editingUser?.role || 'user')) {
+                  if (editName !== editingUser?.full_name && editRole === (editingUser?.role || 'user')) {
+                    updateNameMutation.mutate({ id: editingUser.id, full_name: editName });
+                  } else {
+                    updateRoleMutation.mutate({ id: editingUser.id, ...updates });
+                  }
+                }
+              }}
+              disabled={updateNameMutation.isPending || updateRoleMutation.isPending || editName === editingUser?.full_name && editRole === (editingUser?.role || 'user')}
               className="bg-indigo-600 hover:bg-indigo-700 gap-2"
             >
-              {updateRoleMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Update Role
+              {(updateNameMutation.isPending || updateRoleMutation.isPending) && <Loader2 className="w-4 h-4 animate-spin" />} Save Changes
             </Button>
           </DialogFooter>
         </DialogContent>
