@@ -419,6 +419,7 @@ export default function Assets() {
             </div>
           )}
           <DialogFooter>
+            <AssetQRCode asset={selectedAsset} />
             {(isSuperAdmin || isAdmin || isManager) && (
               <Button onClick={() => {
                 setSelectedAsset(null);
