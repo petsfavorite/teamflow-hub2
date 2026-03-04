@@ -63,6 +63,16 @@ export default function Checklists() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.ChecklistTemplate.delete(id),
+    onSuccess: () => {
+      toast.success('Checklist deleted!');
+      setDeleteDialogOpen(false);
+      setTemplateToDelete(null);
+      queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
+    },
+  });
+
   const startChecklist = (template) => {
     setActiveChecklist(template);
     setItems(template.items.map(item => ({ ...item, checked: false })));
