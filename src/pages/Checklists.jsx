@@ -572,21 +572,58 @@ export default function Checklists() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Recurrence</Label>
+              <Label>Frequency</Label>
               <Select value={editForm.recurrence_type} onValueChange={(value) => setEditForm({ ...editForm, recurrence_type: value })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="once">Once</SelectItem>
                   <SelectItem value="daily">Daily</SelectItem>
-                  <SelectItem value="weekdays">Weekdays</SelectItem>
-                  <SelectItem value="specific_days">Specific Days</SelectItem>
+                  <SelectItem value="weekly">Weekly</SelectItem>
                   <SelectItem value="monthly">Monthly</SelectItem>
-                  <SelectItem value="every_x_months">Every X Months</SelectItem>
-                  <SelectItem value="annually">Annually</SelectItem>
-                  <SelectItem value="manual">Manual</SelectItem>
+                  <SelectItem value="as_needed">As Needed</SelectItem>
+                  <SelectItem value="custom">Custom</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+
+            {editForm.recurrence_type === 'custom' && (
+              <div className="space-y-4 bg-slate-50 p-4 rounded-lg border border-slate-200">
+                <div className="space-y-2">
+                  <Label>Repeat every</Label>
+                  <div className="flex gap-2 items-end">
+                    <Input type="number" min="1" value={editForm.custom_frequency_value} onChange={e => setEditForm({ ...editForm, custom_frequency_value: parseInt(e.target.value) || 1 })} className="w-20" />
+                    <Select value={editForm.custom_frequency_type} onValueChange={v => setEditForm({ ...editForm, custom_frequency_type: v })}>
+                      <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="days">Day(s)</SelectItem>
+                        <SelectItem value="weeks">Week(s)</SelectItem>
+                        <SelectItem value="months">Month(s)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {editForm.custom_frequency_type === 'weeks' && (
+                  <div className="space-y-2">
+                    <Label>On these days</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((day, idx) => (
+                        <label key={idx} className="flex items-center gap-2 text-sm">
+                          <input type="checkbox" checked={editForm.custom_frequency_days?.includes(idx)} onChange={e => setEditForm(prev => ({ ...prev, custom_frequency_days: e.target.checked ? [...(prev.custom_frequency_days || []), idx] : (prev.custom_frequency_days || []).filter(d => d !== idx) }))} className="w-4 h-4 rounded border-slate-300" />
+                          {day}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {editForm.custom_frequency_type === 'months' && (
+                  <div className="space-y-2">
+                    <Label>On day of month</Label>
+                    <Input type="number" min="1" max="31" value={editForm.custom_frequency_day_of_month} onChange={e => setEditForm({ ...editForm, custom_frequency_day_of_month: parseInt(e.target.value) || 1 })} />
+                  </div>
+                )}
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Auto-Close Time</Label>
               <Input
