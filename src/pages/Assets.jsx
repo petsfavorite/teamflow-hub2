@@ -301,6 +301,38 @@ export default function Assets() {
               </div>
             </div>
             <div className="space-y-2"><Label>Manual URL</Label><Input value={form.manual_url} onChange={e => setForm({ ...form, manual_url: e.target.value })} placeholder="https://..." /></div>
+            <div className="space-y-2">
+              <Label>Attached Tasks</Label>
+              <div className="border rounded-lg p-3 space-y-2 bg-slate-50 max-h-40 overflow-y-auto">
+                {allTasks.filter(t => !form.task_ids?.includes(t.id)).length === 0 && form.task_ids?.length === 0 ? (
+                  <p className="text-xs text-slate-400">No tasks available</p>
+                ) : (
+                  allTasks.filter(t => !form.task_ids?.includes(t.id)).map(task => (
+                    <button
+                      key={task.id}
+                      type="button"
+                      onClick={() => setForm({ ...form, task_ids: [...(form.task_ids || []), task.id] })}
+                      className="w-full text-left text-xs px-2 py-1 rounded hover:bg-indigo-100 transition-colors"
+                    >
+                      {task.title}
+                    </button>
+                  ))
+                )}
+              </div>
+              {form.task_ids?.length > 0 && (
+                <div className="space-y-1">
+                  {form.task_ids.map(taskId => {
+                    const task = allTasks.find(t => t.id === taskId);
+                    return task ? (
+                      <div key={taskId} className="flex items-center justify-between text-xs bg-indigo-50 px-2 py-1.5 rounded">
+                        <span>{task.title}</span>
+                        <button type="button" onClick={() => setForm({ ...form, task_ids: form.task_ids.filter(id => id !== taskId) })} className="text-indigo-600 hover:text-indigo-800">×</button>
+                      </div>
+                    ) : null;
+                  })}
+                </div>
+              )}
+            </div>
             <div className="space-y-2"><Label>Notes</Label><Textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={2} /></div>
           </div>
           <DialogFooter>
