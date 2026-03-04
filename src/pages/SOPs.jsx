@@ -18,6 +18,8 @@ export default function SOPs() {
   const { isAdmin, canManage } = useCurrentUser();
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const queryClient = useQueryClient();
 
   const { data: sops = [], isLoading } = useQuery({
     queryKey: ['sops-all'],
