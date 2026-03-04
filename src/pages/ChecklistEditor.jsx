@@ -19,7 +19,7 @@ export default function ChecklistEditor() {
   const id = params.get('id');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { isAdmin, canManage } = useCurrentUser();
+  const { isSuperAdmin, isAdmin, canManage } = useCurrentUser();
 
   const [form, setForm] = useState({
     title: '', description: '', category: '', frequency: 'daily', status: 'active', assigned_to: [], items: []
@@ -85,7 +85,7 @@ export default function ChecklistEditor() {
     saveMutation.mutate({ ...form, assigned_to });
   };
 
-  if (!id && !isAdmin) {
+  if (!id && !isAdmin && !isSuperAdmin) {
     return (
       <div className="text-center py-20">
         <p className="text-slate-500">Only admins can create checklists</p>
