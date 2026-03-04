@@ -37,7 +37,7 @@ export default function Assets() {
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const [user, setUser] = useState(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     base44.auth.me().then(u => setUser(u)).catch(() => setUser(null));
   }, []);
 
