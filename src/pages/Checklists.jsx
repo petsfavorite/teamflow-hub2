@@ -134,10 +134,30 @@ export default function Checklists() {
     },
   });
 
-  const startChecklist = (template) => {
-    setActiveChecklist(template);
-    setItems(template.items.map(item => ({ ...item, checked: false })));
-    setNotes({});
+  const startChecklist = async (template) => {
+    // Load existing in-progress completion if it exists
+    const existingCompletions = await base44.entities.ChecklistCompletion.filter({ 
+      checklist_template_id: template.id, 
+      status: 'in_progress' 
+    });
+    
+    const existingCompletion = existingCompletions?.[0];
+    
+    if (existingCompletion && existingCompletion.completed_items?.length > 0) {
+      // Load from existing progress
+      setItems(existingCompletion.completed_items);
+      const notesMap = {};
+      existingCompletion.completed_items.forEach((item, idx) => {
+        if (item.notes) notesMap[idx] = item.notes;
+      });
+      setNotes(notesMap);
+    } else {
+      // Start fresh
+      setItems(template.items.map(item => ({ ...item, checked: false })));
+      setNotes({});
+    }
+    
+    setActiveChecklist({ ...template, completionId: existingCompletion?.id });
     setCanSubmitWithIncomplete(!template.auto_close_datetime && !template.auto_close_time);
   };
 
