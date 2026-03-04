@@ -378,6 +378,41 @@ export default function Assets() {
                 </div>
               )}
             </div>
+            <div className="space-y-2">
+              <Label>Add Note</Label>
+              <div className="space-y-2">
+                <Textarea 
+                  placeholder="Add a note (max 200 characters)" 
+                  value={newNote} 
+                  onChange={(e) => setNewNote(e.target.value.substring(0, 200))}
+                  rows={2}
+                  maxLength={200}
+                />
+                <div className="text-xs text-slate-400">{newNote.length}/200</div>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    if (newNote.trim() && editingAsset) {
+                      const notesLog = editingAsset.notes_log || [];
+                      setEditingAsset({
+                        ...editingAsset,
+                        notes_log: [...notesLog, { note: newNote, date: new Date().toISOString().split('T')[0] }]
+                      });
+                      setForm({
+                        ...form,
+                        notes_log: [...(form.notes_log || []), { note: newNote, date: new Date().toISOString().split('T')[0] }]
+                      });
+                      setNewNote('');
+                    }
+                  }}
+                  disabled={!newNote.trim()}
+                >
+                  Add Note
+                </Button>
+              </div>
+            </div>
             <div className="space-y-2"><Label>Notes</Label><Textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={2} /></div>
           </div>
           <DialogFooter>
