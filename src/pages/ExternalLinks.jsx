@@ -103,7 +103,7 @@ export default function ExternalLinks() {
                             {link.description && <p className="text-sm text-slate-500 mt-1 line-clamp-2">{link.description}</p>}
                           </div>
                         </a>
-                        {isAdmin && (
+                        {canEdit && (
                           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
                             <button onClick={() => startEdit(link)} className="p-1.5 rounded hover:bg-slate-100"><Pencil className="w-3.5 h-3.5 text-slate-400" /></button>
                             <button onClick={() => deleteMutation.mutate(link.id)} className="p-1.5 rounded hover:bg-red-50"><Trash2 className="w-3.5 h-3.5 text-red-400" /></button>
