@@ -563,30 +563,8 @@ export default function Checklists() {
                       <p className="text-xs text-slate-600 mb-3">Teams: {t.assigned_teams.map(id => teams.find(tm => tm.id === id)?.name).filter(Boolean).join(', ')}</p>
                     )}
                     <div className="flex gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 flex-1 text-xs"
-                        onClick={() => {
-                          setTemplateToEdit(t);
-                          setEditForm({
-                            recurrence_type: t.recurrence_type || 'once',
-                            auto_close_time: t.auto_close_time || '17:00',
-                            assigned_to_emails: t.assigned_to_emails || [],
-                            assigned_to_names: t.assigned_to_names || [],
-                            assigned_teams: t.assigned_teams || [],
-                            custom_frequency_type: t.custom_frequency_type || 'days',
-                            custom_frequency_value: t.custom_frequency_value || 1,
-                            custom_frequency_days: t.custom_frequency_days || [],
-                            custom_frequency_day_of_month: t.custom_frequency_day_of_month || 1
-                          });
-                          setEditDialogOpen(true);
-                        }}
-                      >
-                        Assign
-                      </Button>
-                      <Link to={createPageUrl('ChecklistEditor') + `?id=${t.id}`}>
-                        <Button variant="ghost" size="sm" className="text-slate-600 hover:text-slate-700 hover:bg-slate-50 text-xs">Edit</Button>
+                      <Link to={createPageUrl('ChecklistEditor') + `?id=${t.id}`} className="flex-1">
+                        <Button variant="ghost" size="sm" className="text-slate-600 hover:text-slate-700 hover:bg-slate-50 text-xs w-full">Edit</Button>
                       </Link>
                     </div>
                   </CardContent>
