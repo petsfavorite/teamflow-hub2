@@ -460,6 +460,143 @@ export default function Checklists() {
 
       {canManage && (
         <div className="mt-8">
+          <h2 className="text-lg font-semibold text-slate-900 mb-4">Currently Assigned Checklists</h2>
+
+          {/* Filters */}
+          <div className="mb-4 p-4 bg-white rounded-lg border border-slate-200 space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div>
+                <Label className="text-xs">Due Time</Label>
+                <Select value={assignedFilters.dueTime} onValueChange={(value) => setAssignedFilters({ ...assignedFilters, dueTime: value })}>
+                  <SelectTrigger><SelectValue placeholder="All times" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={null}>All times</SelectItem>
+                    <SelectItem value="morning">Morning (Before 12:00)</SelectItem>
+                    <SelectItem value="afternoon">Afternoon (12:00 - 17:00)</SelectItem>
+                    <SelectItem value="evening">Evening (After 17:00)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Team</Label>
+                <Select value={assignedFilters.team} onValueChange={(value) => setAssignedFilters({ ...assignedFilters, team: value })}>
+                  <SelectTrigger><SelectValue placeholder="All teams" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={null}>All teams</SelectItem>
+                    {teams.map(t => (
+                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Individual</Label>
+                <Select value={assignedFilters.individual} onValueChange={(value) => setAssignedFilters({ ...assignedFilters, individual: value })}>
+                  <SelectTrigger><SelectValue placeholder="All individuals" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={null}>All individuals</SelectItem>
+                    {allUsers.map(u => (
+                      <SelectItem key={u.id} value={u.email}>{u.full_name || u.email}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Frequency</Label>
+                <Select value={assignedFilters.frequency} onValueChange={(value) => setAssignedFilters({ ...assignedFilters, frequency: value })}>
+                  <SelectTrigger><SelectValue placeholder="All frequencies" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={null}>All frequencies</SelectItem>
+                    <SelectItem value="once">One Time Only</SelectItem>
+                    <SelectItem value="daily">Daily</SelectItem>
+                    <SelectItem value="weekly">Weekly</SelectItem>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                    <SelectItem value="as_needed">As Needed</SelectItem>
+                    <SelectItem value="custom">Custom</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          {/* Filtered Assigned Checklists */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+            {allTemplates
+              .filter(t => t.status === 'published' && t.status !== 'closed')
+              .filter(t => {
+                // Has assignments
+                if (!(t.assigned_to_emails?.length > 0 || t.assigned_teams?.length > 0)) return false;
+
+                // Due time filter
+                if (assignedFilters.dueTime) {
+                  const time = t.auto_close_time || '17:00';
+                  const hour = parseInt(time.split(':')[0]);
+                  if (assignedFilters.dueTime === 'morning' && hour >= 12) return false;
+                  if (assignedFilters.dueTime === 'afternoon' && (hour < 12 || hour >= 17)) return false;
+                  if (assignedFilters.dueTime === 'evening' && hour < 17) return false;
+                }
+
+                // Team filter
+                if (assignedFilters.team && !t.assigned_teams?.includes(assignedFilters.team)) return false;
+
+                // Individual filter
+                if (assignedFilters.individual && !t.assigned_to_emails?.includes(assignedFilters.individual)) return false;
+
+                // Frequency filter
+                if (assignedFilters.frequency && t.recurrence_type !== assignedFilters.frequency) return false;
+
+                return true;
+              })
+              .map(t => (
+                <Card key={t.id} className="border-0 shadow-sm">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="font-medium text-sm text-slate-800 flex-1">{t.title}</p>
+                      <span className="text-xs text-slate-500 whitespace-nowrap ml-2">{t.recurrence_type}</span>
+                    </div>
+                    <p className="text-xs text-slate-500 mb-2">{t.items?.length} items · Due at {t.auto_close_time || '17:00'}</p>
+                    {t.assigned_to_names?.length > 0 && (
+                      <p className="text-xs text-slate-600 mb-2">People: {t.assigned_to_names.join(', ')}</p>
+                    )}
+                    {t.assigned_teams?.length > 0 && (
+                      <p className="text-xs text-slate-600 mb-3">Teams: {t.assigned_teams.map(id => teams.find(tm => tm.id === id)?.name).filter(Boolean).join(', ')}</p>
+                    )}
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 flex-1 text-xs"
+                        onClick={() => {
+                          setTemplateToEdit(t);
+                          setEditForm({
+                            recurrence_type: t.recurrence_type || 'once',
+                            auto_close_time: t.auto_close_time || '17:00',
+                            assigned_to_emails: t.assigned_to_emails || [],
+                            assigned_to_names: t.assigned_to_names || [],
+                            assigned_teams: t.assigned_teams || [],
+                            custom_frequency_type: t.custom_frequency_type || 'days',
+                            custom_frequency_value: t.custom_frequency_value || 1,
+                            custom_frequency_days: t.custom_frequency_days || [],
+                            custom_frequency_day_of_month: t.custom_frequency_day_of_month || 1
+                          });
+                          setEditDialogOpen(true);
+                        }}
+                      >
+                        Assign
+                      </Button>
+                      <Link to={createPageUrl('ChecklistEditor') + `?id=${t.id}`}>
+                        <Button variant="ghost" size="sm" className="text-slate-600 hover:text-slate-700 hover:bg-slate-50 text-xs">Edit</Button>
+                      </Link>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+          </div>
+        </div>
+      )}
+
+      {canManage && (
+        <div className="mt-8">
           <h2 className="text-lg font-semibold text-slate-900 mb-4">All Checklist Templates</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {allTemplates.map(t => (
