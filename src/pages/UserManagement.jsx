@@ -39,7 +39,7 @@ export default function UserManagement() {
   });
 
   const updateNameMutation = useMutation({
-    mutationFn: ({ id, full_name }) => base44.auth.updateMe({ full_name }),
+    mutationFn: ({ id, full_name }) => base44.asServiceRole.entities.User.update(id, { full_name }),
     onSuccess: () => {
       toast.success('Name updated');
       queryClient.invalidateQueries({ queryKey: ['all-users'] });
