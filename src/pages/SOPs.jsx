@@ -127,7 +127,7 @@ export default function SOPs() {
                   </CardContent>
                 </Card>
               </Link>
-              {isAdmin && (
+              {(isAdmin || isSuperAdmin) && (
                 <Button
                   variant="ghost"
                   size="icon"
