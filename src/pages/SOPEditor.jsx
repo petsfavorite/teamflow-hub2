@@ -194,6 +194,21 @@ export default function SOPEditor() {
 
       <h1 className="text-2xl font-bold text-slate-900 mb-6">{id ? 'Edit SOP' : 'Create New SOP'}</h1>
 
+      <SOPAIImporter
+        sopTags={sopTags}
+        onFill={(data) => {
+          setForm(f => ({
+            ...f,
+            ...Object.fromEntries(Object.entries(data).filter(([k]) => k !== 'tags')),
+          }));
+          if (data.tags?.length) {
+            const validTags = data.tags.filter(t => sopTags.some(st => st.name === t));
+            setForm(f => ({ ...f, tags: validTags }));
+            setTagsInput(validTags.join(', '));
+          }
+        }}
+      />
+
       {/* Header Info */}
       <Card className="border-0 shadow-sm mb-4">
         <CardHeader className="pb-2"><CardTitle className="text-base text-slate-700">Header Information</CardTitle></CardHeader>
