@@ -98,7 +98,7 @@ export default function SOPVersions() {
                     <Button variant="ghost" size="sm" onClick={() => setPreviewing(v)} className="gap-1">
                       <Eye className="w-4 h-4" />
                     </Button>
-                    {canManage && i !== 0 && (
+                    {canRollback && i !== 0 && (
                       <Button variant="outline" size="sm" onClick={() => rollbackMutation.mutate(v)} className="gap-1">
                         <RotateCcw className="w-3.5 h-3.5" /> Restore
                       </Button>
