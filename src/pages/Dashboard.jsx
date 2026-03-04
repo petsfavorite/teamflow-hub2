@@ -4,7 +4,8 @@ import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { useCurrentUser } from '../components/hooks/useCurrentUser';
-import { BookOpen, CheckSquare, Wrench, MessageSquare, ExternalLink, ArrowRight, Clock, AlertTriangle, ClipboardList, Bell, ShieldAlert } from 'lucide-react';
+import { BookOpen, CheckSquare, Wrench, MessageSquare, ExternalLink, ArrowRight, Clock, AlertTriangle, ClipboardList, Bell, ShieldAlert, CalendarCheck } from 'lucide-react';
+import { differenceInDays, parseISO } from 'date-fns';
 import { Card, CardContent } from "@/components/ui/card";
 import StatusBadge from '../components/shared/StatusBadge';
 
