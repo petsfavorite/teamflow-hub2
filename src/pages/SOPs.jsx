@@ -104,31 +104,66 @@ export default function SOPs() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map(sop => (
-            <Link key={sop.id} to={createPageUrl('SOPDetail') + `?id=${sop.id}`}>
-              <Card className="border-0 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 h-full cursor-pointer">
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between mb-3">
-                    <StatusBadge status={sop.status} />
-                    {sop.version && <span className="text-xs text-slate-400">v{sop.version}</span>}
-                  </div>
-                  <h3 className="font-semibold text-slate-900 mb-2 line-clamp-2">{sop.title}</h3>
-                  {sop.summary && <p className="text-sm text-slate-500 line-clamp-2 mb-3">{sop.summary}</p>}
-                  <div className="flex items-center justify-between mt-auto pt-3 border-t border-slate-100">
-                    <div className="flex items-center gap-1.5">
-                      <Tag className="w-3 h-3 text-slate-400" />
-                      <span className="text-xs text-slate-400">{sop.category}</span>
+            <div key={sop.id} className="relative group">
+              <Link to={createPageUrl('SOPDetail') + `?id=${sop.id}`}>
+                <Card className="border-0 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 h-full cursor-pointer">
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between mb-3">
+                      <StatusBadge status={sop.status} />
+                      {sop.version && <span className="text-xs text-slate-400">v{sop.version}</span>}
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <Clock className="w-3 h-3 text-slate-400" />
-                      <span className="text-xs text-slate-400">{new Date(sop.updated_date).toLocaleDateString()}</span>
+                    <h3 className="font-semibold text-slate-900 mb-2 line-clamp-2">{sop.title}</h3>
+                    {sop.summary && <p className="text-sm text-slate-500 line-clamp-2 mb-3">{sop.summary}</p>}
+                    <div className="flex items-center justify-between mt-auto pt-3 border-t border-slate-100">
+                      <div className="flex items-center gap-1.5">
+                        <Tag className="w-3 h-3 text-slate-400" />
+                        <span className="text-xs text-slate-400">{sop.category}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="w-3 h-3 text-slate-400" />
+                        <span className="text-xs text-slate-400">{new Date(sop.updated_date).toLocaleDateString()}</span>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
+                  </CardContent>
+                </Card>
+              </Link>
+              {isAdmin && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setDeleteConfirm(sop);
+                  }}
+                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 hover:bg-red-100 text-red-600"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
           ))}
         </div>
       )}
+
+      <AlertDialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete SOP?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{deleteConfirm?.title}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex justify-end gap-3">
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteMutation.mutate(deleteConfirm.id)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
