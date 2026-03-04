@@ -163,6 +163,9 @@ export default function ChecklistHistory() {
                   )}
                   <div className="flex-1">
                     <span className="text-sm font-medium">{item.label}</span>
+                    {item.checked && item.checked_by_name && (
+                      <p className="text-xs text-slate-500 mt-1">Checked by {item.checked_by_name} at {item.checked_at ? new Date(item.checked_at).toLocaleString() : 'unknown time'}</p>
+                    )}
                     {item.notes && <p className="text-xs text-slate-500 mt-1">{item.notes}</p>}
                   </div>
                 </div>
