@@ -77,6 +77,16 @@ export default function Dashboard() {
     enabled: !!user?.email,
   });
 
+  const verificationDueSops = allSOPs.filter(sop => {
+    if (!sop.verification_due_date) return false;
+    const daysLeft = differenceInDays(parseISO(sop.verification_due_date), new Date());
+    return daysLeft <= 7;
+  }).sort((a, b) => {
+    const dA = differenceInDays(parseISO(a.verification_due_date), new Date());
+    const dB = differenceInDays(parseISO(b.verification_due_date), new Date());
+    return dA - dB;
+  });
+
   const myChecklists = checklists.filter(c =>
     !c.assigned_to || c.assigned_to.length === 0 || c.assigned_to.includes(user?.email)
   );
