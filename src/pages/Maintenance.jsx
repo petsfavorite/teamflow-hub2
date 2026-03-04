@@ -255,10 +255,10 @@ export default function Maintenance() {
             <div className="space-y-4">
               <p className="text-sm text-slate-600">{selected?.description}</p>
               <div className="grid grid-cols-2 gap-3 text-sm">
-                <div><span className="text-slate-400">Location:</span> <span className="font-medium">{selected?.location || 'N/A'}</span></div>
+                <div><span className="text-slate-400">Submitted:</span> <span className="font-medium">{new Date(selected?.created_date).toLocaleDateString()}</span></div>
                 <div><span className="text-slate-400">Priority:</span> <StatusBadge status={selected?.priority} /></div>
                 <div><span className="text-slate-400">Status:</span> <StatusBadge status={selected?.status} /></div>
-                <div><span className="text-slate-400">By:</span> <span className="font-medium">{selected?.requested_by_name}</span></div>
+                {selected?.location && <div><span className="text-slate-400">Location:</span> <span className="font-medium">{selected?.location}</span></div>}
               </div>
               {selected?.asset_name && (
                 <div className="bg-blue-50 p-3 rounded-lg">
