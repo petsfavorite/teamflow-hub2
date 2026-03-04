@@ -58,6 +58,7 @@ import Maintenance from './pages/Maintenance';
 import ExternalLinks from './pages/ExternalLinks';
 import SOPAssistant from './pages/SOPAssistant';
 import UserManagement from './pages/UserManagement';
+import DevChecklist from './pages/DevChecklist';
 import __Layout from './Layout.jsx';
 
 
@@ -73,6 +74,7 @@ export const PAGES = {
     "ExternalLinks": ExternalLinks,
     "SOPAssistant": SOPAssistant,
     "UserManagement": UserManagement,
+    "DevChecklist": DevChecklist,
 }
 
 export const pagesConfig = {
