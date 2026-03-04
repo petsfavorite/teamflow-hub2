@@ -161,33 +161,43 @@ export default function Maintenance() {
           </button>
 
           {showCompleted && (
-            <div className="space-y-3">
-              {completedRequests.map(req => (
-                <Card key={req.id} className="border-0 shadow-sm hover:shadow-md transition-all cursor-pointer bg-emerald-50" onClick={() => setSelected(req)}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-4 min-w-0 flex-1">
-                        <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                          <Wrench className="w-5 h-5 text-emerald-600" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="font-medium text-slate-900 truncate">{req.title}</p>
-                          <div className="flex items-center gap-3 mt-1 text-xs text-slate-400 flex-wrap">
-                            {req.location && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{req.location}</span>}
-                            {req.asset_name && <span className="flex items-center gap-1">Asset: {req.asset_name}</span>}
-                            <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{new Date(req.created_date).toLocaleDateString()}</span>
-                            <span className="flex items-center gap-1"><User className="w-3 h-3" />{req.requested_by_name || req.requested_by}</span>
+            <div className="space-y-4">
+              <Input
+                placeholder="Search by title, description, asset, or date..."
+                value={completedSearch}
+                onChange={(e) => setCompletedSearch(e.target.value)}
+                className="border-0 shadow-sm"
+              />
+              <div className="space-y-3">
+                {filteredCompleted.length === 0 ? (
+                  <p className="text-sm text-slate-400 py-8 text-center">No completed requests match your search</p>
+                ) : (
+                  filteredCompleted.map(req => (
+                    <Card key={req.id} className="border-0 shadow-sm hover:shadow-md transition-all cursor-pointer bg-emerald-50" onClick={() => setSelected(req)}>
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-4 min-w-0 flex-1">
+                            <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                              <Wrench className="w-5 h-5 text-emerald-600" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="font-medium text-slate-900 truncate">{req.title}</p>
+                              <div className="flex items-center gap-3 mt-1 text-xs text-slate-400 flex-wrap">
+                                <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{new Date(req.created_date).toLocaleDateString()}</span>
+                                {req.asset_name && <span className="flex items-center gap-1">Asset: {req.asset_name}</span>}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <StatusBadge status={req.priority} />
+                            <StatusBadge status={req.status} />
                           </div>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <StatusBadge status={req.priority} />
-                        <StatusBadge status={req.status} />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
             </div>
           )}
         </div>
