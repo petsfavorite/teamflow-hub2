@@ -114,8 +114,10 @@ export default function SOPDetail() {
     },
   });
 
-  const acknowledgedEmails = acknowledgements.filter(a => a.version_number === sop?.version).map(a => a.user_email);
-  const notAcknowledged = allUsers.filter(u => u.role === 'user' && !acknowledgedEmails.includes(u.email));
+  const currentAcks = acknowledgements.filter(a => a.version_number === sop?.version);
+  const acknowledgedEmails = currentAcks.map(a => a.user_email);
+  const notAcknowledged = allUsers.filter(u => !acknowledgedEmails.includes(u.email));
+  const acknowledged = allUsers.filter(u => acknowledgedEmails.includes(u.email));
 
   if (isLoading) {
     return <div className="flex items-center justify-center py-20"><div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" /></div>;
