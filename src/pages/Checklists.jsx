@@ -425,7 +425,11 @@ export default function Checklists() {
                                      auto_close_time: t.auto_close_time || '17:00',
                                      assigned_to_emails: t.assigned_to_emails || [],
                                      assigned_to_names: t.assigned_to_names || [],
-                                     assigned_teams: t.assigned_teams || []
+                                     assigned_teams: t.assigned_teams || [],
+                                     custom_frequency_type: t.custom_frequency_type || 'days',
+                                     custom_frequency_value: t.custom_frequency_value || 1,
+                                     custom_frequency_days: t.custom_frequency_days || [],
+                                     custom_frequency_day_of_month: t.custom_frequency_day_of_month || 1
                                    });
                                    setEditDialogOpen(true);
                                  }}
