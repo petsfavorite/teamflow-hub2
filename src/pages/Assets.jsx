@@ -32,6 +32,8 @@ export default function Assets() {
   const [selectedAsset, setSelectedAsset] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [form, setForm] = useState(emptyForm);
+  const [newNote, setNewNote] = useState('');
+  const [newNoteAttachment, setNewNoteAttachment] = useState(null);
 
   const { data: assets = [], isLoading } = useQuery({
     queryKey: ['assets'],
