@@ -4,7 +4,7 @@ import { createPageUrl } from '@/utils';
 import { useCurrentUser } from './components/hooks/useCurrentUser';
 import {
   BookOpen, CheckSquare, Wrench, ExternalLink, MessageSquare,
-  LayoutDashboard, Users, ChevronLeft, ChevronRight, Menu, X, LogOut
+  LayoutDashboard, Users, ChevronLeft, ChevronRight, Menu, X, LogOut, Rocket
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { base44 } from '@/api/base44Client';
