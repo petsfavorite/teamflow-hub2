@@ -26,6 +26,4 @@ export function useCurrentUser() {
   const canManage = isAdmin || isManager;
 
   return { user, loading, isSuperAdmin, isAdmin, isManager, isUser, canManage };
-
-  return { user, loading, isAdmin, isManager, isUser, canManage };
 }
