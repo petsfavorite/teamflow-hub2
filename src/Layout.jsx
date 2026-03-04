@@ -12,6 +12,7 @@ import { base44 } from '@/api/base44Client';
 import RoleBadge from './components/shared/RoleBadge';
 
 const navItems = [
+  { label: 'Settings', icon: LayoutDashboard, page: 'Settings', roles: ['admin', 'manager', 'user', 'super_admin'], hideFromNav: true },
   { label: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard', roles: ['admin', 'manager', 'user', 'super_admin'] },
   { label: '🚨 Emergency SOPs', icon: Zap, page: 'EmergencySOPs', roles: ['admin', 'manager', 'user', 'super_admin'] },
   { label: 'SOPs', icon: BookOpen, page: 'SOPs', roles: ['admin', 'manager', 'user', 'super_admin'] },

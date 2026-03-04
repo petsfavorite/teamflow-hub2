@@ -66,6 +66,7 @@ import SOPs from './pages/SOPs';
 import Tasks from './pages/Tasks';
 import UserManagement from './pages/UserManagement';
 import Teams from './pages/Teams';
+import Settings from './pages/Settings';
 import __Layout from './Layout.jsx';
 
 
@@ -89,6 +90,7 @@ export const PAGES = {
     "Tasks": Tasks,
     "UserManagement": UserManagement,
     "Teams": Teams,
+    "Settings": Settings,
 }
 
 export const pagesConfig = {
