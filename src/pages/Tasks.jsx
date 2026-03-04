@@ -23,7 +23,7 @@ const priorityColors = {
   urgent: 'bg-red-100 text-red-700',
 };
 
-const emptyForm = { title: '', description: '', assigned_to_email: '', assigned_to_name: '', due_date: '', priority: 'medium' };
+const emptyForm = { title: '', description: '', assigned_to_emails: [], assigned_to_names: [], assigned_teams: [], due_date: '', priority: 'medium' };
 
 export default function Tasks() {
   const { user, canManage } = useCurrentUser();
@@ -40,6 +40,12 @@ export default function Tasks() {
   const { data: users = [] } = useQuery({
     queryKey: ['users-list'],
     queryFn: () => base44.entities.User.list('full_name', 200),
+    enabled: canManage,
+  });
+
+  const { data: teams = [] } = useQuery({
+    queryKey: ['teams'],
+    queryFn: () => base44.entities.Team.list(),
     enabled: canManage,
   });
 
