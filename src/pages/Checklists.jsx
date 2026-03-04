@@ -77,13 +77,13 @@ export default function Checklists() {
     }));
   };
 
-  const submitChecklist = () => {
+  const submitChecklist = async () => {
     const completedItems = items.map((item, i) => ({
       ...item,
       notes: notes[i] || ''
     }));
 
-    submitMutation.mutate({
+    const completion = {
       checklist_template_id: activeChecklist.id,
       checklist_title: activeChecklist.title,
       completed_by: user?.email,
@@ -91,6 +91,17 @@ export default function Checklists() {
       completed_items: completedItems,
       completion_date: new Date().toISOString().split('T')[0],
       status: 'completed',
+    };
+
+    submitMutation.mutate(completion, {
+      onSuccess: async (data) => {
+        // Generate notifications for incomplete items
+        await base44.functions.invoke('generateChecklistNotifications', {
+          checklist_completion_id: data.id
+        }).catch(() => {
+          // Silently fail if notification generation fails
+        });
+      }
     });
   };
 
