@@ -30,6 +30,7 @@ export default function Assets() {
   const [showForm, setShowForm] = useState(false);
   const [editingAsset, setEditingAsset] = useState(null);
   const [selectedAsset, setSelectedAsset] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [form, setForm] = useState(emptyForm);
 
   const { data: assets = [], isLoading } = useQuery({
