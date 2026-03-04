@@ -7,13 +7,32 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2 } from 'lucide-react';
 import { toast } from "sonner";
+
+const TIMEZONES = [
+  { value: 'America/New_York', label: 'Eastern Time (ET)' },
+  { value: 'America/Chicago', label: 'Central Time (CT)' },
+  { value: 'America/Denver', label: 'Mountain Time (MT)' },
+  { value: 'America/Los_Angeles', label: 'Pacific Time (PT)' },
+  { value: 'America/Anchorage', label: 'Alaska Time (AKT)' },
+  { value: 'Pacific/Honolulu', label: 'Hawaii-Aleutian Time (HST)' },
+  { value: 'Europe/London', label: 'Greenwich Mean Time (GMT)' },
+  { value: 'Europe/Paris', label: 'Central European Time (CET)' },
+  { value: 'Europe/Moscow', label: 'Moscow Standard Time (MSK)' },
+  { value: 'Asia/Dubai', label: 'Gulf Standard Time (GST)' },
+  { value: 'Asia/Kolkata', label: 'Indian Standard Time (IST)' },
+  { value: 'Asia/Bangkok', label: 'Indochina Time (ICT)' },
+  { value: 'Asia/Tokyo', label: 'Japan Standard Time (JST)' },
+  { value: 'Australia/Sydney', label: 'Australian Eastern Time (AEST)' },
+];
 
 export default function Settings() {
   const { user } = useCurrentUser();
   const queryClient = useQueryClient();
   const [fullName, setFullName] = useState(user?.full_name || '');
+  const [timezone, setTimezone] = useState(user?.timezone || 'America/New_York');
 
   const updateNameMutation = useMutation({
     mutationFn: (full_name) => base44.auth.updateMe({ full_name }),
