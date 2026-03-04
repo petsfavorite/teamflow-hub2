@@ -321,18 +321,6 @@ export default function Checklists() {
                                <Link to={createPageUrl('ChecklistEditor') + `?id=${t.id}`}>
                                  <Button variant="ghost" size="sm">Edit</Button>
                                </Link>
-                               <Button
-                                 variant="ghost"
-                                 size="sm"
-                                 className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 gap-1"
-                                 onClick={() => {
-                                   setTemplateToAssign(t);
-                                   setAssignForm({ emails: t.assigned_to_emails || [], teams: t.assigned_teams || [] });
-                                   setAssignDialogOpen(true);
-                                 }}
-                               >
-                                 <Share2 className="w-4 h-4" /> Assign
-                               </Button>
                              </>
                            )}
                           {(canManage) && t.status === 'published' && (
