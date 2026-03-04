@@ -187,15 +187,23 @@ export default function Checklists() {
               ))}
             </div>
 
-            <div className="mt-6 flex justify-end">
-              <Button
-                onClick={submitChecklist}
-                disabled={!allChecked || submitMutation.isPending}
-                className="bg-emerald-600 hover:bg-emerald-700 gap-2"
-              >
-                {submitMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                Submit Checklist
-              </Button>
+            <div className="mt-6 space-y-3">
+              {!allChecked && !canSubmitWithIncomplete && (
+                <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-amber-700">All items must be checked before submitting this checklist.</p>
+                </div>
+              )}
+              <div className="flex justify-end">
+                <Button
+                  onClick={submitChecklist}
+                  disabled={(canSubmitWithIncomplete ? false : !allChecked) || submitMutation.isPending}
+                  className="bg-emerald-600 hover:bg-emerald-700 gap-2"
+                >
+                  {submitMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  Submit Checklist
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
