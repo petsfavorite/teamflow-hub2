@@ -7,10 +7,9 @@ import { useCurrentUser } from '../components/hooks/useCurrentUser';
 import PageHeader from '../components/shared/PageHeader';
 import EmptyState from '../components/shared/EmptyState';
 import StatusBadge from '../components/shared/StatusBadge';
+import ChecklistItemRow from '../components/checklist/ChecklistItemRow';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Textarea } from "@/components/ui/textarea";
 import { CheckSquare, Plus, Send, Loader2, Clock } from 'lucide-react';
 import { toast } from "sonner";
 
