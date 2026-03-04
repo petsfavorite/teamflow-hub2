@@ -12,17 +12,20 @@ import { base44 } from '@/api/base44Client';
 import RoleBadge from './components/shared/RoleBadge';
 
 const navItems = [
-  { label: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard', roles: ['admin', 'manager', 'user'] },
-  { label: 'SOPs', icon: BookOpen, page: 'SOPs', roles: ['admin', 'manager', 'user'] },
-  { label: 'Checklists', icon: CheckSquare, page: 'Checklists', roles: ['admin', 'manager', 'user'] },
-  { label: 'Checklist History', icon: CheckSquare, page: 'ChecklistHistory', roles: ['admin', 'manager'] },
-  { label: 'Tasks', icon: ClipboardList, page: 'Tasks', roles: ['admin', 'manager', 'user'] },
-  { label: 'Maintenance', icon: Wrench, page: 'Maintenance', roles: ['admin', 'manager', 'user'] },
-  { label: 'Incidents', icon: AlertTriangle, page: 'IncidentReports', roles: ['admin', 'manager', 'user'] },
-  { label: 'Assets', icon: Boxes, page: 'Assets', roles: ['admin', 'manager', 'user'] },
-  { label: 'App Links', icon: ExternalLink, page: 'ExternalLinks', roles: ['admin', 'manager', 'user'] },
-  { label: 'SOP Assistant', icon: MessageSquare, page: 'SOPAssistant', roles: ['admin', 'manager', 'user'] },
-  { label: 'Users', icon: Users, page: 'UserManagement', roles: ['admin', 'manager'] },
+  { label: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard', roles: ['admin', 'manager', 'user', 'super_admin'] },
+  { label: '🚨 Emergency SOPs', icon: Zap, page: 'EmergencySOPs', roles: ['admin', 'manager', 'user', 'super_admin'] },
+  { label: 'SOPs', icon: BookOpen, page: 'SOPs', roles: ['admin', 'manager', 'user', 'super_admin'] },
+  { label: 'Checklists', icon: CheckSquare, page: 'Checklists', roles: ['admin', 'manager', 'user', 'super_admin'] },
+  { label: 'Checklist History', icon: CheckSquare, page: 'ChecklistHistory', roles: ['admin', 'manager', 'super_admin'] },
+  { label: 'Tasks', icon: ClipboardList, page: 'Tasks', roles: ['admin', 'manager', 'user', 'super_admin'] },
+  { label: 'Maintenance', icon: Wrench, page: 'Maintenance', roles: ['admin', 'manager', 'user', 'super_admin'] },
+  { label: 'Incidents', icon: AlertTriangle, page: 'IncidentReports', roles: ['admin', 'manager', 'user', 'super_admin'] },
+  { label: 'Assets', icon: Boxes, page: 'Assets', roles: ['admin', 'manager', 'user', 'super_admin'] },
+  { label: 'Analytics', icon: BarChart2, page: 'Analytics', roles: ['admin', 'manager', 'super_admin'] },
+  { label: 'App Links', icon: ExternalLink, page: 'ExternalLinks', roles: ['admin', 'manager', 'user', 'super_admin'] },
+  { label: 'SOP Assistant', icon: MessageSquare, page: 'SOPAssistant', roles: ['admin', 'manager', 'user', 'super_admin'] },
+  { label: 'Users', icon: Users, page: 'UserManagement', roles: ['admin', 'manager', 'super_admin'] },
+  { label: 'Dev Checklist', icon: Rocket, page: 'DevChecklist', roles: ['super_admin'] },
 ];
 
 export default function Layout({ children, currentPageName }) {
