@@ -185,6 +185,42 @@ export default function SOPDetail() {
         </CardContent>
       </Card>
 
+      {/* Pending approval banner */}
+      {sop.status === 'pending_approval' && sop.pending_content && canApprove && (
+        <Card className="border-0 shadow-sm border-l-4 border-l-amber-500 mb-4">
+          <CardContent className="p-6">
+            <div className="flex items-start gap-3 mb-4">
+              <ShieldAlert className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="font-semibold text-amber-900">Pending Manager Edit — Awaiting Approval</p>
+                <p className="text-sm text-amber-700">Submitted by <strong>{sop.pending_submitted_by_name}</strong>{sop.pending_change_summary ? ` — "${sop.pending_change_summary}"` : ''}</p>
+              </div>
+            </div>
+            <div className="prose prose-sm prose-slate max-w-none bg-amber-50 rounded-lg p-4 mb-4 max-h-60 overflow-y-auto" dangerouslySetInnerHTML={{ __html: sop.pending_content }} />
+            <div className="flex gap-3 justify-end">
+              <Button variant="outline" onClick={() => approveMutation.mutate(false)} disabled={approveMutation.isPending} className="gap-2 border-red-200 text-red-700 hover:bg-red-50">
+                <XCircle className="w-4 h-4" /> Reject
+              </Button>
+              <Button onClick={() => approveMutation.mutate(true)} disabled={approveMutation.isPending} className="bg-emerald-600 hover:bg-emerald-700 gap-2">
+                {approveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                Approve & Publish
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {sop.status === 'pending_approval' && !canApprove && (
+        <Card className="border-0 shadow-sm border-l-4 border-l-amber-400 mb-4">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <ShieldAlert className="w-4 h-4 text-amber-600" />
+              <p className="text-sm text-amber-800">This SOP has a pending edit awaiting admin approval.</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Acknowledgement section */}
       {sop.requires_acknowledgement && (
         <Card className="border-0 shadow-sm mb-4">
