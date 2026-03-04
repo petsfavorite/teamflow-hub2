@@ -43,6 +43,11 @@ export default function Assets() {
     queryFn: () => base44.entities.SOP.filter({ status: 'published' }),
   });
 
+  const { data: allTasks = [] } = useQuery({
+    queryKey: ['tasks'],
+    queryFn: () => base44.entities.Task.list('title', 200),
+  });
+
   const saveMutation = useMutation({
     mutationFn: (data) => editingAsset
       ? base44.entities.Asset.update(editingAsset.id, data)
