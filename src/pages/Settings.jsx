@@ -93,6 +93,23 @@ export default function Settings() {
               />
             </div>
 
+            <div className="space-y-2">
+              <Label>Timezone</Label>
+              <Select value={timezone} onValueChange={handleTimezoneChange}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TIMEZONES.map(tz => (
+                    <SelectItem key={tz.value} value={tz.value}>
+                      {tz.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-slate-500">All times in the app will be adjusted to your selected timezone</p>
+            </div>
+
             <div className="flex justify-end gap-3">
               <Button 
                 variant="outline"
