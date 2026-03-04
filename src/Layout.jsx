@@ -12,7 +12,6 @@ import { base44 } from '@/api/base44Client';
 import RoleBadge from './components/shared/RoleBadge';
 
 const navItems = [
-  { label: 'Settings', icon: LayoutDashboard, page: 'Settings', roles: ['admin', 'manager', 'user', 'super_admin'], hideFromNav: true },
   { label: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard', roles: ['admin', 'manager', 'user', 'super_admin'] },
   { label: '🚨 Emergency SOPs', icon: Zap, page: 'EmergencySOPs', roles: ['admin', 'manager', 'user', 'super_admin'] },
   { label: 'SOPs', icon: BookOpen, page: 'SOPs', roles: ['admin', 'manager', 'user', 'super_admin'] },
@@ -28,6 +27,7 @@ const navItems = [
   { label: 'Teams', icon: Users, page: 'Teams', roles: ['admin', 'manager', 'user', 'super_admin'] },
   { label: 'Users', icon: Users, page: 'UserManagement', roles: ['admin', 'manager', 'super_admin'] },
   { label: 'Dev Checklist', icon: Rocket, page: 'DevChecklist', roles: ['super_admin'] },
+  { label: 'Settings', icon: LayoutDashboard, page: 'Settings', roles: ['admin', 'manager', 'user', 'super_admin'], isBottom: true },
 ];
 
 export default function Layout({ children, currentPageName }) {
@@ -73,7 +73,7 @@ export default function Layout({ children, currentPageName }) {
       </div>
 
       <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
-        {filteredNav.map((item) => {
+        {filteredNav.filter(item => !item.isBottom).map((item) => {
           const isActive = currentPageName === item.page;
           return (
             <Link
@@ -92,6 +92,27 @@ export default function Layout({ children, currentPageName }) {
           );
         })}
       </nav>
+
+      <div className="border-t border-slate-800 py-2 px-2">
+        {filteredNav.filter(item => item.isBottom).map((item) => {
+          const isActive = currentPageName === item.page;
+          return (
+            <Link
+              key={item.page}
+              to={createPageUrl(item.page)}
+              onClick={() => mobile && setMobileOpen(false)}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                isActive
+                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              } ${collapsed && !mobile ? 'justify-center' : ''}`}
+            >
+              <item.icon className="w-5 h-5 flex-shrink-0" />
+              {(!collapsed || mobile) && <span>{item.label}</span>}
+            </Link>
+          );
+        })}
+      </div>
 
       <div className={`p-4 border-t border-slate-800 ${collapsed && !mobile ? 'flex justify-center' : ''}`}>
         {(!collapsed || mobile) ? (
