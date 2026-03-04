@@ -157,6 +157,7 @@ export default function ChecklistEditor() {
               <Select value={form.frequency} onValueChange={v => setForm({ ...form, frequency: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="one_time">One Time Only</SelectItem>
                   <SelectItem value="daily">Daily</SelectItem>
                   <SelectItem value="weekly">Weekly</SelectItem>
                   <SelectItem value="monthly">Monthly</SelectItem>
