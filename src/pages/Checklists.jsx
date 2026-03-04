@@ -315,6 +315,72 @@ export default function Checklists() {
           </DialogFooter>
           </DialogContent>
           </Dialog>
-    </div>
-  );
-}
+
+          <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
+          <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Assign "{templateToAssign?.title}" to Users & Teams</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium text-slate-900 block mb-2">Users</label>
+              <div className="max-h-40 overflow-y-auto space-y-2 p-2 bg-slate-50 rounded-lg border border-slate-200">
+                {allUsers.map(u => (
+                  <label key={u.id} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={assignForm.emails.includes(u.email)}
+                      onChange={e => {
+                        if (e.target.checked) {
+                          setAssignForm({ ...assignForm, emails: [...assignForm.emails, u.email] });
+                        } else {
+                          setAssignForm({ ...assignForm, emails: assignForm.emails.filter(e => e !== u.email) });
+                        }
+                      }}
+                      className="w-4 h-4 rounded border-slate-300"
+                    />
+                    <span className="text-sm text-slate-700">{u.full_name || u.email}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-slate-900 block mb-2">Teams</label>
+              <div className="max-h-40 overflow-y-auto space-y-2 p-2 bg-slate-50 rounded-lg border border-slate-200">
+                {teams.map(t => (
+                  <label key={t.id} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={assignForm.teams.includes(t.id)}
+                      onChange={e => {
+                        if (e.target.checked) {
+                          setAssignForm({ ...assignForm, teams: [...assignForm.teams, t.id] });
+                        } else {
+                          setAssignForm({ ...assignForm, teams: assignForm.teams.filter(id => id !== t.id) });
+                        }
+                      }}
+                      className="w-4 h-4 rounded border-slate-300"
+                    />
+                    <span className="text-sm text-slate-700">{t.name}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAssignDialogOpen(false)}>Cancel</Button>
+            <Button onClick={() => {
+              assignMutation.mutate({
+                assigned_to_emails: assignForm.emails,
+                assigned_to_names: assignForm.emails.map(e => allUsers.find(u => u.email === e)?.full_name || e),
+                assigned_teams: assignForm.teams
+              });
+            }} disabled={assignMutation.isPending} className="bg-indigo-600 hover:bg-indigo-700 gap-2">
+              {assignMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Assign
+            </Button>
+          </DialogFooter>
+          </DialogContent>
+          </Dialog>
+          </div>
+          );
+          }
