@@ -50,8 +50,17 @@ export default function ChecklistEditor() {
 
   useEffect(() => {
     if (existing) {
-      setForm(existing);
-      setAssignInput(existing.assigned_to?.join(', ') || '');
+      setForm({
+        ...existing,
+        assigned_to_emails: existing.assigned_to_emails || [],
+        assigned_to_teams: existing.assigned_to_teams || [],
+        custom_frequency_type: existing.custom_frequency_type || 'days',
+        custom_frequency_value: existing.custom_frequency_value || 1,
+        custom_frequency_days: existing.custom_frequency_days || [],
+        custom_frequency_day_of_month: existing.custom_frequency_day_of_month || 1
+      });
+      setSelectedUsers(existing.assigned_to_emails || []);
+      setSelectedTeams(existing.assigned_to_teams || []);
     }
   }, [existing]);
 
