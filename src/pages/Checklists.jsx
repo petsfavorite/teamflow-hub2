@@ -11,7 +11,7 @@ import ChecklistItemRow from '../components/checklist/ChecklistItemRow';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { CheckSquare, Plus, Send, Loader2, Clock, Trash2, Share2, X } from 'lucide-react';
+import { CheckSquare, Plus, Send, Loader2, Clock, Trash2, Share2, X, AlertCircle } from 'lucide-react';
 import { toast } from "sonner";
 
 export default function Checklists() {
@@ -20,6 +20,7 @@ export default function Checklists() {
   const [activeChecklist, setActiveChecklist] = useState(null);
   const [items, setItems] = useState([]);
   const [notes, setNotes] = useState({});
+  const [canSubmitWithIncomplete, setCanSubmitWithIncomplete] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [templateToDelete, setTemplateToDelete] = useState(null);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
@@ -107,25 +108,29 @@ export default function Checklists() {
     setActiveChecklist(template);
     setItems(template.items.map(item => ({ ...item, checked: false })));
     setNotes({});
+    setCanSubmitWithIncomplete(!template.auto_close_datetime && !template.auto_close_time);
   };
 
   const updateItem = (index, updates) => {
-    setItems(prev => prev.map((item, i) => {
-      if (i === index) {
-        const isChecking = updates.checked !== undefined ? updates.checked : item.checked;
-        const wasChecked = item.checked;
-        
-        return {
-          ...item,
-          ...updates,
-          checked: isChecking,
-          checked_at: isChecking && !wasChecked ? new Date().toISOString() : item.checked_at,
-          checked_by_email: isChecking && !wasChecked ? user?.email : item.checked_by_email,
-          checked_by_name: isChecking && !wasChecked ? user?.full_name : item.checked_by_name,
-        };
-      }
-      return item;
-    }));
+    setItems(prev => {
+      const updated = prev.map((item, i) => {
+        if (i === index) {
+          const isChecking = updates.checked !== undefined ? updates.checked : item.checked;
+          const wasChecked = item.checked;
+          
+          return {
+            ...item,
+            ...updates,
+            checked: isChecking,
+            checked_at: isChecking && !wasChecked ? new Date().toISOString() : item.checked_at,
+            checked_by_email: isChecking && !wasChecked ? user?.email : item.checked_by_email,
+            checked_by_name: isChecking && !wasChecked ? user?.full_name : item.checked_by_name,
+          };
+        }
+        return item;
+      });
+      return updated;
+    });
   };
 
   const submitChecklist = async () => {
