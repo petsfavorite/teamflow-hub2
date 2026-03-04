@@ -5,7 +5,7 @@ import { useCurrentUser } from './components/hooks/useCurrentUser';
 import {
   BookOpen, CheckSquare, Wrench, ExternalLink, MessageSquare,
   LayoutDashboard, Users, ChevronLeft, ChevronRight, Menu, X, LogOut,
-  ClipboardList, AlertTriangle, Boxes
+  ClipboardList, AlertTriangle, Boxes, Zap, BarChart2, Rocket
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { base44 } from '@/api/base44Client';
