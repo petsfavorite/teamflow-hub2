@@ -184,13 +184,28 @@ export default function UserManagement() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingUser(null)}>Cancel</Button>
             <Button
-              onClick={() => {
+              onClick={async () => {
+                let namePromise = null;
+                let rolePromise = null;
+                
                 if (editName !== editingUser?.full_name) {
-                  updateNameMutation.mutate({ id: editingUser.id, full_name: editName });
+                  namePromise = new Promise((resolve) => {
+                    const unsubscribe = updateNameMutation.status;
+                    updateNameMutation.mutate({ id: editingUser.id, full_name: editName }, {
+                      onSuccess: () => resolve()
+                    });
+                  });
                 }
                 if (editRole !== (editingUser?.role || 'user') && (isSuperAdmin || isAdmin || (isManager && editingUser?.id !== user?.id && (editingUser?.role === 'user' || !editingUser?.role)))) {
-                  updateRoleMutation.mutate({ id: editingUser.id, role: editRole });
+                  rolePromise = new Promise((resolve) => {
+                    updateRoleMutation.mutate({ id: editingUser.id, role: editRole }, {
+                      onSuccess: () => resolve()
+                    });
+                  });
                 }
+                
+                if (namePromise) await namePromise;
+                if (rolePromise) await rolePromise;
               }}
               disabled={updateNameMutation.isPending || updateRoleMutation.isPending || (editName === editingUser?.full_name && editRole === (editingUser?.role || 'user'))}
               className="bg-indigo-600 hover:bg-indigo-700 gap-2"
