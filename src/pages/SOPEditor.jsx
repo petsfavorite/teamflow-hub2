@@ -11,8 +11,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import ReactQuill from 'react-quill';
-import { ArrowLeft, Save, Loader2 } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, History } from 'lucide-react';
 import { toast } from "sonner";
 
 export default function SOPEditor() {
@@ -20,12 +21,14 @@ export default function SOPEditor() {
   const id = params.get('id');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { isAdmin, canManage } = useCurrentUser();
+  const { user, isAdmin, canManage } = useCurrentUser();
 
   const [form, setForm] = useState({
-    title: '', category: '', content: '', summary: '', tags: [], status: 'draft', version: 1
+    title: '', category: '', content: '', summary: '', tags: [], status: 'draft',
+    version: 1, requires_acknowledgement: false, acknowledgement_due_days: 3,
   });
   const [tagsInput, setTagsInput] = useState('');
+  const [changeSummary, setChangeSummary] = useState('');
 
   const { data: existing } = useQuery({
     queryKey: ['sop-edit', id],
@@ -45,31 +48,45 @@ export default function SOPEditor() {
 
   const saveMutation = useMutation({
     mutationFn: async (data) => {
+      const tags = tagsInput.split(',').map(t => t.trim()).filter(Boolean);
+      const sopData = { ...data, tags, last_updated_by: user?.email, last_updated_by_name: user?.full_name };
+
+      let result;
       if (id) {
-        return base44.entities.SOP.update(id, data);
+        result = await base44.entities.SOP.update(id, sopData);
+      } else {
+        result = await base44.entities.SOP.create(sopData);
       }
-      return base44.entities.SOP.create(data);
+
+      // Save a version snapshot
+      const sopId = id || result.id;
+      await base44.entities.SOPVersion.create({
+        sop_id: sopId,
+        version_number: sopData.version,
+        title: sopData.title,
+        content: sopData.content,
+        summary: sopData.summary,
+        tags: sopData.tags,
+        category: sopData.category,
+        change_summary: changeSummary || (id ? 'Updated' : 'Initial version'),
+        created_by_name: user?.full_name,
+      });
+
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sops'] });
+      queryClient.invalidateQueries({ queryKey: ['sop-versions'] });
       toast.success(id ? 'SOP updated' : 'SOP created');
       navigate(createPageUrl('SOPs'));
     },
   });
 
-  const handleSave = () => {
-    const tags = tagsInput.split(',').map(t => t.trim()).filter(Boolean);
-    saveMutation.mutate({ ...form, tags });
-  };
-
-  // Admins can create new SOPs, managers can only edit
   if (!id && !isAdmin) {
     return (
       <div className="text-center py-20">
         <p className="text-slate-500">Only admins can create new SOPs</p>
-        <Link to={createPageUrl('SOPs')}>
-          <Button variant="ghost" className="mt-4">Back to SOPs</Button>
-        </Link>
+        <Link to={createPageUrl('SOPs')}><Button variant="ghost" className="mt-4">Back to SOPs</Button></Link>
       </div>
     );
   }
@@ -78,9 +95,7 @@ export default function SOPEditor() {
     return (
       <div className="text-center py-20">
         <p className="text-slate-500">You don't have permission to edit SOPs</p>
-        <Link to={createPageUrl('SOPs')}>
-          <Button variant="ghost" className="mt-4">Back to SOPs</Button>
-        </Link>
+        <Link to={createPageUrl('SOPs')}><Button variant="ghost" className="mt-4">Back to SOPs</Button></Link>
       </div>
     );
   }
@@ -89,10 +104,13 @@ export default function SOPEditor() {
     <div className="max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <Link to={createPageUrl('SOPs')}>
-          <Button variant="ghost" className="gap-2 text-slate-600">
-            <ArrowLeft className="w-4 h-4" /> Back
-          </Button>
+          <Button variant="ghost" className="gap-2 text-slate-600"><ArrowLeft className="w-4 h-4" /> Back</Button>
         </Link>
+        {id && (
+          <Link to={createPageUrl('SOPVersions') + `?id=${id}`}>
+            <Button variant="outline" className="gap-2"><History className="w-4 h-4" /> Version History</Button>
+          </Link>
+        )}
       </div>
 
       <PageHeader title={id ? 'Edit SOP' : 'Create New SOP'} />
@@ -100,14 +118,8 @@ export default function SOPEditor() {
       <Card className="border-0 shadow-sm">
         <CardContent className="p-6 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Title</Label>
-              <Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="SOP Title" />
-            </div>
-            <div className="space-y-2">
-              <Label>Category</Label>
-              <Input value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} placeholder="e.g. Safety, Operations" />
-            </div>
+            <div className="space-y-2"><Label>Title</Label><Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="SOP Title" /></div>
+            <div className="space-y-2"><Label>Category</Label><Input value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} placeholder="e.g. Safety, Operations" /></div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -122,39 +134,46 @@ export default function SOPEditor() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-2"><Label>Version</Label><Input type="number" value={form.version} onChange={e => setForm({ ...form, version: Number(e.target.value) })} /></div>
+          </div>
+
+          <div className="space-y-2"><Label>Summary</Label><Textarea value={form.summary} onChange={e => setForm({ ...form, summary: e.target.value })} placeholder="Brief description for AI search" rows={2} /></div>
+          <div className="space-y-2"><Label>Tags (comma separated)</Label><Input value={tagsInput} onChange={e => setTagsInput(e.target.value)} placeholder="safety, kennel, opening" /></div>
+
+          {id && (
             <div className="space-y-2">
-              <Label>Version</Label>
-              <Input type="number" value={form.version} onChange={e => setForm({ ...form, version: Number(e.target.value) })} />
+              <Label>Change Summary <span className="text-slate-400 text-xs">(what changed?)</span></Label>
+              <Input value={changeSummary} onChange={e => setChangeSummary(e.target.value)} placeholder="e.g. Updated step 3 with new sanitizer protocol" />
             </div>
-          </div>
+          )}
 
-          <div className="space-y-2">
-            <Label>Summary</Label>
-            <Textarea value={form.summary} onChange={e => setForm({ ...form, summary: e.target.value })} placeholder="Brief description for search" rows={2} />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Tags (comma separated)</Label>
-            <Input value={tagsInput} onChange={e => setTagsInput(e.target.value)} placeholder="safety, kitchen, opening" />
+          <div className="flex items-center gap-4 p-4 bg-amber-50 rounded-xl border border-amber-100">
+            <Switch
+              checked={form.requires_acknowledgement}
+              onCheckedChange={v => setForm({ ...form, requires_acknowledgement: v })}
+            />
+            <div>
+              <p className="font-medium text-sm text-amber-900">Require Staff Acknowledgement</p>
+              <p className="text-xs text-amber-700">Staff must confirm they've read this SOP when published or updated</p>
+            </div>
+            {form.requires_acknowledgement && (
+              <div className="ml-auto flex items-center gap-2">
+                <Label className="text-xs">Days to acknowledge</Label>
+                <Input type="number" value={form.acknowledgement_due_days} onChange={e => setForm({ ...form, acknowledgement_due_days: Number(e.target.value) })} className="w-16 h-8 text-sm" />
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
             <Label>Content</Label>
             <div className="min-h-[300px]">
-              <ReactQuill
-                value={form.content}
-                onChange={v => setForm({ ...form, content: v })}
-                className="bg-white rounded-lg"
-                theme="snow"
-              />
+              <ReactQuill value={form.content} onChange={v => setForm({ ...form, content: v })} className="bg-white rounded-lg" theme="snow" />
             </div>
           </div>
 
           <div className="flex justify-end gap-3 pt-4">
-            <Link to={createPageUrl('SOPs')}>
-              <Button variant="outline">Cancel</Button>
-            </Link>
-            <Button onClick={handleSave} disabled={saveMutation.isPending} className="bg-indigo-600 hover:bg-indigo-700 gap-2">
+            <Link to={createPageUrl('SOPs')}><Button variant="outline">Cancel</Button></Link>
+            <Button onClick={() => saveMutation.mutate(form)} disabled={saveMutation.isPending} className="bg-indigo-600 hover:bg-indigo-700 gap-2">
               {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               {id ? 'Update SOP' : 'Create SOP'}
             </Button>
