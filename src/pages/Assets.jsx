@@ -389,39 +389,70 @@ export default function Assets() {
               )}
             </div>
             <div className="space-y-2">
-              <Label>Add Note</Label>
-              <div className="space-y-2">
-                <Textarea 
-                  placeholder="Add a note (max 200 characters)" 
-                  value={newNote} 
-                  onChange={(e) => setNewNote(e.target.value.substring(0, 200))}
-                  rows={2}
-                  maxLength={200}
-                />
-                <div className="text-xs text-slate-400">{newNote.length}/200</div>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => {
-                    if (newNote.trim() && editingAsset) {
-                      const notesLog = editingAsset.notes_log || [];
-                      setEditingAsset({
-                        ...editingAsset,
-                        notes_log: [...notesLog, { note: newNote, date: new Date().toISOString().split('T')[0] }]
-                      });
-                      setForm({
-                        ...form,
-                        notes_log: [...(form.notes_log || []), { note: newNote, date: new Date().toISOString().split('T')[0] }]
-                      });
-                      setNewNote('');
-                    }
-                  }}
-                  disabled={!newNote.trim()}
-                >
-                  Add Note
-                </Button>
-              </div>
+             <Label>Add Note</Label>
+             <div className="space-y-2">
+               <Textarea 
+                 placeholder="Add a note (max 200 characters)" 
+                 value={newNote} 
+                 onChange={(e) => setNewNote(e.target.value.substring(0, 200))}
+                 rows={2}
+                 maxLength={200}
+               />
+               <div className="text-xs text-slate-400">{newNote.length}/200</div>
+               <div className="space-y-2">
+                 <Label className="text-xs">Attachment (optional)</Label>
+                 <Input 
+                   type="file" 
+                   onChange={(e) => setNewNoteAttachment(e.target.files?.[0] || null)}
+                   disabled={uploadingAttachment}
+                 />
+                 {newNoteAttachment && <p className="text-xs text-slate-500">Selected: {newNoteAttachment.name}</p>}
+               </div>
+               <Button 
+                 type="button" 
+                 variant="outline" 
+                 size="sm"
+                 onClick={async () => {
+                   if (newNote.trim() && editingAsset && user) {
+                     let attachmentUrl = null;
+                     if (newNoteAttachment) {
+                       setUploadingAttachment(true);
+                       try {
+                         const { file_url } = await base44.integrations.Core.UploadFile({ file: newNoteAttachment });
+                         attachmentUrl = file_url;
+                       } catch (err) {
+                         toast.error('Failed to upload attachment');
+                         setUploadingAttachment(false);
+                         return;
+                       }
+                       setUploadingAttachment(false);
+                     }
+                     const noteEntry = { 
+                       note: newNote, 
+                       date: new Date().toISOString().split('T')[0],
+                       added_by: user.email,
+                       added_by_name: user.full_name || user.email,
+                       ...(attachmentUrl && { attachment_url: attachmentUrl })
+                     };
+                     const notesLog = editingAsset.notes_log || [];
+                     setEditingAsset({
+                       ...editingAsset,
+                       notes_log: [...notesLog, noteEntry]
+                     });
+                     setForm({
+                       ...form,
+                       notes_log: [...(form.notes_log || []), noteEntry]
+                     });
+                     setNewNote('');
+                     setNewNoteAttachment(null);
+                     toast.success('Note added');
+                   }
+                 }}
+                 disabled={!newNote.trim() || uploadingAttachment}
+               >
+                 {uploadingAttachment && <Loader2 className="w-4 h-4 animate-spin" />} Add Note
+               </Button>
+             </div>
             </div>
             <div className="space-y-2"><Label>Notes</Label><Textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={2} /></div>
           </div>
