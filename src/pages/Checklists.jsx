@@ -417,15 +417,15 @@ export default function Checklists() {
                                <Button
                                  variant="ghost"
                                  size="sm"
-                                 className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 gap-1"
+                                 className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                                  onClick={() => {
                                    setTemplateToEdit(t);
                                    setEditForm({
                                      recurrence_type: t.recurrence_type || 'once',
                                      auto_close_time: t.auto_close_time || '17:00',
-                                     assigned_to_emails: t.assigned_to_emails || [],
-                                     assigned_to_names: t.assigned_to_names || [],
-                                     assigned_teams: t.assigned_teams || [],
+                                     assigned_to_emails: [],
+                                     assigned_to_names: [],
+                                     assigned_teams: [],
                                      custom_frequency_type: t.custom_frequency_type || 'days',
                                      custom_frequency_value: t.custom_frequency_value || 1,
                                      custom_frequency_days: t.custom_frequency_days || [],
@@ -434,7 +434,7 @@ export default function Checklists() {
                                    setEditDialogOpen(true);
                                  }}
                                >
-                                 <Edit2 className="w-4 h-4" /> Open
+                                 Open to Assign
                                </Button>
                                <Link to={createPageUrl('ChecklistEditor') + `?id=${t.id}`}>
                                  <Button variant="ghost" size="sm">Edit</Button>
