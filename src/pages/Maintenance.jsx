@@ -173,31 +173,176 @@ export default function Maintenance() {
       </Dialog>
 
       {/* Detail Dialog */}
-      <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
-        <DialogContent>
+      <Dialog open={!!selected} onOpenChange={() => { setSelected(null); setNewNote(''); setNewNoteAttachment(null); setExpandedNotesLog(false); }}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{selected?.title}</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <p className="text-sm text-slate-600">{selected?.description}</p>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div><span className="text-slate-400">Location:</span> <span className="font-medium">{selected?.location || 'N/A'}</span></div>
-              <div><span className="text-slate-400">Priority:</span> <StatusBadge status={selected?.priority} /></div>
-              <div><span className="text-slate-400">Status:</span> <StatusBadge status={selected?.status} /></div>
-              <div><span className="text-slate-400">By:</span> <span className="font-medium">{selected?.requested_by_name}</span></div>
+          {selected && (
+            <div className="space-y-4">
+              <p className="text-sm text-slate-600">{selected?.description}</p>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div><span className="text-slate-400">Location:</span> <span className="font-medium">{selected?.location || 'N/A'}</span></div>
+                <div><span className="text-slate-400">Priority:</span> <StatusBadge status={selected?.priority} /></div>
+                <div><span className="text-slate-400">Status:</span> <StatusBadge status={selected?.status} /></div>
+                <div><span className="text-slate-400">By:</span> <span className="font-medium">{selected?.requested_by_name}</span></div>
+              </div>
+              {selected?.asset_name && (
+                <div className="bg-blue-50 p-3 rounded-lg">
+                  <p className="text-xs font-medium text-blue-700">Asset: {selected.asset_name}</p>
+                </div>
+              )}
+
+              {canManage && (
+                <div className="border-t pt-4 space-y-3">
+                  <p className="text-sm font-medium text-slate-900">Update Status</p>
+                  <div className="flex gap-2 flex-wrap">
+                    <Button 
+                      variant={selected.status === 'received' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => updateStatus(selected.id, 'received')}
+                    >
+                      Received
+                    </Button>
+                    <Button 
+                      variant={selected.status === 'working_on' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => updateStatus(selected.id, 'working_on')}
+                    >
+                      Working On
+                    </Button>
+                    <Button 
+                      variant={selected.status === 'waiting_on' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => updateStatus(selected.id, 'waiting_on')}
+                    >
+                      Waiting On
+                    </Button>
+                    <Button 
+                      className="bg-emerald-600 hover:bg-emerald-700"
+                      size="sm"
+                      onClick={() => updateStatus(selected.id, 'completed')}
+                    >
+                      Complete
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {canManage && (
+                <div className="border-t pt-4 space-y-3">
+                  <p className="text-sm font-medium text-slate-900">Add Note</p>
+                  <Textarea 
+                    placeholder="Add a note" 
+                    value={newNote} 
+                    onChange={(e) => setNewNote(e.target.value)}
+                    rows={2}
+                  />
+                  <div className="space-y-2">
+                    <Label className="text-xs">Attachment (optional)</Label>
+                    <Input 
+                      type="file" 
+                      onChange={(e) => setNewNoteAttachment(e.target.files?.[0] || null)}
+                      disabled={uploadingAttachment}
+                    />
+                    {newNoteAttachment && <p className="text-xs text-slate-500">Selected: {newNoteAttachment.name}</p>}
+                  </div>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={async () => {
+                      if (newNote.trim() && user && selected) {
+                        let attachmentUrl = null;
+                        if (newNoteAttachment) {
+                          setUploadingAttachment(true);
+                          try {
+                            const { file_url } = await base44.integrations.Core.UploadFile({ file: newNoteAttachment });
+                            attachmentUrl = file_url;
+                          } catch (err) {
+                            toast.error('Failed to upload attachment');
+                            setUploadingAttachment(false);
+                            return;
+                          }
+                          setUploadingAttachment(false);
+                        }
+                        const noteEntry = { 
+                          note: newNote, 
+                          date: new Date().toISOString().split('T')[0],
+                          added_by: user.email,
+                          added_by_name: user.full_name || user.email,
+                          ...(attachmentUrl && { attachment_url: attachmentUrl })
+                        };
+                        await base44.entities.MaintenanceRequest.update(selected.id, {
+                          notes_log: [...(selected.notes_log || []), noteEntry]
+                        });
+                        queryClient.invalidateQueries({ queryKey: ['maintenance-requests'] });
+                        setNewNote('');
+                        setNewNoteAttachment(null);
+                        setSelected({ ...selected, notes_log: [...(selected.notes_log || []), noteEntry] });
+                        toast.success('Note added');
+                      }
+                    }}
+                    disabled={!newNote.trim() || uploadingAttachment}
+                  >
+                    {uploadingAttachment && <Loader2 className="w-4 h-4 animate-spin mr-2" />} Add Note
+                  </Button>
+                </div>
+              )}
+
+              {/* Notes Log */}
+              {selected.notes_log && selected.notes_log.length > 0 && (
+                <div className="border-t pt-4">
+                  <button
+                    onClick={() => setExpandedNotesLog(!expandedNotesLog)}
+                    className="flex items-center gap-2 text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors"
+                  >
+                    <ChevronDown className={`w-4 h-4 transition-transform ${expandedNotesLog ? 'rotate-180' : ''}`} />
+                    Notes Log ({selected.notes_log.length})
+                  </button>
+
+                  {expandedNotesLog && (
+                    <div className="mt-3 space-y-2 max-h-64 overflow-y-auto">
+                      {selected.notes_log.map((log, idx) => (
+                        <div key={idx} className="text-xs bg-slate-50 rounded p-2">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-slate-700">{log.note}</p>
+                              <div className="text-xs text-slate-400 mt-1">
+                                {log.added_by_name} • {log.date}
+                              </div>
+                              {log.attachment_url && (
+                                <a href={log.attachment_url} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 hover:underline flex items-center gap-1 mt-1.5">
+                                  <Paperclip className="w-3 h-3" /> View Attachment
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {(isSuperAdmin || isAdmin) && selected && (
+                <div className="border-t pt-4">
+                  <p className="text-sm font-medium text-slate-900 mb-2">Assign To (optional)</p>
+                  <Select value={selected.assigned_to || ''} onValueChange={v => {
+                    updateMutation.mutate({ 
+                      id: selected.id, 
+                      data: { assigned_to: v || null }
+                    });
+                  }}>
+                    <SelectTrigger><SelectValue placeholder="Select user" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={null}>Unassigned</SelectItem>
+                      {allUsers.map(u => (
+                        <SelectItem key={u.id} value={u.email}>{u.full_name || u.email}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
-            {selected?.resolution_notes && (
-              <div className="bg-emerald-50 p-3 rounded-lg">
-                <p className="text-xs font-medium text-emerald-700">Resolution: {selected.resolution_notes}</p>
-              </div>
-            )}
-          </div>
-          {canManage && selected && (
-            <DialogFooter>
-              <div className="flex gap-2 flex-wrap">
-                {selected.status !== 'in_progress' && <Button variant="outline" onClick={() => updateStatus(selected.id, 'in_progress')}>Mark In Progress</Button>}
-                {selected.status !== 'completed' && <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={() => updateStatus(selected.id, 'completed')}>Mark Complete</Button>}
-                {selected.status !== 'cancelled' && <Button variant="destructive" onClick={() => updateStatus(selected.id, 'cancelled')}>Cancel</Button>}
-              </div>
-            </DialogFooter>
           )}
         </DialogContent>
       </Dialog>
