@@ -65,7 +65,7 @@ export default function Checklists() {
   const myTemplates = publishedTemplates.filter(t => {
     const assignedToMe = t.assigned_to_emails?.includes(user?.email);
     const inMyTeam = t.assigned_teams?.some(teamId => myTeamIds.has(teamId));
-    return assignedToMe || inMyTeam;
+    return (assignedToMe || inMyTeam) && t.status !== 'closed';
   });
 
   const submitMutation = useMutation({
