@@ -118,7 +118,7 @@ export default function SOPVersions() {
           </DialogHeader>
           <div className="prose prose-sm prose-slate max-w-none" dangerouslySetInnerHTML={{ __html: previewing?.content }} />
           <DialogFooter>
-            {canManage && (
+            {canRollback && (
               <Button onClick={() => { rollbackMutation.mutate(previewing); setPreviewing(null); }} className="bg-indigo-600 hover:bg-indigo-700 gap-2">
                 <RotateCcw className="w-4 h-4" /> Restore This Version
               </Button>
