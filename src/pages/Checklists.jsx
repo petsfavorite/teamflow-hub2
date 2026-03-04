@@ -20,9 +20,15 @@ export default function Checklists() {
   const [items, setItems] = useState([]);
   const [notes, setNotes] = useState({});
 
-  const { data: templates = [], isLoading } = useQuery({
-    queryKey: ['checklist-templates'],
+  const { data: publishedTemplates = [], isLoading } = useQuery({
+    queryKey: ['checklist-templates-published'],
     queryFn: () => base44.entities.ChecklistTemplate.filter({ status: 'published' }, '-created_date', 100),
+  });
+
+  const { data: allTemplates = [] } = useQuery({
+    queryKey: ['checklist-templates-all'],
+    queryFn: () => base44.entities.ChecklistTemplate.list('-created_date', 100),
+    enabled: canManage,
   });
 
   const { data: teams = [] } = useQuery({

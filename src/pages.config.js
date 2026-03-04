@@ -63,10 +63,10 @@ import SOPDetail from './pages/SOPDetail';
 import SOPEditor from './pages/SOPEditor';
 import SOPVersions from './pages/SOPVersions';
 import SOPs from './pages/SOPs';
-import Tasks from './pages/Tasks';
-import UserManagement from './pages/UserManagement';
-import Teams from './pages/Teams';
 import Settings from './pages/Settings';
+import Tasks from './pages/Tasks';
+import Teams from './pages/Teams';
+import UserManagement from './pages/UserManagement';
 import __Layout from './Layout.jsx';
 
 
@@ -87,10 +87,10 @@ export const PAGES = {
     "SOPEditor": SOPEditor,
     "SOPVersions": SOPVersions,
     "SOPs": SOPs,
-    "Tasks": Tasks,
-    "UserManagement": UserManagement,
-    "Teams": Teams,
     "Settings": Settings,
+    "Tasks": Tasks,
+    "Teams": Teams,
+    "UserManagement": UserManagement,
 }
 
 export const pagesConfig = {
