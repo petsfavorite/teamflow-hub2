@@ -43,7 +43,9 @@ export default function Layout({ children, currentPageName }) {
   }
 
   const role = user?.role || 'user';
-  const filteredNav = navItems.filter(item => item.roles.includes(role));
+  // Treat admin as super_admin for nav purposes since we map admin → super_admin in useCurrentUser
+  const effectiveRole = role === 'admin' ? 'super_admin' : role;
+  const filteredNav = navItems.filter(item => item.roles.includes(effectiveRole) || item.roles.includes(role));
 
   const Sidebar = ({ mobile = false }) => (
     <div className={`flex flex-col h-full bg-slate-900 text-white ${mobile ? 'w-72' : collapsed ? 'w-[72px]' : 'w-64'} transition-all duration-300`}>
