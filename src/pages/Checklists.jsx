@@ -185,7 +185,7 @@ export default function Checklists() {
                   item={item}
                   index={i}
                   notes={notes}
-                  onNotesChange={(index, value) => setNotes({ ...notes, [index]: value })}
+                  onNotesChange={updateNotes}
                   onItemUpdate={updateItem}
                 />
               ))}
