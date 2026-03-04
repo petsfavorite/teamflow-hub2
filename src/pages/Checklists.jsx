@@ -292,11 +292,12 @@ export default function Checklists() {
 
     submitMutation.mutate(completion, {
       onSuccess: async (data) => {
-        // Generate notifications for incomplete items
-        await base44.functions.invoke('generateChecklistNotifications', {
+        // Finalize checklist assignment: remove from assigned list and create notifications
+        await base44.functions.invoke('finalizeChecklistAssignment', {
+          checklist_template_id: activeChecklist.id,
           checklist_completion_id: data.id
         }).catch(() => {
-          // Silently fail if notification generation fails
+          // Silently fail if finalization fails
         });
       }
     });
