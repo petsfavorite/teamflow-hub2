@@ -21,7 +21,8 @@ export default function SOPEditor() {
   const id = params.get('id');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user, isAdmin, canManage } = useCurrentUser();
+  const { user, isAdmin, isSuperAdmin, isManager } = useCurrentUser();
+  const canManage = isAdmin || isSuperAdmin || isManager;
 
   const [form, setForm] = useState({
     title: '', category: '', content: '', summary: '', tags: [], status: 'draft',
