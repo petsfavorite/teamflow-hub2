@@ -68,6 +68,7 @@ import Settings from './pages/Settings';
 import Tasks from './pages/Tasks';
 import Teams from './pages/Teams';
 import UserManagement from './pages/UserManagement';
+import KennelDashboard from './pages/KennelDashboard';
 import __Layout from './Layout.jsx';
 
 
@@ -93,6 +94,7 @@ export const PAGES = {
     "Tasks": Tasks,
     "Teams": Teams,
     "UserManagement": UserManagement,
+    "KennelDashboard": KennelDashboard,
 }
 
 export const pagesConfig = {
