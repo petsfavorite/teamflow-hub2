@@ -7,7 +7,7 @@ import { useCurrentUser } from '../components/hooks/useCurrentUser';
 import StatusBadge from '../components/shared/StatusBadge';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Pencil, Tag, Clock, User, CheckCircle, History, Users, Loader2 } from 'lucide-react';
+import { ArrowLeft, Pencil, Tag, Clock, User, CheckCircle, History, Users, Loader2, ShieldAlert, CheckCircle2, XCircle } from 'lucide-react';
 import { toast } from "sonner";
 
 export default function SOPDetail() {
