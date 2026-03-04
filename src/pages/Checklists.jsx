@@ -82,7 +82,8 @@ export default function Checklists() {
   const submitChecklist = async () => {
     const completedItems = items.map((item, i) => ({
       ...item,
-      notes: notes[i] || ''
+      notes: notes[i] || '',
+      photo_url: item.photo_url || ''
     }));
 
     const completion = {
