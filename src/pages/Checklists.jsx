@@ -337,36 +337,38 @@ export default function Checklists() {
               )}
               <div className="flex gap-2 justify-end">
                 {canManage && (
-                  <Button
-                    onClick={async () => {
-                      // Create completion record when stopping
-                      const completion = await base44.entities.ChecklistCompletion.create({
-                        checklist_template_id: activeChecklist.id,
-                        checklist_title: activeChecklist.title,
-                        completed_by: user.email,
-                        completed_by_name: user.full_name,
-                        completed_items: items,
-                        completion_date: new Date().toISOString().split('T')[0],
-                        status: 'edited'
-                      });
-                      // Close the template
-                      const template = allTemplates.find(t => t.id === activeChecklist.id);
-                      if (template && template.status === 'published') {
-                        await base44.entities.ChecklistTemplate.update(template.id, { status: 'closed' });
-                      }
-                      toast.success('Checklist stopped and moved to history');
-                      setActiveChecklist(null);
-                      setItems([]);
-                      setNotes({});
-                      queryClient.invalidateQueries({ queryKey: ['checklist-templates-published'] });
-                      queryClient.invalidateQueries({ queryKey: ['checklist-completions'] });
-                      queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
-                    }}
-                    variant="outline"
-                    className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
-                  >
-                    Stop
-                  </Button>
+                   <Button
+                     onClick={async () => {
+                       // Create completion record when stopping
+                       const completion = await base44.entities.ChecklistCompletion.create({
+                         checklist_template_id: activeChecklist.id,
+                         checklist_title: activeChecklist.title,
+                         completed_by: user.email,
+                         completed_by_name: user.full_name,
+                         completed_items: items,
+                         completion_date: new Date().toISOString().split('T')[0],
+                         status: 'edited'
+                       });
+                       // Finalize the assignment
+                       await base44.functions.invoke('finalizeChecklistAssignment', {
+                         checklist_template_id: activeChecklist.id,
+                         checklist_completion_id: completion.id
+                       }).catch(() => {
+                         // Silently fail if finalization fails
+                       });
+                       toast.success('Checklist stopped and moved to history');
+                       setActiveChecklist(null);
+                       setItems([]);
+                       setNotes({});
+                       queryClient.invalidateQueries({ queryKey: ['checklist-templates-published'] });
+                       queryClient.invalidateQueries({ queryKey: ['checklist-completions'] });
+                       queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
+                     }}
+                     variant="outline"
+                     className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                   >
+                     Stop
+                   </Button>
                 )}
                 <Button
                   onClick={submitChecklist}
