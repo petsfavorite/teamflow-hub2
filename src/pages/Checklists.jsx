@@ -829,7 +829,7 @@ export default function Checklists() {
           <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
           <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Open to Assign "{templateToEdit?.title}"</DialogTitle>
+            <DialogTitle>Edit "{templateToEdit?.title}"</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -950,8 +950,18 @@ export default function Checklists() {
               </div>
             )}
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex gap-2">
             <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+            {editForm.recurrence_type !== 'one_time' && (
+              <Button 
+                variant="destructive"
+                onClick={() => cancelFutureAssignmentsMutation.mutate(templateToEdit.id)}
+                disabled={cancelFutureAssignmentsMutation.isPending}
+              >
+                {cancelFutureAssignmentsMutation.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                Cancel Renewals
+              </Button>
+            )}
             <Button onClick={() => {
               editTemplateMutation.mutate({
                 recurrence_type: editForm.recurrence_type,
@@ -965,7 +975,7 @@ export default function Checklists() {
                 custom_frequency_day_of_month: editForm.custom_frequency_day_of_month
               });
             }} disabled={editTemplateMutation.isPending} className="bg-indigo-600 hover:bg-indigo-700 gap-2">
-              {editTemplateMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Assign
+              {editTemplateMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Save
             </Button>
           </DialogFooter>
           </DialogContent>
