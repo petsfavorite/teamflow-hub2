@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Checkbox } from "@/components/ui/checkbox";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useCurrentUser } from '../components/hooks/useCurrentUser';
