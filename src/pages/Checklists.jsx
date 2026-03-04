@@ -41,6 +41,14 @@ export default function Checklists() {
     custom_frequency_days: [],
     custom_frequency_day_of_month: 1
   });
+  const [frequencyDialogOpen, setFrequencyDialogOpen] = useState(false);
+  const [frequencyForm, setFrequencyForm] = useState({
+    recurrence_type: 'once',
+    custom_frequency_type: 'days',
+    custom_frequency_value: 1,
+    custom_frequency_days: [],
+    custom_frequency_day_of_month: 1
+  });
 
   const { data: publishedTemplates = [], isLoading } = useQuery({
     queryKey: ['checklist-templates-published'],
