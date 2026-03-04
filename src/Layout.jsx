@@ -26,7 +26,7 @@ const navItems = [
   { label: 'SOP Assistant', icon: MessageSquare, page: 'SOPAssistant', roles: ['admin', 'manager', 'user', 'super_admin'] },
   { label: 'Teams', icon: Users, page: 'Teams', roles: ['admin', 'manager', 'user', 'super_admin'] },
   { label: 'Users', icon: Users, page: 'UserManagement', roles: ['admin', 'manager', 'super_admin'] },
-  { label: 'Kennel Pet Care', icon: Paw, page: 'KennelPetCare', roles: ['admin', 'manager', 'user', 'super_admin'] },
+  { label: 'Kennel Pet Care', icon: Heart, page: 'KennelPetCare', roles: ['admin', 'manager', 'user', 'super_admin'] },
   { label: 'Dev Checklist', icon: Rocket, page: 'DevChecklist', roles: ['super_admin'] },
   { label: 'Settings', icon: LayoutDashboard, page: 'Settings', roles: ['admin', 'manager', 'user', 'super_admin'], isBottom: true },
 ];
