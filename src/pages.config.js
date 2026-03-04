@@ -64,6 +64,7 @@ import Assets from './pages/Assets';
 import Tasks from './pages/Tasks';
 import SOPVersions from './pages/SOPVersions';
 import EmergencySOPs from './pages/EmergencySOPs';
+import Analytics from './pages/Analytics';
 import __Layout from './Layout.jsx';
 
 
@@ -85,6 +86,7 @@ export const PAGES = {
     "Tasks": Tasks,
     "SOPVersions": SOPVersions,
     "EmergencySOPs": EmergencySOPs,
+    "Analytics": Analytics,
 }
 
 export const pagesConfig = {
