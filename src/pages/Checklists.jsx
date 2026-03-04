@@ -626,7 +626,7 @@ export default function Checklists() {
               </div>
             )}
             <div className="space-y-2">
-              <Label>Auto-Close Time</Label>
+              <Label>Due</Label>
               <Input
                 type="time"
                 value={editForm.auto_close_time}
