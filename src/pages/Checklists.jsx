@@ -20,6 +20,8 @@ export default function Checklists() {
   const [activeChecklist, setActiveChecklist] = useState(null);
   const [items, setItems] = useState([]);
   const [notes, setNotes] = useState({});
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [templateToDelete, setTemplateToDelete] = useState(null);
 
   const { data: publishedTemplates = [], isLoading } = useQuery({
     queryKey: ['checklist-templates-published'],
