@@ -150,8 +150,7 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Notifications tile for admins */}
-      {canApprove && (
+      {/* Notifications tile for admins - moved to top */}
         <Card className="border-0 shadow-sm">
           <CardContent className="p-6">
             <div className="flex items-center gap-2 mb-4">
