@@ -159,6 +159,7 @@ export default function ChecklistEditor() {
                   <SelectItem value="weekly">Weekly</SelectItem>
                   <SelectItem value="monthly">Monthly</SelectItem>
                   <SelectItem value="as_needed">As Needed</SelectItem>
+                  <SelectItem value="custom">Custom</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -173,6 +174,56 @@ export default function ChecklistEditor() {
               </Select>
             </div>
           </div>
+
+          {form.frequency === 'custom' && (
+            <div className="space-y-4 bg-slate-50 p-4 rounded-lg border border-slate-200">
+              <div className="space-y-2">
+                <Label>Repeat every</Label>
+                <div className="flex gap-2 items-end">
+                  <Input type="number" min="1" value={form.custom_frequency_value} onChange={e => setForm({ ...form, custom_frequency_value: parseInt(e.target.value) || 1 })} className="w-20" />
+                  <Select value={form.custom_frequency_type} onValueChange={v => setForm({ ...form, custom_frequency_type: v })}>
+                    <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="days">Day(s)</SelectItem>
+                      <SelectItem value="weeks">Week(s)</SelectItem>
+                      <SelectItem value="months">Month(s)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {form.custom_frequency_type === 'weeks' && (
+                <div className="space-y-2">
+                  <Label>On these days</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((day, idx) => (
+                      <label key={idx} className="flex items-center gap-2 text-sm">
+                        <Checkbox
+                          checked={form.custom_frequency_days?.includes(idx)}
+                          onCheckedChange={checked => {
+                            setForm(prev => ({
+                              ...prev,
+                              custom_frequency_days: checked
+                                ? [...(prev.custom_frequency_days || []), idx]
+                                : (prev.custom_frequency_days || []).filter(d => d !== idx)
+                            }));
+                          }}
+                        />
+                        {day}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {form.custom_frequency_type === 'months' && (
+                <div className="space-y-2">
+                  <Label>On day of month</Label>
+                  <Input type="number" min="1" max="31" value={form.custom_frequency_day_of_month} onChange={e => setForm({ ...form, custom_frequency_day_of_month: parseInt(e.target.value) || 1 })} />
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label>Assign to (comma-separated emails, leave empty for everyone)</Label>
