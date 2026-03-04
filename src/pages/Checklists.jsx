@@ -212,7 +212,7 @@ export default function Checklists() {
         <div className="mt-8">
           <h2 className="text-lg font-semibold text-slate-900 mb-4">All Checklist Templates</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {templates.map(t => (
+            {allTemplates.map(t => (
               <Card key={t.id} className="border-0 shadow-sm">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
