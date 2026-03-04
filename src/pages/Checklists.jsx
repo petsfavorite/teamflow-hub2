@@ -94,6 +94,15 @@ export default function Checklists() {
     },
   });
 
+  const closeChecklistMutation = useMutation({
+    mutationFn: (id) => base44.entities.ChecklistTemplate.update(id, { status: 'closed' }),
+    onSuccess: () => {
+      toast.success('Checklist closed');
+      queryClient.invalidateQueries({ queryKey: ['checklist-templates-published'] });
+      queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
+    },
+  });
+
   const startChecklist = (template) => {
     setActiveChecklist(template);
     setItems(template.items.map(item => ({ ...item, checked: false })));
@@ -252,38 +261,50 @@ export default function Checklists() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium text-sm text-slate-800">{t.title}</p>
-                      <p className="text-xs text-slate-400">{t.items?.length} items · {t.recurrence_type}</p>
-                    </div>
-                    <div className="flex gap-1">
-                      <Link to={createPageUrl('ChecklistEditor') + `?id=${t.id}`}>
-                        <Button variant="ghost" size="sm">Edit</Button>
-                      </Link>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 gap-1"
-                        onClick={() => {
-                          setTemplateToAssign(t);
-                          setAssignForm({ emails: t.assigned_to_emails || [], teams: t.assigned_teams || [] });
-                          setAssignDialogOpen(true);
-                        }}
-                      >
-                        <Share2 className="w-4 h-4" /> Assign
-                      </Button>
-                      {(isSuperAdmin || isAdmin) && (
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          onClick={() => {
-                            setTemplateToDelete(t);
-                            setDeleteDialogOpen(true);
-                          }}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      )}
-                    </div>
+                          <p className="text-xs text-slate-400">{t.items?.length} items · {t.recurrence_type} · Closes at {t.auto_close_time || '17:00'}</p>
+                        </div>
+                        <div className="flex gap-1">
+                          <Link to={createPageUrl('ChecklistEditor') + `?id=${t.id}`}>
+                            <Button variant="ghost" size="sm">Edit</Button>
+                          </Link>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 gap-1"
+                            onClick={() => {
+                              setTemplateToAssign(t);
+                              setAssignForm({ emails: t.assigned_to_emails || [], teams: t.assigned_teams || [] });
+                              setAssignDialogOpen(true);
+                            }}
+                          >
+                            <Share2 className="w-4 h-4" /> Assign
+                          </Button>
+                          {(canManage) && t.status === 'published' && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                              onClick={() => {
+                                closeChecklistMutation.mutate(t.id);
+                              }}
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          )}
+                          {(isSuperAdmin || isAdmin) && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => {
+                                setTemplateToDelete(t);
+                                setDeleteDialogOpen(true);
+                              }}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
                   </div>
                 </CardContent>
               </Card>
