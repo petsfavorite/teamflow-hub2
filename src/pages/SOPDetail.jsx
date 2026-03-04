@@ -251,18 +251,44 @@ export default function SOPDetail() {
         </Card>
       )}
 
-      {/* Manager: who hasn't acknowledged */}
-      {canManage && sop.requires_acknowledgement && notAcknowledged.length > 0 && (
-        <Card className="border-0 shadow-sm border-l-4 border-l-amber-400">
+      {/* Manager: acknowledgement status */}
+      {canManage && sop.requires_acknowledgement && allUsers.length > 0 && (
+        <Card className="border-0 shadow-sm">
           <CardContent className="p-6">
-            <div className="flex items-center gap-2 mb-3">
-              <Users className="w-4 h-4 text-amber-600" />
-              <p className="font-semibold text-amber-800">{notAcknowledged.length} staff member{notAcknowledged.length > 1 ? 's' : ''} haven't acknowledged v{sop.version}</p>
+            <div className="flex items-center gap-2 mb-4">
+              <Users className="w-4 h-4 text-slate-600" />
+              <p className="font-semibold text-slate-800">Acknowledgement Status — v{sop.version}</p>
+              <span className="ml-auto text-xs text-slate-500">{acknowledgedEmails.length}/{allUsers.length} read</span>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {notAcknowledged.map(u => (
-                <span key={u.id} className="px-3 py-1 bg-amber-50 text-amber-700 text-xs rounded-full font-medium">{u.full_name || u.email}</span>
-              ))}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {acknowledged.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-emerald-700 uppercase tracking-wide mb-2 flex items-center gap-1"><CheckCircle className="w-3.5 h-3.5" /> Read ({acknowledged.length})</p>
+                  <div className="space-y-1">
+                    {acknowledged.map(u => {
+                      const ack = currentAcks.find(a => a.user_email === u.email);
+                      return (
+                        <div key={u.id} className="flex items-center justify-between px-3 py-1.5 bg-emerald-50 rounded-lg">
+                          <span className="text-xs font-medium text-slate-700">{u.full_name || u.email}</span>
+                          {ack?.acknowledged_at && <span className="text-xs text-slate-400">{new Date(ack.acknowledged_at).toLocaleDateString()}</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              {notAcknowledged.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-2 flex items-center gap-1"><XCircle className="w-3.5 h-3.5" /> Not Yet Read ({notAcknowledged.length})</p>
+                  <div className="space-y-1">
+                    {notAcknowledged.map(u => (
+                      <div key={u.id} className="flex items-center px-3 py-1.5 bg-amber-50 rounded-lg">
+                        <span className="text-xs font-medium text-slate-700">{u.full_name || u.email}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
