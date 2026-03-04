@@ -129,11 +129,12 @@ export default function Assets() {
                         </div>
                       </div>
                       <div className="flex gap-1.5 flex-shrink-0">
-                        {asset.manual_url && (
-                          <a href={asset.manual_url} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded hover:bg-slate-100" onClick={e => e.stopPropagation()}>
-                            <ExternalLink className="w-4 h-4 text-slate-400" />
-                          </a>
-                        )}
+                        <button onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedAsset(asset);
+                        }} className="px-3 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-50 rounded">
+                          View
+                        </button>
                         {asset.sop_id && (
                           <Link to={createPageUrl('SOPDetail') + `?id=${asset.sop_id}`} className="p-1.5 rounded hover:bg-indigo-50" onClick={e => e.stopPropagation()}>
                             <span className="text-xs text-indigo-600 font-medium px-1">SOP</span>
