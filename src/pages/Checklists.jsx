@@ -60,16 +60,19 @@ export default function Checklists() {
     setNotes({});
   };
 
-  const toggleItem = (index) => {
+  const updateItem = (index, updates) => {
     setItems(prev => prev.map((item, i) => {
       if (i === index) {
-        const isChecking = !item.checked;
+        const isChecking = updates.checked !== undefined ? updates.checked : item.checked;
+        const wasChecked = item.checked;
+        
         return {
           ...item,
+          ...updates,
           checked: isChecking,
-          checked_at: isChecking ? new Date().toISOString() : null,
-          checked_by_email: isChecking ? user?.email : null,
-          checked_by_name: isChecking ? user?.full_name : null,
+          checked_at: isChecking && !wasChecked ? new Date().toISOString() : item.checked_at,
+          checked_by_email: isChecking && !wasChecked ? user?.email : item.checked_by_email,
+          checked_by_name: isChecking && !wasChecked ? user?.full_name : item.checked_by_name,
         };
       }
       return item;
