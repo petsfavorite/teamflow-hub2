@@ -11,7 +11,10 @@ import ChecklistItemRow from '../components/checklist/ChecklistItemRow';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { CheckSquare, Plus, Send, Loader2, Clock, Trash2, Share2, X, AlertCircle } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { CheckSquare, Plus, Send, Loader2, Clock, Trash2, Share2, X, AlertCircle, Edit2 } from 'lucide-react';
 import { toast } from "sonner";
 
 export default function Checklists() {
@@ -26,6 +29,9 @@ export default function Checklists() {
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [templateToAssign, setTemplateToAssign] = useState(null);
   const [assignForm, setAssignForm] = useState({ emails: [], teams: [] });
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [templateToEdit, setTemplateToEdit] = useState(null);
+  const [editForm, setEditForm] = useState({ recurrence_type: 'once', auto_close_time: '17:00', assigned_to_emails: [], assigned_teams: [] });
 
   const { data: publishedTemplates = [], isLoading } = useQuery({
     queryKey: ['checklist-templates-published'],
@@ -90,6 +96,17 @@ export default function Checklists() {
       setAssignDialogOpen(false);
       setTemplateToAssign(null);
       setAssignForm({ emails: [], teams: [] });
+      queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
+      queryClient.invalidateQueries({ queryKey: ['checklist-templates-published'] });
+    },
+  });
+
+  const editTemplateMutation = useMutation({
+    mutationFn: (data) => base44.entities.ChecklistTemplate.update(templateToEdit.id, data),
+    onSuccess: () => {
+      toast.success('Checklist updated!');
+      setEditDialogOpen(false);
+      setTemplateToEdit(null);
       queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
       queryClient.invalidateQueries({ queryKey: ['checklist-templates-published'] });
     },
