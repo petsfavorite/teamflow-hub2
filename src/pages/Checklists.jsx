@@ -215,7 +215,16 @@ export default function Checklists() {
                   <p className="text-sm text-amber-700">All items must be checked before submitting this checklist.</p>
                 </div>
               )}
-              <div className="flex justify-end">
+              <div className="flex gap-2 justify-end">
+                {canManage && (
+                  <Button
+                    onClick={() => setActiveChecklist(null)}
+                    variant="outline"
+                    className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                  >
+                    Stop
+                  </Button>
+                )}
                 <Button
                   onClick={submitChecklist}
                   disabled={(canSubmitWithIncomplete ? false : !allChecked) || submitMutation.isPending}
