@@ -407,25 +407,48 @@ export default function Checklists() {
           description="You don't have any active checklists right now"
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {myTemplates.map(template => (
-            <Card key={template.id} className="border-0 shadow-sm hover:shadow-lg transition-all cursor-pointer" onClick={() => startChecklist(template)}>
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
-                    <CheckSquare className="w-5 h-5 text-emerald-600" />
+        <div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {myTemplates.map(template => (
+              <Card key={template.id} className="border-0 shadow-sm">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between mb-3 cursor-pointer" onClick={() => startChecklist(template)}>
+                    <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
+                      <CheckSquare className="w-5 h-5 text-emerald-600" />
+                    </div>
+                    <StatusBadge status={template.frequency} />
                   </div>
-                  <StatusBadge status={template.frequency} />
-                </div>
-                <h3 className="font-semibold text-slate-900 mb-1">{template.title}</h3>
-                {template.description && <p className="text-sm text-slate-500 mb-3">{template.description}</p>}
-                <div className="flex items-center gap-2 text-xs text-slate-400">
-                  <Clock className="w-3 h-3" />
-                  {template.items?.length || 0} items
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                  <h3 className="font-semibold text-slate-900 mb-1 cursor-pointer" onClick={() => startChecklist(template)}>{template.title}</h3>
+                  {template.description && <p className="text-sm text-slate-500 mb-3 cursor-pointer" onClick={() => startChecklist(template)}>{template.description}</p>}
+                  <div className="flex items-center gap-2 text-xs text-slate-400 mb-4 cursor-pointer" onClick={() => startChecklist(template)}>
+                    <Clock className="w-3 h-3" />
+                    {template.items?.length || 0} items
+                  </div>
+                  {canManage && template.recurrence_type !== 'once' && template.recurrence_type !== 'one_time' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setTemplateToEdit(template);
+                        setFrequencyForm({
+                          recurrence_type: template.recurrence_type || 'once',
+                          custom_frequency_type: template.custom_frequency_type || 'days',
+                          custom_frequency_value: template.custom_frequency_value || 1,
+                          custom_frequency_days: template.custom_frequency_days || [],
+                          custom_frequency_day_of_month: template.custom_frequency_day_of_month || 1
+                        });
+                        setFrequencyDialogOpen(true);
+                      }}
+                    >
+                      Edit Frequency
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       )}
 
