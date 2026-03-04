@@ -258,30 +258,130 @@ export default function Assets() {
                 </div>
               )}
 
-              {selectedAsset.notes_log?.length > 0 && (
-              <div className="pt-4 border-t">
-                <p className="text-sm font-medium text-slate-900 mb-3">Notes Log</p>
-                <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {selectedAsset.notes_log.map((log, idx) => (
-                    <div key={idx} className="text-xs bg-slate-50 rounded p-2">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-slate-700">{log.note}</p>
-                          <div className="text-xs text-slate-400 mt-1">
-                            {log.added_by_name} • {log.date}
-                          </div>
-                          {log.attachment_url && (
-                            <a href={log.attachment_url} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 hover:underline flex items-center gap-1 mt-1.5">
-                              <Paperclip className="w-3 h-3" /> View Attachment
-                            </a>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+              <div className="pt-4 border-t space-y-4">
+                {/* Add Note Section */}
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-slate-900">Add to Notes Log</p>
+                  <Textarea 
+                    placeholder="Add a note (max 200 characters)" 
+                    value={newNote} 
+                    onChange={(e) => setNewNote(e.target.value.substring(0, 200))}
+                    rows={2}
+                    maxLength={200}
+                  />
+                  <div className="text-xs text-slate-400">{newNote.length}/200</div>
+                  <div className="space-y-2">
+                    <Label className="text-xs">Attachment (optional)</Label>
+                    <Input 
+                      type="file" 
+                      onChange={(e) => setNewNoteAttachment(e.target.files?.[0] || null)}
+                      disabled={uploadingAttachment}
+                    />
+                    {newNoteAttachment && <p className="text-xs text-slate-500">Selected: {newNoteAttachment.name}</p>}
+                  </div>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={async () => {
+                      if (newNote.trim() && user) {
+                        let attachmentUrl = null;
+                        if (newNoteAttachment) {
+                          setUploadingAttachment(true);
+                          try {
+                            const { file_url } = await base44.integrations.Core.UploadFile({ file: newNoteAttachment });
+                            attachmentUrl = file_url;
+                          } catch (err) {
+                            toast.error('Failed to upload attachment');
+                            setUploadingAttachment(false);
+                            return;
+                          }
+                          setUploadingAttachment(false);
+                        }
+                        const noteEntry = { 
+                          note: newNote, 
+                          date: new Date().toISOString().split('T')[0],
+                          added_by: user.email,
+                          added_by_name: user.full_name || user.email,
+                          ...(attachmentUrl && { attachment_url: attachmentUrl })
+                        };
+                        await base44.entities.Asset.update(selectedAsset.id, {
+                          notes_log: [...(selectedAsset.notes_log || []), noteEntry]
+                        });
+                        queryClient.invalidateQueries({ queryKey: ['assets'] });
+                        setNewNote('');
+                        setNewNoteAttachment(null);
+                        toast.success('Note added');
+                      }
+                    }}
+                    disabled={!newNote.trim() || uploadingAttachment}
+                  >
+                    {uploadingAttachment && <Loader2 className="w-4 h-4 animate-spin" />} Add Note
+                  </Button>
                 </div>
+
+                {/* Add Task Section */}
+                <div className="space-y-2 border-t pt-4">
+                  <p className="text-sm font-medium text-slate-900">Attach Tasks</p>
+                  <Input
+                    placeholder="Search tasks..."
+                    value={taskSearch}
+                    onChange={(e) => setTaskSearch(e.target.value)}
+                    className="text-xs"
+                  />
+                  <div className="border rounded-lg p-2 bg-slate-50 max-h-40 overflow-y-auto space-y-1">
+                    {allTasks
+                      .filter(t => 
+                        !selectedAsset.task_ids?.includes(t.id) &&
+                        t.title.toLowerCase().includes(taskSearch.toLowerCase())
+                      )
+                      .map(task => (
+                        <button
+                          key={task.id}
+                          type="button"
+                          onClick={async () => {
+                            const updated = {
+                              task_ids: [...(selectedAsset.task_ids || []), task.id]
+                            };
+                            await base44.entities.Asset.update(selectedAsset.id, updated);
+                            queryClient.invalidateQueries({ queryKey: ['assets'] });
+                            setTaskSearch('');
+                            toast.success('Task attached');
+                          }}
+                          className="w-full text-left text-xs px-2 py-1 rounded hover:bg-indigo-100 transition-colors"
+                        >
+                          {task.title}
+                        </button>
+                      ))}
+                  </div>
+                </div>
+
+                {/* Notes Log Display */}
+                {selectedAsset.notes_log?.length > 0 && (
+                  <div className="border-t pt-4 space-y-2">
+                    <p className="text-sm font-medium text-slate-900">Notes Log</p>
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {selectedAsset.notes_log.map((log, idx) => (
+                        <div key={idx} className="text-xs bg-slate-50 rounded p-2">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-slate-700">{log.note}</p>
+                              <div className="text-xs text-slate-400 mt-1">
+                                {log.added_by_name} • {log.date}
+                              </div>
+                              {log.attachment_url && (
+                                <a href={log.attachment_url} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 hover:underline flex items-center gap-1 mt-1.5">
+                                  <Paperclip className="w-3 h-3" /> View Attachment
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-              )}
             </div>
           )}
           <DialogFooter>
