@@ -38,6 +38,15 @@ export default function Maintenance() {
     },
   });
 
+  const { data: completedRequests = [] } = useQuery({
+    queryKey: ['maintenance-requests-completed'],
+    queryFn: async () => {
+      const all = await base44.entities.MaintenanceRequest.list('-created_date', 200);
+      return all.filter(r => r.status === 'completed');
+    },
+    enabled: canManage,
+  });
+
   const { data: assets = [] } = useQuery({
     queryKey: ['assets'],
     queryFn: () => base44.entities.Asset.list('name', 200),
