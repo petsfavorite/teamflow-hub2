@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Boxes, Plus, Wrench, AlertTriangle, ExternalLink, Pencil, Loader2, Paperclip, Trash2 } from 'lucide-react';
+import { Boxes, Plus, Wrench, AlertTriangle, ExternalLink, Pencil, Loader2, Paperclip, Trash2, ChevronDown } from 'lucide-react';
 import { toast } from "sonner";
 import { differenceInDays, parseISO } from 'date-fns';
 
@@ -38,6 +38,7 @@ export default function Assets() {
   const [user, setUser] = useState(null);
   const [sopSearch, setSopSearch] = useState('');
   const [taskSearch, setTaskSearch] = useState('');
+  const [expandedNotesLog, setExpandedNotesLog] = useState(false);
 
   useEffect(() => {
     base44.auth.me().then(u => setUser(u)).catch(() => setUser(null));
@@ -357,10 +358,17 @@ export default function Assets() {
                 </div>
 
                 {/* Notes Log Display */}
-                {selectedAsset.notes_log?.length > 0 && (
-                  <div className="border-t pt-4 space-y-2">
-                    <p className="text-sm font-medium text-slate-900">Notes Log</p>
-                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                <div className="border-t pt-4">
+                  <button
+                    onClick={() => setExpandedNotesLog(!expandedNotesLog)}
+                    className="flex items-center gap-2 text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors"
+                  >
+                    <ChevronDown className={`w-4 h-4 transition-transform ${expandedNotesLog ? 'rotate-180' : ''}`} />
+                    Notes Log ({selectedAsset?.notes_log?.length || 0})
+                  </button>
+
+                  {expandedNotesLog && selectedAsset.notes_log?.length > 0 && (
+                    <div className="mt-3 space-y-2 max-h-64 overflow-y-auto">
                       {selectedAsset.notes_log.map((log, idx) => (
                         <div key={idx} className="text-xs bg-slate-50 rounded p-2">
                           <div className="flex items-start justify-between gap-2">
@@ -379,8 +387,11 @@ export default function Assets() {
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
+                  )}
+                  {expandedNotesLog && !selectedAsset.notes_log?.length && (
+                    <p className="text-sm text-slate-500 mt-2">No notes yet</p>
+                  )}
+                </div>
               </div>
             </div>
           )}
