@@ -192,11 +192,16 @@ export default function SOPEditor() {
             </div>
           </div>
 
+          {isManagerOnly && id && (
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800">
+              <strong>Note:</strong> Your edits will be submitted for admin approval before going live.
+            </div>
+          )}
           <div className="flex justify-end gap-3 pt-4">
             <Link to={createPageUrl('SOPs')}><Button variant="outline">Cancel</Button></Link>
             <Button onClick={() => saveMutation.mutate(form)} disabled={saveMutation.isPending} className="bg-indigo-600 hover:bg-indigo-700 gap-2">
               {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              {id ? 'Update SOP' : 'Create SOP'}
+              {isManagerOnly && id ? 'Submit for Approval' : id ? 'Update SOP' : 'Create SOP'}
             </Button>
           </div>
         </CardContent>
