@@ -103,22 +103,24 @@ export default function Dashboard() {
         <p className="text-slate-500 mt-1">Here's what's happening today.</p>
       </div>
 
-      {/* Notifications tile for admins */}
-      {canApprove && (
+      {/* Notifications tile for managers/admins */}
+      {canManage && (
         <Card className="border-0 shadow-sm">
           <CardContent className="p-6">
             <div className="flex items-center gap-2 mb-4">
               <Bell className="w-5 h-5 text-indigo-600" />
               <h2 className="font-semibold text-slate-900">Notifications</h2>
-              {pendingSOPs.length > 0 && (
-                <span className="ml-auto bg-amber-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{pendingSOPs.length}</span>
+              {(pendingSOPs.length + verificationDueSops.length) > 0 && (
+                <span className="ml-auto bg-amber-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                  {pendingSOPs.length + verificationDueSops.length}
+                </span>
               )}
             </div>
-            {pendingSOPs.length === 0 ? (
+            {pendingSOPs.length === 0 && verificationDueSops.length === 0 ? (
               <p className="text-sm text-slate-400 py-2 text-center">No pending notifications</p>
             ) : (
               <div className="space-y-2">
-                {pendingSOPs.map(sop => (
+                {canApprove && pendingSOPs.map(sop => (
                   <Link key={sop.id} to={createPageUrl('SOPDetail') + `?id=${sop.id}`}>
                     <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 hover:bg-amber-100 transition-colors">
                       <ShieldAlert className="w-4 h-4 text-amber-600 flex-shrink-0" />
@@ -132,6 +134,26 @@ export default function Dashboard() {
                     </div>
                   </Link>
                 ))}
+                {verificationDueSops.map(sop => {
+                  const daysLeft = differenceInDays(parseISO(sop.verification_due_date), new Date());
+                  const overdue = daysLeft < 0;
+                  return (
+                    <Link key={sop.id} to={createPageUrl('SOPDetail') + `?id=${sop.id}`}>
+                      <div className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${overdue ? 'bg-red-50 hover:bg-red-100' : 'bg-orange-50 hover:bg-orange-100'}`}>
+                        <CalendarCheck className={`w-4 h-4 flex-shrink-0 ${overdue ? 'text-red-600' : 'text-orange-600'}`} />
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm font-medium truncate ${overdue ? 'text-red-900' : 'text-orange-900'}`}>
+                            {overdue ? 'Verification Overdue' : 'Verification Due Soon'}: {sop.title}
+                          </p>
+                          <p className={`text-xs ${overdue ? 'text-red-700' : 'text-orange-700'}`}>
+                            {overdue ? `${Math.abs(daysLeft)} day${Math.abs(daysLeft) !== 1 ? 's' : ''} overdue` : daysLeft === 0 ? 'Due today' : `Due in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}`}
+                          </p>
+                        </div>
+                        <ArrowRight className={`w-3.5 h-3.5 flex-shrink-0 ${overdue ? 'text-red-600' : 'text-orange-600'}`} />
+                      </div>
+                    </Link>
+                  );
+                })}
               </div>
             )}
           </CardContent>
