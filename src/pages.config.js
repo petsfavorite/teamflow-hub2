@@ -47,8 +47,36 @@
  *
  * The mainPage value must match a key in the PAGES object exactly.
  */
+import Dashboard from './pages/Dashboard';
+import SOPs from './pages/SOPs';
+import SOPDetail from './pages/SOPDetail';
+import SOPEditor from './pages/SOPEditor';
+import Checklists from './pages/Checklists';
+import ChecklistEditor from './pages/ChecklistEditor';
+import ChecklistHistory from './pages/ChecklistHistory';
+import Maintenance from './pages/Maintenance';
+import ExternalLinks from './pages/ExternalLinks';
+import SOPAssistant from './pages/SOPAssistant';
+import UserManagement from './pages/UserManagement';
+import __Layout from './Layout.jsx';
 
-export const pagesConfig = {
-	Pages: {}
+
+export const PAGES = {
+    "Dashboard": Dashboard,
+    "SOPs": SOPs,
+    "SOPDetail": SOPDetail,
+    "SOPEditor": SOPEditor,
+    "Checklists": Checklists,
+    "ChecklistEditor": ChecklistEditor,
+    "ChecklistHistory": ChecklistHistory,
+    "Maintenance": Maintenance,
+    "ExternalLinks": ExternalLinks,
+    "SOPAssistant": SOPAssistant,
+    "UserManagement": UserManagement,
 }
 
+export const pagesConfig = {
+    mainPage: "Dashboard",
+    Pages: PAGES,
+    Layout: __Layout,
+};
