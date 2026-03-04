@@ -257,24 +257,28 @@ export default function Assets() {
               )}
 
               {selectedAsset.notes_log?.length > 0 && (
-                <div className="pt-4 border-t">
-                  <p className="text-sm font-medium text-slate-900 mb-3">Notes Log</p>
-                  <div className="space-y-2 max-h-64 overflow-y-auto">
-                    {selectedAsset.notes_log.map((log, idx) => (
-                      <div key={idx} className="text-xs bg-slate-50 rounded p-2">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-slate-700">{log.note}</p>
-                            <div className="text-xs text-slate-400 mt-1">
-                              {log.added_by_name} • {log.date}
-                              {log.attachment_url && <span className="ml-1">📎</span>}
-                            </div>
+              <div className="pt-4 border-t">
+                <p className="text-sm font-medium text-slate-900 mb-3">Notes Log</p>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {selectedAsset.notes_log.map((log, idx) => (
+                    <div key={idx} className="text-xs bg-slate-50 rounded p-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-slate-700">{log.note}</p>
+                          <div className="text-xs text-slate-400 mt-1">
+                            {log.added_by_name} • {log.date}
                           </div>
+                          {log.attachment_url && (
+                            <a href={log.attachment_url} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 hover:underline flex items-center gap-1 mt-1.5">
+                              <Paperclip className="w-3 h-3" /> View Attachment
+                            </a>
+                          )}
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
+              </div>
               )}
             </div>
           )}
