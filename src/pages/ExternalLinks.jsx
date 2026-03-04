@@ -13,7 +13,8 @@ import { ExternalLink, Plus, Globe, Trash2, Pencil, Loader2 } from 'lucide-react
 import { toast } from "sonner";
 
 export default function ExternalLinks() {
-  const { isAdmin } = useCurrentUser();
+  const { isAdmin, isSuperAdmin } = useCurrentUser();
+  const canEdit = isAdmin || isSuperAdmin;
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [editingLink, setEditingLink] = useState(null);
