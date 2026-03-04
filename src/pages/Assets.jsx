@@ -399,8 +399,9 @@ export default function Assets() {
       </Dialog>
 
       <Dialog open={showForm} onOpenChange={resetForm}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{editingAsset ? 'Edit Asset' : 'Add Asset'}</DialogTitle></DialogHeader>
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+      <DialogHeader><DialogTitle>{editingAsset ? 'Edit Asset' : 'Add Asset'}</DialogTitle></DialogHeader>
+      {!editingAsset && <p className="text-xs text-slate-500 -mt-2">Only managers and admins can create new assets</p>}
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2"><Label>Name</Label><Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. Kennel Washer" /></div>
