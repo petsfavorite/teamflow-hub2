@@ -30,7 +30,22 @@ export default function Maintenance() {
 
   const { data: requests = [], isLoading } = useQuery({
     queryKey: ['maintenance-requests'],
-    queryFn: () => base44.entities.MaintenanceRequest.list('-created_date', 200),
+    queryFn: async () => {
+      const all = await base44.entities.MaintenanceRequest.list('-created_date', 200);
+      // Filter out completed requests
+      return all.filter(r => r.status !== 'completed');
+    },
+  });
+
+  const { data: assets = [] } = useQuery({
+    queryKey: ['assets'],
+    queryFn: () => base44.entities.Asset.list('name', 200),
+  });
+
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ['users-all'],
+    queryFn: () => base44.entities.User.list(),
+    enabled: isSuperAdmin || isAdmin,
   });
 
   const createMutation = useMutation({
