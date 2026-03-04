@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, Plus, Trash2, GripVertical, Save, Loader2 } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, GripVertical, Save, Loader2, Clock } from 'lucide-react';
 import { toast } from "sonner";
 
 export default function ChecklistEditor() {
@@ -24,7 +24,8 @@ export default function ChecklistEditor() {
 
   const [form, setForm] = useState({
     title: '', description: '', category: '', frequency: 'daily', status: 'active', assigned_to_emails: [], assigned_to_teams: [], items: [],
-    custom_frequency_type: 'days', custom_frequency_value: 1, custom_frequency_days: [], custom_frequency_day_of_month: 1
+    custom_frequency_type: 'days', custom_frequency_value: 1, custom_frequency_days: [], custom_frequency_day_of_month: 1,
+    auto_close_time: '17:00'
   });
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [selectedTeams, setSelectedTeams] = useState([]);
@@ -57,7 +58,8 @@ export default function ChecklistEditor() {
         custom_frequency_type: existing.custom_frequency_type || 'days',
         custom_frequency_value: existing.custom_frequency_value || 1,
         custom_frequency_days: existing.custom_frequency_days || [],
-        custom_frequency_day_of_month: existing.custom_frequency_day_of_month || 1
+        custom_frequency_day_of_month: existing.custom_frequency_day_of_month || 1,
+        auto_close_time: existing.auto_close_time || '17:00'
       });
       setSelectedUsers(existing.assigned_to_emails || []);
       setSelectedTeams(existing.assigned_to_teams || []);
@@ -173,6 +175,17 @@ export default function ChecklistEditor() {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2"><Clock className="w-4 h-4" /> Auto-Close Time</Label>
+            <p className="text-xs text-slate-500">Time when this checklist should auto-close {form.frequency !== 'as_needed' && form.frequency !== 'custom' && `(applies to each ${form.frequency} occurrence)`}</p>
+            <Input
+              type="time"
+              value={form.auto_close_time}
+              onChange={e => setForm({ ...form, auto_close_time: e.target.value })}
+              className="w-24"
+            />
           </div>
 
           {form.frequency === 'custom' && (
