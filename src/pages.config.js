@@ -47,46 +47,46 @@
  *
  * The mainPage value must match a key in the PAGES object exactly.
  */
-import Dashboard from './pages/Dashboard';
-import SOPs from './pages/SOPs';
-import SOPDetail from './pages/SOPDetail';
-import SOPEditor from './pages/SOPEditor';
-import Checklists from './pages/Checklists';
+import Analytics from './pages/Analytics';
+import Assets from './pages/Assets';
 import ChecklistEditor from './pages/ChecklistEditor';
 import ChecklistHistory from './pages/ChecklistHistory';
-import Maintenance from './pages/Maintenance';
-import ExternalLinks from './pages/ExternalLinks';
-import SOPAssistant from './pages/SOPAssistant';
-import UserManagement from './pages/UserManagement';
+import Checklists from './pages/Checklists';
+import Dashboard from './pages/Dashboard';
 import DevChecklist from './pages/DevChecklist';
-import IncidentReports from './pages/IncidentReports';
-import Assets from './pages/Assets';
-import Tasks from './pages/Tasks';
-import SOPVersions from './pages/SOPVersions';
 import EmergencySOPs from './pages/EmergencySOPs';
-import Analytics from './pages/Analytics';
+import ExternalLinks from './pages/ExternalLinks';
+import IncidentReports from './pages/IncidentReports';
+import Maintenance from './pages/Maintenance';
+import SOPAssistant from './pages/SOPAssistant';
+import SOPDetail from './pages/SOPDetail';
+import SOPEditor from './pages/SOPEditor';
+import SOPVersions from './pages/SOPVersions';
+import SOPs from './pages/SOPs';
+import Tasks from './pages/Tasks';
+import UserManagement from './pages/UserManagement';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
-    "Dashboard": Dashboard,
-    "SOPs": SOPs,
-    "SOPDetail": SOPDetail,
-    "SOPEditor": SOPEditor,
-    "Checklists": Checklists,
+    "Analytics": Analytics,
+    "Assets": Assets,
     "ChecklistEditor": ChecklistEditor,
     "ChecklistHistory": ChecklistHistory,
-    "Maintenance": Maintenance,
-    "ExternalLinks": ExternalLinks,
-    "SOPAssistant": SOPAssistant,
-    "UserManagement": UserManagement,
+    "Checklists": Checklists,
+    "Dashboard": Dashboard,
     "DevChecklist": DevChecklist,
-    "IncidentReports": IncidentReports,
-    "Assets": Assets,
-    "Tasks": Tasks,
-    "SOPVersions": SOPVersions,
     "EmergencySOPs": EmergencySOPs,
-    "Analytics": Analytics,
+    "ExternalLinks": ExternalLinks,
+    "IncidentReports": IncidentReports,
+    "Maintenance": Maintenance,
+    "SOPAssistant": SOPAssistant,
+    "SOPDetail": SOPDetail,
+    "SOPEditor": SOPEditor,
+    "SOPVersions": SOPVersions,
+    "SOPs": SOPs,
+    "Tasks": Tasks,
+    "UserManagement": UserManagement,
 }
 
 export const pagesConfig = {

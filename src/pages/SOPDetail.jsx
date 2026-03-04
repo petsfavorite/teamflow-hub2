@@ -131,6 +131,9 @@ export default function SOPDetail() {
   }
 
   const myCurrentAck = myAck?.version_number === sop.version;
+  // Regular users always see the live published content, not pending changes
+  const displayContent = (!canApprove && sop.status === 'pending_approval') ? sop.content : sop.content;
+  const displaySummary = sop.summary;
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -155,7 +158,7 @@ export default function SOPDetail() {
       <Card className="border-0 shadow-sm mb-4">
         <CardContent className="p-8">
           <div className="flex items-center gap-3 mb-4">
-            <StatusBadge status={sop.status} />
+            <StatusBadge status={canApprove ? sop.status : (sop.status === 'pending_approval' ? 'published' : sop.status)} />
             <span className="text-sm text-slate-400">Version {sop.version || 1}</span>
           </div>
 
@@ -167,13 +170,13 @@ export default function SOPDetail() {
             {sop.last_updated_by_name && <div className="flex items-center gap-1.5"><User className="w-4 h-4" />by {sop.last_updated_by_name}</div>}
           </div>
 
-          {sop.summary && (
+          {displaySummary && (
             <div className="bg-indigo-50 rounded-xl p-4 mb-8">
-              <p className="text-sm font-medium text-indigo-700">{sop.summary}</p>
+              <p className="text-sm font-medium text-indigo-700">{displaySummary}</p>
             </div>
           )}
 
-          <div className="prose prose-slate max-w-none prose-headings:font-semibold prose-a:text-indigo-600" dangerouslySetInnerHTML={{ __html: sop.content }} />
+          <div className="prose prose-slate max-w-none prose-headings:font-semibold prose-a:text-indigo-600" dangerouslySetInnerHTML={{ __html: displayContent }} />
 
           {sop.tags?.length > 0 && (
             <div className="mt-8 pt-6 border-t border-slate-100 flex flex-wrap gap-2">
