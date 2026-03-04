@@ -43,6 +43,11 @@ export default function ChecklistEditor() {
     queryFn: () => base44.entities.User.list('full_name', 200),
   });
 
+  const { data: teams = [] } = useQuery({
+    queryKey: ['teams-list'],
+    queryFn: () => base44.entities.Team.list('name', 200),
+  });
+
   useEffect(() => {
     if (existing) {
       setForm(existing);
