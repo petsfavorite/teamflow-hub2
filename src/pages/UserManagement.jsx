@@ -148,9 +148,9 @@ export default function UserManagement() {
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="user">User</SelectItem>
-                <SelectItem value="manager">Manager</SelectItem>
-                <SelectItem value="admin">Admin</SelectItem>
-                <SelectItem value="super_admin">Super Admin</SelectItem>
+                {(isSuperAdmin || isAdmin) && <SelectItem value="manager">Manager</SelectItem>}
+                {(isSuperAdmin || isAdmin) && <SelectItem value="admin">Admin</SelectItem>}
+                {isSuperAdmin && <SelectItem value="super_admin">Super Admin</SelectItem>}
               </SelectContent>
             </Select>
           </div>
