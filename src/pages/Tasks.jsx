@@ -140,9 +140,14 @@ export default function Tasks() {
                     <p className={`font-medium ${task.status === 'completed' ? 'line-through text-slate-400' : 'text-slate-900'}`}>{task.title}</p>
                     {task.description && <p className="text-xs text-slate-500 mt-0.5 truncate">{task.description}</p>}
                     <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-400 flex-wrap">
-                      <span className="flex items-center gap-1"><User className="w-3 h-3" />{task.assigned_to_name || task.assigned_to_email || 'Unassigned'}</span>
-                      {task.due_date && <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />Due {task.due_date}</span>}
-                    </div>
+                       {(task.assigned_to_names?.length || task.assigned_teams?.length) > 0 && (
+                         <span className="flex items-center gap-1">
+                           <Users className="w-3 h-3" />
+                           {[...(task.assigned_to_names || []), ...(task.assigned_teams || [])].join(', ') || 'Unassigned'}
+                         </span>
+                       )}
+                       {task.due_date && <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />Due {task.due_date}</span>}
+                     </div>
                   </div>
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${priorityColors[task.priority]}`}>{task.priority}</span>
                 </div>
