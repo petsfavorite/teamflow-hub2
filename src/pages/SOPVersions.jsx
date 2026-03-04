@@ -70,8 +70,13 @@ export default function SOPVersions() {
       ) : versions.length === 0 ? (
         <p className="text-slate-400 text-center py-12">No version history yet</p>
       ) : (
+        {!canSeeAllVersions && versions.length > 3 && (
+          <p className="text-xs text-slate-400 text-center mb-3 bg-slate-50 rounded-lg py-2">
+            Showing your 3 most recent versions. Managers can view full history.
+          </p>
+        )}
         <div className="space-y-3">
-          {versions.map((v, i) => (
+          {(canSeeAllVersions ? versions : versions.slice(0, 3)).map((v, i) => (
             <Card key={v.id} className={`border-0 shadow-sm ${i === 0 ? 'ring-2 ring-indigo-200' : ''}`}>
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
