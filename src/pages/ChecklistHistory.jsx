@@ -10,20 +10,27 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { CheckSquare, Eye, Pencil, User, Clock, Loader2 } from 'lucide-react';
+import { CheckSquare, Eye, Pencil, User, Clock, Loader2, AlertCircle } from 'lucide-react';
 import { toast } from "sonner";
 
 export default function ChecklistHistory() {
-  const { canManage } = useCurrentUser();
+  const { user, canManage, isManager } = useCurrentUser();
   const queryClient = useQueryClient();
   const [selected, setSelected] = useState(null);
   const [editing, setEditing] = useState(false);
   const [editItems, setEditItems] = useState([]);
   const [managerNotes, setManagerNotes] = useState('');
+  const [showNotifications, setShowNotifications] = useState(false);
 
   const { data: completions = [], isLoading } = useQuery({
     queryKey: ['completions-history'],
     queryFn: () => base44.entities.ChecklistCompletion.list('-created_date', 200),
+  });
+
+  const { data: notifications = [] } = useQuery({
+    queryKey: ['checklist-notifications', user?.email],
+    queryFn: () => base44.entities.ChecklistNotification.filter({ manager_email: user?.email }, '-created_date', 100),
+    enabled: canManage && isManager,
   });
 
   const updateMutation = useMutation({
@@ -60,7 +67,45 @@ export default function ChecklistHistory() {
 
   return (
     <div>
-      <PageHeader title="Checklist History" description="View and manage past checklist completions" />
+      <PageHeader 
+        title="Checklist History" 
+        description="View and manage past checklist completions"
+        actions={
+          notifications.length > 0 && (
+            <Button 
+              variant="outline"
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="gap-2"
+            >
+              <AlertCircle className="w-4 h-4" />
+              {notifications.filter(n => !n.read).length} Incomplete Items
+            </Button>
+          )
+        }
+      />
+
+      {showNotifications && notifications.length > 0 && (
+        <div className="mb-6 space-y-3">
+          <h3 className="font-semibold text-slate-900">Items Not Checked Off</h3>
+          {notifications.map(n => (
+            <Card key={n.id} className="border-l-4 border-l-amber-400 border-0 shadow-sm bg-amber-50">
+              <CardContent className="p-4">
+                <p className="font-medium text-slate-900 mb-2">{n.checklist_title}</p>
+                <p className="text-sm text-slate-600 mb-3">Submitted by {n.completed_by_name}</p>
+                <div className="space-y-1 text-sm">
+                  {n.incomplete_items?.map((item, i) => (
+                    <div key={i} className="flex items-center gap-2 text-slate-700">
+                      <span className="text-amber-600">○</span>
+                      <span>{item.label}</span>
+                      {item.assigned_to_name && <span className="text-xs text-slate-500">({item.assigned_to_name})</span>}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {isLoading ? (
         <div className="space-y-3">
