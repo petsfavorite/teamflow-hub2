@@ -458,6 +458,107 @@ export default function Checklists() {
           </DialogFooter>
           </DialogContent>
           </Dialog>
+
+          <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Open "{templateToEdit?.title}"</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Recurrence</Label>
+              <Select value={editForm.recurrence_type} onValueChange={(value) => setEditForm({ ...editForm, recurrence_type: value })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="once">Once</SelectItem>
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="weekdays">Weekdays</SelectItem>
+                  <SelectItem value="specific_days">Specific Days</SelectItem>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                  <SelectItem value="every_x_months">Every X Months</SelectItem>
+                  <SelectItem value="annually">Annually</SelectItem>
+                  <SelectItem value="manual">Manual</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Auto-Close Time</Label>
+              <Input
+                type="time"
+                value={editForm.auto_close_time}
+                onChange={(e) => setEditForm({ ...editForm, auto_close_time: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-slate-900 block mb-2">Assign to Users</label>
+              <div className="max-h-40 overflow-y-auto space-y-2 p-2 bg-slate-50 rounded-lg border border-slate-200">
+                {allUsers.map(u => (
+                  <label key={u.id} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editForm.assigned_to_emails.includes(u.email)}
+                      onChange={e => {
+                        if (e.target.checked) {
+                          setEditForm({ 
+                            ...editForm, 
+                            assigned_to_emails: [...editForm.assigned_to_emails, u.email],
+                            assigned_to_names: [...(editForm.assigned_to_names || []), u.full_name]
+                          });
+                        } else {
+                          const idx = editForm.assigned_to_emails.indexOf(u.email);
+                          setEditForm({ 
+                            ...editForm, 
+                            assigned_to_emails: editForm.assigned_to_emails.filter(e => e !== u.email),
+                            assigned_to_names: editForm.assigned_to_names.filter((_, i) => i !== idx)
+                          });
+                        }
+                      }}
+                      className="w-4 h-4 rounded border-slate-300"
+                    />
+                    <span className="text-sm text-slate-700">{u.full_name || u.email}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-slate-900 block mb-2">Assign to Teams</label>
+              <div className="max-h-40 overflow-y-auto space-y-2 p-2 bg-slate-50 rounded-lg border border-slate-200">
+                {teams.map(t => (
+                  <label key={t.id} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editForm.assigned_teams.includes(t.id)}
+                      onChange={e => {
+                        if (e.target.checked) {
+                          setEditForm({ ...editForm, assigned_teams: [...editForm.assigned_teams, t.id] });
+                        } else {
+                          setEditForm({ ...editForm, assigned_teams: editForm.assigned_teams.filter(id => id !== t.id) });
+                        }
+                      }}
+                      className="w-4 h-4 rounded border-slate-300"
+                    />
+                    <span className="text-sm text-slate-700">{t.name}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+            <Button onClick={() => {
+              editTemplateMutation.mutate({
+                recurrence_type: editForm.recurrence_type,
+                auto_close_time: editForm.auto_close_time,
+                assigned_to_emails: editForm.assigned_to_emails,
+                assigned_to_names: editForm.assigned_to_names,
+                assigned_teams: editForm.assigned_teams
+              });
+            }} disabled={editTemplateMutation.isPending} className="bg-indigo-600 hover:bg-indigo-700 gap-2">
+              {editTemplateMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Save
+            </Button>
+          </DialogFooter>
+          </DialogContent>
+          </Dialog>
           </div>
           );
           }
