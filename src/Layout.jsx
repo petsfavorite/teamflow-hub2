@@ -138,7 +138,7 @@ export default function Layout({ children, currentPageName }) {
             <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center">
               <BookOpen className="w-3.5 h-3.5 text-white" />
             </div>
-            <span className="font-bold text-slate-900">OpsHub</span>
+            <span className="font-bold text-slate-900">Pet's Fav Team</span>
           </div>
         </header>
         <main className="flex-1 overflow-y-auto">
