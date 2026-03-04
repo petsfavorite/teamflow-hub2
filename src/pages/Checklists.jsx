@@ -133,6 +133,10 @@ export default function Checklists() {
     });
   };
 
+  const updateNotes = (index, value) => {
+    setNotes(prev => ({ ...prev, [index]: value }));
+  };
+
   const submitChecklist = async () => {
     const completedItems = items.map((item, i) => ({
       ...item,
