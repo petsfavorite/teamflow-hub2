@@ -42,10 +42,23 @@ export default function Settings() {
     },
   });
 
+  const updateTimezoneMutation = useMutation({
+    mutationFn: (timezone) => base44.auth.updateMe({ timezone }),
+    onSuccess: () => {
+      toast.success('Timezone updated successfully');
+      queryClient.invalidateQueries({ queryKey: ['current-user'] });
+    },
+  });
+
   const handleSave = () => {
     if (fullName !== user?.full_name) {
       updateNameMutation.mutate(fullName);
     }
+  };
+
+  const handleTimezoneChange = (newTimezone) => {
+    setTimezone(newTimezone);
+    updateTimezoneMutation.mutate(newTimezone);
   };
 
   return (
