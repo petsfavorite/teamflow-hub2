@@ -34,6 +34,12 @@ export default function Assets() {
   const [form, setForm] = useState(emptyForm);
   const [newNote, setNewNote] = useState('');
   const [newNoteAttachment, setNewNoteAttachment] = useState(null);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const [user, setUser] = useState(null);
+
+  React.useEffect(() => {
+    base44.auth.me().then(u => setUser(u)).catch(() => setUser(null));
+  }, []);
 
   const { data: assets = [], isLoading } = useQuery({
     queryKey: ['assets'],
