@@ -151,6 +151,28 @@ export default function Checklists() {
     },
   });
 
+  const updateFrequencyMutation = useMutation({
+    mutationFn: (data) => base44.entities.ChecklistTemplate.update(templateToEdit.id, data),
+    onSuccess: () => {
+      toast.success('Frequency updated');
+      setFrequencyDialogOpen(false);
+      setTemplateToEdit(null);
+      queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
+      queryClient.invalidateQueries({ queryKey: ['checklist-templates-published'] });
+    },
+  });
+
+  const cancelFutureAssignmentsMutation = useMutation({
+    mutationFn: (id) => base44.entities.ChecklistTemplate.update(id, { recurrence_type: 'once' }),
+    onSuccess: () => {
+      toast.success('Future assignments cancelled');
+      setFrequencyDialogOpen(false);
+      setTemplateToEdit(null);
+      queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
+      queryClient.invalidateQueries({ queryKey: ['checklist-templates-published'] });
+    },
+  });
+
   const startChecklist = async (template) => {
     // Load existing in-progress completion if it exists
     const existingCompletions = await base44.entities.ChecklistCompletion.filter({ 
