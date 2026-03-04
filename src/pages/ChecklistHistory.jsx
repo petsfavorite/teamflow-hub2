@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { CheckSquare, Eye, Pencil, User, Clock, Loader2, AlertCircle } from 'lucide-react';
+import { CheckSquare, Eye, Pencil, User, Clock, Loader2, AlertCircle, Download } from 'lucide-react';
 import { toast } from "sonner";
 
 export default function ChecklistHistory() {
