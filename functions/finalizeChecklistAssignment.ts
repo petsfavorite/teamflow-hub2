@@ -77,22 +77,29 @@ Deno.serve(async (req) => {
       }
 
       // Create notifications for each manager
-      const notifications = [];
-      for (const managerEmail of managerEmails) {
-        const manager = allUsers.find(u => u.email === managerEmail);
-        if (manager) {
-          notifications.push({
-            checklist_completion_id,
-            checklist_title: completion.checklist_title,
-            manager_email: manager.email,
-            manager_name: manager.full_name,
-            incomplete_items: incompleteItems,
-            completed_by: completion.completed_by,
-            completed_by_name: completion.completed_by_name,
-            read: false
-          });
-        }
-      }
+       const notifications = [];
+       for (const managerEmail of managerEmails) {
+         const manager = allUsers.find(u => u.email === managerEmail);
+         if (manager) {
+           // Get team info if available
+           const managerTeams = teams.filter(t => t.member_emails?.includes(managerEmail));
+           const teamId = managerTeams.length > 0 ? managerTeams[0].id : null;
+           const teamName = managerTeams.length > 0 ? managerTeams[0].name : null;
+
+           notifications.push({
+             checklist_completion_id,
+             checklist_title: completion.checklist_title,
+             manager_email: manager.email,
+             manager_name: manager.full_name,
+             incomplete_items: incompleteItems,
+             completed_by: completion.completed_by,
+             completed_by_name: completion.completed_by_name,
+             team_id: teamId,
+             team_name: teamName,
+             read: false
+           });
+         }
+       }
 
       // Create notifications in database
       if (notifications.length > 0) {
