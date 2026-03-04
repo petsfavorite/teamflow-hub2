@@ -59,8 +59,8 @@ export default function Checklists() {
   const { data: publishedTemplates = [], isLoading } = useQuery({
     queryKey: ['checklist-templates-published'],
     queryFn: async () => {
-      const templates = await base44.entities.ChecklistTemplate.filter({ status: 'published' }, '-created_date', 100);
-      return templates.filter(t => t.status !== 'closed');
+      const templates = await base44.entities.ChecklistTemplate.list('-created_date', 100);
+      return templates.filter(t => (t.status === 'published' || t.status === 'active') && t.status !== 'closed');
     },
   });
 
