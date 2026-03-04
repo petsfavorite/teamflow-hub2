@@ -298,21 +298,43 @@ export default function Checklists() {
                           <p className="text-xs text-slate-400">{t.items?.length} items · {t.recurrence_type} · Closes at {t.auto_close_time || '17:00'}</p>
                         </div>
                         <div className="flex gap-1">
-                          <Link to={createPageUrl('ChecklistEditor') + `?id=${t.id}`}>
-                            <Button variant="ghost" size="sm">Edit</Button>
-                          </Link>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 gap-1"
-                            onClick={() => {
-                              setTemplateToAssign(t);
-                              setAssignForm({ emails: t.assigned_to_emails || [], teams: t.assigned_teams || [] });
-                              setAssignDialogOpen(true);
-                            }}
-                          >
-                            <Share2 className="w-4 h-4" /> Assign
-                          </Button>
+                           {canManage && (
+                             <>
+                               <Button
+                                 variant="ghost"
+                                 size="sm"
+                                 className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 gap-1"
+                                 onClick={() => {
+                                   setTemplateToEdit(t);
+                                   setEditForm({
+                                     recurrence_type: t.recurrence_type || 'once',
+                                     auto_close_time: t.auto_close_time || '17:00',
+                                     assigned_to_emails: t.assigned_to_emails || [],
+                                     assigned_to_names: t.assigned_to_names || [],
+                                     assigned_teams: t.assigned_teams || []
+                                   });
+                                   setEditDialogOpen(true);
+                                 }}
+                               >
+                                 <Edit2 className="w-4 h-4" /> Open
+                               </Button>
+                               <Link to={createPageUrl('ChecklistEditor') + `?id=${t.id}`}>
+                                 <Button variant="ghost" size="sm">Edit</Button>
+                               </Link>
+                               <Button
+                                 variant="ghost"
+                                 size="sm"
+                                 className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 gap-1"
+                                 onClick={() => {
+                                   setTemplateToAssign(t);
+                                   setAssignForm({ emails: t.assigned_to_emails || [], teams: t.assigned_teams || [] });
+                                   setAssignDialogOpen(true);
+                                 }}
+                               >
+                                 <Share2 className="w-4 h-4" /> Assign
+                               </Button>
+                             </>
+                           )}
                           {(canManage) && t.status === 'published' && (
                             <Button 
                               variant="ghost" 
@@ -338,7 +360,7 @@ export default function Checklists() {
                               <Trash2 className="w-4 h-4" />
                             </Button>
                           )}
-                        </div>
+                          </div>
                   </div>
                 </CardContent>
               </Card>
