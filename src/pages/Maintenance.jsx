@@ -92,6 +92,16 @@ export default function Maintenance() {
 
   const myRequests = canManage ? requests : requests.filter(r => r.requested_by === user?.email);
 
+  const filteredCompleted = completedRequests.filter(r => {
+    const searchLower = completedSearch.toLowerCase();
+    return (
+      r.title.toLowerCase().includes(searchLower) ||
+      r.description?.toLowerCase().includes(searchLower) ||
+      r.asset_name?.toLowerCase().includes(searchLower) ||
+      new Date(r.created_date).toLocaleDateString().includes(searchLower)
+    );
+  });
+
   return (
     <div>
       <PageHeader
