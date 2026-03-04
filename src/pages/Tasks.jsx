@@ -67,7 +67,15 @@ export default function Tasks() {
     },
   });
 
-  const myTasks = tasks.filter(t => t.assigned_to_email === user?.email && t.status !== 'completed' && t.status !== 'cancelled');
+  const myTeamIds = new Set(
+    teams.filter(t => t.member_emails?.includes(user?.email)).map(t => t.id)
+  );
+
+  const myTasks = tasks.filter(t => {
+    const assignedToMe = t.assigned_to_emails?.includes(user?.email);
+    const inMyTeam = t.assigned_teams?.some(teamId => myTeamIds.has(teamId));
+    return (assignedToMe || inMyTeam) && t.status !== 'completed' && t.status !== 'cancelled';
+  });
   const allTasks = tasks.filter(t => t.status !== 'completed' && t.status !== 'cancelled');
   const completedTasks = tasks.filter(t => t.status === 'completed');
 
