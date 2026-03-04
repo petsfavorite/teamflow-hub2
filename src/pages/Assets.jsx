@@ -95,8 +95,19 @@ export default function Assets() {
       ) : assets.length === 0 ? (
         <EmptyState icon={Boxes} title="No assets tracked" description="Add equipment and assets to track maintenance schedules" />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {assets.map(asset => {
+        <div className="space-y-4">
+          <Input
+            placeholder="Search assets by name, location, or category..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="max-w-md"
+          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+           {assets.filter(asset => 
+             asset.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+             asset.location_detail?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+             asset.category.toLowerCase().includes(searchQuery.toLowerCase())
+           ).map(asset => {
             const maintenance = getMaintenanceStatus(asset);
             return (
               <Card key={asset.id} className="border-0 shadow-sm hover:shadow-md transition-all">
