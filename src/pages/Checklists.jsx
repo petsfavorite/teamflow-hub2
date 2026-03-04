@@ -69,13 +69,23 @@ export default function Checklists() {
   });
 
   const submitMutation = useMutation({
-    mutationFn: (data) => base44.entities.ChecklistCompletion.create(data),
+    mutationFn: async (data) => {
+      const completion = await base44.entities.ChecklistCompletion.create(data);
+      // Close the template after submission
+      const template = allTemplates.find(t => t.id === data.checklist_template_id);
+      if (template && template.status === 'published') {
+        await base44.entities.ChecklistTemplate.update(template.id, { status: 'closed' });
+      }
+      return completion;
+    },
     onSuccess: () => {
       toast.success('Checklist submitted!');
       setActiveChecklist(null);
       setItems([]);
       setNotes({});
       queryClient.invalidateQueries({ queryKey: ['completions'] });
+      queryClient.invalidateQueries({ queryKey: ['checklist-templates-published'] });
+      queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
     },
   });
 
