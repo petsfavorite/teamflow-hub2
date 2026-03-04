@@ -15,7 +15,8 @@ export default function SOPVersions() {
   const sopId = params.get('id');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user, canManage } = useCurrentUser();
+  const { user, canManage, isAdmin, isSuperAdmin } = useCurrentUser();
+  const canSeeAllVersions = canManage;
   const [previewing, setPreviewing] = useState(null);
 
   const { data: sop } = useQuery({
