@@ -68,7 +68,23 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
     }
 
     // Start with auto-generated core tasks (walks, etc. already included)
-    let tasks = [...generatedTasks];
+    // Spread generated tasks across all days from check-in to checkout
+    const checkInDate = moment().format('YYYY-MM-DD');
+    const checkOutMoment = moment(checkoutDate);
+    let tasks = [];
+    
+    // Expand generated tasks to each day
+    let currentDate = moment(checkInDate);
+    while (currentDate.format('YYYY-MM-DD') <= checkoutDate) {
+        generatedTasks.forEach(task => {
+            tasks.push({
+                ...task,
+                date: currentDate.format('YYYY-MM-DD'),
+                is_template: true
+            });
+        });
+        currentDate.add(1, 'day');
+    }
 
     // Add last day task: Billing at 9 AM
     tasks.push({ 
