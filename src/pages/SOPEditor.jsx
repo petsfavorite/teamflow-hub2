@@ -152,6 +152,7 @@ export default function SOPEditor() {
       return result;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sops-all'] });
       queryClient.invalidateQueries({ queryKey: ['sops'] });
       queryClient.invalidateQueries({ queryKey: ['sop-versions'] });
       toast.success(isManagerOnly && id ? 'Edit submitted for admin approval' : id ? 'SOP updated' : 'SOP created');
