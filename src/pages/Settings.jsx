@@ -40,6 +40,9 @@ export default function Settings() {
   }, []);
 
   const isSuperAdmin = user?.role === 'super_admin';
+  const [globalTimezone, setGlobalTimezone] = useState('America/New_York');
+  const [allUsers, setAllUsers] = useState([]);
+  const [isSavingGlobalTimezone, setIsSavingGlobalTimezone] = useState(false);
 
   const handleDownloadTemplate = () => {
     const headers = [
