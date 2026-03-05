@@ -650,9 +650,10 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                                      <Button 
                                                          size="sm"
                                                          onClick={() => handleCompletePlaySession(idx)}
-                                                         className="rounded-xl h-7 text-xs bg-purple-600 hover:bg-purple-700"
+                                                         disabled={isSaving}
+                                                         className="rounded-xl h-7 text-xs bg-purple-600 hover:bg-purple-700 disabled:opacity-50"
                                                      >
-                                                         Complete
+                                                         {isSaving ? 'Saving...' : 'Complete'}
                                                      </Button>
                                                  ) : (
                                                      <Button 
