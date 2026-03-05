@@ -46,7 +46,12 @@ export default function Layout({ children }) {
     const [adminOpen, setAdminOpen] = useState(false);
     const { user } = useCurrentUser();
 
-    const isFloofPage = FLOOF_PAGES.some(p => location.pathname.toLowerCase().includes(p.toLowerCase()));
+    const getActivePageName = () => {
+      const pathname = location.pathname.toLowerCase();
+      return FLOOF_PAGES.find(p => pathname.includes(p.toLowerCase())) || null;
+    };
+    
+    const isFloofPage = getActivePageName() !== null;
     const navItems = isFloofPage ? floofNavItems : mainNavItems;
 
     const isActive = (pageName) => location.pathname.toLowerCase().includes(pageName.toLowerCase());
