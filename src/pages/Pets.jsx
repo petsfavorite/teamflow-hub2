@@ -173,8 +173,13 @@ export default function Pets() {
             </div>
 
             {/* Main Content */}
-            <div>
-                {isLoading ? (
+             <div>
+                 {showArchive ? (
+                     <PetArchive 
+                         archivedPets={allPets.filter(p => p.is_archived)}
+                         onRestore={handleRestorePet}
+                     />
+                 ) : isLoading ? (
                     <div className="flex items-center justify-center py-20">
                         <RefreshCw className="w-8 h-8 text-amber-500 animate-spin" />
                     </div>
