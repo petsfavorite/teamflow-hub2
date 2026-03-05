@@ -171,11 +171,10 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
                 <div className="space-y-3">
                     <AnimatePresence>
                         {petsWithVisits.map(({ pet, visit }) => {
-                            const isCat = pet.species === 'Cat';
-                            const isEditing = editingLocation === visit.id;
-                            const isOverdue = hasOverdueTasks(visit, selectedDate);
-                            const hasAlert = needsAlert(visit, pet);
-                            const needsFecesCollection = hasCollectFeces(visit);
+                             const isCat = pet.species === 'Cat';
+                             const isEditing = editingLocation === visit.id;
+                             const isOverdue = hasOverdueTasks(visit, selectedDate);
+                             const needsFecesCollection = hasCollectFeces(visit);
 
                             return (
                                 <motion.div
