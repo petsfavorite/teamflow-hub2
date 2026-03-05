@@ -148,6 +148,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
     const handleLocationChange = (location) => {
         const trimmed = location.slice(0, 10);
         setLocationInput(trimmed);
+        // Automatically save location
         onUpdateVisit({ ...visit, location: trimmed });
     };
 
