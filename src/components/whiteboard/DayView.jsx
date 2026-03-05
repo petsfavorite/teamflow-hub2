@@ -83,33 +83,7 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
         return visit.scheduled_tasks?.some(task => task.type === 'Collect Feces' && !task.completed) || false;
     };
 
-    // Get the most recent completed_iso for a given task type
-    const getLastObservationTime = (visit, type) => {
-        return visit.scheduled_tasks
-            ?.filter(t => t.type === type && t.completed_iso)
-            .map(t => moment(t.completed_iso))
-            .sort((a, b) => b.diff(a))[0] || null;
-    };
 
-    // Yellow alert:
-    // Dogs: alert if Feces Observed not completed in 48hrs
-    // Cats: alert if Feces Observed OR Urine Observed not completed in 48hrs
-    const needsAlert = (visit, pet) => {
-        if (visit.visit_type !== 'boarding') return false;
-
-        const fortyEightHoursAgo = moment().subtract(48, 'hours');
-
-        const lastFeces = getLastObservationTime(visit, 'Feces Observed');
-        const fecesOverdue = !lastFeces || lastFeces.isBefore(fortyEightHoursAgo);
-
-        if (pet?.species === 'Cat') {
-            const lastUrine = getLastObservationTime(visit, 'Urine Observed');
-            const urineOverdue = !lastUrine || lastUrine.isBefore(fortyEightHoursAgo);
-            return fecesOverdue || urineOverdue;
-        }
-
-        return fecesOverdue;
-    };
 
     const petsWithVisits = todayVisits.map(visit => {
         const pet = pets.find(p => p.id === visit.pet_id);
