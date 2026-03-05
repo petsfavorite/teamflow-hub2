@@ -69,6 +69,58 @@ export default function ExternalLinks() {
     ? categories.map(cat => ({ category: cat, links: links.filter(l => l.category === cat) }))
     : [{ category: null, links }];
 
+  // PDF queries & mutations
+  const { data: pdfs = [], isLoading: pdfsLoading } = useQuery({
+    queryKey: ['pdf-documents'],
+    queryFn: () => base44.entities.PDFDocument.list('order', 100),
+  });
+
+  const savePDFMutation = useMutation({
+    mutationFn: (data) => editingPDF
+      ? base44.entities.PDFDocument.update(editingPDF.id, data)
+      : base44.entities.PDFDocument.create(data),
+    onSuccess: () => {
+      toast.success(editingPDF ? 'PDF updated' : 'PDF added');
+      queryClient.invalidateQueries({ queryKey: ['pdf-documents'] });
+      resetPDFForm();
+    },
+  });
+
+  const deletePDFMutation = useMutation({
+    mutationFn: (id) => base44.entities.PDFDocument.delete(id),
+    onSuccess: () => {
+      toast.success('PDF removed');
+      queryClient.invalidateQueries({ queryKey: ['pdf-documents'] });
+    },
+  });
+
+  const resetPDFForm = () => {
+    setShowPDFForm(false);
+    setEditingPDF(null);
+    setPdfForm({ title: '', description: '', category: '', file_url: '' });
+  };
+
+  const startEditPDF = (pdf) => {
+    setEditingPDF(pdf);
+    setPdfForm(pdf);
+    setShowPDFForm(true);
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploading(true);
+    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    setPdfForm(f => ({ ...f, file_url }));
+    setUploading(false);
+    toast.success('File uploaded');
+  };
+
+  const pdfCategories = [...new Set(pdfs.map(p => p.category).filter(Boolean))];
+  const groupedPDFs = pdfCategories.length > 0
+    ? pdfCategories.map(cat => ({ category: cat, pdfs: pdfs.filter(p => p.category === cat) }))
+    : [{ category: null, pdfs }];
+
   return (
     <div>
       <PageHeader
