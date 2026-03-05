@@ -27,18 +27,7 @@ export default function MonitorView() {
 
     const checkedInVisits = visits.filter(v => v.status === 'checked_in');
 
-    // Check if a pet has overdue tasks
-    const hasOverdueTasks = (visit) => {
-        const now = moment();
-        
-        const incompleteTasks = visit.scheduled_tasks?.filter(task => !task.completed) || [];
-        
-        return incompleteTasks.some(task => {
-            if (!task.time) return false;
-            const taskTime = moment(task.time, 'h:mm A');
-            return now.isAfter(taskTime);
-        });
-    };
+
 
     // Check if pet has uncollected "Collect Feces" task
     const hasCollectFeces = (visit) => {
@@ -94,15 +83,13 @@ export default function MonitorView() {
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-2">
                     {petsWithVisits.map(({ pet, visit }) => {
                          const isCat = pet.species === 'Cat';
-                         const isOverdue = hasOverdueTasks(visit);
                          const needsFecesCollection = hasCollectFeces(visit);
 
                         return (
                             <div 
                                 key={visit.id}
                                 className={`rounded-lg p-3 transition-all ${
-                                    needsFecesCollection ? 'bg-stone-300 border-2 border-amber-900' :
-                                    isOverdue ? 'bg-red-100 border-2 border-red-500' : 
+                                    needsFecesCollection ? 'bg-stone-300 border-2 border-amber-900' : 
                                     'bg-white border-2 border-stone-300'
                                 }`}
                             >
