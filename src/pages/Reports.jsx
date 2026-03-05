@@ -1,18 +1,24 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Download, Mail, Search, Calendar, RefreshCw, LayoutGrid, Users } from "lucide-react";
+import { FileText, Download, Mail, Search, Calendar, RefreshCw, LayoutGrid, Users, Trash2 } from "lucide-react";
 import moment from "moment";
 
 export default function Reports() {
     const [searchQuery, setSearchQuery] = useState('');
     const [sortBy, setSortBy] = useState('date_desc');
+    const queryClient = useQueryClient();
+
+    const { data: currentUser } = useQuery({
+        queryKey: ['currentUser'],
+        queryFn: () => base44.auth.me()
+    });
 
     const { data: reports = [], isLoading } = useQuery({
         queryKey: ['reports'],
@@ -23,6 +29,21 @@ export default function Reports() {
         queryKey: ['pets'],
         queryFn: () => base44.entities.Pet.list()
     });
+
+    const deleteReportMutation = useMutation({
+        mutationFn: (reportId) => base44.entities.Report.delete(reportId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['reports'] });
+        }
+    });
+
+    const handleDeleteReport = (reportId) => {
+        if (window.confirm('Are you sure you want to permanently delete this report?')) {
+            deleteReportMutation.mutate(reportId);
+        }
+    };
+
+    const canDeleteReports = currentUser && ['admin', 'manager', 'super_admin'].includes(currentUser.role);
 
     // Filter reports
     const filteredReports = reports.filter(report => {
