@@ -226,17 +226,37 @@ export default function Settings() {
   const handleSaveProfile = async () => {
     setIsSavingProfile(true);
     try {
-      await base44.auth.updateMe({
-        full_name: profileName,
-        email: profileEmail,
-        timezone: profileTimezone
-      });
-      setUser(prev => ({ ...prev, full_name: profileName, email: profileEmail, timezone: profileTimezone }));
+      // Non-super_admin users can only edit their own timezone
+      if (!isSuperAdmin) {
+        await base44.auth.updateMe({
+          full_name: profileName,
+          email: profileEmail,
+          timezone: profileTimezone
+        });
+        setUser(prev => ({ ...prev, full_name: profileName, email: profileEmail, timezone: profileTimezone }));
+      }
       setEditProfileOpen(false);
     } catch (error) {
       console.error('Error saving profile:', error);
     } finally {
       setIsSavingProfile(false);
+    }
+  };
+
+  const handleSaveGlobalTimezone = async () => {
+    setIsSavingGlobalTimezone(true);
+    try {
+      // Super_admin updates timezone for all users
+      for (const u of allUsers) {
+        await base44.asServiceRole.entities.User.update(u.id, {
+          timezone: globalTimezone
+        });
+      }
+      alert('Timezone updated for all users');
+    } catch (error) {
+      console.error('Error updating global timezone:', error);
+    } finally {
+      setIsSavingGlobalTimezone(false);
     }
   };
 
