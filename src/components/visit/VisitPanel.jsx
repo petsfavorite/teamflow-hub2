@@ -17,9 +17,10 @@ import {
 import moment from "moment";
 
 export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheckout, selectedDate, queryClient }) {
-    const [currentUser, setCurrentUser] = useState(null);
-    const [newActivity, setNewActivity] = useState('');
-    const [newNotes, setNewNotes] = useState('');
+     const [currentUser, setCurrentUser] = useState(null);
+     const [newActivity, setNewActivity] = useState('');
+     const [newNotes, setNewNotes] = useState('');
+     const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
         base44.auth.me().then(setCurrentUser).catch(() => {});
