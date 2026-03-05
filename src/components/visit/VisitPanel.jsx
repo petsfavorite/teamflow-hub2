@@ -801,20 +801,34 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                             </CardHeader>
                             <CardContent>
                                 <div className="space-y-2">
-                                    {[...visit.care_log].reverse().map((log, i) => (
-                                        <div key={i} className="flex gap-3 text-sm">
-                                             <span className="text-stone-400 text-xs w-16 shrink-0">{log.time}</span>
-                                             <div className="flex-1">
-                                                 <span className="font-medium text-stone-700">{log.activity}</span>
-                                                 {log.notes && (
-                                                     <p className="text-xs text-stone-500">{log.notes}</p>
-                                                 )}
+                                    {[...visit.care_log].reverse().map((log, i) => {
+                                        const actualIdx = visit.care_log.length - 1 - i;
+                                        return (
+                                            <div key={i} className="flex gap-3 text-sm items-start group">
+                                                 <span className="text-stone-400 text-xs w-16 shrink-0">{log.time}</span>
+                                                 <div className="flex-1">
+                                                     <span className="font-medium text-stone-700">{log.activity}</span>
+                                                     {log.notes && (
+                                                         <p className="text-xs text-stone-500">{log.notes}</p>
+                                                     )}
+                                                 </div>
+                                                 <div className="flex items-center gap-2">
+                                                     {log.staff && (
+                                                         <span className="text-stone-500 text-xs font-semibold bg-stone-100 px-2 py-1 rounded">{log.staff}</span>
+                                                     )}
+                                                     <Button
+                                                         size="sm"
+                                                         variant="ghost"
+                                                         onClick={() => handleUndoActivityLog(actualIdx)}
+                                                         disabled={isSaving}
+                                                         className="rounded-xl h-6 text-xs text-stone-400 hover:text-stone-600 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                                                     >
+                                                         Undo
+                                                     </Button>
+                                                 </div>
                                              </div>
-                                             {log.staff && (
-                                                 <span className="text-stone-500 text-xs font-semibold bg-stone-100 px-2 py-1 rounded">{log.staff}</span>
-                                             )}
-                                         </div>
-                                     ))}
+                                        );
+                                    })}
                                 </div>
                             </CardContent>
                         </Card>
