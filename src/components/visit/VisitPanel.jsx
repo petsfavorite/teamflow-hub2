@@ -728,7 +728,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                     )}
 
                     {/* Daily Picture */}
-                    {pet.daily_picture && (
+                    {(pet.daily_picture || isPlayCamp) && (
                         <Card className="border-0 shadow-sm rounded-2xl">
                             <CardHeader className="pb-2">
                                 <CardTitle className="text-sm flex items-center gap-2">
