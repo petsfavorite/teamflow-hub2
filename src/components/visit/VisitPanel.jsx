@@ -137,7 +137,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
     const handleCompleteTask = (taskIndex) => {
         const task = visit.scheduled_tasks[taskIndex];
         const today = moment().format('YYYY-MM-DD');
-        
+
         // If already completed today, toggle it back to incomplete
         if (task.completed) {
             const updatedTasks = [...visit.scheduled_tasks];
@@ -152,12 +152,12 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
             onUpdateVisit({ ...visit, scheduled_tasks: updatedTasks });
             return;
         }
-        
+
         // Derive initials from current user's name
         const name = currentUser?.full_name || '';
         const initials = name.split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase() || '?';
         const timestamp = moment().format('h:mm A');
-        
+
         const updatedTasks = [...visit.scheduled_tasks];
         updatedTasks[taskIndex] = {
             ...updatedTasks[taskIndex],
@@ -167,7 +167,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
             completed_by: initials,
             completed_date: today
         };
-        
+
         const careLog = [...(visit.care_log || []), {
             time: timestamp,
             date: today,
@@ -177,13 +177,21 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                 : '',
             staff: initials
         }];
-        
+
+        // Check if this task resolves the emergency alert
+        let updateObj = { ...visit, scheduled_tasks: updatedTasks, care_log: careLog };
+        if (visit.emergency_alert_active && (task.type === 'Need Feces' || task.type === 'Need Urine' || task.type === 'Collect Feces')) {
+            updateObj.emergency_alert_active = false;
+            updateObj.emergency_alert_type = null;
+            updateObj.emergency_alert_dismissed_until = null;
+        }
+
         // If this is a "Need Feces" task, mark it as completed and it persists
          if (task.type === 'Need Feces') {
              updatedTasks[taskIndex].completed = true;
              updatedTasks[taskIndex].completed_at = timestamp;
              updatedTasks[taskIndex].completed_by = initials;
-             onUpdateVisit({ ...visit, scheduled_tasks: updatedTasks, care_log: careLog });
+             onUpdateVisit(updateObj);
              return;
          }
 
@@ -203,12 +211,12 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                  }
                  return true;
              });
-             onUpdateVisit({ ...visit, scheduled_tasks: filteredTasks, care_log: careLog, fecal_collected: true });
+             onUpdateVisit({ ...updateObj, scheduled_tasks: filteredTasks, fecal_collected: true });
              return;
          }
 
         // Optimistic update
-        onUpdateVisit({ ...visit, scheduled_tasks: updatedTasks, care_log: careLog });
+        onUpdateVisit(updateObj);
     };
 
     const handleCompletePlaySession = async (sessionNumber) => {
@@ -286,7 +294,23 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
             notes: newNotes,
             staff: initials
         }];
-        onUpdateVisit({ ...visit, care_log: careLog });
+
+        // Check if this activity mentions feces or urine, and clear alert if it does
+        let updateObj = { ...visit, care_log: careLog };
+        if (visit.emergency_alert_active) {
+            const notesLower = newNotes.toLowerCase();
+            if ((visit.emergency_alert_type === 'feces' || visit.emergency_alert_type === 'both') && notesLower.includes('feces')) {
+                updateObj.emergency_alert_active = false;
+                updateObj.emergency_alert_type = null;
+                updateObj.emergency_alert_dismissed_until = null;
+            } else if ((visit.emergency_alert_type === 'urine' || visit.emergency_alert_type === 'both') && notesLower.includes('urine')) {
+                updateObj.emergency_alert_active = false;
+                updateObj.emergency_alert_type = null;
+                updateObj.emergency_alert_dismissed_until = null;
+            }
+        }
+
+        onUpdateVisit(updateObj);
         setNewActivity('');
         setNewNotes('');
     };
