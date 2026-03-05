@@ -72,27 +72,42 @@ export default function VisitReportPDF({ pet, visit }) {
             {/* Scheduled Tasks Summary (Boarding) */}
             {visit.visit_type === 'boarding' && visit.scheduled_tasks && visit.scheduled_tasks.length > 0 && (
                 <div className="mb-6">
-                    <h3 className="font-bold text-stone-700 mb-3">Daily Schedule</h3>
+                    <h3 className="font-bold text-stone-700 mb-3">Task Log</h3>
                     <div className="border border-stone-200 rounded-lg overflow-hidden">
                         <table className="w-full text-sm">
                             <thead className="bg-stone-50">
                                 <tr className="text-left text-stone-500">
-                                    <th className="p-2">Time</th>
+                                    <th className="p-2">Date/Time</th>
                                     <th className="p-2">Task</th>
                                     <th className="p-2">Status</th>
+                                    <th className="p-2">By</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {visit.scheduled_tasks
-                                    .sort((a, b) => moment(a.time, 'h:mm A').diff(moment(b.time, 'h:mm A')))
+                                    .slice()
+                                    .sort((a, b) => {
+                                        // Sort by completed_iso if available, otherwise by time
+                                        if (a.completed_iso && b.completed_iso) return moment(a.completed_iso).diff(moment(b.completed_iso));
+                                        return moment(a.time, 'h:mm A').diff(moment(b.time, 'h:mm A'));
+                                    })
                                     .map((task, i) => (
                                         <tr key={i} className="border-t border-stone-100">
-                                            <td className="p-2 text-stone-500">{task.time}</td>
+                                            <td className="p-2 text-stone-500 text-xs">
+                                                {task.completed_iso 
+                                                    ? moment(task.completed_iso).format('MMM D, h:mm A')
+                                                    : task.completed_date 
+                                                    ? `${task.completed_date} ${task.completed_at || ''}`
+                                                    : task.time || '—'}
+                                            </td>
                                             <td className="p-2 font-medium">
                                                 {task.type === 'Medication' ? task.medication_name : task.type}
                                             </td>
                                             <td className="p-2">
-                                                {task.completed ? `✅ ${task.completed_at}` : '❌ Not completed'}
+                                                {task.completed ? '✅ Done' : '❌ Not done'}
+                                            </td>
+                                            <td className="p-2 text-stone-500">
+                                                {task.completed ? (task.completed_by || '—') : '—'}
                                             </td>
                                         </tr>
                                     ))}
