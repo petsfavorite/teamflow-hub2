@@ -56,6 +56,11 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
 
     const handleSubmit = (e) => {
     e.preventDefault();
+    
+    if (!checkoutDate) {
+        alert('Please select a checkout date');
+        return;
+    }
 
     // Start with auto-generated core tasks
     const tasks = [...generatedTasks];
