@@ -30,14 +30,21 @@ export default function Settings() {
   const [profileTimezone, setProfileTimezone] = useState('America/New_York');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     base44.auth.me().then(u => {
       setUser(u);
       setProfileName(u?.full_name || '');
       setProfileEmail(u?.email || '');
       setProfileTimezone(u?.timezone || 'America/New_York');
     }).catch(() => {});
-  }, []);
+
+    // Load all users if super_admin
+    if (isSuperAdmin) {
+      base44.entities.User.list().then(users => {
+        setAllUsers(users);
+      }).catch(() => {});
+    }
+  }, [isSuperAdmin]);
 
   const isSuperAdmin = user?.role === 'super_admin';
   const [globalTimezone, setGlobalTimezone] = useState('America/New_York');
