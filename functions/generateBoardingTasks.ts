@@ -41,10 +41,15 @@ Deno.serve(async (req) => {
 
         let tasks = [];
         const getTaskDate = (timeStr) => {
-            // If task time is before check-in, schedule for next day
+            // If task time is before check-in, schedule for next day (not on check-in day)
             return isTimedTaskBeforeCheckIn(timeStr) ? 
                 new Date(new Date(checkInDate).getTime() + 86400000).toISOString().split('T')[0] : 
                 checkInDate;
+        };
+
+        const shouldSkipFirstDay = (timeStr) => {
+            // Return true if task should NOT appear on check-in day (skip first day if time is before check-in)
+            return isTimedTaskBeforeCheckIn(timeStr);
         };
 
         if (species === 'Dog') {
