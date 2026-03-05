@@ -24,17 +24,25 @@ export default function PlayCampCheckIn({ pet, onConfirm, onCancel }) {
             })
         );
         
-        // Add "Collect Feces" task if requested
+        // Add "Collect Feces" task if requested - no template, persists for play camp duration
         const tasks = [];
         if (needFecal) {
-            tasks.push({ 
-                type: 'Collect Feces', 
-                time: '', 
-                is_template: true, 
-                completed: false, 
-                completed_at: null,
-                collected: false
-            });
+            const checkInDate = moment().format('YYYY-MM-DD');
+            const checkOutDate = checkInDate; // Play camp is same-day
+            let currentDate = moment(checkInDate);
+            
+            while (currentDate.format('YYYY-MM-DD') <= checkOutDate) {
+                tasks.push({ 
+                    type: 'Collect Feces', 
+                    time: '', 
+                    date: currentDate.format('YYYY-MM-DD'),
+                    is_template: false, 
+                    completed: false, 
+                    completed_at: null,
+                    collected: false
+                });
+                currentDate.add(1, 'day');
+            }
         }
         
         onConfirm({
