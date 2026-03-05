@@ -37,6 +37,21 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
         setVisitMedications(prev => prev.filter((_, i) => i !== index));
     };
 
+    // Generate tasks when component mounts
+    useEffect(() => {
+        const generateTasks = async () => {
+            setLoadingTasks(true);
+            const checkInDate = moment().format('YYYY-MM-DD');
+            const response = await base44.functions.invoke('generateBoardingTasks', {
+                species: pet.species,
+                checkInDate: checkInDate
+            });
+            setGeneratedTasks(response.data.tasks);
+            setLoadingTasks(false);
+        };
+        generateTasks();
+    }, [pet.species]);
+
     const handleSubmit = (e) => {
     e.preventDefault();
 
