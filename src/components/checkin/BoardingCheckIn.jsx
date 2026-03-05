@@ -55,12 +55,11 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
     const handleSubmit = (e) => {
     e.preventDefault();
 
-    const checkInDate = new Date().toISOString().split('T')[0];
-
-    // Create scheduled tasks based on selections (these are templates that repeat daily)
-    const tasks = [];
+    // Start with auto-generated core tasks
+    const tasks = [...generatedTasks];
 
     // Add check-in day task: Schedule any Grooming at 6 PM
+    const checkInDate = moment().format('YYYY-MM-DD');
     tasks.push({ 
         type: 'Schedule any Grooming', 
         time: '6:00 PM', 
@@ -80,87 +79,62 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
         completed_at: null 
     });
 
-    // Daily observation tasks — reset each calendar day
-    if (pet.species === 'Cat') {
-        tasks.push({ type: 'Urine Observed',  time: '', is_template: true, is_daily_observation: true, completed: false, completed_at: null, completed_date: null });
-        tasks.push({ type: 'Feces Observed',  time: '', is_template: true, is_daily_observation: true, completed: false, completed_at: null, completed_date: null });
-        tasks.push({ type: 'Water Refreshed', time: '', is_template: true, is_daily_observation: true, completed: false, completed_at: null, completed_date: null });
-    } else {
-        tasks.push({ type: 'Feces Observed',  time: '', is_template: true, is_daily_observation: true, completed: false, completed_at: null, completed_date: null });
-        tasks.push({ type: 'Water Refreshed', time: '', is_template: true, is_daily_observation: true, completed: false, completed_at: null, completed_date: null });
+    // Feeding tasks - ALL added as templates
+    if (feedingFrequency === 'Just Breakfast') {
+        tasks.push({ type: 'Breakfast', time: '9:00 AM', is_template: true, completed: false, completed_at: null });
+        tasks.push({ type: 'Ate Meal', time: '10:00 AM', is_template: true, completed: false, completed_at: null, notes: '' });
+    } else if (feedingFrequency === 'Just Dinner') {
+        tasks.push({ type: 'Dinner', time: '6:00 PM', is_template: true, completed: false, completed_at: null });
+        tasks.push({ type: 'Ate Meal', time: '7:00 PM', is_template: true, completed: false, completed_at: null, notes: '' });
+    } else if (feedingFrequency === 'Two Meals') {
+        tasks.push({ type: 'Breakfast', time: '9:00 AM', is_template: true, completed: false, completed_at: null });
+        tasks.push({ type: 'Ate Meal', time: '10:00 AM', is_template: true, completed: false, completed_at: null, notes: '' });
+        tasks.push({ type: 'Dinner', time: '6:00 PM', is_template: true, completed: false, completed_at: null });
+        tasks.push({ type: 'Ate Meal', time: '7:00 PM', is_template: true, completed: false, completed_at: null, notes: '' });
     }
         
-        // Feeding tasks - ALL added as templates
-        if (feedingFrequency === 'Just Breakfast') {
-            tasks.push({ type: 'Breakfast', time: '9:00 AM', is_template: true, completed: false, completed_at: null });
-            tasks.push({ type: 'Ate Meal', time: '10:00 AM', is_template: true, completed: false, completed_at: null, notes: '' });
-        } else if (feedingFrequency === 'Just Dinner') {
-            tasks.push({ type: 'Dinner', time: '6:00 PM', is_template: true, completed: false, completed_at: null });
-            tasks.push({ type: 'Ate Meal', time: '7:00 PM', is_template: true, completed: false, completed_at: null, notes: '' });
-        } else if (feedingFrequency === 'Two Meals') {
-            tasks.push({ type: 'Breakfast', time: '9:00 AM', is_template: true, completed: false, completed_at: null });
-            tasks.push({ type: 'Ate Meal', time: '10:00 AM', is_template: true, completed: false, completed_at: null, notes: '' });
-            tasks.push({ type: 'Dinner', time: '6:00 PM', is_template: true, completed: false, completed_at: null });
-            tasks.push({ type: 'Ate Meal', time: '7:00 PM', is_template: true, completed: false, completed_at: null, notes: '' });
+    // Medications (automatically added for boarding based on frequency)
+    visitMedications.forEach(med => {
+        if (med.frequency === 'Once Daily in AM') {
+            tasks.push({ type: 'Medication', time: '9:00 AM', is_template: true, completed: false, completed_at: null, medication_name: med.name });
+        } else if (med.frequency === 'Once Daily in PM') {
+            tasks.push({ type: 'Medication', time: '6:00 PM', is_template: true, completed: false, completed_at: null, medication_name: med.name });
+        } else if (med.frequency === 'Twice Daily') {
+            tasks.push({ type: 'Medication', time: '9:00 AM', is_template: true, completed: false, completed_at: null, medication_name: med.name });
+            tasks.push({ type: 'Medication', time: '6:00 PM', is_template: true, completed: false, completed_at: null, medication_name: med.name });
         }
+    });
         
-        // Potty breaks for all boarding dogs - always at these times
-        if (pet.species === 'Dog') {
-            tasks.push({ type: 'Let Out to Potty', time: '8:00 AM', is_template: true, completed: false, completed_at: null });
-            tasks.push({ type: 'Let Out to Potty', time: '10:00 AM', is_template: true, completed: false, completed_at: null });
-            tasks.push({ type: 'Let Out to Potty', time: '4:00 PM', is_template: true, completed: false, completed_at: null });
-            tasks.push({ type: 'Let Out to Potty', time: '6:00 PM', is_template: true, completed: false, completed_at: null });
-        }
-        
-        // Litter box for cats - twice daily
-        if (pet.species === 'Cat') {
-            tasks.push({ type: 'Litter Box', time: '9:00 AM', is_template: true, completed: false, completed_at: null });
-            tasks.push({ type: 'Litter Box', time: '6:00 PM', is_template: true, completed: false, completed_at: null });
-        }
-        
-        // Medications (automatically added for boarding based on frequency)
-        visitMedications.forEach(med => {
-            if (med.frequency === 'Once Daily in AM') {
-                tasks.push({ type: 'Medication', time: '9:00 AM', is_template: true, completed: false, completed_at: null, medication_name: med.name });
-            } else if (med.frequency === 'Once Daily in PM') {
-                tasks.push({ type: 'Medication', time: '6:00 PM', is_template: true, completed: false, completed_at: null, medication_name: med.name });
-            } else if (med.frequency === 'Twice Daily') {
-                tasks.push({ type: 'Medication', time: '9:00 AM', is_template: true, completed: false, completed_at: null, medication_name: med.name });
-                tasks.push({ type: 'Medication', time: '6:00 PM', is_template: true, completed: false, completed_at: null, medication_name: med.name });
-            }
-            // 'Custom' frequency medications are added manually via special instructions
+    // Add "Collect Feces" if requested
+    if (needFecal) {
+        tasks.push({ 
+            type: 'Collect Feces', 
+            time: '', 
+            is_template: true, 
+            completed: false, 
+            completed_at: null,
+            collected: false
         });
+    }
         
-        // Add "Collect Feces" if requested
-        if (needFecal) {
-            tasks.push({ 
-                type: 'Collect Feces', 
-                time: '', 
-                is_template: true, 
-                completed: false, 
-                completed_at: null,
-                collected: false
-            });
-        }
+    // Play sessions if added
+    const playSessions = addPlayCamp ? 
+        Array.from({ length: playCampDuration === 'half_day' ? 2 : 4 }, (_, i) => ({
+            session_number: i + 1,
+            completed: false,
+            completed_at: null
+        })) : [];
         
-        // Play sessions if added
-        const playSessions = addPlayCamp ? 
-            Array.from({ length: playCampDuration === 'half_day' ? 2 : 4 }, (_, i) => ({
-                session_number: i + 1,
-                completed: false,
-                completed_at: null
-            })) : [];
-        
-        onConfirm({
-            visit_type: 'boarding',
-            scheduled_checkout_date: checkoutDate,
-            feeding_frequency: feedingFrequency,
-            scheduled_tasks: tasks,
-            play_sessions: playSessions,
-            play_camp_duration: addPlayCamp ? playCampDuration : null,
-            what_was_brought: whatWasBrought,
-            visit_medications: visitMedications
-        });
+    onConfirm({
+        visit_type: 'boarding',
+        scheduled_checkout_date: checkoutDate,
+        feeding_frequency: feedingFrequency,
+        scheduled_tasks: tasks,
+        play_sessions: playSessions,
+        play_camp_duration: addPlayCamp ? playCampDuration : null,
+        what_was_brought: whatWasBrought,
+        visit_medications: visitMedications
+    });
     };
 
     return (
