@@ -213,6 +213,23 @@ export default function Settings() {
     }
   };
 
+  const handleSaveProfile = async () => {
+    setIsSavingProfile(true);
+    try {
+      await base44.auth.updateMe({
+        full_name: profileName,
+        email: profileEmail,
+        timezone: profileTimezone
+      });
+      setUser(prev => ({ ...prev, full_name: profileName, email: profileEmail, timezone: profileTimezone }));
+      setEditProfileOpen(false);
+    } catch (error) {
+      console.error('Error saving profile:', error);
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-stone-50 pb-24">
       {/* Header */}
