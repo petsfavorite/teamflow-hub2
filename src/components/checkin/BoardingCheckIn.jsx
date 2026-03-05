@@ -74,11 +74,15 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
         // Feeding tasks - ALL added as templates
         if (feedingFrequency === 'Just Breakfast') {
             tasks.push({ type: 'Breakfast', time: '9:00 AM', is_template: true, completed: false, completed_at: null });
+            tasks.push({ type: 'Ate Meal', time: '10:00 AM', is_template: true, completed: false, completed_at: null, notes: '' });
         } else if (feedingFrequency === 'Just Dinner') {
             tasks.push({ type: 'Dinner', time: '6:00 PM', is_template: true, completed: false, completed_at: null });
+            tasks.push({ type: 'Ate Meal', time: '7:00 PM', is_template: true, completed: false, completed_at: null, notes: '' });
         } else if (feedingFrequency === 'Two Meals') {
             tasks.push({ type: 'Breakfast', time: '9:00 AM', is_template: true, completed: false, completed_at: null });
+            tasks.push({ type: 'Ate Meal', time: '10:00 AM', is_template: true, completed: false, completed_at: null, notes: '' });
             tasks.push({ type: 'Dinner', time: '6:00 PM', is_template: true, completed: false, completed_at: null });
+            tasks.push({ type: 'Ate Meal', time: '7:00 PM', is_template: true, completed: false, completed_at: null, notes: '' });
         }
         
         // Potty breaks for all boarding dogs - always at these times
