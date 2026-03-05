@@ -14,7 +14,6 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
      const [checkoutDate, setCheckoutDate] = useState('');
      const [feedingFrequency, setFeedingFrequency] = useState(pet.feeding_frequency || 'Two Meals');
      const [addPlayCamp, setAddPlayCamp] = useState(false);
-     const [playCampDuration, setPlayCampDuration] = useState('full_day');
      const [whatWasBrought, setWhatWasBrought] = useState('');
      const [needFecal, setNeedFecal] = useState(false);
      const [visitMedications, setVisitMedications] = useState(
