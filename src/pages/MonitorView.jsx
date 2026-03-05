@@ -59,32 +59,25 @@ export default function MonitorView() {
         return tasks.some(task => task.type === 'Collect Feces' && !task.collected);
     };
 
-    // Get the most recent observation time for a given type, using completed_iso or care_log fallback
     const getLastObservationTime = (visit, type) => {
-        const fromTasks = visit.scheduled_tasks
+        return visit.scheduled_tasks
             ?.filter(t => t.type === type && t.completed_iso)
             .map(t => moment(t.completed_iso))
-            .sort((a, b) => b.diff(a))[0];
-        if (fromTasks) return fromTasks;
-
-        const fromLog = visit.care_log
-            ?.filter(l => l.activity === type)
-            .map(l => moment(l.time, 'h:mm A'))
-            .sort((a, b) => b.diff(a))[0];
-        return fromLog || null;
+            .sort((a, b) => b.diff(a))[0] || null;
     };
 
-    // Check if a pet needs alert (yellow) - no feces in 48hrs, or no urine in 48hrs for cats
+    // Yellow alert: Feces Observed not completed in 48hrs for all boarding pets,
+    // or Urine Observed not completed in 48hrs for cats
     const needsAlert = (visit, pet) => {
         if (visit.visit_type !== 'boarding') return false;
 
         const fortyEightHoursAgo = moment().subtract(48, 'hours');
 
-        const lastFeces = getLastObservationTime(visit, 'Observed feces');
+        const lastFeces = getLastObservationTime(visit, 'Feces Observed');
         if (!lastFeces || lastFeces.isBefore(fortyEightHoursAgo)) return true;
 
         if (pet?.species === 'Cat') {
-            const lastUrine = getLastObservationTime(visit, 'Observed urination');
+            const lastUrine = getLastObservationTime(visit, 'Urine Observed');
             if (!lastUrine || lastUrine.isBefore(fortyEightHoursAgo)) return true;
         }
 
