@@ -24,9 +24,19 @@ export default function Settings() {
   const [checkingDuplicates, setCheckingDuplicates] = useState(false);
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
   const [user, setUser] = useState(null);
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
+  const [profileName, setProfileName] = useState('');
+  const [profileEmail, setProfileEmail] = useState('');
+  const [profileTimezone, setProfileTimezone] = useState('America/New_York');
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   React.useEffect(() => {
-    base44.auth.me().then(setUser).catch(() => {});
+    base44.auth.me().then(u => {
+      setUser(u);
+      setProfileName(u?.full_name || '');
+      setProfileEmail(u?.email || '');
+      setProfileTimezone(u?.timezone || 'America/New_York');
+    }).catch(() => {});
   }, []);
 
   const isSuperAdmin = user?.role === 'super_admin';
