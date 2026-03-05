@@ -11,8 +11,7 @@ import PullToRefresh from '@/components/PullToRefresh';
 import { base44 } from '@/api/base44Client';
 
 export default function DayView({ pets, visits, selectedDate, onDateChange, onViewVisit, onUpdateLocation, onRefresh }) {
-    const [editingLocation, setEditingLocation] = useState(null);
-    const [locationValue, setLocationValue] = useState('');
+
     const [userTimezone, setUserTimezone] = useState('UTC');
 
     useEffect(() => {
@@ -83,20 +82,7 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
         return { pet, visit };
     }).filter(item => item.pet).sort((a, b) => a.pet.name.localeCompare(b.pet.name));
 
-    const handleSaveLocation = async (visit) => {
-        await onUpdateLocation(visit.id, locationValue.slice(0, 10));
-        setEditingLocation(null);
-        setLocationValue('');
-    };
 
-    const handleLocationBlur = async (visit) => {
-        // Auto-save location on blur
-        if (locationValue !== visit.location) {
-            await onUpdateLocation(visit.id, locationValue.slice(0, 10));
-        }
-        setEditingLocation(null);
-        setLocationValue('');
-    };
 
     const handlePrevDay = () => {
         onDateChange(moment(selectedDate).subtract(1, 'day').format('YYYY-MM-DD'));
@@ -347,52 +333,17 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
                                                             </div>
 
                                                             {/* Location & Photo Status */}
-                                                <div className="p-4 w-[140px]">
-                                                    {isEditing ? (
-                                                        <div className="flex gap-2">
-                                                            <Input
-                                                                value={locationValue}
-                                                                onChange={(e) => setLocationValue(e.target.value)}
-                                                                maxLength={10}
-                                                                placeholder="Location"
-                                                                className="h-8 rounded-lg"
-                                                                autoFocus
-                                                                onBlur={() => handleLocationBlur(visit)}
-                                                                onKeyDown={(e) => {
-                                                                    if (e.key === 'Enter') handleSaveLocation(visit);
-                                                                    if (e.key === 'Escape') {
-                                                                        setEditingLocation(null);
-                                                                        setLocationValue('');
-                                                                    }
-                                                                }}
-                                                            />
-                                                            <Button 
-                                                                size="sm"
-                                                                onClick={() => handleSaveLocation(visit)}
-                                                                className="bg-[#82bb32] hover:bg-[#82bb32]/90 h-8 px-3"
-                                                            >
-                                                                Save
-                                                            </Button>
-                                                        </div>
-                                                    ) : (
-                                                        <div 
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setEditingLocation(visit.id);
-                                                                setLocationValue(visit.location || '');
-                                                            }}
-                                                            className="cursor-pointer hover:bg-gray-50 rounded-lg px-3 py-2 transition-colors"
-                                                        >
-                                                            <p className="text-xs text-gray-500">Location</p>
-                                                            <p className="text-sm font-medium text-gray-700">
-                                                                {visit.location || 'Click to set'}
-                                                            </p>
-                                                            <p className={`text-xs mt-1 ${visit.picture_sent ? 'text-emerald-600' : 'text-gray-400'}`}>
-                                                                📸 Photo {visit.picture_sent ? 'Sent' : 'Not Sent'}
-                                                            </p>
-                                                        </div>
-                                                    )}
-                                                </div>
+                                                                <div className="p-4 w-[140px]">
+                                                                    <div className="rounded-lg px-3 py-2">
+                                                                        <p className="text-xs text-gray-500">Location</p>
+                                                                        <p className="text-sm font-medium text-gray-700">
+                                                                            {visit.location || 'Not Set'}
+                                                                        </p>
+                                                                        <p className={`text-xs mt-1 ${visit.picture_sent ? 'text-emerald-600' : 'text-gray-400'}`}>
+                                                                            📸 Photo {visit.picture_sent ? 'Sent' : 'Not Sent'}
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
 
                                                 {/* Play Sessions */}
                                                 {visit.play_sessions && visit.play_sessions.length > 0 && (
