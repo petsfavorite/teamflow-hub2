@@ -22,10 +22,11 @@ export default function Pets() {
     const [showAddDialog, setShowAddDialog] = useState(false);
     const [editingPet, setEditingPet] = useState(null);
     const [filterCheckedIn, setFilterCheckedIn] = useState('all');
-    const [currentUser, setCurrentUser] = useState(null);
+     const [currentUser, setCurrentUser] = useState(null);
+     const [showArchive, setShowArchive] = useState(false);
 
-    const navigate = useNavigate();
-    const queryClient = useQueryClient();
+     const navigate = useNavigate();
+     const queryClient = useQueryClient();
 
     useEffect(() => {
         base44.auth.me().then(setCurrentUser).catch(() => {});
