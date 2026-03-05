@@ -91,6 +91,12 @@ const FEATURES = [
       { id: 35, label: "Feces Output Alert", desc: "Alert when checked-in pet hasn't defecated or is showing lack of feces output" },
     ]
   },
+  {
+    category: "Play Sessions (Boarding)",
+    items: [
+      { id: 36, label: "Play Session = Walk", desc: "Each play session completion logs a walk activity in the care log" },
+    ]
+  },
 ];
 
 export default function DevChecklist() {
