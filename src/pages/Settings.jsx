@@ -553,9 +553,16 @@ export default function Settings() {
             <Button variant="outline" className="rounded-xl" onClick={() => setEditProfileOpen(false)}>
               Cancel
             </Button>
-            <Button className="rounded-xl bg-[#82bb32] hover:bg-[#82bb32]/90" onClick={handleSaveProfile} disabled={isSavingProfile}>
-              {isSavingProfile ? 'Saving...' : 'Save'}
-            </Button>
+            {!isSuperAdmin && (
+              <Button className="rounded-xl bg-[#82bb32] hover:bg-[#82bb32]/90" onClick={handleSaveProfile} disabled={isSavingProfile}>
+                {isSavingProfile ? 'Saving...' : 'Save'}
+              </Button>
+            )}
+            {isSuperAdmin && (
+              <Button className="rounded-xl bg-[#82bb32] hover:bg-[#82bb32]/90" onClick={handleSaveGlobalTimezone} disabled={isSavingGlobalTimezone}>
+                {isSavingGlobalTimezone ? 'Saving...' : 'Update All Users'}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
