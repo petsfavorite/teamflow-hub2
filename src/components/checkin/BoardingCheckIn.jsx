@@ -302,17 +302,17 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
                             </ul>
                         )}
                     </div>
-                </CardContent>
-            </Card>
+                    </CardContent>
+                    </Card>
 
-            <div className="flex gap-3">
-                 <Button type="button" variant="outline" onClick={onCancel} className="flex-1 rounded-xl">
-                     Back
-                 </Button>
-                 <Button type="submit" className="flex-1 rounded-xl bg-blue-500 hover:bg-blue-600">
-                     Complete Check-In
-                 </Button>
-             </div>
-            </form>
+                    <div className="flex gap-3">
+                    <Button type="button" variant="outline" onClick={onCancel} className="flex-1 rounded-xl">
+                    Back
+                    </Button>
+                    <Button type="submit" className="flex-1 rounded-xl bg-blue-500 hover:bg-blue-600">
+                    Complete Check-In
+                    </Button>
+                    </div>
+                    </form>
             );
 }
