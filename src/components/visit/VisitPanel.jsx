@@ -444,6 +444,9 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                         const taskTime = moment(task.time, 'h:mm A');
                                         const isOverdue = viewDate === moment().format('YYYY-MM-DD') && !task.completed && moment().isAfter(taskTime);
                                         const actualIdx = visit.scheduled_tasks?.findIndex(t => t === task);
+                                        const recurrenceLabel = task.recurrence_type && task.recurrence_type !== 'none' 
+                                            ? `(repeats every ${task.recurrence_interval} ${task.recurrence_type})` 
+                                            : '';
                                         
                                         return (
                                             <div 
@@ -456,7 +459,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                                         : 'bg-stone-50 border-stone-200'
                                                 }`}
                                             >
-                                                <div>
+                                                <div className="flex-1">
                                                     <p className={`text-sm font-medium ${
                                                         task.completed 
                                                             ? 'text-emerald-700' 
@@ -466,6 +469,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                                     }`}>
                                                         {task.time ? `${task.time} - ` : ''}{task.type === 'Medication' ? task.medication_name : task.type}
                                                         {!task.is_template && <span className="text-xs ml-1">(custom)</span>}
+                                                        {recurrenceLabel && <span className="text-xs text-stone-500 ml-1">{recurrenceLabel}</span>}
                                                     </p>
                                                     {task.notes && (
                                                         <p className="text-xs text-stone-500">{task.notes}</p>
@@ -476,22 +480,32 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                                         </p>
                                                     )}
                                                 </div>
-                                                {viewDate === moment().format('YYYY-MM-DD') && (
+                                                <div className="flex items-center gap-2 ml-2">
                                                     <Button 
                                                         size="sm" 
-                                                        onClick={() => handleCompleteTask(actualIdx)}
-                                                        variant={task.completed ? "outline" : "default"}
-                                                        className={`rounded-xl h-7 text-xs ${
-                                                            task.completed
-                                                                ? 'border-emerald-300 text-emerald-700 hover:bg-emerald-50'
-                                                                : isOverdue 
-                                                                ? 'bg-rose-500 hover:bg-rose-600' 
-                                                                : 'bg-stone-700 hover:bg-stone-800'
-                                                        }`}
+                                                        variant="ghost"
+                                                        onClick={() => handleEditTask(actualIdx)}
+                                                        className="rounded-xl h-7 text-xs text-stone-600 hover:bg-stone-100"
                                                     >
-                                                        {task.completed ? 'Undo' : 'Complete'}
+                                                        Edit
                                                     </Button>
-                                                )}
+                                                    {viewDate === moment().format('YYYY-MM-DD') && (
+                                                        <Button 
+                                                            size="sm" 
+                                                            onClick={() => handleCompleteTask(actualIdx)}
+                                                            variant={task.completed ? "outline" : "default"}
+                                                            className={`rounded-xl h-7 text-xs ${
+                                                                task.completed
+                                                                    ? 'border-emerald-300 text-emerald-700 hover:bg-emerald-50'
+                                                                    : isOverdue 
+                                                                    ? 'bg-rose-500 hover:bg-rose-600' 
+                                                                    : 'bg-stone-700 hover:bg-stone-800'
+                                                            }`}
+                                                        >
+                                                            {task.completed ? 'Undo' : 'Complete'}
+                                                        </Button>
+                                                    )}
+                                                </div>
                                             </div>
                                         );
                                     })}
