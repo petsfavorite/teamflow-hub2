@@ -17,32 +17,33 @@ export default function PetCard({ pet, visit, onCheckIn, onCheckOut, onViewDetai
                 className="bg-white rounded-2xl border border-stone-100 p-4 hover:shadow-lg transition-all duration-300"
             >
                 <div className="flex items-center gap-4">
-                    <div className="relative">
-                        {pet.photo_url ? (
-                            <img 
-                                src={pet.photo_url} 
-                                alt={pet.name}
-                                className="w-14 h-14 rounded-xl object-cover"
-                            />
-                        ) : (
-                            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center">
-                                {isCat ? (
-                                    <Cat className="w-7 h-7 text-amber-600" />
-                                ) : (
-                                    <Dog className="w-7 h-7 text-amber-600" />
-                                )}
-                            </div>
-                        )}
-                        {hasMedications && (
-                            <div className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 rounded-full flex items-center justify-center">
-                                <Pill className="w-3 h-3 text-white" />
-                            </div>
-                        )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-stone-800 truncate">{pet.name}</h3>
-                        <p className="text-sm text-stone-500 truncate">{pet.breed}</p>
-                    </div>
+                 <div className="relative">
+                     {pet.photo_url ? (
+                         <img 
+                             src={pet.photo_url} 
+                             alt={pet.name}
+                             className="w-14 h-14 rounded-xl object-cover"
+                         />
+                     ) : (
+                         <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center">
+                             {isCat ? (
+                                 <Cat className="w-7 h-7 text-amber-600" />
+                             ) : (
+                                 <Dog className="w-7 h-7 text-amber-600" />
+                             )}
+                         </div>
+                     )}
+                     {hasMedications && (
+                         <div className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 rounded-full flex items-center justify-center">
+                             <Pill className="w-3 h-3 text-white" />
+                         </div>
+                     )}
+                 </div>
+                 <div className="flex-1 min-w-0">
+                     <h3 className="font-semibold text-stone-800 truncate">{pet.name}</h3>
+                     <p className="text-xs text-stone-500 truncate">{pet.owner_name}</p>
+                     <p className="text-sm text-stone-500 truncate">{pet.breed}</p>
+                 </div>
                     <Button 
                         size="sm"
                         onClick={() => onCheckIn?.(pet)}
