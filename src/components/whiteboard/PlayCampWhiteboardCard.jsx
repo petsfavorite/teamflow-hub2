@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { 
-    Dog, Cat, CheckCircle2, ChevronRight, Camera
+    Dog, Cat, CheckCircle2, ChevronRight, Camera, AlertCircle
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -49,7 +49,11 @@ export default function PlayCampWhiteboardCard({ pet, visit, onViewVisit }) {
             layout
             className="w-full"
         >
-            <Card className="overflow-hidden border-2 border-stone-200 bg-white transition-all duration-300 rounded-2xl hover:shadow-lg">
+            <Card className={`overflow-hidden border-2 transition-all duration-300 rounded-2xl hover:shadow-lg ${
+                visit.emergency_alert_active 
+                    ? 'border-yellow-400 bg-yellow-100' 
+                    : 'border-stone-200 bg-white'
+            }`}>
                 <CardContent className="p-0">
                     <div className="flex items-center">
                         {/* Left: Photo and Basic Info */}
@@ -72,7 +76,12 @@ export default function PlayCampWhiteboardCard({ pet, visit, onViewVisit }) {
                                 )}
                             </div>
                             <div className="flex-1">
-                                <h3 className="font-bold text-base text-stone-800">{pet.name}</h3>
+                                <div className="flex items-center gap-2">
+                                    <h3 className="font-bold text-base text-stone-800">{pet.name}</h3>
+                                    {visit.emergency_alert_active && (
+                                        <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0" title={`Emergency: Missing ${visit.emergency_alert_type}`} />
+                                    )}
+                                </div>
                                 <p className="text-xs text-stone-500">{visit.location || 'Lobby'}</p>
                                 <Badge className="bg-emerald-100 text-emerald-700 border-0 text-xs px-2 py-0 mt-1">
                                     Play Camp
