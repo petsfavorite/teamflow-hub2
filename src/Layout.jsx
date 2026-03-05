@@ -115,7 +115,7 @@ export default function Layout({ children }) {
                                 </button>
                                 {(adminOpen || isOnAdminPage) && (
                                     <div className="ml-4 mt-1 flex flex-col gap-1 border-l-2 border-stone-100 pl-3">
-                                        {adminNavItems.map((item) => (
+                                        {adminNavItems.filter(item => item.name !== 'DevChecklist' || isSuperAdmin).map((item) => (
                                             <Link
                                                 key={item.name}
                                                 to={createPageUrl(item.name)}
