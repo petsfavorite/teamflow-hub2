@@ -59,12 +59,7 @@ export default function MonitorView() {
         return tasks.some(task => task.type === 'Collect Feces' && !task.collected);
     };
 
-    const getLastObservationTime = (visit, type) => {
-        return visit.scheduled_tasks
-            ?.filter(t => t.type === type && t.completed_iso)
-            .map(t => moment(t.completed_iso))
-            .sort((a, b) => b.diff(a))[0] || null;
-    };
+
 
 
 
