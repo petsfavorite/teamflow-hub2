@@ -297,7 +297,7 @@ export default function ExternalLinks() {
           <DialogFooter>
             <Button variant="outline" onClick={resetPDFForm}>Cancel</Button>
             <Button onClick={() => savePDFMutation.mutate(pdfForm)} disabled={savePDFMutation.isPending || !pdfForm.file_url || !pdfForm.title} className="bg-amber-500 hover:bg-amber-600 gap-2">
-              {savePDFMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />} {editingPDF ? 'Update' : 'Add'} PDF
+              {savePDFMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />} {editingPDF ? 'Update' : 'Add'} Sheet
             </Button>
           </DialogFooter>
         </DialogContent>
