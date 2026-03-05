@@ -31,14 +31,14 @@ export default function Whiteboard() {
         base44.auth.me().then(setCurrentUser).catch(() => {});
     }, []);
 
-    // Auto-refresh every 60 seconds when on Day View
+    // Auto-refresh every 5 seconds when on Day View
     useEffect(() => {
         if (activeTab !== 'day') return;
         
         const interval = setInterval(() => {
             queryClient.invalidateQueries(['visits']);
             queryClient.invalidateQueries(['pets']);
-        }, 60000); // 60 seconds
+        }, 5000); // 5 seconds
         
         return () => clearInterval(interval);
     }, [activeTab, queryClient]);
