@@ -168,13 +168,26 @@ export default function Reports() {
                                             Expires in {daysUntilExpiry} days
                                         </div>
 
-                                        <Button
-                                            className="w-full rounded-xl bg-[#82bb32] hover:bg-[#82bb32]/90"
-                                            onClick={() => window.open(report.report_url, '_blank')}
-                                        >
-                                            <Download className="w-4 h-4 mr-2" />
-                                            Download Report
-                                        </Button>
+                                        <div className="space-y-2">
+                                            <Button
+                                                className="w-full rounded-xl bg-[#82bb32] hover:bg-[#82bb32]/90"
+                                                onClick={() => window.open(report.report_url, '_blank')}
+                                            >
+                                                <Download className="w-4 h-4 mr-2" />
+                                                Download Report
+                                            </Button>
+                                            {canDeleteReports && (
+                                                <Button
+                                                    variant="outline"
+                                                    className="w-full rounded-xl border-red-200 text-red-600 hover:bg-red-50"
+                                                    onClick={() => handleDeleteReport(report.id)}
+                                                    disabled={deleteReportMutation.isPending}
+                                                >
+                                                    <Trash2 className="w-4 h-4 mr-2" />
+                                                    Delete Report
+                                                </Button>
+                                            )}
+                                        </div>
                                     </CardContent>
                                 </Card>
                             );
