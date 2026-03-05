@@ -180,11 +180,17 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
          }
 
         // If this is a "Collect Feces" task, mark it as collected and update visit status
-         if (task.type === 'Collect Feces') {
-             updatedTasks[taskIndex].collected = true;
-             onUpdateVisit({ ...visit, scheduled_tasks: updatedTasks, care_log: careLog, fecal_collected: true });
-             return;
-         }
+        if (task.type === 'Collect Feces') {
+            updatedTasks[taskIndex] = {
+                ...updatedTasks[taskIndex],
+                collected: true,
+                completed: true,
+                completed_at: timestamp,
+                completed_by: initials
+            };
+            onUpdateVisit({ ...visit, scheduled_tasks: updatedTasks, care_log: careLog, fecal_collected: true });
+            return;
+        }
 
         // Optimistic update
         onUpdateVisit({ ...visit, scheduled_tasks: updatedTasks, care_log: careLog });
