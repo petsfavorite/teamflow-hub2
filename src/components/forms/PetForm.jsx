@@ -64,6 +64,7 @@ export default function PetForm({ pet, onSave, onCancel, onDelete, isLoading }) 
     const handleCropConfirm = (cropData) => {
         handleChange('photo_url', cropData.photo_url);
         handleChange('crop_offset_y', cropData.crop_offset_y);
+        handleChange('crop_zoom', cropData.crop_zoom || 1);
         setShowCropSelector(false);
     };
 
@@ -153,7 +154,9 @@ export default function PetForm({ pet, onSave, onCancel, onDelete, isLoading }) 
                                                  style={{
                                                      objectPosition: formData.crop_offset_y !== undefined 
                                                          ? `center ${-formData.crop_offset_y}px`
-                                                         : 'center'
+                                                         : 'center',
+                                                     transform: formData.crop_zoom ? `scale(${formData.crop_zoom})` : 'scale(1)',
+                                                     transformOrigin: 'center center'
                                                  }}
                                              />
                                          ) : (
