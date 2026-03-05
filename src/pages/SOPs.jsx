@@ -24,7 +24,7 @@ export default function SOPs() {
   const { data: sops = [], isLoading } = useQuery({
     queryKey: ['sops-all'],
     queryFn: () => canManage
-      ? base44.entities.SOP.list('-updated_date', 200)
+      ? base44.entities.SOP.filter({ status: ['draft', 'pending_approval', 'published', 'archived'] }, '-updated_date', 200)
       : base44.entities.SOP.filter({ status: 'published' }, '-updated_date', 200),
   });
 
