@@ -4,8 +4,10 @@ import { createPageUrl } from '@/utils';
 import {
     Dog, LayoutGrid, Users, LogIn, Settings, Menu, X,
     LayoutDashboard, BookOpen, CheckSquare, ClipboardList, Wrench,
-    AlertTriangle, BarChart2, MessageSquare, Link as LinkIcon, Package, PawPrint
+    AlertTriangle, BarChart2, MessageSquare, Link as LinkIcon, Package, PawPrint,
+    ChevronDown, ChevronRight, ShieldCheck, History
 } from 'lucide-react';
+import { useCurrentUser } from './components/hooks/useCurrentUser';
 
 const FLOOF_PAGES = ['Whiteboard', 'Pets', 'CheckIn', 'Reports', 'MonitorView', 'Settings'];
 
@@ -19,41 +21,54 @@ const floofNavItems = [
 
 const mainNavItems = [
     { name: 'Dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { name: 'Whiteboard', icon: PawPrint, label: 'Kennel Whiteboard' },
     { name: 'SOPs', icon: BookOpen, label: 'SOP Library' },
     { name: 'Checklists', icon: CheckSquare, label: 'Checklists' },
     { name: 'Tasks', icon: ClipboardList, label: 'Tasks' },
     { name: 'Maintenance', icon: Wrench, label: 'Maintenance' },
     { name: 'IncidentReports', icon: AlertTriangle, label: 'Incidents' },
     { name: 'Assets', icon: Package, label: 'Assets' },
-    { name: 'Analytics', icon: BarChart2, label: 'Analytics' },
     { name: 'SOPAssistant', icon: MessageSquare, label: 'SOP AI' },
     { name: 'ExternalLinks', icon: LinkIcon, label: 'Links' },
-    { name: 'UserManagement', icon: Users, label: 'Settings' },
 ];
+
+const adminNavItems = [
+    { name: 'UserManagement', icon: Users, label: 'Users' },
+    { name: 'ChecklistHistory', icon: History, label: 'Checklist History' },
+    { name: 'Analytics', icon: BarChart2, label: 'Analytics' },
+];
+
+const ADMIN_ROLES = ['admin', 'manager', 'super_admin'];
 
 export default function Layout({ children }) {
     const location = useLocation();
     const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [adminOpen, setAdminOpen] = useState(false);
+    const { user } = useCurrentUser();
 
     const isFloofPage = FLOOF_PAGES.some(p => location.pathname.toLowerCase().includes(p.toLowerCase()));
     const navItems = isFloofPage ? floofNavItems : mainNavItems;
 
     const isActive = (pageName) => location.pathname.toLowerCase().includes(pageName.toLowerCase());
+    const canSeeAdmin = user && ADMIN_ROLES.includes(user.role);
+
+    // Auto-open admin dropdown if we're on an admin page
+    const isOnAdminPage = adminNavItems.some(i => isActive(i.name));
 
     return (
         <div className="min-h-screen bg-stone-50 flex" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
             {/* Desktop Sidebar */}
-            <nav className={`hidden md:flex flex-col bg-white border-r border-stone-200 p-4 gap-2 fixed h-screen transition-all duration-300 z-40 overflow-y-auto ${
+            <nav className={`hidden md:flex flex-col bg-white border-r border-stone-200 p-4 gap-1 fixed h-screen transition-all duration-300 z-40 overflow-y-auto ${
                 sidebarOpen ? 'w-64' : 'w-20'
             }`}>
                 <button
                     onClick={() => setSidebarOpen(!sidebarOpen)}
-                    className="mb-6 p-2 hover:bg-stone-100 rounded-xl transition-colors"
+                    className="mb-6 p-2 hover:bg-stone-100 rounded-xl transition-colors flex-shrink-0"
                 >
                     {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
                 </button>
                 {sidebarOpen && (
-                    <div className="mb-6">
+                    <div className="mb-4">
                         {isFloofPage ? (
                             <h1 className="text-2xl font-bold text-stone-800">FLOOF</h1>
                         ) : (
@@ -61,6 +76,7 @@ export default function Layout({ children }) {
                         )}
                     </div>
                 )}
+
                 {navItems.map((item) => (
                     <Link
                         key={item.name}
@@ -77,27 +93,59 @@ export default function Layout({ children }) {
                     </Link>
                 ))}
 
-                {/* Floof entry point in main nav */}
-                {!isFloofPage && sidebarOpen && (
-                    <div className="mt-auto pt-4 border-t border-stone-100">
-                        <Link
-                            to={createPageUrl('Whiteboard')}
-                            className="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-stone-600 hover:text-stone-800 hover:bg-stone-50"
-                        >
-                            <PawPrint className="w-5 h-5 flex-shrink-0" />
-                            <span className="font-medium">Kennel Monitor</span>
-                        </Link>
-                    </div>
-                )}
-                {!isFloofPage && !sidebarOpen && (
-                    <div className="mt-auto pt-4 border-t border-stone-100">
-                        <Link
-                            to={createPageUrl('Whiteboard')}
-                            title="Kennel Monitor"
-                            className="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-stone-600 hover:text-stone-800 hover:bg-stone-50"
-                        >
-                            <PawPrint className="w-5 h-5 flex-shrink-0" />
-                        </Link>
+                {/* Administration dropdown — main nav only, privileged roles */}
+                {!isFloofPage && canSeeAdmin && (
+                    <div className="mt-2">
+                        {sidebarOpen ? (
+                            <>
+                                <button
+                                    onClick={() => setAdminOpen(!adminOpen)}
+                                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-colors ${
+                                        isOnAdminPage ? 'text-[#82bb32] bg-[#82bb32]/10' : 'text-stone-600 hover:text-stone-800 hover:bg-stone-50'
+                                    }`}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <ShieldCheck className="w-5 h-5 flex-shrink-0" />
+                                        <span className="font-medium">Administration</span>
+                                    </div>
+                                    {(adminOpen || isOnAdminPage) ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                                </button>
+                                {(adminOpen || isOnAdminPage) && (
+                                    <div className="ml-4 mt-1 flex flex-col gap-1 border-l-2 border-stone-100 pl-3">
+                                        {adminNavItems.map((item) => (
+                                            <Link
+                                                key={item.name}
+                                                to={createPageUrl(item.name)}
+                                                className={`flex items-center gap-3 px-3 py-2 rounded-xl transition-colors ${
+                                                    isActive(item.name)
+                                                        ? 'text-[#82bb32] bg-[#82bb32]/10'
+                                                        : 'text-stone-600 hover:text-stone-800 hover:bg-stone-50'
+                                                }`}
+                                            >
+                                                <item.icon className="w-4 h-4 flex-shrink-0" />
+                                                <span className="text-sm font-medium">{item.label}</span>
+                                            </Link>
+                                        ))}
+                                    </div>
+                                )}
+                            </>
+                        ) : (
+                            // Collapsed: show icon only for admin items
+                            adminNavItems.map((item) => (
+                                <Link
+                                    key={item.name}
+                                    to={createPageUrl(item.name)}
+                                    title={item.label}
+                                    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
+                                        isActive(item.name)
+                                            ? 'text-[#82bb32] bg-[#82bb32]/10'
+                                            : 'text-stone-600 hover:text-stone-800 hover:bg-stone-50'
+                                    }`}
+                                >
+                                    <item.icon className="w-5 h-5 flex-shrink-0" />
+                                </Link>
+                            ))
+                        )}
                     </div>
                 )}
             </nav>
