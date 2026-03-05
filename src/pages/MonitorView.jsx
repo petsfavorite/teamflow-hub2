@@ -67,31 +67,31 @@ export default function MonitorView() {
     };
 
     // Yellow alert:
-    // Dogs: alert if checked in 48+ hrs AND Feces Observed not checked
-    // Cats: alert if checked in 48+ hrs AND (Feces Observed OR Urine Observed not checked)
+    // Only alert if CHECKED IN MORE THAN 48 HOURS and missing required observations
+    // Dogs: checked in 48+ hrs AND Feces Observed not found or not completed
+    // Cats: checked in 48+ hrs AND (Feces Observed not found/completed OR Urine Observed not found/completed)
     const needsAlert = (visit, pet) => {
         if (visit.visit_type !== 'boarding') return false;
 
         const checkInTime = moment(visit.check_in_time);
         const fortyEightHoursAgo = moment().subtract(48, 'hours');
         
-        // Only alert if checked in more than 48 hours ago
-        if (checkInTime.isAfter(fortyEightHoursAgo)) {
+        // Only alert if checked in MORE than 48 hours ago
+        if (!checkInTime.isBefore(fortyEightHoursAgo)) {
             return false;
         }
 
-        // Check if Feces Observed has been completed
-        const fecesTask = visit.scheduled_tasks?.find(t => t.type === 'Feces Observed' && t.completed);
-        const fecesNotChecked = !fecesTask;
+        // Check for completed Feces Observed task
+        const hasFecesObserved = visit.scheduled_tasks?.some(t => t.type === 'Feces Observed' && t.completed);
 
         if (pet?.species === 'Cat') {
-            // For cats, also check Urine Observed
-            const urineTask = visit.scheduled_tasks?.find(t => t.type === 'Urine Observed' && t.completed);
-            const urineNotChecked = !urineTask;
-            return fecesNotChecked || urineNotChecked;
+            // For cats, check both Feces and Urine
+            const hasUrineObserved = visit.scheduled_tasks?.some(t => t.type === 'Urine Observed' && t.completed);
+            return !hasFecesObserved || !hasUrineObserved;
         }
 
-        return fecesNotChecked;
+        // For dogs, only check Feces
+        return !hasFecesObserved;
     };
 
     const petsWithVisits = checkedInVisits.map(visit => {
