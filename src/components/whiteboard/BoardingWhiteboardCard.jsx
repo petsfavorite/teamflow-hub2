@@ -39,7 +39,12 @@ export default function BoardingWhiteboardCard({ pet, visit, onViewVisit }) {
     // Check if picture needs to be sent
     const needsPicture = pet.daily_picture && !visit.picture_sent;
 
-    const cardColor = hasOverdue ? 'border-rose-400 bg-rose-50' : 'border-stone-200 bg-white';
+    // Check if "Need Feces" task is still pending (not completed even once)
+    const needFecesTask = visit.scheduled_tasks?.find(t => t.type === 'Need Feces');
+    const fecesCompleted = needFecesTask?.completed;
+    const hasUncompletedFeces = needFecesTask && !fecesCompleted;
+
+    const cardColor = (hasOverdue || hasUncompletedFeces) ? 'border-rose-400 bg-rose-50' : 'border-stone-200 bg-white';
 
     return (
         <motion.div
