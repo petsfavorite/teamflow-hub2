@@ -117,10 +117,18 @@ export default function ExternalLinks() {
     toast.success('File uploaded');
   };
 
-  const pdfCategories = [...new Set(pdfs.map(p => p.category).filter(Boolean))];
+  const filteredPDFs = pdfSearch.trim()
+    ? pdfs.filter(p =>
+        p.title.toLowerCase().includes(pdfSearch.toLowerCase()) ||
+        (p.description || '').toLowerCase().includes(pdfSearch.toLowerCase()) ||
+        (p.category || '').toLowerCase().includes(pdfSearch.toLowerCase())
+      )
+    : pdfs;
+
+  const pdfCategories = [...new Set(filteredPDFs.map(p => p.category).filter(Boolean))];
   const groupedPDFs = pdfCategories.length > 0
-    ? pdfCategories.map(cat => ({ category: cat, pdfs: pdfs.filter(p => p.category === cat) }))
-    : [{ category: null, pdfs }];
+    ? pdfCategories.map(cat => ({ category: cat, pdfs: filteredPDFs.filter(p => p.category === cat) }))
+    : [{ category: null, pdfs: filteredPDFs }];
 
   return (
     <div>
