@@ -455,14 +455,14 @@ export default function Assets() {
                 {users.map(u => (
                   <label key={u.id} className="flex items-center gap-2 text-sm">
                     <Checkbox
-                      checked={newTaskForm.assigned_to_emails.includes(u.email)}
+                      checked={(newTaskForm.assigned_to_emails || []).includes(u.email)}
                       onCheckedChange={checked => {
                         const emails = checked
-                          ? [...newTaskForm.assigned_to_emails, u.email]
-                          : newTaskForm.assigned_to_emails.filter(e => e !== u.email);
+                          ? [...(newTaskForm.assigned_to_emails || []), u.email]
+                          : (newTaskForm.assigned_to_emails || []).filter(e => e !== u.email);
                         const names = checked
-                          ? [...newTaskForm.assigned_to_names, u.full_name || u.email]
-                          : newTaskForm.assigned_to_names.filter((_, i) => newTaskForm.assigned_to_emails[i] !== u.email);
+                          ? [...(newTaskForm.assigned_to_names || []), u.full_name || u.email]
+                          : (newTaskForm.assigned_to_names || []).filter((_, i) => (newTaskForm.assigned_to_emails || [])[i] !== u.email);
                         setNewTaskForm({ ...newTaskForm, assigned_to_emails: emails, assigned_to_names: names });
                       }}
                     />
