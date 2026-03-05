@@ -15,6 +15,7 @@ import { createPageUrl } from '@/utils';
 
 import PetCard from '@/components/pets/PetCard';
 import PetForm from '@/components/forms/PetForm';
+import { useState, useEffect } from 'react';
 
 export default function Pets() {
     const [searchQuery, setSearchQuery] = useState('');
@@ -22,14 +23,22 @@ export default function Pets() {
     const [showAddDialog, setShowAddDialog] = useState(false);
     const [editingPet, setEditingPet] = useState(null);
     const [filterCheckedIn, setFilterCheckedIn] = useState('all');
+    const [currentUser, setCurrentUser] = useState(null);
 
     const navigate = useNavigate();
     const queryClient = useQueryClient();
 
-    const { data: pets = [], isLoading } = useQuery({
+    useEffect(() => {
+        base44.auth.me().then(setCurrentUser).catch(() => {});
+    }, []);
+
+    const { data: allPets = [], isLoading } = useQuery({
         queryKey: ['pets'],
         queryFn: () => base44.entities.Pet.list()
     });
+
+    // Filter out archived pets
+    const pets = allPets.filter(p => !p.is_archived);
 
     const createPetMutation = useMutation({
         mutationFn: (data) => base44.entities.Pet.create(data),
@@ -73,6 +82,10 @@ export default function Pets() {
 
     const handleCheckOut = (pet) => {
         navigate(createPageUrl('Dashboard'));
+    };
+
+    const handleArchivePet = async (petId) => {
+        await updatePetMutation.mutateAsync({ id: petId, data: { is_archived: true } });
     };
 
     let filteredPets = pets.filter(pet =>
@@ -174,18 +187,19 @@ export default function Pets() {
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                        <AnimatePresence>
-                            {filteredPets.map((pet) => (
-                                <PetCard
-                                    key={pet.id}
-                                    pet={pet}
-                                    onCheckIn={handleCheckIn}
-                                    onCheckOut={handleCheckOut}
-                                    onViewDetails={(p) => setEditingPet(p)}
-                                />
-                            ))}
-                        </AnimatePresence>
-                    </div>
+                         <AnimatePresence>
+                             {filteredPets.map((pet) => (
+                                 <PetCard
+                                     key={pet.id}
+                                     pet={pet}
+                                     onCheckIn={handleCheckIn}
+                                     onCheckOut={handleCheckOut}
+                                     onViewDetails={(p) => setEditingPet(p)}
+                                     onArchive={(currentUser?.role === 'manager' || currentUser?.role === 'admin' || currentUser?.role === 'super_admin') ? handleArchivePet : null}
+                                 />
+                             ))}
+                         </AnimatePresence>
+                     </div>
                     )}
                     </div>
 
