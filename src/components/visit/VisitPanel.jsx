@@ -436,7 +436,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                                         ? 'bg-emerald-50 border-emerald-200' 
                                                         : isOverdue 
                                                         ? 'bg-rose-50 border-rose-200' 
-                                                        : 'bg-stone-50 border-stone-200'
+                                                        : 'bg-white border-stone-200'
                                                 }`}
                                             >
                                                 <div className="flex-1">
