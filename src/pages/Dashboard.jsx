@@ -62,7 +62,7 @@ export default function Dashboard() {
   const { data: pendingSOPs = [] } = useQuery({
     queryKey: ['pending-sops-dash'],
     queryFn: () => base44.entities.SOP.filter({ status: 'pending_approval' }, '-updated_date', 20),
-    enabled: canApprove,
+    enabled: isAdmin || isSuperAdmin,
   });
 
   const { data: allSOPs = [] } = useQuery({
