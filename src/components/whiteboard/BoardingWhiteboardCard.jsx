@@ -39,10 +39,7 @@ export default function BoardingWhiteboardCard({ pet, visit, onViewVisit }) {
     // Check if picture needs to be sent
     const needsPicture = pet.daily_picture && !visit.picture_sent;
 
-    // Check if fecal sample has been collected
-     const hasUncompletedFeces = !visit.fecal_collected;
-
-     const cardColor = (hasOverdue || hasUncompletedFeces) ? 'border-rose-400 bg-rose-50' : 'border-stone-200 bg-white';
+    const cardColor = hasOverdue ? 'border-rose-400 bg-rose-50' : 'border-stone-200 bg-white';
 
     return (
         <motion.div
