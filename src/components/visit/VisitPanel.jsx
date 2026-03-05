@@ -12,7 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { 
     Dog, Cat, MapPin, Clock, Utensils, Pill, 
-    CheckCircle2, Plus, X, FileText, Camera, Sparkles, ChevronLeft
+    CheckCircle2, Plus, X, FileText, Camera, Sparkles, ChevronLeft, AlertCircle
 } from "lucide-react";
 import moment from "moment";
 
@@ -21,10 +21,29 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
      const [newActivity, setNewActivity] = useState('');
      const [newNotes, setNewNotes] = useState('');
      const [isSaving, setIsSaving] = useState(false);
+     const [dismissingAlert, setDismissingAlert] = useState(false);
 
     useEffect(() => {
         base44.auth.me().then(setCurrentUser).catch(() => {});
     }, []);
+
+    const handleDismissEmergencyAlert = async () => {
+        if (dismissingAlert) return;
+        setDismissingAlert(true);
+        try {
+            const dismissUntil = new Date();
+            dismissUntil.setHours(dismissUntil.getHours() + 24);
+
+            await onUpdateVisit({
+                ...visit,
+                emergency_alert_dismissed_until: dismissUntil.toISOString()
+            });
+        } finally {
+            setDismissingAlert(false);
+        }
+    };
+
+    const canDismissAlert = currentUser && ['admin', 'manager', 'super_admin'].includes(currentUser.role);
     const [locationInput, setLocationInput] = useState(visit?.location || '');
     const [addingPlayCamp, setAddingPlayCamp] = useState(false);
     const [playCampDuration, setPlayCampDuration] = useState('full_day');
@@ -372,7 +391,12 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                             </div>
                         )}
                         <div>
-                            <h2 className="font-bold text-lg text-stone-800">{pet.name}</h2>
+                            <div className="flex items-center gap-2">
+                                <h2 className="font-bold text-lg text-stone-800">{pet.name}</h2>
+                                {visit.emergency_alert_active && (
+                                    <AlertCircle className="w-5 h-5 text-yellow-600" title={`Emergency: Missing ${visit.emergency_alert_type}`} />
+                                )}
+                            </div>
                             <p className="text-sm text-stone-500">
                                 Checked in {moment(visit.check_in_time).format('h:mm A')}
                             </p>
@@ -386,6 +410,35 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
 
             <ScrollArea className="flex-1 overflow-y-auto">
                 <div className="p-4 space-y-4 pb-6">
+                    {/* Emergency Alert */}
+                    {visit.emergency_alert_active && (
+                        <Card className="border-2 border-yellow-400 bg-yellow-50">
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm flex items-center gap-2 text-yellow-900">
+                                    <AlertCircle className="w-5 h-5 text-yellow-600" />
+                                    EMERGENCY ALERT
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                                <p className="text-sm text-yellow-800">
+                                    {visit.emergency_alert_type === 'both' 
+                                        ? 'No feces or urine observed in the last 48 hours'
+                                        : visit.emergency_alert_type === 'feces'
+                                        ? 'No feces observed in the last 48 hours'
+                                        : 'No urine observed in the last 48 hours'}
+                                </p>
+                                {canDismissAlert && (
+                                    <Button
+                                        onClick={handleDismissEmergencyAlert}
+                                        disabled={dismissingAlert}
+                                        className="w-full rounded-xl bg-yellow-600 hover:bg-yellow-700"
+                                    >
+                                        {dismissingAlert ? 'Dismissing...' : 'Not an Emergency (24h)'}
+                                    </Button>
+                                )}
+                            </CardContent>
+                        </Card>
+                    )}
                     {/* Feeding & Medication Instructions */}
                     {(pet.feeding_instructions || pet.medications?.length > 0) && (
                         <Card className="border-0 shadow-sm rounded-2xl bg-blue-50">
