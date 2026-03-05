@@ -110,8 +110,8 @@ export default function MonitorView() {
         <div className="min-h-screen bg-stone-900 p-6">
             {/* Header */}
             <div className="text-center mb-8">
-                <h1 className="text-5xl font-bold text-[#82bb32] mb-2">FLOOF Monitor</h1>
-                <p className="text-stone-400 text-xl">
+                <h1 className="text-4xl font-bold text-white mb-1">Kennel Monitor</h1>
+                <p className="text-stone-400 text-lg">
                     {checkedInVisits.length} pets currently checked in
                 </p>
             </div>
