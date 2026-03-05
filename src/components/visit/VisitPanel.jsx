@@ -226,6 +226,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
              date: today
          }];
 
+         // Automatically save play session completion
          onUpdateVisit({ ...visit, play_sessions: updatedSessions, care_log: careLog });
      };
 
