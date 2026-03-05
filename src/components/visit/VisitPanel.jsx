@@ -49,6 +49,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
 
           let tasks = visit.scheduled_tasks?.filter(task => {
               if (task.date) {
+                  // If task has an explicit date, only show if it matches
                   return task.date === date;
               }
               if (task.is_template) {
@@ -61,10 +62,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                           const completedToday = task.completed && task.completed_date === date;
                           return !completedToday;
                       }
-                      if (isCheckInDay) {
-                          const taskTime = moment(task.time, 'h:mm A');
-                          return taskTime.isAfter(checkInTime);
-                      }
+                      // Always show template tasks on or after their start date
                       return true;
                   }
               }
