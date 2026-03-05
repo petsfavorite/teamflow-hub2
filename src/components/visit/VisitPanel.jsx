@@ -163,8 +163,9 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
             date: today,
             activity: updatedTasks[taskIndex].type,
             notes: updatedTasks[taskIndex].medication_name 
-                ? `Gave ${updatedTasks[taskIndex].medication_name} (${initials})` 
-                : `Completed by ${initials}`
+                ? `Gave ${updatedTasks[taskIndex].medication_name}` 
+                : '',
+            staff: initials
         }];
         
         // If this is a "Collect Feces" task, mark it as collected so it doesn't carry over
