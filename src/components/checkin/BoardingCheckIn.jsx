@@ -42,9 +42,11 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
         const generateTasks = async () => {
             setLoadingTasks(true);
             const checkInDate = moment().format('YYYY-MM-DD');
+            const checkInTime = new Date().toISOString();
             const response = await base44.functions.invoke('generateBoardingTasks', {
                 species: pet.species,
-                checkInDate: checkInDate
+                checkInDate: checkInDate,
+                checkInTime: checkInTime
             });
             setGeneratedTasks(response.data.tasks);
             setLoadingTasks(false);
