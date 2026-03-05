@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
                 {
                     type: 'Lunch Walk',
                     time: '1:00 PM',
-                    date: taskDate('1:00 PM'),
+                    date: getTaskDate('1:00 PM'),
                     is_template: true,
                     completed: false,
                     completed_at: null,
