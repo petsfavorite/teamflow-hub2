@@ -82,6 +82,15 @@ const FEATURES = [
       { id: 31, label: "VetRadar / EasyVet Links", desc: "Quick links or integrations with vet practice management software" },
     ]
   },
+  {
+    category: "Pet Health Monitoring",
+    items: [
+      { id: 32, label: "Overdue Tasks Alert", desc: "Alert on whiteboard/visit panel when scheduled tasks are overdue" },
+      { id: 33, label: "Appetite Tracking", desc: "Alert when checked-in pet hasn't eaten or is showing lack of appetite" },
+      { id: 34, label: "Urine Output Alert", desc: "Alert when checked-in pet hasn't urinated or is showing lack of urine output" },
+      { id: 35, label: "Feces Output Alert", desc: "Alert when checked-in pet hasn't defecated or is showing lack of feces output" },
+    ]
+  },
 ];
 
 export default function DevChecklist() {
