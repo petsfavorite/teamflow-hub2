@@ -28,6 +28,7 @@ const mainNavItems = [
     { name: 'Analytics', icon: BarChart2, label: 'Analytics' },
     { name: 'SOPAssistant', icon: MessageSquare, label: 'SOP AI' },
     { name: 'ExternalLinks', icon: LinkIcon, label: 'Links' },
+    { name: 'UserManagement', icon: Users, label: 'Settings' },
 ];
 
 export default function Layout({ children }) {
