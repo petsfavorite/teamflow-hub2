@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Dog, LayoutGrid, Users, LogIn, Settings, Menu, X } from 'lucide-react';
+import { Dog, LayoutGrid, Users, LogIn, Settings, Menu, X, ArrowLeft } from 'lucide-react';
 
 export default function Layout({ children }) {
     const location = useLocation();
