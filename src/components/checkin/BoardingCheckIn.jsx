@@ -73,12 +73,13 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
     const checkOutMoment = moment(checkoutDate);
     let tasks = [];
     
-    // Expand generated tasks to each day, starting from their initial date
+    // Expand generated tasks to each day
+    // Each task starts on its designated date and repeats daily through checkout
     let currentDate = moment(checkInDate);
     while (currentDate.format('YYYY-MM-DD') <= checkoutDate) {
         generatedTasks.forEach(task => {
-            // For tasks that have a specific start date (walked tasks), only add them from that date forward
             const taskStartDate = moment(task.date);
+            // Only add task if we're on or after its start date
             if (currentDate.isSameOrAfter(taskStartDate)) {
                 tasks.push({
                     ...task,
