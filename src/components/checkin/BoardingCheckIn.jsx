@@ -145,9 +145,9 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
         }
     }
         
-    // Play sessions if added
+    // Play sessions if added (full day = 4 sessions)
     const playSessions = addPlayCamp ? 
-        Array.from({ length: playCampDuration === 'half_day' ? 2 : 4 }, (_, i) => ({
+        Array.from({ length: 4 }, (_, i) => ({
             session_number: i + 1,
             completed: false,
             completed_at: null
