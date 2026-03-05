@@ -84,11 +84,13 @@ export default function MonitorView() {
                     {petsWithVisits.map(({ pet, visit }) => {
                          const isCat = pet.species === 'Cat';
                          const needsFecesCollection = hasCollectFeces(visit);
+                         const hasEmergencyAlert = visit.emergency_alert_active;
 
                         return (
                             <div 
                                 key={visit.id}
                                 className={`rounded-lg p-3 transition-all ${
+                                    hasEmergencyAlert ? 'bg-yellow-300 border-2 border-yellow-500' :
                                     needsFecesCollection ? 'bg-stone-300 border-2 border-amber-900' : 
                                     'bg-white border-2 border-stone-300'
                                 }`}
