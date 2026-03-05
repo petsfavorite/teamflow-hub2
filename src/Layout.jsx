@@ -34,6 +34,7 @@ const mainNavItems = [
 
 const adminNavItems = [
     { name: 'UserManagement', icon: Users, label: 'Users' },
+    { name: 'SOPsUnderConstruction', icon: BookOpen, label: 'SOPs Under Construction' },
     { name: 'ChecklistHistory', icon: History, label: 'Checklist History' },
     { name: 'Analytics', icon: BarChart2, label: 'Analytics' },
 ];
