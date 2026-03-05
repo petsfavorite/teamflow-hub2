@@ -263,7 +263,7 @@ export default function ExternalLinks() {
       {/* PDF Upload Dialog */}
       <Dialog open={showPDFForm} onOpenChange={resetPDFForm}>
         <DialogContent>
-          <DialogHeader><DialogTitle>{editingPDF ? 'Edit PDF' : 'Add PDF'}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editingPDF ? 'Edit MSDS Sheet' : 'Add MSDS Sheet'}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Title</Label>
