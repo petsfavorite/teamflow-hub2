@@ -136,9 +136,9 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
             return;
         }
         
-        // Ask for initials
-        const initials = prompt('Enter your initials:');
-        if (!initials) return;
+        // Derive initials from current user's name
+        const name = currentUser?.full_name || '';
+        const initials = name.split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase() || '?';
         
         // Ask for notes if this is "Observed feces"
         let fecesNotes = '';
@@ -152,7 +152,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
             completed: true,
             completed_at: moment().format('h:mm A'),
             completed_iso: new Date().toISOString(),
-            completed_by: initials.toUpperCase(),
+            completed_by: initials,
             notes: fecesNotes || updatedTasks[taskIndex].notes
         };
         
@@ -160,10 +160,10 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
             time: moment().format('h:mm A'),
             activity: updatedTasks[taskIndex].type,
             notes: updatedTasks[taskIndex].medication_name 
-                ? `Gave ${updatedTasks[taskIndex].medication_name} (${initials.toUpperCase()})` 
+                ? `Gave ${updatedTasks[taskIndex].medication_name} (${initials})` 
                 : fecesNotes 
-                ? `${fecesNotes} (${initials.toUpperCase()})` 
-                : `Completed (${initials.toUpperCase()})`
+                ? `${fecesNotes} (${initials})` 
+                : `Completed (${initials})`
         }];
         
         // If this is a "Collect Feces" task, mark it as collected so it doesn't carry over
