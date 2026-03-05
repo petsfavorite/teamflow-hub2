@@ -144,6 +144,9 @@ Deno.serve(async (req) => {
                     last_completed_iso: null
                 });
             }
+
+            // Add remaining non-timed tasks
+            tasks.push(
                 {
                     type: 'Refresh Water',
                     time: '',
