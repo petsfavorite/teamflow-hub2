@@ -159,8 +159,8 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
         feeding_frequency: feedingFrequency,
         scheduled_tasks: tasks,
         play_sessions: playSessions,
-        play_camp_duration: addPlayCamp ? playCampDuration : null,
-        what_was_brought: whatWasBrought,
+         play_camp_duration: addPlayCamp ? 'full_day' : null,
+         what_was_brought: whatWasBrought,
         visit_medications: visitMedications
     });
     };
