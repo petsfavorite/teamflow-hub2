@@ -426,8 +426,8 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                             </CardHeader>
                             <CardContent className="space-y-2">
                                 {tasksForDate.map((task, idx) => {
-                                        const taskTime = moment(task.time, 'h:mm A');
-                                        const isOverdue = viewDate === moment().format('YYYY-MM-DD') && !task.completed && moment().isAfter(taskTime);
+                                         const taskTime = task.time ? moment(task.time, 'h:mm A') : moment('7:30 PM', 'h:mm A');
+                                         const isOverdue = viewDate === moment().format('YYYY-MM-DD') && !task.completed && moment().isAfter(taskTime);
                                         const actualIdx = visit.scheduled_tasks?.findIndex(t => t === task);
                                         const recurrenceLabel = task.recurrence_type && task.recurrence_type !== 'none' 
                                             ? `(repeats every ${task.recurrence_interval} ${task.recurrence_type})` 
