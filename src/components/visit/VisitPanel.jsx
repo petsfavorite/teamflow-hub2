@@ -194,7 +194,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
          const updatedSessions = [...visit.play_sessions];
          const today = moment().format('YYYY-MM-DD');
          const session = updatedSessions[sessionIndex];
-         
+
          // If already completed today, toggle undo
          if (session.completed && session.completed_date === today) {
              updatedSessions[sessionIndex] = {
@@ -227,7 +227,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
              });
          }
 
-         // Automatically save play session completion
+         // Save play session completion
          onUpdateVisit({ ...visit, play_sessions: updatedSessions, care_log: careLog });
      };
 
