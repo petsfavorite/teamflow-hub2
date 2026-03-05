@@ -118,7 +118,7 @@ export default function SOPs() {
                 <Card className="border-0 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 h-full cursor-pointer">
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between mb-3">
-                      <StatusBadge status={sop.status} />
+                      {sop.status !== 'published' && <StatusBadge status={sop.status} />}
                       {sop.version && <span className="text-xs text-slate-400">v{sop.version}</span>}
                     </div>
                     <h3 className="font-semibold text-slate-900 mb-2 line-clamp-2">{sop.title}</h3>

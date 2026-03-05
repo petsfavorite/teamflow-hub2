@@ -68,12 +68,12 @@ import SOPDetail from './pages/SOPDetail';
 import SOPEditor from './pages/SOPEditor';
 import SOPVersions from './pages/SOPVersions';
 import SOPs from './pages/SOPs';
+import SOPsUnderConstruction from './pages/SOPsUnderConstruction';
 import Settings from './pages/Settings';
 import Tasks from './pages/Tasks';
 import Teams from './pages/Teams';
 import UserManagement from './pages/UserManagement';
 import Whiteboard from './pages/Whiteboard';
-import SOPsUnderConstruction from './pages/SOPsUnderConstruction';
 import __Layout from './Layout.jsx';
 
 
@@ -99,12 +99,12 @@ export const PAGES = {
     "SOPEditor": SOPEditor,
     "SOPVersions": SOPVersions,
     "SOPs": SOPs,
+    "SOPsUnderConstruction": SOPsUnderConstruction,
     "Settings": Settings,
     "Tasks": Tasks,
     "Teams": Teams,
     "UserManagement": UserManagement,
     "Whiteboard": Whiteboard,
-    "SOPsUnderConstruction": SOPsUnderConstruction,
 }
 
 export const pagesConfig = {
