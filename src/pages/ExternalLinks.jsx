@@ -26,6 +26,7 @@ export default function ExternalLinks() {
   const [editingPDF, setEditingPDF] = useState(null);
   const [pdfForm, setPdfForm] = useState({ title: '', description: '', category: '', file_url: '' });
   const [uploading, setUploading] = useState(false);
+  const [pdfSearch, setPdfSearch] = useState('');
   const fileInputRef = useRef(null);
 
   const { data: links = [], isLoading } = useQuery({
