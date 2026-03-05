@@ -13,7 +13,6 @@ import RoleBadge from './components/shared/RoleBadge';
 
 const navItems = [
   { label: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard', roles: ['admin', 'manager', 'user', 'super_admin'] },
-  { label: 'Kennel Dashboard', icon: LayoutDashboard, page: 'KennelDashboard', roles: ['admin', 'manager', 'user', 'super_admin'] },
   { label: '🚨 Emergency SOPs', icon: Zap, page: 'EmergencySOPs', roles: ['admin', 'manager', 'user', 'super_admin'] },
   { label: 'SOPs', icon: BookOpen, page: 'SOPs', roles: ['admin', 'manager', 'user', 'super_admin'] },
   { label: 'Checklists', icon: CheckSquare, page: 'Checklists', roles: ['admin', 'manager', 'user', 'super_admin'] },

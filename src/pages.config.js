@@ -49,7 +49,6 @@
  */
 import Analytics from './pages/Analytics';
 import Assets from './pages/Assets';
-import ChecklistAssignmentEditor from './pages/ChecklistAssignmentEditor';
 import ChecklistEditor from './pages/ChecklistEditor';
 import ChecklistHistory from './pages/ChecklistHistory';
 import Checklists from './pages/Checklists';
@@ -68,14 +67,13 @@ import Settings from './pages/Settings';
 import Tasks from './pages/Tasks';
 import Teams from './pages/Teams';
 import UserManagement from './pages/UserManagement';
-import KennelDashboard from './pages/KennelDashboard';
+import ChecklistAssignmentEditor from './pages/ChecklistAssignmentEditor';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
     "Analytics": Analytics,
     "Assets": Assets,
-    "ChecklistAssignmentEditor": ChecklistAssignmentEditor,
     "ChecklistEditor": ChecklistEditor,
     "ChecklistHistory": ChecklistHistory,
     "Checklists": Checklists,
@@ -94,7 +92,7 @@ export const PAGES = {
     "Tasks": Tasks,
     "Teams": Teams,
     "UserManagement": UserManagement,
-    "KennelDashboard": KennelDashboard,
+    "ChecklistAssignmentEditor": ChecklistAssignmentEditor,
 }
 
 export const pagesConfig = {
