@@ -263,13 +263,37 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
                     </div>
 
                     <div className="bg-blue-50 rounded-xl p-4 text-sm text-blue-700">
-                        <p className="font-medium mb-1">Automatic Daily Schedule:</p>
-                        <ul className="space-y-1 text-xs">
-                            {pet.species === 'Dog' && <li>• Potty breaks: 8 AM, 10 AM, 4 PM, 6 PM</li>}
-                            {pet.species === 'Cat' && <li>• Litter box: 9 AM, 6 PM</li>}
-                            <li>• Feeding: {feedingFrequency}</li>
-                            {pet.medications?.length > 0 && <li>• Medications as scheduled</li>}
-                        </ul>
+                        <p className="font-medium mb-1">Automatic Daily Schedule (repeat daily):</p>
+                        {loadingTasks ? (
+                            <div className="flex items-center gap-2 text-xs">
+                                <RefreshCw className="w-3 h-3 animate-spin" />
+                                Loading tasks...
+                            </div>
+                        ) : (
+                            <ul className="space-y-1 text-xs">
+                                {pet.species === 'Dog' && (
+                                    <>
+                                        <li>• AM Walk due by 8:30 AM</li>
+                                        <li>• Lunch Walk due by 1:00 PM</li>
+                                        <li>• Bedtime Walk due by 7:30 PM</li>
+                                        <li>• Refresh Water (daily, no set time)</li>
+                                        <li>• Feces Observed (daily, no set time)</li>
+                                    </>
+                                )}
+                                {pet.species === 'Cat' && (
+                                    <>
+                                        <li>• Check Litterbox due by 9:00 AM</li>
+                                        <li>• Check Litterbox due by 7:30 PM</li>
+                                        <li>• Clean Beds and Kennel (daily, no set time)</li>
+                                        <li>• Refresh Water (daily, no set time)</li>
+                                        <li>• Urine Observed (daily, no set time)</li>
+                                        <li>• Feces Observed (daily, no set time)</li>
+                                    </>
+                                )}
+                                <li>• Feeding: {feedingFrequency}</li>
+                                {pet.medications?.length > 0 && <li>• Medications as scheduled</li>}
+                            </ul>
+                        )}
                     </div>
                 </CardContent>
             </Card>
