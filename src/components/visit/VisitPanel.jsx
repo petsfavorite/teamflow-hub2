@@ -40,72 +40,99 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
     const isPlayCamp = visit.visit_type === 'play_camp';
     
     // Get tasks for the current viewing date
-    const getTasksForDate = (date) => {
-        const isCheckInDay = moment(visit.check_in_date).format('YYYY-MM-DD') === date;
-        const checkInTime = moment(visit.check_in_time);
-        
-        // Check if there's an uncompleted "Collect Feces" from yesterday
-        const yesterday = moment(date).subtract(1, 'day').format('YYYY-MM-DD');
-        const yesterdayTasks = visit.scheduled_tasks?.filter(task => {
-            if (task.type !== 'Collect Feces') return false;
-            if (task.date) return task.date === yesterday;
-            if (task.is_template) {
-                const visitStart = moment(visit.check_in_date);
-                const visitEnd = visit.scheduled_checkout_date ? moment(visit.scheduled_checkout_date) : moment().add(30, 'days');
-                const yesterdayDate = moment(yesterday);
-                return yesterdayDate.isBetween(visitStart, visitEnd, 'day', '[]');
-            }
-            return false;
-        }) || [];
-        
-        const hasUncompletedFecesFromYesterday = yesterdayTasks.some(task => !task.completed || !task.collected);
-        
-        let tasks = visit.scheduled_tasks?.filter(task => {
-            // Date-specific tasks
-            if (task.date) {
-                return task.date === date;
-            }
-            // Template tasks appear every day the pet is staying
-            if (task.is_template) {
-                const visitStart = moment(visit.check_in_date);
-                const visitEnd = visit.scheduled_checkout_date ? moment(visit.scheduled_checkout_date) : moment().add(30, 'days');
-                const currentDate = moment(date);
-                
-                if (currentDate.isBetween(visitStart, visitEnd, 'day', '[]')) {
-                    // Daily observation tasks: only show if not yet completed today
-                    if (task.is_daily_observation) {
-                        const completedToday = task.completed && task.completed_date === date;
-                        return !completedToday;
-                    }
-                    // On check-in day, only show tasks after check-in time
-                    if (isCheckInDay) {
-                        const taskTime = moment(task.time, 'h:mm A');
-                        return taskTime.isAfter(checkInTime);
-                    }
-                    return true;
-                }
-            }
-            return false;
-        }) || [];
-        
-        // Add rolled-over "Collect Feces" from yesterday if needed
-        if (hasUncompletedFecesFromYesterday && date === moment().format('YYYY-MM-DD')) {
-            const alreadyHasCollectFeces = tasks.some(t => t.type === 'Collect Feces');
-            if (!alreadyHasCollectFeces) {
-                tasks.push({
-                    type: 'Collect Feces',
-                    time: '',
-                    is_template: true,
-                    completed: false,
-                    completed_at: null,
-                    collected: false,
-                    rolled_over: true
-                });
-            }
-        }
-        
-        return tasks;
-    };
+     const getTasksForDate = (date) => {
+         const isCheckInDay = moment(visit.check_in_date).format('YYYY-MM-DD') === date;
+         const checkInTime = moment(visit.check_in_time);
+
+         // Don't show "Collect Feces" if already collected during stay
+         if (visit.fecal_collected) {
+             let tasks = visit.scheduled_tasks?.filter(task => {
+                 // Filter out "Collect Feces"
+                 if (task.type === 'Collect Feces') return false;
+
+                 if (task.date) {
+                     return task.date === date;
+                 }
+                 if (task.is_template) {
+                     const visitStart = moment(visit.check_in_date);
+                     const visitEnd = visit.scheduled_checkout_date ? moment(visit.scheduled_checkout_date) : moment().add(30, 'days');
+                     const currentDate = moment(date);
+
+                     if (currentDate.isBetween(visitStart, visitEnd, 'day', '[]')) {
+                         if (task.is_daily_observation) {
+                             const completedToday = task.completed && task.completed_date === date;
+                             return !completedToday;
+                         }
+                         if (isCheckInDay) {
+                             const taskTime = moment(task.time, 'h:mm A');
+                             return taskTime.isAfter(checkInTime);
+                         }
+                         return true;
+                     }
+                 }
+                 return false;
+             }) || [];
+             return tasks;
+         }
+
+         // Check if there's an uncompleted "Collect Feces" from yesterday
+         const yesterday = moment(date).subtract(1, 'day').format('YYYY-MM-DD');
+         const yesterdayTasks = visit.scheduled_tasks?.filter(task => {
+             if (task.type !== 'Collect Feces') return false;
+             if (task.date) return task.date === yesterday;
+             if (task.is_template) {
+                 const visitStart = moment(visit.check_in_date);
+                 const visitEnd = visit.scheduled_checkout_date ? moment(visit.scheduled_checkout_date) : moment().add(30, 'days');
+                 const yesterdayDate = moment(yesterday);
+                 return yesterdayDate.isBetween(visitStart, visitEnd, 'day', '[]');
+             }
+             return false;
+         }) || [];
+
+         const hasUncompletedFecesFromYesterday = yesterdayTasks.some(task => !task.completed || !task.collected);
+
+         let tasks = visit.scheduled_tasks?.filter(task => {
+             if (task.date) {
+                 return task.date === date;
+             }
+             if (task.is_template) {
+                 const visitStart = moment(visit.check_in_date);
+                 const visitEnd = visit.scheduled_checkout_date ? moment(visit.scheduled_checkout_date) : moment().add(30, 'days');
+                 const currentDate = moment(date);
+
+                 if (currentDate.isBetween(visitStart, visitEnd, 'day', '[]')) {
+                     if (task.is_daily_observation) {
+                         const completedToday = task.completed && task.completed_date === date;
+                         return !completedToday;
+                     }
+                     if (isCheckInDay) {
+                         const taskTime = moment(task.time, 'h:mm A');
+                         return taskTime.isAfter(checkInTime);
+                     }
+                     return true;
+                 }
+             }
+             return false;
+         }) || [];
+
+         // Add rolled-over "Collect Feces" from yesterday if needed
+         if (hasUncompletedFecesFromYesterday && date === moment().format('YYYY-MM-DD')) {
+             const alreadyHasCollectFeces = tasks.some(t => t.type === 'Collect Feces');
+             if (!alreadyHasCollectFeces) {
+                 tasks.push({
+                     type: 'Collect Feces',
+                     time: '',
+                     is_template: true,
+                     completed: false,
+                     completed_at: null,
+                     collected: false,
+                     rolled_over: true
+                 });
+             }
+         }
+
+         return tasks;
+     };
     
     const tasksForDate = getTasksForDate(viewDate).sort((a, b) => {
         // Tasks without time come first
