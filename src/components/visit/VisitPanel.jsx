@@ -279,28 +279,63 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
     };
     
     const handleAddTask = () => {
-        if (!newTaskType) return;
-        
-        const newTask = {
-            type: newTaskType,
-            time: newTaskTime,
-            date: newTaskDate,
-            is_template: false,
-            completed: false,
-            completed_at: null,
-            notes: newTaskNotes,
-            collected: false
-        };
-        
-        const updatedTasks = [...(visit.scheduled_tasks || []), newTask];
-        onUpdateVisit({ ...visit, scheduled_tasks: updatedTasks });
-        
-        setNewTaskType('');
-        setNewTaskTime('');
-        setNewTaskNotes('');
-        setNewTaskDate(viewDate);
-        setAddingTask(false);
-    };
+         if (!newTaskType) return;
+
+         const newTask = {
+             type: newTaskType,
+             time: newTaskTime,
+             date: newTaskDate,
+             is_template: false,
+             completed: false,
+             completed_at: null,
+             notes: newTaskNotes,
+             collected: false,
+             recurrence_type: recurrenceType,
+             recurrence_interval: recurrenceType !== 'none' ? recurrenceInterval : null,
+             last_completed_iso: null
+         };
+
+         if (editingTaskIdx !== null) {
+             const updatedTasks = [...visit.scheduled_tasks];
+             updatedTasks[editingTaskIdx] = { ...updatedTasks[editingTaskIdx], ...newTask };
+             onUpdateVisit({ ...visit, scheduled_tasks: updatedTasks });
+             setEditingTaskIdx(null);
+         } else {
+             const updatedTasks = [...(visit.scheduled_tasks || []), newTask];
+             onUpdateVisit({ ...visit, scheduled_tasks: updatedTasks });
+         }
+
+         setNewTaskType('');
+         setNewTaskTime('');
+         setNewTaskNotes('');
+         setNewTaskDate(viewDate);
+         setRecurrenceType('none');
+         setRecurrenceInterval(1);
+         setAddingTask(false);
+     };
+
+     const handleEditTask = (idx) => {
+         const task = visit.scheduled_tasks[idx];
+         setEditingTaskIdx(idx);
+         setNewTaskType(task.type);
+         setNewTaskTime(task.time);
+         setNewTaskNotes(task.notes || '');
+         setNewTaskDate(task.date);
+         setRecurrenceType(task.recurrence_type || 'none');
+         setRecurrenceInterval(task.recurrence_interval || 1);
+         setAddingTask(true);
+     };
+
+     const handleCancelEdit = () => {
+         setEditingTaskIdx(null);
+         setNewTaskType('');
+         setNewTaskTime('');
+         setNewTaskNotes('');
+         setNewTaskDate(viewDate);
+         setRecurrenceType('none');
+         setRecurrenceInterval(1);
+         setAddingTask(false);
+     };
 
     return (
         <>
