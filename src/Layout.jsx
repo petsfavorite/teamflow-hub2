@@ -134,7 +134,7 @@ export default function Layout({ children }) {
                             </>
                         ) : (
                             // Collapsed: show icon only for admin items
-                            adminNavItems.map((item) => (
+                            adminNavItems.filter(item => item.name !== 'DevChecklist' || isSuperAdmin).map((item) => (
                                 <Link
                                     key={item.name}
                                     to={createPageUrl(item.name)}
