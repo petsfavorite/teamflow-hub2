@@ -228,7 +228,7 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
                                  onCheckedChange={setAddPlayCamp}
                              />
                              <Label htmlFor="playcamp" className="cursor-pointer">
-                                 Add Full Day Play Camp? (4 sessions)
+                                 Add Day Camp
                              </Label>
                          </div>
                      </div>
