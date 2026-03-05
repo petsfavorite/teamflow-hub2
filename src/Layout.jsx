@@ -30,6 +30,7 @@ const mainNavItems = [
     { name: 'Assets', icon: Package, label: 'Assets' },
     { name: 'SOPAssistant', icon: MessageSquare, label: 'SOP AI' },
     { name: 'ExternalLinks', icon: LinkIcon, label: 'Links' },
+    { name: 'UserManagement', icon: Settings, label: 'Settings' },
 ];
 
 const adminNavItems = [
