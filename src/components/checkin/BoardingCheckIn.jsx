@@ -100,39 +100,42 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
         completed_at: null 
     });
 
-    // Feeding tasks - ALL added as templates
+    // Feeding tasks - expand across all days
     const feedingCheckInHour = moment().hour();
     const feedingCheckInMinute = moment().minute();
 
-    const addFeedingTask = (type, hour, minute) => {
+    const addFeedingTasksDaily = (type, hour, minute) => {
         const taskTime = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')} ${hour >= 12 ? 'PM' : 'AM'}`;
         const startDate = feedingCheckInHour < hour || (feedingCheckInHour === hour && feedingCheckInMinute < minute) 
             ? checkInDate 
             : moment(checkInDate).add(1, 'day').format('YYYY-MM-DD');
         
-        tasks.push({ 
-            type, 
-            time: taskTime, 
-            date: startDate, 
-            is_template: true, 
-            completed: false, 
-            completed_at: null, 
-            recurrence_type: 'days', 
-            recurrence_interval: 1 
-        });
+        // Expand across all days from start date to checkout
+        let currentDate = moment(startDate);
+        while (currentDate.format('YYYY-MM-DD') <= checkoutDate) {
+            tasks.push({ 
+                type, 
+                time: taskTime, 
+                date: currentDate.format('YYYY-MM-DD'), 
+                is_template: true, 
+                completed: false, 
+                completed_at: null
+            });
+            currentDate.add(1, 'day');
+        }
     };
 
     if (feedingFrequency === 'Just Breakfast') {
-        addFeedingTask('Breakfast', 9, 0);
+        addFeedingTasksDaily('Breakfast', 9, 0);
     } else if (feedingFrequency === 'Just Dinner') {
-        addFeedingTask('Dinner', 18, 0);
+        addFeedingTasksDaily('Dinner', 18, 0);
     } else if (feedingFrequency === 'Two Meals') {
-        addFeedingTask('Breakfast', 9, 0);
-        addFeedingTask('Dinner', 18, 0);
+        addFeedingTasksDaily('Breakfast', 9, 0);
+        addFeedingTasksDaily('Dinner', 18, 0);
     } else if (feedingFrequency === 'Three Meals') {
-        addFeedingTask('Breakfast', 9, 0);
-        addFeedingTask('Lunch', 12, 0);
-        addFeedingTask('Dinner', 18, 0);
+        addFeedingTasksDaily('Breakfast', 9, 0);
+        addFeedingTasksDaily('Lunch', 12, 0);
+        addFeedingTasksDaily('Dinner', 18, 0);
     }
     
     // Add daily "Ate" check task
