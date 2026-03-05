@@ -218,7 +218,9 @@ export default function ExternalLinks() {
             {[1,2,3].map(i => <Card key={i} className="border-0 shadow-sm animate-pulse"><CardContent className="p-5"><div className="h-14 bg-slate-100 rounded" /></CardContent></Card>)}
           </div>
         ) : pdfs.length === 0 ? (
-          <EmptyState icon={FileText} title="No PDFs yet" description="Upload documents for quick reference" />
+          <EmptyState icon={FileText} title="No MSDS sheets yet" description="Upload safety data sheets for quick reference" />
+        ) : filteredPDFs.length === 0 ? (
+          <EmptyState icon={Search} title="No results found" description={`No MSDS sheets match "${pdfSearch}"`} />
         ) : (
           <div className="space-y-6">
             {groupedPDFs.map(group => (
