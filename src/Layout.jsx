@@ -5,7 +5,7 @@ import {
     Dog, LayoutGrid, Users, LogIn, Settings, Menu, X,
     LayoutDashboard, BookOpen, CheckSquare, ClipboardList, Wrench,
     AlertTriangle, BarChart2, MessageSquare, Link as LinkIcon, Package, PawPrint,
-    ChevronDown, ChevronRight, ShieldCheck, History
+    ChevronDown, ChevronRight, ShieldCheck, History, Upload
 } from 'lucide-react';
 import { useCurrentUser } from './components/hooks/useCurrentUser';
 
