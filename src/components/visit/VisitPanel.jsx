@@ -34,6 +34,9 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
     const viewDate = selectedDate || moment().format('YYYY-MM-DD');
     const [newTaskDate, setNewTaskDate] = useState(viewDate);
     const [showPrelimReport, setShowPrelimReport] = useState(false);
+    const [editingTaskIdx, setEditingTaskIdx] = useState(null);
+    const [recurrenceType, setRecurrenceType] = useState('none');
+    const [recurrenceInterval, setRecurrenceInterval] = useState(1);
     const isBoarding = visit.visit_type === 'boarding';
 
     const isCat = pet.species === 'Cat';
