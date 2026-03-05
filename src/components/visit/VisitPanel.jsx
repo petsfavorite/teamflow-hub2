@@ -641,7 +641,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
 
                     {/* Ate Meal Notes */}
                     {(() => {
-                        const ateMealTasks = filteredTasks.filter(t => t.type === 'Ate Meal');
+                        const ateMealTasks = tasksForDate.filter(t => t.type === 'Ate Meal');
                         return ateMealTasks.length > 0 ? (
                             <Card className="border-0 shadow-sm rounded-2xl">
                                 <CardHeader className="pb-2">
