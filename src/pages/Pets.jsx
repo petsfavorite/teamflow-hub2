@@ -12,10 +12,10 @@ import {
 import { AnimatePresence, motion } from "framer-motion";
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import { useState, useEffect } from 'react';
 
 import PetCard from '@/components/pets/PetCard';
 import PetForm from '@/components/forms/PetForm';
-import { useState, useEffect } from 'react';
 
 export default function Pets() {
     const [searchQuery, setSearchQuery] = useState('');
