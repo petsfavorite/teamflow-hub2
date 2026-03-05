@@ -39,7 +39,27 @@ export default function BoardingWhiteboardCard({ pet, visit, onViewVisit }) {
     // Check if picture needs to be sent
     const needsPicture = pet.daily_picture && !visit.picture_sent;
 
-    const cardColor = hasOverdue ? 'border-rose-400 bg-rose-50' : 'border-stone-200 bg-white';
+    // Yellow alert logic
+    // Dogs: alert if checked in 48+ hrs AND Feces Observed not checked
+    // Cats: alert if checked in 48+ hrs AND (Feces Observed OR Urine Observed not checked)
+    const fortyEightHoursAgo = moment().subtract(48, 'hours');
+    const hasYellowAlert = (() => {
+        if (visit.visit_type !== 'boarding') return false;
+        if (checkInTime.isAfter(fortyEightHoursAgo)) return false;
+
+        const fecesTask = visit.scheduled_tasks?.find(t => t.type === 'Feces Observed' && t.completed);
+        const fecesNotChecked = !fecesTask;
+
+        if (isCat) {
+            const urineTask = visit.scheduled_tasks?.find(t => t.type === 'Urine Observed' && t.completed);
+            const urineNotChecked = !urineTask;
+            return fecesNotChecked || urineNotChecked;
+        }
+
+        return fecesNotChecked;
+    })();
+
+    const cardColor = hasOverdue ? 'border-rose-400 bg-rose-50' : hasYellowAlert ? 'border-yellow-400 bg-yellow-50' : 'border-stone-200 bg-white';
 
     return (
         <motion.div
