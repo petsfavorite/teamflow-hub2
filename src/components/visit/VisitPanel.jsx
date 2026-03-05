@@ -43,70 +43,36 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
     const isPlayCamp = visit.visit_type === 'play_camp';
     
     // Get tasks for the current viewing date
-     const getTasksForDate = (date) => {
-         const isCheckInDay = moment(visit.check_in_date).format('YYYY-MM-DD') === date;
-         const checkInTime = moment(visit.check_in_time);
+      const getTasksForDate = (date) => {
+          const isCheckInDay = moment(visit.check_in_date).format('YYYY-MM-DD') === date;
+          const checkInTime = moment(visit.check_in_time);
 
-         // Don't show "Need Feces" if already completed once
-         const needFecesTask = visit.scheduled_tasks?.find(t => t.type === 'Need Feces');
-         const fecesCompleted = needFecesTask?.completed;
+          let tasks = visit.scheduled_tasks?.filter(task => {
+              if (task.date) {
+                  return task.date === date;
+              }
+              if (task.is_template) {
+                  const visitStart = moment(visit.check_in_date);
+                  const visitEnd = visit.scheduled_checkout_date ? moment(visit.scheduled_checkout_date) : moment().add(30, 'days');
+                  const currentDate = moment(date);
 
-         if (fecesCompleted) {
-             let tasks = visit.scheduled_tasks?.filter(task => {
-                 // Filter out "Need Feces"
-                 if (task.type === 'Need Feces') return false;
+                  if (currentDate.isBetween(visitStart, visitEnd, 'day', '[]')) {
+                      if (task.is_daily_observation) {
+                          const completedToday = task.completed && task.completed_date === date;
+                          return !completedToday;
+                      }
+                      if (isCheckInDay) {
+                          const taskTime = moment(task.time, 'h:mm A');
+                          return taskTime.isAfter(checkInTime);
+                      }
+                      return true;
+                  }
+              }
+              return false;
+          }) || [];
 
-                 if (task.date) {
-                     return task.date === date;
-                 }
-                 if (task.is_template) {
-                     const visitStart = moment(visit.check_in_date);
-                     const visitEnd = visit.scheduled_checkout_date ? moment(visit.scheduled_checkout_date) : moment().add(30, 'days');
-                     const currentDate = moment(date);
-
-                     if (currentDate.isBetween(visitStart, visitEnd, 'day', '[]')) {
-                         if (task.is_daily_observation) {
-                             const completedToday = task.completed && task.completed_date === date;
-                             return !completedToday;
-                         }
-                         if (isCheckInDay) {
-                             const taskTime = moment(task.time, 'h:mm A');
-                             return taskTime.isAfter(checkInTime);
-                         }
-                         return true;
-                     }
-                 }
-                 return false;
-             }) || [];
-             return tasks;
-         }
-
-         let tasks = visit.scheduled_tasks?.filter(task => {
-             if (task.date) {
-                 return task.date === date;
-             }
-             if (task.is_template) {
-                 const visitStart = moment(visit.check_in_date);
-                 const visitEnd = visit.scheduled_checkout_date ? moment(visit.scheduled_checkout_date) : moment().add(30, 'days');
-                 const currentDate = moment(date);
-
-                 if (currentDate.isBetween(visitStart, visitEnd, 'day', '[]')) {
-                     if (task.is_daily_observation) {
-                         const completedToday = task.completed && task.completed_date === date;
-                         return !completedToday;
-                     }
-                     if (isCheckInDay) {
-                         const taskTime = moment(task.time, 'h:mm A');
-                         return taskTime.isAfter(checkInTime);
-                     }
-                     return true;
-                 }
-             }
-             return false;
-         }) || [];
-
-         return tasks;
-     };
+          return tasks;
+      };
     
     const tasksForDate = getTasksForDate(viewDate).sort((a, b) => {
         // Tasks without time come first
