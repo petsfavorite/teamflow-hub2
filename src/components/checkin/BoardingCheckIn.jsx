@@ -11,15 +11,17 @@ import { Calendar, Plus, Trash2, RefreshCw } from "lucide-react";
 import moment from 'moment';
 
 export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
-    const [checkoutDate, setCheckoutDate] = useState('');
-    const [feedingFrequency, setFeedingFrequency] = useState(pet.feeding_frequency || 'Two Meals');
-    const [addPlayCamp, setAddPlayCamp] = useState(false);
-    const [playCampDuration, setPlayCampDuration] = useState('full_day');
-    const [whatWasBrought, setWhatWasBrought] = useState('');
-    const [needFecal, setNeedFecal] = useState(false);
-    const [visitMedications, setVisitMedications] = useState(
-        pet.medications?.length > 0 ? pet.medications.map(m => ({ ...m })) : []
-    );
+     const [checkoutDate, setCheckoutDate] = useState('');
+     const [feedingFrequency, setFeedingFrequency] = useState(pet.feeding_frequency || 'Two Meals');
+     const [addPlayCamp, setAddPlayCamp] = useState(false);
+     const [playCampDuration, setPlayCampDuration] = useState('full_day');
+     const [whatWasBrought, setWhatWasBrought] = useState('');
+     const [needFecal, setNeedFecal] = useState(false);
+     const [visitMedications, setVisitMedications] = useState(
+         pet.medications?.length > 0 ? pet.medications.map(m => ({ ...m })) : []
+     );
+     const [generatedTasks, setGeneratedTasks] = useState([]);
+     const [loadingTasks, setLoadingTasks] = useState(false);
 
     const addMedication = () => {
         setVisitMedications(prev => [...prev, { name: '', dosage: '', frequency: '', instructions: '' }]);
