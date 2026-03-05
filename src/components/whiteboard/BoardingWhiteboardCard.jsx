@@ -160,6 +160,13 @@ export default function BoardingWhiteboardCard({ pet, visit, onViewVisit }) {
                                 ))}
 
                                 {/* Daily Picture */}
+                                {hasUncompletedFeces && (
+                                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border bg-rose-100 border-rose-300 animate-pulse">
+                                        <AlertCircle className="w-3 h-3 text-rose-600" />
+                                        <span className="text-xs font-medium text-rose-700">Need Feces</span>
+                                    </div>
+                                )}
+
                                 {needsPicture && (
                                     <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border bg-blue-50 border-blue-200">
                                         <Camera className="w-3 h-3 text-blue-600" />
