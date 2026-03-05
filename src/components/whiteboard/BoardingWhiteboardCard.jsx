@@ -137,27 +137,31 @@ export default function BoardingWhiteboardCard({ pet, visit, onViewVisit }) {
                                 })}
 
                                 {/* Play Sessions */}
-                                {visit.play_sessions?.map((session, idx) => (
-                                    <div 
-                                        key={`play-${idx}`}
-                                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${
-                                            session.completed 
-                                                ? 'bg-emerald-50 border-emerald-200' 
-                                                : 'bg-purple-50 border-purple-200'
-                                        }`}
-                                    >
-                                        {session.completed ? (
-                                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                        ) : (
-                                            <div className="w-3 h-3 rounded-full border-2 border-purple-400" />
-                                        )}
-                                        <span className={`text-xs font-medium ${
-                                            session.completed ? 'text-emerald-700' : 'text-purple-700'
-                                        }`}>
-                                            Play {session.session_number}
-                                        </span>
-                                    </div>
-                                ))}
+                                {visit.play_sessions?.map((session, idx) => {
+                                    const today = moment().format('YYYY-MM-DD');
+                                    const completedToday = session.completed && session.completed_date === today;
+                                    return (
+                                        <div 
+                                            key={`play-${idx}`}
+                                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${
+                                                completedToday
+                                                    ? 'bg-emerald-50 border-emerald-200' 
+                                                    : 'bg-purple-50 border-purple-200'
+                                            }`}
+                                        >
+                                            {completedToday ? (
+                                                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                            ) : (
+                                                <div className="w-3 h-3 rounded-full border-2 border-purple-400" />
+                                            )}
+                                            <span className={`text-xs font-medium ${
+                                                completedToday ? 'text-emerald-700' : 'text-purple-700'
+                                            }`}>
+                                                Play {session.session_number}
+                                            </span>
+                                        </div>
+                                    );
+                                })}
 
                                 {/* Daily Picture */}
                                 {hasUncompletedFeces && (
