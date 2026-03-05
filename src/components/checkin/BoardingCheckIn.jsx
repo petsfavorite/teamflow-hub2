@@ -345,9 +345,10 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
                             <ul className="space-y-1 text-xs">
                                 {pet.species === 'Dog' && (
                                     <>
-                                        <li>• Morning Walk due by 8:30 AM</li>
-                                        <li>• Lunch Walk due by 1:00 PM</li>
-                                        <li>• Bedtime Walk due by 8:00 PM</li>
+                                        <li>• First Walk due by 7:30 AM</li>
+                                        <li>• After breakfast due by 11:00 AM</li>
+                                        <li>• Afternoon due by 3:00 PM</li>
+                                        <li>• Before bed due by 8:00 PM</li>
                                         <li>• Refresh Water (daily, no set time)</li>
                                         <li>• Feces Observed (daily, no set time)</li>
                                     </>
