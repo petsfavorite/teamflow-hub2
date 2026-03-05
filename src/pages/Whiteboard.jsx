@@ -8,7 +8,6 @@ import { CalendarDays, CalendarRange, Plus, RefreshCw, FileText } from "lucide-r
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import moment from "moment";
-import { useState, useEffect } from 'react';
 
 import DayView from '@/components/whiteboard/DayView';
 import WeekView from '@/components/whiteboard/WeekView';
