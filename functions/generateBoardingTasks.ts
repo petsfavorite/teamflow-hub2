@@ -47,11 +47,6 @@ Deno.serve(async (req) => {
                 checkInDate;
         };
 
-        const shouldSkipFirstDay = (timeStr) => {
-            // Return true if task should NOT appear on check-in day (skip first day if time is before check-in)
-            return isTimedTaskBeforeCheckIn(timeStr);
-        };
-
         if (species === 'Dog') {
             tasks = [
                 {
