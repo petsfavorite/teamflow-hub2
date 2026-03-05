@@ -61,21 +61,15 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
         completed_at: null 
     });
 
-    // Add daily observation tasks (no time - appear first on list)
-    tasks.push({ 
-        type: 'Observed urination', 
-        time: '', 
-        is_template: true, 
-        completed: false, 
-        completed_at: null 
-    });
-    tasks.push({ 
-        type: 'Observed feces', 
-        time: '', 
-        is_template: true, 
-        completed: false, 
-        completed_at: null 
-    });
+    // Daily observation tasks — reset each calendar day
+    if (pet.species === 'Cat') {
+        tasks.push({ type: 'Urine Observed',  time: '', is_template: true, is_daily_observation: true, completed: false, completed_at: null, completed_date: null });
+        tasks.push({ type: 'Feces Observed',  time: '', is_template: true, is_daily_observation: true, completed: false, completed_at: null, completed_date: null });
+        tasks.push({ type: 'Water Refreshed', time: '', is_template: true, is_daily_observation: true, completed: false, completed_at: null, completed_date: null });
+    } else {
+        tasks.push({ type: 'Feces Observed',  time: '', is_template: true, is_daily_observation: true, completed: false, completed_at: null, completed_date: null });
+        tasks.push({ type: 'Water Refreshed', time: '', is_template: true, is_daily_observation: true, completed: false, completed_at: null, completed_date: null });
+    }
         
         // Feeding tasks - ALL added as templates
         if (feedingFrequency === 'Just Breakfast') {
