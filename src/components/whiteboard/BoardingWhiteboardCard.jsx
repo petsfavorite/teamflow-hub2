@@ -29,9 +29,11 @@ export default function BoardingWhiteboardCard({ pet, visit, onViewVisit }) {
         return timeA.diff(timeB);
     });
 
-    // Check if any task is overdue
+    // Check if any task is overdue (only non-template tasks that are explicitly scheduled for today)
     const hasOverdue = sortedTasks.some(task => {
         if (task.completed) return false;
+        // Only consider tasks with explicit dates as potentially overdue
+        if (!task.date) return false;
         const taskTime = moment(task.time, 'h:mm A');
         return now.isAfter(taskTime);
     });
