@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
         };
 
         let tasks = [];
-        const taskDate = (timeStr) => {
+        const getTaskDate = (timeStr) => {
             // If task time is before check-in, schedule for next day
             return isTimedTaskBeforeCheckIn(timeStr) ? 
                 new Date(new Date(checkInDate).getTime() + 86400000).toISOString().split('T')[0] : 
@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
                 {
                     type: 'AM Walk',
                     time: '8:30 AM',
-                    date: taskDate('8:30 AM'),
+                    date: getTaskDate('8:30 AM'),
                     is_template: true,
                     completed: false,
                     completed_at: null,
