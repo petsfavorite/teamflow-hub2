@@ -140,8 +140,8 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
     };
 
     return (
-        <div className="space-y-6">
-            <Card className="border-0 shadow-sm rounded-2xl">
+         <form onSubmit={handleSubmit} className="space-y-6">
+             <Card className="border-0 shadow-sm rounded-2xl">
                 <CardHeader>
                     <CardTitle className="text-lg">Boarding Check-In</CardTitle>
                 </CardHeader>
