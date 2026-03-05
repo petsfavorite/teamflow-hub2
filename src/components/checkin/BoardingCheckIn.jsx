@@ -374,7 +374,7 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
                                         <li>• Feces Observed (daily, no set time)</li>
                                     </>
                                 )}
-                                <li>• Feeding: {feedingFrequency}</li>
+                                <li>• Feeding: {feedingFrequency === 'Just Breakfast' && 'Breakfast at 9 AM'} {feedingFrequency === 'Just Dinner' && 'Dinner at 6 PM'} {feedingFrequency === 'Two Meals' && 'Breakfast at 9 AM & Dinner at 6 PM'} {feedingFrequency === 'Three Meals' && 'Breakfast at 9 AM, Lunch at 12 PM & Dinner at 6 PM'}</li>
                                 {pet.medications?.length > 0 && <li>• Medications as scheduled</li>}
                             </ul>
                         )}
