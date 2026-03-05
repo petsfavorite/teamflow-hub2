@@ -659,19 +659,26 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                                      <Button 
                                                          size="sm"
                                                          onClick={async () => {
-                                                             const updatedSessions = [...visit.play_sessions];
-                                                             updatedSessions[idx] = {
-                                                                 ...updatedSessions[idx],
-                                                                 completed: false,
-                                                                 completed_at: null,
-                                                                 completed_date: null
-                                                             };
-                                                             await onUpdateVisit({ ...visit, play_sessions: updatedSessions });
+                                                             if (isSaving) return;
+                                                             setIsSaving(true);
+                                                             try {
+                                                                 const updatedSessions = [...visit.play_sessions];
+                                                                 updatedSessions[idx] = {
+                                                                     ...updatedSessions[idx],
+                                                                     completed: false,
+                                                                     completed_at: null,
+                                                                     completed_date: null
+                                                                 };
+                                                                 await onUpdateVisit({ ...visit, play_sessions: updatedSessions });
+                                                             } finally {
+                                                                 setIsSaving(false);
+                                                             }
                                                          }}
+                                                         disabled={isSaving}
                                                          variant="outline"
-                                                         className="rounded-xl h-7 text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                                                         className="rounded-xl h-7 text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-50 disabled:opacity-50"
                                                      >
-                                                         Undo
+                                                         {isSaving ? 'Undoing...' : 'Undo'}
                                                      </Button>
                                                  )}
                                              </div>
