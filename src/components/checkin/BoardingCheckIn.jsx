@@ -77,6 +77,10 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
     let currentDate = moment(checkInDate);
     while (currentDate.format('YYYY-MM-DD') <= checkoutDate) {
         generatedTasks.forEach(task => {
+            // Skip tasks marked to skip on first day if we're on check-in day
+            if (task.skip_first_day && currentDate.format('YYYY-MM-DD') === checkInDate) {
+                return;
+            }
             tasks.push({
                 ...task,
                 date: currentDate.format('YYYY-MM-DD'),
