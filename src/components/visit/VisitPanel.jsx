@@ -207,23 +207,26 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
     };
 
     const handleCompletePlaySession = (sessionIndex) => {
-        const updatedSessions = [...visit.play_sessions];
-        updatedSessions[sessionIndex] = {
-            ...updatedSessions[sessionIndex],
-            completed: true,
-            completed_at: moment().format('h:mm A'),
-            completed_date: moment().format('YYYY-MM-DD')
-        };
-        
-        const careLog = [...(visit.care_log || []), {
-            time: moment().format('h:mm A'),
-            activity: `Play Session ${updatedSessions[sessionIndex].session_number}`,
-            notes: '',
-            staff: currentUser?.full_name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'
-        }];
-        
-        onUpdateVisit({ ...visit, play_sessions: updatedSessions, care_log: careLog });
-    };
+         const updatedSessions = [...visit.play_sessions];
+         const today = moment().format('YYYY-MM-DD');
+         updatedSessions[sessionIndex] = {
+             ...updatedSessions[sessionIndex],
+             completed: true,
+             completed_at: moment().format('h:mm A'),
+             completed_date: today,
+             completed_iso: new Date().toISOString()
+         };
+
+         const careLog = [...(visit.care_log || []), {
+             time: moment().format('h:mm A'),
+             activity: `Play Session ${updatedSessions[sessionIndex].session_number}`,
+             notes: '',
+             staff: currentUser?.full_name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?',
+             date: today
+         }];
+
+         onUpdateVisit({ ...visit, play_sessions: updatedSessions, care_log: careLog });
+     };
 
     const handleAddPlayCampToBoarding = () => {
         const playSessions = Array.from(
@@ -556,7 +559,8 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                             </CardHeader>
                             <CardContent className="space-y-2">
                                 {visit.play_sessions.map((session, idx) => {
-                                     const completedToday = session.completed && session.completed_date === moment().format('YYYY-MM-DD');
+                                     const viewingToday = viewDate === moment().format('YYYY-MM-DD');
+                                     const completedToday = session.completed && session.completed_date === viewDate;
                                      return (
                                          <div 
                                              key={idx}
@@ -590,7 +594,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                                      Play Session {session.session_number}
                                                  </p>
                                              </div>
-                                             {completedToday && (
+                                             {completedToday && viewingToday && (
                                                  <p className="text-xs text-emerald-600">
                                                      {session.completed_at}
                                                  </p>
