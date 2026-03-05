@@ -26,7 +26,7 @@ export default function Settings() {
     base44.auth.me().then(setUser).catch(() => {});
   }, []);
 
-  const isAdminOrSuperAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+  const isSuperAdmin = user?.role === 'super_admin';
 
   const handleDownloadTemplate = () => {
     const headers = [

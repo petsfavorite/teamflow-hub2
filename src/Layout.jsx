@@ -16,7 +16,6 @@ const floofNavItems = [
     { name: 'Pets', icon: Users, label: 'Pets' },
     { name: 'CheckIn', icon: LogIn, label: 'Check In' },
     { name: 'Reports', icon: Dog, label: 'Reports' },
-    { name: 'Settings', icon: Settings, label: 'Settings' }
 ];
 
 const mainNavItems = [
