@@ -29,20 +29,10 @@ export default function BoardingWhiteboardCard({ pet, visit, onViewVisit }) {
         return timeA.diff(timeB);
     });
 
-    // Check if any task is overdue (only incomplete tasks)
-    const hasOverdue = sortedTasks.some(task => {
-        if (task.completed) return false;
-        if (!task.time) return false;
-        const taskTime = moment(task.time, 'h:mm A');
-        return now.isAfter(taskTime);
-    });
-
     // Check if picture needs to be sent
     const needsPicture = pet.daily_picture && !visit.picture_sent;
 
-
-
-    const cardColor = hasOverdue ? 'border-rose-400 bg-rose-50' : 'border-stone-200 bg-stone-50';
+    const cardColor = 'border-stone-200 bg-stone-50';
 
     return (
         <motion.div
@@ -72,11 +62,7 @@ export default function BoardingWhiteboardCard({ pet, visit, onViewVisit }) {
                                         )}
                                     </div>
                                 )}
-                                {hasOverdue && (
-                                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 rounded-full flex items-center justify-center animate-pulse">
-                                        <AlertCircle className="w-3 h-3 text-white" />
-                                    </div>
-                                )}
+
                             </div>
                             <div className="flex-1">
                                 <h3 className="font-bold text-base text-stone-800">{pet.name}</h3>

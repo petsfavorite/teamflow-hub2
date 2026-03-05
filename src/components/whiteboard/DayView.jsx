@@ -35,35 +35,7 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
         (!v.scheduled_checkout_date || moment(v.scheduled_checkout_date).format('YYYY-MM-DD') >= selectedDate)
     );
     
-    // Check if a pet has overdue tasks in user's timezone
-    const hasOverdueTasks = (visit, date) => {
-        const now = moment().tz(userTimezone);
-        
-        // Get all tasks for this date
-        const isCheckInDay = moment(visit.check_in_date).format('YYYY-MM-DD') === date;
-        const checkInTime = moment(visit.check_in_time);
-        
-        const allDateTasks = visit.scheduled_tasks?.filter(task => {
-            if (task.completed) return false; // Skip completed tasks
-            if (task.date && task.date === date) return true;
-            if (task.is_template) {
-                if (isCheckInDay) {
-                    const taskTime = moment(task.time, 'h:mm A');
-                    return taskTime.isAfter(checkInTime);
-                }
-                return true;
-            }
-            return false;
-        }) || [];
-        
-        // Check if any incomplete timed tasks have passed
-        return allDateTasks.some(task => {
-            if (!task.time) return false;
-            const taskDateTime = moment.tz(`${date} ${task.time}`, 'YYYY-MM-DD h:mm A', userTimezone);
-            return now.isAfter(taskDateTime);
-        });
-    };
-    
+
     // Helper to get remaining tasks for a pet on a specific date
     const getRemainingTasks = (visit, date) => {
         const isCheckInDay = moment(visit.check_in_date).format('YYYY-MM-DD') === date;
@@ -196,7 +168,6 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
                         {petsWithVisits.map(({ pet, visit }) => {
                              const isCat = pet.species === 'Cat';
                              const isEditing = editingLocation === visit.id;
-                             const isOverdue = hasOverdueTasks(visit, selectedDate);
                              const needsFecesCollection = hasCollectFeces(visit);
 
                             return (
@@ -208,8 +179,7 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
                                     layout
                                 >
                                     <Card className={`hover:shadow-md transition-shadow cursor-pointer ${
-                                        needsFecesCollection ? 'border-amber-900 bg-stone-300' :
-                                        isOverdue ? 'border-red-500 bg-red-100' : 'border-gray-200'
+                                        needsFecesCollection ? 'border-amber-900 bg-stone-300' : 'border-gray-200'
                                     }`}
                                     onClick={() => onViewVisit(visit, pet)}>
                                         <CardContent className="p-0">
