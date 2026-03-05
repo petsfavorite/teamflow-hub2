@@ -114,6 +114,15 @@ export default function Pets() {
                     <p className="text-slate-500 mt-1">{pets.length} pets registered</p>
                 </div>
                 <div className="flex items-center gap-3">
+                    {(currentUser?.role === 'manager' || currentUser?.role === 'admin' || currentUser?.role === 'super_admin') && (
+                        <Button 
+                            variant="outline" 
+                            onClick={() => setShowArchive(!showArchive)}
+                            className="rounded-xl border-stone-200"
+                        >
+                            <span>📦 Archive</span>
+                        </Button>
+                    )}
                     <Button 
                         onClick={() => setShowAddDialog(true)}
                         className="rounded-xl bg-[#82bb32] hover:bg-[#82bb32]/90"
