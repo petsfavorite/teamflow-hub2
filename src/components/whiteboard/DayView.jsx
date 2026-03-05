@@ -122,6 +122,15 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
         setLocationValue('');
     };
 
+    const handleLocationBlur = async (visit) => {
+        // Auto-save location on blur
+        if (locationValue !== visit.location) {
+            await onUpdateLocation(visit.id, locationValue.slice(0, 10));
+        }
+        setEditingLocation(null);
+        setLocationValue('');
+    };
+
     const handlePrevDay = () => {
         onDateChange(moment(selectedDate).subtract(1, 'day').format('YYYY-MM-DD'));
     };
