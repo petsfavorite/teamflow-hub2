@@ -120,7 +120,7 @@ Deno.serve(async (req) => {
                 {
                     type: 'Check Litterbox',
                     time: '9:00 AM',
-                    date: taskDate('9:00 AM'),
+                    date: getTaskDate('9:00 AM'),
                     is_template: true,
                     completed: false,
                     completed_at: null,
