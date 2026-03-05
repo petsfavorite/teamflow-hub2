@@ -9,7 +9,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar, Plus, Trash2, RefreshCw } from "lucide-react";
 import moment from 'moment';
-import { useState, useEffect } from 'react';
 
 export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
      const [checkoutDate, setCheckoutDate] = useState('');
