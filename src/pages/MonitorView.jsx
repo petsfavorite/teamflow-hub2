@@ -184,7 +184,7 @@ export default function MonitorView() {
             {/* Return to Whiteboard Button */}
             <Link
                 to={createPageUrl('Whiteboard')}
-                className="fixed bottom-6 right-6 bg-[#82bb32] hover:bg-[#6a9829] text-white rounded-full p-4 shadow-lg transition-all flex items-center gap-2"
+                className="fixed bottom-24 right-4 md:bottom-6 md:right-6 bg-[#82bb32] hover:bg-[#6a9829] text-white rounded-full p-4 shadow-lg transition-all flex items-center gap-2 z-50"
             >
                 <LayoutGrid className="w-6 h-6" />
                 <span className="font-medium">Back to Whiteboard</span>
