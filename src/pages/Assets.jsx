@@ -63,6 +63,16 @@ export default function Assets() {
     queryFn: () => base44.entities.Task.list('title', 200),
   });
 
+  const { data: users = [] } = useQuery({
+    queryKey: ['users'],
+    queryFn: () => base44.entities.User.list(),
+  });
+
+  const { data: teams = [] } = useQuery({
+    queryKey: ['teams'],
+    queryFn: () => base44.entities.Team.list(),
+  });
+
   const saveMutation = useMutation({
     mutationFn: (data) => editingAsset
       ? base44.entities.Asset.update(editingAsset.id, data)
