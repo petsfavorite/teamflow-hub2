@@ -9,6 +9,43 @@ export default function SOPAIImporter({ onFill, sopTags = [] }) {
   const [rawText, setRawText] = useState('');
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(true);
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        recognitionRef.current = new SpeechRecognition();
+        recognitionRef.current.continuous = true;
+        recognitionRef.current.onresult = (event) => {
+          let transcript = '';
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            transcript += event.results[i][0].transcript + ' ';
+          }
+          setRawText(prev => prev + transcript);
+        };
+        recognitionRef.current.onerror = (event) => {
+          toast.error('Voice input error: ' + event.error);
+          setIsListening(false);
+        };
+      }
+    }
+  }, []);
+
+  const toggleDictation = () => {
+    if (!recognitionRef.current) {
+      toast.error('Voice input not supported in this browser');
+      return;
+    }
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      recognitionRef.current.start();
+      setIsListening(true);
+    }
+  };
 
   const handleGenerate = async () => {
     if (!rawText.trim()) return;
