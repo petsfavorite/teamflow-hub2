@@ -90,7 +90,7 @@ export default function Whiteboard() {
 
     const handleUpdateVisit = async (updatedVisit) => {
         await updateVisitMutation.mutateAsync({ id: updatedVisit.id, data: updatedVisit });
-        setSelectedVisit(updatedVisit);
+        setSelectedVisit({ ...updatedVisit });
     };
 
     const handleCheckout = () => {
