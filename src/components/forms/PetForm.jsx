@@ -259,20 +259,31 @@ export default function PetForm({ pet, onSave, onCancel, onDelete, isLoading }) 
                             </div>
 
                             <div className="space-y-2">
-                                <Label>Social Media</Label>
-                                <Select value={formData.social_media} onValueChange={(v) => handleChange('social_media', v)}>
-                                    <SelectTrigger className="rounded-xl">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="Approved for Social Media">Approved for Social Media</SelectItem>
-                                        <SelectItem value="Not Approved for Social Media">Not Approved for Social Media</SelectItem>
-                                        <SelectItem value="No Record of Social Media Consent">No Record of Social Media Consent</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </CardContent>
-                    </Card>
+                                 <Label>Social Media</Label>
+                                 <Select value={formData.social_media} onValueChange={(v) => handleChange('social_media', v)}>
+                                     <SelectTrigger className="rounded-xl">
+                                         <SelectValue />
+                                     </SelectTrigger>
+                                     <SelectContent>
+                                         <SelectItem value="Approved for Social Media">Approved for Social Media</SelectItem>
+                                         <SelectItem value="Not Approved for Social Media">Not Approved for Social Media</SelectItem>
+                                         <SelectItem value="No Record of Social Media Consent">No Record of Social Media Consent</SelectItem>
+                                     </SelectContent>
+                                 </Select>
+                             </div>
+
+                            <div className="space-y-2">
+                                 <Label>Important Conditions and Behavior Notes</Label>
+                                 <Textarea
+                                     value={formData.special_needs}
+                                     onChange={(e) => handleChange('special_needs', e.target.value)}
+                                     placeholder="Any health conditions, allergies, anxiety issues, behavioral notes, or special care requirements..."
+                                     className="rounded-xl"
+                                     rows={3}
+                                 />
+                             </div>
+                            </CardContent>
+                            </Card>
                 </TabsContent>
 
                 <TabsContent value="owner" className="mt-6">
@@ -448,17 +459,6 @@ export default function PetForm({ pet, onSave, onCancel, onDelete, isLoading }) 
                                     />
                                 </div>
                             ))}
-
-                            <div className="pt-4 border-t border-stone-100 space-y-2">
-                                <Label>Special Needs & Conditions</Label>
-                                <Textarea
-                                    value={formData.special_needs}
-                                    onChange={(e) => handleChange('special_needs', e.target.value)}
-                                    placeholder="Any health conditions, allergies, anxiety issues, or special care requirements..."
-                                    className="rounded-xl"
-                                    rows={3}
-                                />
-                            </div>
 
                             <div className="space-y-2">
                                 <Label>Additional Notes</Label>
