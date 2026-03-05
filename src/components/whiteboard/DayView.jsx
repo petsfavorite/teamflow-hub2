@@ -195,6 +195,9 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
                                                                 <Star className="w-4 h-4 fill-black text-black" />
                                                             )}
                                                         </div>
+                                                        {pet.special_needs && (
+                                                            <p className="text-xs text-amber-600 mb-1">⚠️ {pet.special_needs}</p>
+                                                        )}
                                                         <div className="space-y-1">
                                                             <Badge className={`text-xs px-2 py-0 ${
                                                                 visit.visit_type === 'boarding' 
