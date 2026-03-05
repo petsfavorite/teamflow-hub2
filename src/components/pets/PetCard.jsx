@@ -2,10 +2,10 @@ import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dog, Cat, Phone, Pill, Clock, MapPin } from "lucide-react";
+import { Dog, Cat, Phone, Pill, Clock, MapPin, Archive } from "lucide-react";
 import { motion } from "framer-motion";
 
-export default function PetCard({ pet, visit, onCheckIn, onCheckOut, onViewDetails, compact = false }) {
+export default function PetCard({ pet, visit, onCheckIn, onCheckOut, onViewDetails, onArchive, compact = false }) {
     const hasMedications = pet.medications && pet.medications.length > 0;
     const isCat = pet.species === 'Cat';
     
@@ -133,6 +133,17 @@ export default function PetCard({ pet, visit, onCheckIn, onCheckOut, onViewDetai
                                     onClick={() => onCheckIn?.(pet)}
                                 >
                                     Check In
+                                </Button>
+                            )}
+                            {onArchive && !pet.is_checked_in && (
+                                <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    className="rounded-xl border-stone-200 hover:bg-stone-50"
+                                    onClick={() => onArchive?.(pet.id)}
+                                    title="Archive pet"
+                                >
+                                    <Archive className="w-4 h-4" />
                                 </Button>
                             )}
                         </div>
