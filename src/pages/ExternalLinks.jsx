@@ -188,18 +188,29 @@ export default function ExternalLinks() {
         </div>
       )}
 
-      {/* PDF Library Section */}
+      {/* MSDS Sheets Section */}
       <div className="mt-12">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2"><FileText className="w-5 h-5 text-amber-500" /> PDF Library</h2>
-            <p className="text-sm text-slate-500 mt-0.5">Documents and reference materials</p>
+            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2"><FileText className="w-5 h-5 text-amber-500" /> MSDS Sheets</h2>
+            <p className="text-sm text-slate-500 mt-0.5">Safety data sheets and reference documents</p>
           </div>
           {canEdit && (
             <Button onClick={() => setShowPDFForm(true)} className="bg-amber-500 hover:bg-amber-600 gap-2">
-              <Plus className="w-4 h-4" /> Add PDF
+              <Plus className="w-4 h-4" /> Add MSDS Sheet
             </Button>
           )}
+        </div>
+
+        {/* Search bar */}
+        <div className="relative mb-6 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Input
+            value={pdfSearch}
+            onChange={e => setPdfSearch(e.target.value)}
+            placeholder="Search MSDS sheets..."
+            className="pl-9"
+          />
         </div>
 
         {pdfsLoading ? (
