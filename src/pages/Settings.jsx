@@ -252,6 +252,41 @@ export default function Settings() {
       {/* Content */}
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
 
+        {/* Profile Settings */}
+        <Card className="border-0 shadow-sm rounded-2xl">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2 text-stone-800">
+              <User className="w-4 h-4 text-[#82bb32]" />
+              Profile Settings
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {user && (
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm font-medium text-stone-700">Name</p>
+                  <p className="text-sm text-stone-600">{user.full_name}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-stone-700">Email</p>
+                  <p className="text-sm text-stone-600">{user.email}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-stone-700">Timezone</p>
+                  <p className="text-sm text-stone-600">{user.timezone || 'Not set'}</p>
+                </div>
+                <Button
+                  variant="outline"
+                  className="w-full rounded-xl border-[#82bb32]/40 text-[#82bb32] hover:bg-[#82bb32]/10"
+                  onClick={() => setEditProfileOpen(true)}
+                >
+                  Edit Profile
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Pet Import - Admin only */}
         {isSuperAdmin && (<Card className="border-0 shadow-sm rounded-2xl">
           <CardHeader className="pb-2">
