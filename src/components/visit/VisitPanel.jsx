@@ -192,26 +192,24 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
         onUpdateVisit({ ...visit, scheduled_tasks: updatedTasks, care_log: careLog });
     };
 
-    const handleCompletePlaySession = async (sessionIndex) => {
+    const handleCompletePlaySession = async (sessionNumber) => {
          if (isSaving) return;
          setIsSaving(true);
 
          try {
-             const completedSession = visit.play_sessions[sessionIndex];
-             const updatedSessions = visit.play_sessions.filter((_, idx) => idx !== sessionIndex);
              const today = moment().format('YYYY-MM-DD');
 
              const careLog = [...(visit.care_log || []), {
                  time: moment().format('h:mm A'),
-                 activity: `Play Session ${completedSession.session_number}`,
+                 activity: `Play Session ${sessionNumber + 1}`,
                  notes: '',
                  staff: currentUser?.full_name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?',
                  date: today,
                  type: 'play_session',
-                 session_number: completedSession.session_number
+                 session_number: sessionNumber + 1
              }];
 
-             await onUpdateVisit({ ...visit, play_sessions: updatedSessions, care_log: careLog });
+             await onUpdateVisit({ ...visit, care_log: careLog });
          } finally {
              setIsSaving(false);
          }
