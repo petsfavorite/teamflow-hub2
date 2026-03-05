@@ -80,6 +80,15 @@ export default function Layout({ children }) {
             
             {/* Add padding at bottom for mobile nav */}
             <div className="md:hidden h-20" />
+
+            {/* Back to Main App Button */}
+            <a
+                href="/dashboard"
+                className="fixed bottom-24 left-4 md:bottom-6 md:left-6 bg-stone-700 hover:bg-stone-800 text-white rounded-full px-4 py-3 shadow-lg transition-all flex items-center gap-2 z-50 text-sm font-medium"
+            >
+                <ArrowLeft className="w-4 h-4" />
+                <span>Main App</span>
+            </a>
         </div>
     );
 }
