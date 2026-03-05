@@ -65,17 +65,6 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
     // Start with auto-generated core tasks
     const tasks = [...generatedTasks];
 
-    // Add check-in day task: Schedule any Grooming at 6 PM
-    const checkInDate = moment().format('YYYY-MM-DD');
-    tasks.push({ 
-        type: 'Schedule any Grooming', 
-        time: '6:00 PM', 
-        date: checkInDate,
-        is_template: false, 
-        completed: false, 
-        completed_at: null 
-    });
-
     // Add last day task: Billing at 9 AM
     tasks.push({ 
         type: 'Billing', 
