@@ -20,14 +20,39 @@ Deno.serve(async (req) => {
         const checkInHour = checkInMoment.getHours();
         const checkInMinute = checkInMoment.getMinutes();
 
+        // Helper to parse time string (e.g., "8:30 AM") and check if it's before check-in
+        const isTimedTaskBeforeCheckIn = (timeStr) => {
+            if (!timeStr) return false; // No time = not time-sensitive
+            const parts = timeStr.match(/(\d+):(\d+)\s(AM|PM)/);
+            if (!parts) return false;
+            let hour = parseInt(parts[1]);
+            const minute = parseInt(parts[2]);
+            const isPM = parts[3] === 'PM';
+            
+            // Convert to 24-hour format
+            if (isPM && hour !== 12) hour += 12;
+            if (!isPM && hour === 12) hour = 0;
+            
+            // Check if task time is before check-in time
+            if (hour < checkInHour) return true;
+            if (hour === checkInHour && minute < checkInMinute) return true;
+            return false;
+        };
+
         let tasks = [];
+        const taskDate = (timeStr) => {
+            // If task time is before check-in, schedule for next day
+            return isTimedTaskBeforeCheckIn(timeStr) ? 
+                new Date(new Date(checkInDate).getTime() + 86400000).toISOString().split('T')[0] : 
+                checkInDate;
+        };
 
         if (species === 'Dog') {
             tasks = [
                 {
                     type: 'AM Walk',
                     time: '8:30 AM',
-                    date: checkInDate,
+                    date: taskDate('8:30 AM'),
                     is_template: true,
                     completed: false,
                     completed_at: null,
@@ -40,7 +65,7 @@ Deno.serve(async (req) => {
                 {
                     type: 'Lunch Walk',
                     time: '1:00 PM',
-                    date: checkInDate,
+                    date: taskDate('1:00 PM'),
                     is_template: true,
                     completed: false,
                     completed_at: null,
@@ -53,7 +78,7 @@ Deno.serve(async (req) => {
                 {
                     type: 'Bedtime Walk',
                     time: '7:30 PM',
-                    date: checkInDate,
+                    date: taskDate('7:30 PM'),
                     is_template: true,
                     completed: false,
                     completed_at: null,
@@ -95,7 +120,7 @@ Deno.serve(async (req) => {
                 {
                     type: 'Check Litterbox',
                     time: '9:00 AM',
-                    date: checkInDate,
+                    date: taskDate('9:00 AM'),
                     is_template: true,
                     completed: false,
                     completed_at: null,
@@ -108,7 +133,7 @@ Deno.serve(async (req) => {
                 {
                     type: 'Check Litterbox',
                     time: '7:30 PM',
-                    date: checkInDate,
+                    date: taskDate('7:30 PM'),
                     is_template: true,
                     completed: false,
                     completed_at: null,
