@@ -186,7 +186,6 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
                                 >
                                     <Card className={`hover:shadow-md transition-shadow cursor-pointer ${
                                         needsFecesCollection ? 'border-amber-900 bg-stone-300' :
-                                        hasAlert ? 'border-yellow-400 bg-yellow-100' :
                                         isOverdue ? 'border-red-500 bg-red-100' : 'border-gray-200'
                                     }`}
                                     onClick={() => onViewVisit(visit, pet)}>
