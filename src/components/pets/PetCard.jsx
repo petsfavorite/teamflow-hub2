@@ -95,7 +95,7 @@ export default function PetCard({ pet, visit, onCheckIn, onCheckOut, onViewDetai
                         )}
                     </div>
                     
-                    <div className="p-5">
+                    <div className="p-5 pt-3">
                         <div className="flex items-start justify-between mb-3">
                             <div>
                                 <h3 className="text-lg font-semibold text-stone-800">{pet.name}</h3>
