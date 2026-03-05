@@ -57,7 +57,6 @@ import Checklists from './pages/Checklists';
 import Dashboard from './pages/Dashboard';
 import DevChecklist from './pages/DevChecklist';
 import EmergencySOPs from './pages/EmergencySOPs';
-import ExternalLinks from './pages/ExternalLinks';
 import IncidentReports from './pages/IncidentReports';
 import Maintenance from './pages/Maintenance';
 import MonitorView from './pages/MonitorView';
@@ -73,6 +72,7 @@ import Tasks from './pages/Tasks';
 import Teams from './pages/Teams';
 import UserManagement from './pages/UserManagement';
 import Whiteboard from './pages/Whiteboard';
+import ExternalLinks from './pages/ExternalLinks';
 import __Layout from './Layout.jsx';
 
 
@@ -87,7 +87,6 @@ export const PAGES = {
     "Dashboard": Dashboard,
     "DevChecklist": DevChecklist,
     "EmergencySOPs": EmergencySOPs,
-    "ExternalLinks": ExternalLinks,
     "IncidentReports": IncidentReports,
     "Maintenance": Maintenance,
     "MonitorView": MonitorView,
@@ -103,6 +102,7 @@ export const PAGES = {
     "Teams": Teams,
     "UserManagement": UserManagement,
     "Whiteboard": Whiteboard,
+    "ExternalLinks": ExternalLinks,
 }
 
 export const pagesConfig = {
