@@ -617,79 +617,36 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                     </Card>
 
                     {/* Play Sessions */}
-                    {visit.play_sessions && visit.play_sessions.length > 0 && (
-                        <Card className="border-0 shadow-sm rounded-2xl">
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-sm flex items-center gap-2">
-                                    <Sparkles className="w-4 h-4 text-emerald-500" />
-                                    Play Sessions
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-2">
-                                {visit.play_sessions.map((session, idx) => {
-                                     const completedToday = session.completed && session.completed_date === viewDate;
-                                     return (
-                                         <div 
-                                             key={idx}
-                                             className={`flex items-center justify-between p-2 rounded-xl border ${
-                                                 completedToday 
-                                                     ? 'bg-emerald-50 border-emerald-200' 
-                                                     : 'bg-purple-50 border-purple-200'
-                                             }`}
+                     {visit.play_sessions && visit.play_sessions.length > 0 && (
+                         <Card className="border-0 shadow-sm rounded-2xl">
+                             <CardHeader className="pb-2">
+                                 <CardTitle className="text-sm flex items-center gap-2">
+                                     <Sparkles className="w-4 h-4 text-emerald-500" />
+                                     Play Sessions
+                                 </CardTitle>
+                             </CardHeader>
+                             <CardContent className="space-y-2">
+                                 {visit.play_sessions.map((session, idx) => (
+                                     <div 
+                                         key={idx}
+                                         className="flex items-center justify-between p-2 rounded-xl border bg-purple-50 border-purple-200"
+                                     >
+                                         <p className="text-sm font-medium text-purple-700">
+                                             Play Session {session.session_number}
+                                         </p>
+                                         <Button 
+                                             size="sm"
+                                             onClick={() => handleCompletePlaySession(idx)}
+                                             disabled={isSaving}
+                                             className="rounded-xl h-7 text-xs bg-purple-600 hover:bg-purple-700 disabled:opacity-50"
                                          >
-                                             <p className={`text-sm font-medium ${
-                                                 completedToday ? 'text-emerald-700' : 'text-purple-700'
-                                             }`}>
-                                                 Play Session {session.session_number}
-                                             </p>
-                                             <div className="flex items-center gap-2">
-                                                 {completedToday && (
-                                                     <p className="text-xs text-emerald-600">
-                                                         {session.completed_at}
-                                                     </p>
-                                                 )}
-                                                 {!completedToday ? (
-                                                     <Button 
-                                                         size="sm"
-                                                         onClick={() => handleCompletePlaySession(idx)}
-                                                         disabled={isSaving}
-                                                         className="rounded-xl h-7 text-xs bg-purple-600 hover:bg-purple-700 disabled:opacity-50"
-                                                     >
-                                                         {isSaving ? 'Saving...' : 'Complete'}
-                                                     </Button>
-                                                 ) : (
-                                                     <Button 
-                                                         size="sm"
-                                                         onClick={async () => {
-                                                             if (isSaving) return;
-                                                             setIsSaving(true);
-                                                             try {
-                                                                 const updatedSessions = [...visit.play_sessions];
-                                                                 updatedSessions[idx] = {
-                                                                     ...updatedSessions[idx],
-                                                                     completed: false,
-                                                                     completed_at: null,
-                                                                     completed_date: null
-                                                                 };
-                                                                 await onUpdateVisit({ ...visit, play_sessions: updatedSessions });
-                                                             } finally {
-                                                                 setIsSaving(false);
-                                                             }
-                                                         }}
-                                                         disabled={isSaving}
-                                                         variant="outline"
-                                                         className="rounded-xl h-7 text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-50 disabled:opacity-50"
-                                                     >
-                                                         {isSaving ? 'Undoing...' : 'Undo'}
-                                                     </Button>
-                                                 )}
-                                             </div>
-                                         </div>
-                                     );
-                                 })}
-                            </CardContent>
-                        </Card>
-                    )}
+                                             {isSaving ? 'Saving...' : 'Done'}
+                                         </Button>
+                                     </div>
+                                 ))}
+                             </CardContent>
+                         </Card>
+                     )}
 
                     {/* Add Play Camp to Boarding */}
                     {isBoarding && (!visit.play_sessions || visit.play_sessions.length === 0) && (
