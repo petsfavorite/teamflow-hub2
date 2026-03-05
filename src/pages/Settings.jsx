@@ -223,7 +223,7 @@ export default function Settings() {
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
 
         {/* Pet Import - Admin only */}
-        {isAdminOrSuperAdmin && (<Card className="border-0 shadow-sm rounded-2xl">
+        {isSuperAdmin && (<Card className="border-0 shadow-sm rounded-2xl">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2 text-stone-800">
               <Upload className="w-4 h-4 text-[#82bb32]" />
