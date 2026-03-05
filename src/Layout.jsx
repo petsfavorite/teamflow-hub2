@@ -93,6 +93,22 @@ export default function Layout({ children }) {
                     </Link>
                 ))}
 
+                {/* Pet Import — Floof nav, super_admin only */}
+                {isFloofPage && user?.role === 'super_admin' && (
+                    <Link
+                        to={createPageUrl('Settings')}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
+                            isActive('Settings')
+                                ? 'text-[#82bb32] bg-[#82bb32]/10'
+                                : 'text-stone-600 hover:text-stone-800 hover:bg-stone-50'
+                        }`}
+                        title={!sidebarOpen ? 'Pet Import' : ''}
+                    >
+                        <Upload className="w-5 h-5 flex-shrink-0" />
+                        {sidebarOpen && <span className="font-medium">Pet Import</span>}
+                    </Link>
+                )}
+
                 {/* Administration dropdown — main nav only, privileged roles */}
                 {!isFloofPage && canSeeAdmin && (
                     <div className="mt-2">
