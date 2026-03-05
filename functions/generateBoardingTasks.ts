@@ -9,11 +9,16 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { species, checkInDate } = await req.json();
+        const { species, checkInDate, checkInTime } = await req.json();
 
         if (!species || !checkInDate) {
             return Response.json({ error: 'Missing species or checkInDate' }, { status: 400 });
         }
+
+        // Parse check-in time to compare with task times
+        const checkInMoment = checkInTime ? new Date(checkInTime) : new Date();
+        const checkInHour = checkInMoment.getHours();
+        const checkInMinute = checkInMoment.getMinutes();
 
         let tasks = [];
 
