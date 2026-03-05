@@ -539,9 +539,22 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                          >
                                              <div className="flex items-center gap-2">
                                                  <Checkbox 
-                                                     checked={completedToday}
-                                                     onCheckedChange={() => !completedToday && handleCompletePlaySession(idx)}
-                                                 />
+                                                                      checked={completedToday}
+                                                                      onCheckedChange={() => {
+                                                                          if (completedToday) {
+                                                                              const updatedSessions = [...visit.play_sessions];
+                                                                              updatedSessions[idx] = {
+                                                                                  ...updatedSessions[idx],
+                                                                                  completed: false,
+                                                                                  completed_at: null,
+                                                                                  completed_date: null
+                                                                              };
+                                                                              onUpdateVisit({ ...visit, play_sessions: updatedSessions });
+                                                                          } else {
+                                                                              handleCompletePlaySession(idx);
+                                                                          }
+                                                                      }}
+                                                                  />
                                                  <p className={`text-sm font-medium ${
                                                      completedToday ? 'text-emerald-700' : 'text-purple-700'
                                                  }`}>
