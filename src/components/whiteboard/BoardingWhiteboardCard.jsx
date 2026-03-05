@@ -42,17 +42,18 @@ export default function BoardingWhiteboardCard({ pet, visit, onViewVisit }) {
     const needsPicture = pet.daily_picture && !visit.picture_sent;
 
     // Yellow alert logic
-    // Only alert if CHECKED IN MORE THAN 48 HOURS and missing required observations
-    // Dogs: checked in 48+ hrs AND Feces Observed not found or not completed
-    // Cats: checked in 48+ hrs AND (Feces Observed not found/completed OR Urine Observed not found/completed)
+    // FIRST: Check if pet has been checked in for more than 48 hours
+    // THEN: Check if required observations are missing
     const fortyEightHoursAgo = moment().subtract(48, 'hours');
     const hasYellowAlert = (() => {
+        // 1. Must be a boarding visit
         if (visit.visit_type !== 'boarding') return false;
         
-        // Only alert if checked in MORE than 48 hours ago
-        if (!checkInTime.isBefore(fortyEightHoursAgo)) return false;
+        // 2. FIRST - Check if checked in MORE than 48 hours ago
+        const checkedInMoreThan48Hours = checkInTime.isBefore(fortyEightHoursAgo);
+        if (!checkedInMoreThan48Hours) return false;
 
-        // Check for completed Feces Observed task
+        // 3. THEN - Only if 48+ hours, check for missing observations
         const hasFecesObserved = visit.scheduled_tasks?.some(t => t.type === 'Feces Observed' && t.completed);
 
         if (isCat) {
