@@ -169,44 +169,51 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
     };
 
     const handleCompletePlaySession = async (sessionIndex) => {
-         const updatedSessions = [...visit.play_sessions];
-         const today = moment().format('YYYY-MM-DD');
-         const session = updatedSessions[sessionIndex];
+         if (isSaving) return;
+         setIsSaving(true);
 
-         // If already completed today, toggle undo
-         if (session.completed && session.completed_date === today) {
-             updatedSessions[sessionIndex] = {
-                 ...updatedSessions[sessionIndex],
-                 completed: false,
-                 completed_at: null,
-                 completed_date: null,
-                 completed_iso: null
-             };
-         } else {
-             // Mark as completed
-             updatedSessions[sessionIndex] = {
-                 ...updatedSessions[sessionIndex],
-                 completed: true,
-                 completed_at: moment().format('h:mm A'),
-                 completed_date: today,
-                 completed_iso: new Date().toISOString()
-             };
+         try {
+             const updatedSessions = [...visit.play_sessions];
+             const today = moment().format('YYYY-MM-DD');
+             const session = updatedSessions[sessionIndex];
+
+             // If already completed today, toggle undo
+             if (session.completed && session.completed_date === today) {
+                 updatedSessions[sessionIndex] = {
+                     ...updatedSessions[sessionIndex],
+                     completed: false,
+                     completed_at: null,
+                     completed_date: null,
+                     completed_iso: null
+                 };
+             } else {
+                 // Mark as completed
+                 updatedSessions[sessionIndex] = {
+                     ...updatedSessions[sessionIndex],
+                     completed: true,
+                     completed_at: moment().format('h:mm A'),
+                     completed_date: today,
+                     completed_iso: new Date().toISOString()
+                 };
+             }
+
+             const careLog = [...(visit.care_log || [])];
+             // Only add to care log if marking as completed
+             if (updatedSessions[sessionIndex].completed) {
+                 careLog.push({
+                     time: moment().format('h:mm A'),
+                     activity: `Play Session ${updatedSessions[sessionIndex].session_number}`,
+                     notes: '',
+                     staff: currentUser?.full_name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?',
+                     date: today
+                 });
+             }
+
+             // Save play session completion
+             await onUpdateVisit({ ...visit, play_sessions: updatedSessions, care_log: careLog });
+         } finally {
+             setIsSaving(false);
          }
-
-         const careLog = [...(visit.care_log || [])];
-         // Only add to care log if marking as completed
-         if (updatedSessions[sessionIndex].completed) {
-             careLog.push({
-                 time: moment().format('h:mm A'),
-                 activity: `Play Session ${updatedSessions[sessionIndex].session_number}`,
-                 notes: '',
-                 staff: currentUser?.full_name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?',
-                 date: today
-             });
-         }
-
-         // Save play session completion
-         await onUpdateVisit({ ...visit, play_sessions: updatedSessions, care_log: careLog });
      };
 
     const handleAddPlayCampToBoarding = () => {
