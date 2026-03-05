@@ -518,7 +518,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                         <CardHeader className="pb-2">
                             <CardTitle className="text-sm flex items-center gap-2">
                                 <Plus className="w-4 h-4 text-[#82bb32]" />
-                                Add Task to {moment(viewDate).format('MMM D')}
+                                {editingTaskIdx !== null ? 'Edit Task' : `Add Task to ${moment(viewDate).format('MMM D')}`}
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-2">
@@ -547,31 +547,31 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                     </div>
                                     <Select value={newTaskType} onValueChange={setNewTaskType}>
                                        <SelectTrigger className="rounded-xl">
-                                            <SelectValue placeholder="Select task type" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="Collect Feces">Collect Feces</SelectItem>
-                                            <SelectItem value="Bath">Bath</SelectItem>
-                                            <SelectItem value="Extra walk">Extra walk</SelectItem>
-                                            <SelectItem value="Nail trim">Nail trim</SelectItem>
-                                            <SelectItem value="Other">Other (type below)</SelectItem>
-                                        </SelectContent>
-                                     </Select>
+                                             <SelectValue placeholder="Select task type" />
+                                         </SelectTrigger>
+                                         <SelectContent>
+                                             <SelectItem value="Collect Feces">Collect Feces</SelectItem>
+                                             <SelectItem value="Bath">Bath</SelectItem>
+                                             <SelectItem value="Extra walk">Extra walk</SelectItem>
+                                             <SelectItem value="Nail trim">Nail trim</SelectItem>
+                                             <SelectItem value="Other">Other (type below)</SelectItem>
+                                         </SelectContent>
+                                      </Select>
                                     {newTaskType === 'Other' && (
                                        <Input
-                                            placeholder="Enter custom task type"
-                                            onChange={(e) => setNewTaskType(e.target.value)}
-                                            className="rounded-xl"
-                                        />
-                                     )}
-                                    {newTaskType !== 'Collect Feces' && (
-                                         <Input
-                                             placeholder="Time (optional, e.g., 2:00 PM)"
-                                             value={newTaskTime}
-                                             onChange={(e) => setNewTaskTime(e.target.value)}
+                                             placeholder="Enter custom task type"
+                                             onChange={(e) => setNewTaskType(e.target.value)}
                                              className="rounded-xl"
                                          />
-                                     )}
+                                      )}
+                                    {newTaskType !== 'Collect Feces' && (
+                                         <Input
+                                              placeholder="Time (optional, e.g., 2:00 PM)"
+                                              value={newTaskTime}
+                                              onChange={(e) => setNewTaskTime(e.target.value)}
+                                              className="rounded-xl"
+                                          />
+                                      )}
                                     <Textarea
                                         placeholder="Notes (optional)"
                                         value={newTaskNotes}
@@ -579,25 +579,54 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                         className="rounded-xl"
                                         rows={2}
                                     />
+                                    <div className="space-y-2 pt-2 border-t border-stone-200">
+                                        <Label className="text-xs text-stone-600">Repeat (optional)</Label>
+                                        <Select value={recurrenceType} onValueChange={setRecurrenceType}>
+                                            <SelectTrigger className="rounded-xl">
+                                                <SelectValue placeholder="No repeat" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="none">No repeat</SelectItem>
+                                                <SelectItem value="hours">Every X hours</SelectItem>
+                                                <SelectItem value="days">Every X days</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        {recurrenceType !== 'none' && (
+                                            <div className="flex items-center gap-2">
+                                                <Label className="text-xs text-stone-600">Every</Label>
+                                                <Input
+                                                    type="number"
+                                                    min="1"
+                                                    max={recurrenceType === 'hours' ? '24' : '31'}
+                                                    value={recurrenceInterval}
+                                                    onChange={(e) => setRecurrenceInterval(Number(e.target.value))}
+                                                    className="rounded-xl w-16 h-8"
+                                                />
+                                                <span className="text-xs text-stone-600">
+                                                    {recurrenceType === 'hours' ? 'hours' : 'days'}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
                                     <div className="flex gap-2">
                                          <Button 
-                                             size="sm" 
-                                             variant="outline"
-                                             onClick={() => setAddingTask(false)}
-                                             className="flex-1 rounded-xl"
-                                         >
-                                             Cancel
-                                         </Button>
-                                         <Button 
-                                             size="sm" 
-                                             onClick={handleAddTask}
-                                             disabled={!newTaskType}
-                                             className="flex-1 rounded-xl bg-[#82bb32] hover:bg-[#82bb32]/90"
-                                         >
-                                             Add
-                                         </Button>
-                                     </div>
-                                 </>
+                                              size="sm" 
+                                              variant="outline"
+                                              onClick={handleCancelEdit}
+                                              className="flex-1 rounded-xl"
+                                          >
+                                              Cancel
+                                          </Button>
+                                          <Button 
+                                              size="sm" 
+                                              onClick={handleAddTask}
+                                              disabled={!newTaskType}
+                                              className="flex-1 rounded-xl bg-[#82bb32] hover:bg-[#82bb32]/90"
+                                          >
+                                              {editingTaskIdx !== null ? 'Save Changes' : 'Add'}
+                                          </Button>
+                                      </div>
+                                  </>
                             )}
                         </CardContent>
                     </Card>
