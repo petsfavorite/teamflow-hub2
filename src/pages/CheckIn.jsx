@@ -120,26 +120,22 @@ export default function CheckIn() {
     // Show check-in type selection if pet is selected
     if (selectedPet && !checkInType) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-stone-50 via-amber-50/30 to-stone-50">
-                <div className="bg-white/80 backdrop-blur-md border-b border-stone-100 sticky top-0 z-40">
-                    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
-                        <div className="flex items-center gap-4">
-                            <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="rounded-xl"
-                                onClick={() => setSelectedPet(null)}
-                            >
-                                <ArrowLeft className="w-5 h-5" />
-                            </Button>
-                            <div>
-                                <h1 className="text-2xl font-bold text-stone-800">Select Check-In Type</h1>
-                                <p className="text-sm text-stone-500">for {selectedPet.name}</p>
-                            </div>
-                        </div>
+            <div className="space-y-6">
+                <div className="flex items-center gap-4">
+                    <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="rounded-xl"
+                        onClick={() => setSelectedPet(null)}
+                    >
+                        <ArrowLeft className="w-5 h-5" />
+                    </Button>
+                    <div>
+                        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Select Check-In Type</h1>
+                        <p className="text-sm text-slate-500">for {selectedPet.name}</p>
                     </div>
                 </div>
-                <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+                <div className="max-w-2xl">
                     <CheckInTypeSelector onSelect={handleSelectType} />
                 </div>
             </div>
@@ -149,31 +145,27 @@ export default function CheckIn() {
     // Show boarding or play camp form if type is selected
     if (selectedPet && checkInType) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-stone-50 via-amber-50/30 to-stone-50">
-                <div className="bg-white/80 backdrop-blur-md border-b border-stone-100 sticky top-0 z-40">
-                    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
-                        <div className="flex items-center gap-4">
-                            <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="rounded-xl"
-                                onClick={() => setCheckInType(null)}
-                            >
-                                <ArrowLeft className="w-5 h-5" />
-                            </Button>
-                            <div>
-                                <h1 className="text-2xl font-bold text-stone-800">
-                                    {checkInType === 'boarding' ? 'Boarding' : 'Play Camp'} Details
-                                </h1>
-                                <p className="text-sm text-stone-500">for {selectedPet.name}</p>
-                            </div>
-                        </div>
+            <div className="space-y-6">
+                <div className="flex items-center gap-4">
+                    <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="rounded-xl"
+                        onClick={() => setCheckInType(null)}
+                    >
+                        <ArrowLeft className="w-5 h-5" />
+                    </Button>
+                    <div>
+                        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+                            {checkInType === 'boarding' ? 'Boarding' : 'Play Camp'} Details
+                        </h1>
+                        <p className="text-sm text-slate-500">for {selectedPet.name}</p>
                     </div>
                 </div>
-                <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
+                <div className="max-w-2xl">
                     {checkingIn ? (
                         <div className="flex items-center justify-center py-20">
-                            <RefreshCw className="w-8 h-8 text-emerald-500 animate-spin" />
+                            <RefreshCw className="w-8 h-8 text-[#82bb32] animate-spin" />
                         </div>
                     ) : checkInType === 'boarding' ? (
                         <BoardingCheckIn
@@ -195,7 +187,7 @@ export default function CheckIn() {
 
     if (showSuccess) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-stone-50 via-emerald-50/30 to-stone-50 flex items-center justify-center p-4">
+            <div className="min-h-screen bg-stone-50 flex items-center justify-center p-4">
                 <motion.div
                     initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}

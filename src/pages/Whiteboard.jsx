@@ -156,7 +156,7 @@ export default function Whiteboard() {
                     </div>
                 ) : (
                     <Tabs defaultValue="day" className="w-full" onValueChange={setActiveTab}>
-                        <TabsList className="bg-white border border-gray-200 rounded-xl p-1 mb-6">
+                        <TabsList className="bg-white border border-stone-200 rounded-xl p-1 mb-6 shadow-sm">
                             <TabsTrigger 
                                 value="day" 
                                 className="rounded-lg data-[state=active]:bg-[#82bb32] data-[state=active]:text-white"
