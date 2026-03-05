@@ -221,16 +221,16 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
                                                                     <><Sparkles className="w-2 h-2 mr-1" /> Play Camp</>
                                                                 )}
                                                             </Badge>
-                                                            {needsFecesCollection && (
-                                                                <Badge className="text-xs px-2 py-0 bg-amber-100 text-amber-700 border-0">
-                                                                    Needs Fecal
-                                                                </Badge>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                
-                                                {pet.special_needs && (
+                                                            {needsFecesCollection && !hasEmergencyAlert && (
+                                                                 <Badge className="text-xs px-2 py-0 bg-amber-100 text-amber-700 border-0">
+                                                                     Needs Fecal
+                                                                 </Badge>
+                                                             )}
+                                                            </div>
+                                                            </div>
+                                                            </div>
+
+                                                            {pet.special_needs && (
                                                     <p className="text-xs text-amber-600 mb-2">⚠️ {pet.special_needs}</p>
                                                 )}
                                                 
@@ -337,16 +337,16 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
                                                                     <><Sparkles className="w-2 h-2 mr-1" /> Play Camp</>
                                                                 )}
                                                             </Badge>
-                                                            {needsFecesCollection && (
-                                                                <Badge className="text-xs px-2 py-0 bg-amber-100 text-amber-700 border-0">
-                                                                    Needs Fecal
-                                                                </Badge>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </div>
+                                                            {needsFecesCollection && !hasEmergencyAlert && (
+                                                                 <Badge className="text-xs px-2 py-0 bg-amber-100 text-amber-700 border-0">
+                                                                     Needs Fecal
+                                                                 </Badge>
+                                                             )}
+                                                            </div>
+                                                            </div>
+                                                            </div>
 
-                                                {/* Location & Photo Status */}
+                                                            {/* Location & Photo Status */}
                                                 <div className="p-4 w-[140px]">
                                                     {isEditing ? (
                                                         <div className="flex gap-2">
