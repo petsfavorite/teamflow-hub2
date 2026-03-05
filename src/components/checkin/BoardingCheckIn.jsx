@@ -104,30 +104,35 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
     const feedingCheckInHour = moment().hour();
     const feedingCheckInMinute = moment().minute();
 
-    if (feedingFrequency === 'Just Breakfast') {
-        if (feedingCheckInHour < 9 || (feedingCheckInHour === 9 && feedingCheckInMinute === 0)) {
-            tasks.push({ type: 'Breakfast', time: '9:00 AM', date: checkInDate, is_template: true, completed: false, completed_at: null, recurrence_type: 'days', recurrence_interval: 1 });
-        } else {
-            tasks.push({ type: 'Breakfast', time: '9:00 AM', date: moment(checkInDate).add(1, 'day').format('YYYY-MM-DD'), is_template: true, completed: false, completed_at: null, recurrence_type: 'days', recurrence_interval: 1 });
-        }
-    } else if (feedingFrequency === 'Just Dinner') {
-        if (feedingCheckInHour < 18 || (feedingCheckInHour === 18 && feedingCheckInMinute === 0)) {
-            tasks.push({ type: 'Dinner', time: '6:00 PM', date: checkInDate, is_template: true, completed: false, completed_at: null, recurrence_type: 'days', recurrence_interval: 1 });
-        } else {
-            tasks.push({ type: 'Dinner', time: '6:00 PM', date: moment(checkInDate).add(1, 'day').format('YYYY-MM-DD'), is_template: true, completed: false, completed_at: null, recurrence_type: 'days', recurrence_interval: 1 });
-        }
-    } else if (feedingFrequency === 'Two Meals') {
-        if (feedingCheckInHour < 9 || (feedingCheckInHour === 9 && feedingCheckInMinute === 0)) {
-            tasks.push({ type: 'Breakfast', time: '9:00 AM', date: checkInDate, is_template: true, completed: false, completed_at: null, recurrence_type: 'days', recurrence_interval: 1 });
-        } else {
-            tasks.push({ type: 'Breakfast', time: '9:00 AM', date: moment(checkInDate).add(1, 'day').format('YYYY-MM-DD'), is_template: true, completed: false, completed_at: null, recurrence_type: 'days', recurrence_interval: 1 });
-        }
+    const addFeedingTask = (type, hour, minute) => {
+        const taskTime = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')} ${hour >= 12 ? 'PM' : 'AM'}`;
+        const startDate = feedingCheckInHour < hour || (feedingCheckInHour === hour && feedingCheckInMinute < minute) 
+            ? checkInDate 
+            : moment(checkInDate).add(1, 'day').format('YYYY-MM-DD');
+        
+        tasks.push({ 
+            type, 
+            time: taskTime, 
+            date: startDate, 
+            is_template: true, 
+            completed: false, 
+            completed_at: null, 
+            recurrence_type: 'days', 
+            recurrence_interval: 1 
+        });
+    };
 
-        if (feedingCheckInHour < 18 || (feedingCheckInHour === 18 && feedingCheckInMinute === 0)) {
-            tasks.push({ type: 'Dinner', time: '6:00 PM', date: checkInDate, is_template: true, completed: false, completed_at: null, recurrence_type: 'days', recurrence_interval: 1 });
-        } else {
-            tasks.push({ type: 'Dinner', time: '6:00 PM', date: moment(checkInDate).add(1, 'day').format('YYYY-MM-DD'), is_template: true, completed: false, completed_at: null, recurrence_type: 'days', recurrence_interval: 1 });
-        }
+    if (feedingFrequency === 'Just Breakfast') {
+        addFeedingTask('Breakfast', 9, 0);
+    } else if (feedingFrequency === 'Just Dinner') {
+        addFeedingTask('Dinner', 18, 0);
+    } else if (feedingFrequency === 'Two Meals') {
+        addFeedingTask('Breakfast', 9, 0);
+        addFeedingTask('Dinner', 18, 0);
+    } else if (feedingFrequency === 'Three Meals') {
+        addFeedingTask('Breakfast', 9, 0);
+        addFeedingTask('Lunch', 12, 0);
+        addFeedingTask('Dinner', 18, 0);
     }
     
     // Add daily "Ate" check task
