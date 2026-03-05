@@ -30,16 +30,10 @@ export default function MonitorView() {
     // Check if a pet has overdue tasks
     const hasOverdueTasks = (visit) => {
         const now = moment();
-        const today = moment().format('YYYY-MM-DD');
         
-        const tasks = visit.scheduled_tasks?.filter(task => {
-            if (task.completed) return false;
-            if (task.date && task.date !== today) return false;
-            if (!task.is_template && task.date !== today) return false;
-            return true;
-        }) || [];
+        const incompleteTasks = visit.scheduled_tasks?.filter(task => !task.completed) || [];
         
-        return tasks.some(task => {
+        return incompleteTasks.some(task => {
             if (!task.time) return false;
             const taskTime = moment(task.time, 'h:mm A');
             return now.isAfter(taskTime);
