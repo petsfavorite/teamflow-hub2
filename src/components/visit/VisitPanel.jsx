@@ -797,11 +797,11 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                                 placeholder={`Notes for meal at ${task.time}`}
                                                 value={task.notes || ''}
                                                 onChange={(e) => {
-                                                    const updated = [...visit.scheduled_tasks];
-                                                    const taskIdx = updated.findIndex(t => t === task);
-                                                    if (taskIdx >= 0) updated[taskIdx].notes = e.target.value;
-                                                    setVisitData(prev => ({ ...prev, scheduled_tasks: updated }));
-                                                }}
+                                                     const updated = [...visit.scheduled_tasks];
+                                                     const taskIdx = updated.findIndex(t => t === task);
+                                                     if (taskIdx >= 0) updated[taskIdx].notes = e.target.value;
+                                                     onUpdateVisit({ ...visit, scheduled_tasks: updated });
+                                                 }}
                                                 className="rounded-xl text-xs"
                                                 rows={2}
                                             />
