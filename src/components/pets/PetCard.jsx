@@ -65,15 +65,22 @@ export default function PetCard({ pet, visit, onCheckIn, onCheckOut, onViewDetai
         >
             <Card className="overflow-hidden border-0 shadow-sm hover:shadow-xl transition-all duration-300 bg-white rounded-2xl">
                 <CardContent className="p-0">
-                    <div className="relative">
+                    <div className="relative w-40 h-40 mx-auto">
                         {pet.photo_url ? (
                             <img 
                                 src={pet.photo_url} 
                                 alt={pet.name}
-                                className="w-full h-40 object-cover"
+                                className="w-full h-full object-cover"
+                                style={{
+                                    objectPosition: pet.crop_offset_y !== undefined 
+                                        ? `center ${-pet.crop_offset_y}px`
+                                        : 'center',
+                                    transform: pet.crop_zoom ? `scale(${pet.crop_zoom})` : 'scale(1)',
+                                    transformOrigin: 'center center'
+                                }}
                             />
                         ) : (
-                            <div className="w-full h-40 bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50 flex items-center justify-center">
+                            <div className="w-full h-full bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50 flex items-center justify-center">
                                 {isCat ? (
                                     <Cat className="w-16 h-16 text-amber-300" />
                                 ) : (
