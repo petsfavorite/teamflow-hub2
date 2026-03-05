@@ -114,14 +114,39 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
     tasks.push({ type: 'Ate', time: '', date: checkInDate, is_template: true, completed: false, completed_at: null, recurrence_type: 'days', recurrence_interval: 1 });
         
     // Medications (automatically added for boarding based on frequency)
+    const checkInMoment = moment();
+    const checkInHour = checkInMoment.hour();
+    const checkInMinute = checkInMoment.minute();
+
     visitMedications.forEach(med => {
         if (med.frequency === 'Once Daily in AM') {
-            tasks.push({ type: 'Medication', time: '9:00 AM', is_template: true, completed: false, completed_at: null, medication_name: med.name });
+            // 9 AM
+            if (checkInHour < 9 || (checkInHour === 9 && checkInMinute === 0)) {
+                tasks.push({ type: 'Medication', time: '9:00 AM', date: checkInDate, is_template: true, completed: false, completed_at: null, medication_name: med.name, recurrence_type: 'days', recurrence_interval: 1 });
+            } else {
+                tasks.push({ type: 'Medication', time: '9:00 AM', date: moment(checkInDate).add(1, 'day').format('YYYY-MM-DD'), is_template: true, completed: false, completed_at: null, medication_name: med.name, recurrence_type: 'days', recurrence_interval: 1 });
+            }
         } else if (med.frequency === 'Once Daily in PM') {
-            tasks.push({ type: 'Medication', time: '6:00 PM', is_template: true, completed: false, completed_at: null, medication_name: med.name });
+            // 6 PM
+            if (checkInHour < 18 || (checkInHour === 18 && checkInMinute === 0)) {
+                tasks.push({ type: 'Medication', time: '6:00 PM', date: checkInDate, is_template: true, completed: false, completed_at: null, medication_name: med.name, recurrence_type: 'days', recurrence_interval: 1 });
+            } else {
+                tasks.push({ type: 'Medication', time: '6:00 PM', date: moment(checkInDate).add(1, 'day').format('YYYY-MM-DD'), is_template: true, completed: false, completed_at: null, medication_name: med.name, recurrence_type: 'days', recurrence_interval: 1 });
+            }
         } else if (med.frequency === 'Twice Daily') {
-            tasks.push({ type: 'Medication', time: '9:00 AM', is_template: true, completed: false, completed_at: null, medication_name: med.name });
-            tasks.push({ type: 'Medication', time: '6:00 PM', is_template: true, completed: false, completed_at: null, medication_name: med.name });
+            // 9 AM
+            if (checkInHour < 9 || (checkInHour === 9 && checkInMinute === 0)) {
+                tasks.push({ type: 'Medication', time: '9:00 AM', date: checkInDate, is_template: true, completed: false, completed_at: null, medication_name: med.name, recurrence_type: 'days', recurrence_interval: 1 });
+            } else {
+                tasks.push({ type: 'Medication', time: '9:00 AM', date: moment(checkInDate).add(1, 'day').format('YYYY-MM-DD'), is_template: true, completed: false, completed_at: null, medication_name: med.name, recurrence_type: 'days', recurrence_interval: 1 });
+            }
+
+            // 6 PM
+            if (checkInHour < 18 || (checkInHour === 18 && checkInMinute === 0)) {
+                tasks.push({ type: 'Medication', time: '6:00 PM', date: checkInDate, is_template: true, completed: false, completed_at: null, medication_name: med.name, recurrence_type: 'days', recurrence_interval: 1 });
+            } else {
+                tasks.push({ type: 'Medication', time: '6:00 PM', date: moment(checkInDate).add(1, 'day').format('YYYY-MM-DD'), is_template: true, completed: false, completed_at: null, medication_name: med.name, recurrence_type: 'days', recurrence_interval: 1 });
+            }
         }
     });
         
