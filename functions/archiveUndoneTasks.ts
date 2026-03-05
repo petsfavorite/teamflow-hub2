@@ -48,9 +48,15 @@ Deno.serve(async (req) => {
                 return !(taskDate === today && !task.completed);
             });
             
+            // Remove uncompleted play sessions for today
+            const updatedPlaySessions = (visit.play_sessions || []).filter(session => {
+                return !(session.date === today && !session.completed);
+            });
+            
             // Update the visit
             await base44.asServiceRole.entities.Visit.update(visit.id, {
                 scheduled_tasks: updatedTasks,
+                play_sessions: updatedPlaySessions,
                 care_log: activityLog
             });
             
