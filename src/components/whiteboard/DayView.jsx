@@ -19,11 +19,9 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
         const fetchUserTimezone = async () => {
             try {
                 const user = await base44.auth.me();
-                if (user?.timezone) {
-                    setUserTimezone(user.timezone);
-                }
+                setUserTimezone(user?.timezone || 'America/New_York');
             } catch (err) {
-                // Use UTC as fallback
+                setUserTimezone('America/New_York');
             }
         };
         fetchUserTimezone();
