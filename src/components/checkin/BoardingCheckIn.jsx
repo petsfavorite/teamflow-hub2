@@ -110,6 +110,9 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
         tasks.push({ type: 'Breakfast', time: '9:00 AM', is_template: true, completed: false, completed_at: null });
         tasks.push({ type: 'Dinner', time: '6:00 PM', is_template: true, completed: false, completed_at: null });
     }
+    
+    // Add daily "Ate" check task
+    tasks.push({ type: 'Ate', time: '', date: checkInDate, is_template: true, completed: false, completed_at: null, recurrence_type: 'days', recurrence_interval: 1 });
         
     // Medications (automatically added for boarding based on frequency)
     visitMedications.forEach(med => {
