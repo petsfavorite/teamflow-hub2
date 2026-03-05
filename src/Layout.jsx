@@ -42,7 +42,7 @@ export default function Layout({ children }) {
     return (
         <div className="min-h-screen bg-stone-50 flex" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
             {/* Desktop Sidebar */}
-            <nav className={`hidden md:flex flex-col bg-white border-r border-stone-200 p-4 gap-2 fixed h-screen transition-all duration-300 z-40 ${
+            <nav className={`hidden md:flex flex-col bg-white border-r border-stone-200 p-4 gap-2 fixed h-screen transition-all duration-300 z-40 overflow-y-auto ${
                 sidebarOpen ? 'w-64' : 'w-20'
             }`}>
                 <button
