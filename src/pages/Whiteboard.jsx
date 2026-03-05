@@ -8,11 +8,13 @@ import { CalendarDays, CalendarRange, Plus, RefreshCw, FileText } from "lucide-r
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import moment from "moment";
+import { useState, useEffect } from 'react';
 
 import DayView from '@/components/whiteboard/DayView';
 import WeekView from '@/components/whiteboard/WeekView';
 import VisitPanel from '@/components/visit/VisitPanel';
 import CheckoutDialog from '@/components/visit/CheckoutDialog';
+import PetArchive from '@/components/whiteboard/PetArchive';
 
 export default function Whiteboard() {
     const [selectedDate, setSelectedDate] = useState(moment().format('YYYY-MM-DD'));
@@ -21,8 +23,14 @@ export default function Whiteboard() {
     const [selectedPet, setSelectedPet] = useState(null);
     const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
     const [activeTab, setActiveTab] = useState('day');
+    const [showArchive, setShowArchive] = useState(false);
+    const [currentUser, setCurrentUser] = useState(null);
 
     const queryClient = useQueryClient();
+
+    useEffect(() => {
+        base44.auth.me().then(setCurrentUser).catch(() => {});
+    }, []);
 
     // Auto-refresh every 60 seconds when on Day View
     useEffect(() => {
@@ -36,10 +44,13 @@ export default function Whiteboard() {
         return () => clearInterval(interval);
     }, [activeTab, queryClient]);
 
-    const { data: pets = [], isLoading: petsLoading } = useQuery({
-        queryKey: ['pets'],
-        queryFn: () => base44.entities.Pet.list()
-    });
+    const { data: allPets = [], isLoading: petsLoading } = useQuery({
+         queryKey: ['pets'],
+         queryFn: () => base44.entities.Pet.list()
+     });
+
+     // Filter out archived pets for normal view
+     const pets = allPets.filter(p => !p.is_archived);
 
     const { data: visits = [], isLoading: visitsLoading } = useQuery({
         queryKey: ['visits'],
@@ -140,17 +151,34 @@ export default function Whiteboard() {
                         </Button>
                     </Link>
                     <Link to={createPageUrl('CheckIn')}>
-                        <Button className="rounded-xl bg-[#82bb32] hover:bg-[#82bb32]/90 text-white">
-                            <Plus className="w-4 h-4 md:mr-2" />
-                            <span className="hidden md:inline">Check In</span>
-                        </Button>
-                    </Link>
+                         <Button className="rounded-xl bg-[#82bb32] hover:bg-[#82bb32]/90 text-white">
+                             <Plus className="w-4 h-4 md:mr-2" />
+                             <span className="hidden md:inline">Check In</span>
+                         </Button>
+                     </Link>
+                     {(currentUser?.role === 'manager' || currentUser?.role === 'admin' || currentUser?.role === 'super_admin') && (
+                         <Button 
+                             variant="outline" 
+                             onClick={() => setShowArchive(!showArchive)}
+                             className="rounded-xl border-stone-200"
+                         >
+                             <span className="hidden sm:inline">Archive</span>
+                             <span className="sm:hidden">📦</span>
+                         </Button>
+                     )}
                 </div>
             </div>
 
             {/* Main Content */}
             <div>
-                {isLoading ? (
+                {showArchive ? (
+                    <PetArchive 
+                        archivedPets={allPets.filter(p => p.is_archived)}
+                        onRestore={(petId) => {
+                            updatePetMutation.mutateAsync({ id: petId, data: { is_archived: false } });
+                        }}
+                    />
+                ) : isLoading ? (
                     <div className="flex items-center justify-center py-20">
                         <RefreshCw className="w-8 h-8 text-[#82bb32] animate-spin" />
                     </div>
