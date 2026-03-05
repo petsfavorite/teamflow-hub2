@@ -105,7 +105,9 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
     const feedingCheckInMinute = moment().minute();
 
     const addFeedingTasksDaily = (type, hour, minute) => {
-        const taskTime = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')} ${hour >= 12 ? 'PM' : 'AM'}`;
+        const ampm = hour >= 12 ? 'PM' : 'AM';
+        const displayHour = hour > 12 ? hour - 12 : (hour === 0 ? 12 : hour);
+        const taskTime = `${String(displayHour).padStart(2, '0')}:${String(minute).padStart(2, '0')} ${ampm}`;
         const startDate = feedingCheckInHour < hour || (feedingCheckInHour === hour && feedingCheckInMinute < minute) 
             ? checkInDate 
             : moment(checkInDate).add(1, 'day').format('YYYY-MM-DD');
