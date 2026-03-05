@@ -221,29 +221,17 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
                     </div>
 
                     <div className="pt-4 border-t border-stone-100">
-                        <div className="flex items-center space-x-2 mb-4">
-                            <Checkbox 
-                                id="playcamp" 
-                                checked={addPlayCamp}
-                                onCheckedChange={setAddPlayCamp}
-                            />
-                            <Label htmlFor="playcamp" className="cursor-pointer">
-                                Add Play Camp
-                            </Label>
-                        </div>
-
-                        {addPlayCamp && (
-                            <Select value={playCampDuration} onValueChange={setPlayCampDuration}>
-                                <SelectTrigger className="rounded-xl">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="half_day">Half Day (2 sessions)</SelectItem>
-                                    <SelectItem value="full_day">Full Day (4 sessions)</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        )}
-                    </div>
+                         <div className="flex items-center space-x-2">
+                             <Checkbox 
+                                 id="playcamp" 
+                                 checked={addPlayCamp}
+                                 onCheckedChange={setAddPlayCamp}
+                             />
+                             <Label htmlFor="playcamp" className="cursor-pointer">
+                                 Add Full Day Play Camp? (4 sessions)
+                             </Label>
+                         </div>
+                     </div>
 
                     {/* Medications for this visit */}
                     <div className="pt-4 border-t border-stone-100 space-y-3">
