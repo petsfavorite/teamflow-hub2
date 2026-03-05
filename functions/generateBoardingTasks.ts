@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
                 {
                     type: 'Bedtime Walk',
                     time: '7:30 PM',
-                    date: taskDate('7:30 PM'),
+                    date: getTaskDate('7:30 PM'),
                     is_template: true,
                     completed: false,
                     completed_at: null,
