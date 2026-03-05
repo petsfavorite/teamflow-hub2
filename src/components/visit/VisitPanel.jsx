@@ -639,6 +639,40 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                         </Card>
                     )}
 
+                    {/* Ate Meal Notes */}
+                    {(() => {
+                        const ateMealTasks = filteredTasks.filter(t => t.type === 'Ate Meal');
+                        return ateMealTasks.length > 0 ? (
+                            <Card className="border-0 shadow-sm rounded-2xl">
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-sm flex items-center gap-2">
+                                        <Plus className="w-4 h-4 text-stone-400" />
+                                        Meal Notes
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                    {ateMealTasks.map((task, idx) => (
+                                        <div key={idx} className="space-y-1">
+                                            <Label className="text-xs text-stone-600">{task.time}</Label>
+                                            <Textarea
+                                                placeholder={`Notes for meal at ${task.time}`}
+                                                value={task.notes || ''}
+                                                onChange={(e) => {
+                                                    const updated = [...visit.scheduled_tasks];
+                                                    const taskIdx = updated.findIndex(t => t === task);
+                                                    if (taskIdx >= 0) updated[taskIdx].notes = e.target.value;
+                                                    setVisitData(prev => ({ ...prev, scheduled_tasks: updated }));
+                                                }}
+                                                className="rounded-xl text-xs"
+                                                rows={2}
+                                            />
+                                        </div>
+                                    ))}
+                                </CardContent>
+                            </Card>
+                        ) : null;
+                    })()}
+
                     {/* Add Activity */}
                     <Card className="border-0 shadow-sm rounded-2xl">
                         <CardHeader className="pb-2">
