@@ -21,6 +21,13 @@ export default function ExternalLinks() {
   const [editingLink, setEditingLink] = useState(null);
   const [form, setForm] = useState({ title: '', url: '', description: '', icon: '🔗', category: '' });
 
+  // PDF Library state
+  const [showPDFForm, setShowPDFForm] = useState(false);
+  const [editingPDF, setEditingPDF] = useState(null);
+  const [pdfForm, setPdfForm] = useState({ title: '', description: '', category: '', file_url: '' });
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
+
   const { data: links = [], isLoading } = useQuery({
     queryKey: ['external-links'],
     queryFn: () => base44.entities.ExternalLink.list('order', 100),
