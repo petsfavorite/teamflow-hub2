@@ -136,7 +136,8 @@ Deno.serve(async (req) => {
                     notes: '',
                     recurrence_type: 'days',
                     recurrence_interval: 1,
-                    last_completed_iso: null
+                    last_completed_iso: null,
+                    skip_first_day: shouldSkipFirstDay('9:00 AM')
                 },
                 {
                     type: 'Check Litterbox',
@@ -149,7 +150,8 @@ Deno.serve(async (req) => {
                     notes: '',
                     recurrence_type: 'days',
                     recurrence_interval: 1,
-                    last_completed_iso: null
+                    last_completed_iso: null,
+                    skip_first_day: shouldSkipFirstDay('7:30 PM')
                 },
                 {
                     type: 'Clean Beds and Kennel',
