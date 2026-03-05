@@ -84,6 +84,30 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
         return timeA.diff(timeB);
     });
 
+    // Generate 4 play sessions for weekdays if play camp is enabled
+    const getPlaySessionsForDate = () => {
+        const viewMoment = moment(viewDate);
+        const dayOfWeek = viewMoment.day(); // 0=Sun, 1=Mon, 5=Fri, 6=Sat
+
+        // Check if play camp is enabled (has play sessions or play_camp_duration)
+        if (!visit.play_camp_duration && (!visit.play_sessions || visit.play_sessions.length === 0)) {
+            return [];
+        }
+
+        // Only show 4 sessions on weekdays (Mon-Fri)
+        if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+            return [
+                { session_number: 1, completed: false, completed_at: null, temp: true },
+                { session_number: 2, completed: false, completed_at: null, temp: true },
+                { session_number: 3, completed: false, completed_at: null, temp: true },
+                { session_number: 4, completed: false, completed_at: null, temp: true }
+            ];
+        }
+        return [];
+    };
+
+    const playSessions = getPlaySessionsForDate();
+
     const handleLocationChange = (location) => {
         const trimmed = location.slice(0, 10);
         setLocationInput(trimmed);
