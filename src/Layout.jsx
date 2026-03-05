@@ -53,6 +53,7 @@ export default function Layout({ children }) {
 
     const isActive = (pageName) => location.pathname.toLowerCase().includes(pageName.toLowerCase());
     const canSeeAdmin = user && ADMIN_ROLES.includes(user.role);
+    const isSuperAdmin = user?.role === 'super_admin';
 
     // Auto-open admin dropdown if we're on an admin page
     const isOnAdminPage = adminNavItems.some(i => isActive(i.name));
