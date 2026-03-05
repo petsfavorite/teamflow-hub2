@@ -44,12 +44,12 @@ export default function BoardingWhiteboardCard({ pet, visit, onViewVisit }) {
     // Yellow alert logic
     // FIRST: Check if pet has been checked in for more than 48 hours
     // THEN: Check if required observations are missing
-    const fortyEightHoursAgo = moment().subtract(48, 'hours');
     const hasYellowAlert = (() => {
         // 1. Must be a boarding visit
         if (visit.visit_type !== 'boarding') return false;
         
         // 2. FIRST - Check if checked in MORE than 48 hours ago
+        const fortyEightHoursAgo = moment().subtract(48, 'hours');
         const checkedInMoreThan48Hours = checkInTime.isBefore(fortyEightHoursAgo);
         if (!checkedInMoreThan48Hours) return false;
 
