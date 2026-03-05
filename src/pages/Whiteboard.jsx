@@ -151,20 +151,10 @@ export default function Whiteboard() {
                     </Link>
                     <Link to={createPageUrl('CheckIn')}>
                          <Button className="rounded-xl bg-[#82bb32] hover:bg-[#82bb32]/90 text-white">
-                             <Plus className="w-4 h-4 md:mr-2" />
-                             <span className="hidden md:inline">Check In</span>
-                         </Button>
-                     </Link>
-                     {(currentUser?.role === 'manager' || currentUser?.role === 'admin' || currentUser?.role === 'super_admin') && (
-                         <Button 
-                             variant="outline" 
-                             onClick={() => setShowArchive(!showArchive)}
-                             className="rounded-xl border-stone-200"
-                         >
-                             <span className="hidden sm:inline">Archive</span>
-                             <span className="sm:hidden">📦</span>
-                         </Button>
-                     )}
+                              <Plus className="w-4 h-4 md:mr-2" />
+                              <span className="hidden md:inline">Check In</span>
+                          </Button>
+                      </Link>
                 </div>
             </div>
 
