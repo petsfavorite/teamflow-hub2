@@ -9,8 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ExternalLink, Plus, Globe, Trash2, Pencil, Loader2 } from 'lucide-react';
+import { ExternalLink, Plus, Globe, Trash2, Pencil, Loader2, FileText, Upload } from 'lucide-react';
 import { toast } from "sonner";
+import { useRef } from 'react';
 
 export default function ExternalLinks() {
   const { isAdmin, isSuperAdmin } = useCurrentUser();
