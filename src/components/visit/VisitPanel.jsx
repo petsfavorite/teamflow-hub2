@@ -121,17 +121,19 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
 
     const handleCompleteTask = (taskIndex) => {
         const task = visit.scheduled_tasks[taskIndex];
+        const today = moment().format('YYYY-MM-DD');
         
-        // If already completed, toggle it back to incomplete
+        // If already completed today, toggle it back to incomplete
         if (task.completed) {
             const updatedTasks = [...visit.scheduled_tasks];
             updatedTasks[taskIndex] = {
                 ...updatedTasks[taskIndex],
                 completed: false,
                 completed_at: null,
-                completed_by: null
+                completed_by: null,
+                completed_date: null,
+                completed_iso: null
             };
-            // Optimistic update
             onUpdateVisit({ ...visit, scheduled_tasks: updatedTasks });
             return;
         }
@@ -139,31 +141,25 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
         // Derive initials from current user's name
         const name = currentUser?.full_name || '';
         const initials = name.split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase() || '?';
-        
-        // Ask for notes if this is "Observed feces"
-        let fecesNotes = '';
-        if (task.type === 'Observed feces') {
-            fecesNotes = prompt('Any notes about feces? (optional)') || '';
-        }
+        const timestamp = moment().format('h:mm A');
         
         const updatedTasks = [...visit.scheduled_tasks];
         updatedTasks[taskIndex] = {
             ...updatedTasks[taskIndex],
             completed: true,
-            completed_at: moment().format('h:mm A'),
+            completed_at: timestamp,
             completed_iso: new Date().toISOString(),
             completed_by: initials,
-            notes: fecesNotes || updatedTasks[taskIndex].notes
+            completed_date: today
         };
         
         const careLog = [...(visit.care_log || []), {
-            time: moment().format('h:mm A'),
+            time: timestamp,
+            date: today,
             activity: updatedTasks[taskIndex].type,
             notes: updatedTasks[taskIndex].medication_name 
                 ? `Gave ${updatedTasks[taskIndex].medication_name} (${initials})` 
-                : fecesNotes 
-                ? `${fecesNotes} (${initials})` 
-                : `Completed (${initials})`
+                : `Completed by ${initials}`
         }];
         
         // If this is a "Collect Feces" task, mark it as collected so it doesn't carry over
