@@ -165,7 +165,7 @@ export default function Pets() {
                         {!searchQuery && (
                             <Button 
                                 onClick={() => setShowAddDialog(true)}
-                                className="rounded-xl bg-amber-500 hover:bg-amber-600"
+                                className="rounded-xl bg-[#82bb32] hover:bg-[#82bb32]/90"
                             >
                                 <Plus className="w-4 h-4 mr-2" />
                                 Add Pet
@@ -186,10 +186,10 @@ export default function Pets() {
                             ))}
                         </AnimatePresence>
                     </div>
-                )}
-            </div>
+                    )}
+                    </div>
 
-            {/* Add/Edit Dialog */}
+                    {/* Add/Edit Dialog */}
             <Dialog 
                 open={showAddDialog || !!editingPet} 
                 onOpenChange={() => { setShowAddDialog(false); setEditingPet(null); }}
