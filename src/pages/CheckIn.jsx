@@ -209,52 +209,36 @@ export default function CheckIn() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-stone-50 via-emerald-50/30 to-stone-50">
+        <div className="space-y-6">
             {/* Header */}
-            <div className="bg-white/80 backdrop-blur-md border-b border-stone-100 sticky top-0 z-40">
-                <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <Link to={createPageUrl('Whiteboard')}>
-                                <Button variant="ghost" size="icon" className="rounded-xl">
-                                    <ArrowLeft className="w-5 h-5" />
-                                </Button>
-                            </Link>
-                            <div>
-                                <h1 className="text-3xl font-bold text-[#82bb32]">FLOOF</h1>
-                                <p className="text-xs text-stone-500 mt-0.5">Facility Log Of Occupancy & Fun</p>
-                                <p className="text-sm text-stone-700 mt-2">
-                                    {availablePets.length} pets available
-                                </p>
-                            </div>
-                        </div>
-                        <Button 
-                            onClick={() => setShowAddDialog(true)}
-                            className="rounded-xl bg-amber-500 hover:bg-amber-600"
-                        >
-                            <Plus className="w-4 h-4 mr-2" />
-                            New Pet
-                        </Button>
-                    </div>
-
-                    {/* Search */}
-                    <div className="mt-4">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
-                            <Input
-                                placeholder="Search pets..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-10 rounded-xl border-stone-200 bg-stone-50/50"
-                                autoFocus
-                            />
-                        </div>
-                    </div>
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Check In</h1>
+                    <p className="text-slate-500 mt-1">{availablePets.length} pets available to check in</p>
                 </div>
+                <Button 
+                    onClick={() => setShowAddDialog(true)}
+                    className="rounded-xl bg-[#82bb32] hover:bg-[#82bb32]/90"
+                >
+                    <Plus className="w-4 h-4 mr-2" />
+                    New Pet
+                </Button>
+            </div>
+
+            {/* Search */}
+            <div className="relative max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+                <Input
+                    placeholder="Search pets..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 rounded-xl border-stone-200 bg-white"
+                    autoFocus
+                />
             </div>
 
             {/* Main Content */}
-            <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6">
+            <div>
                 {isLoading ? (
                     <div className="flex items-center justify-center py-20">
                         <RefreshCw className="w-8 h-8 text-emerald-500 animate-spin" />
