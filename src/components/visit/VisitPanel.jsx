@@ -195,11 +195,13 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
             staff: initials
         }];
         
-        // If this is a "Collect Feces" task, mark it as collected so it doesn't carry over
+        // If this is a "Collect Feces" task, mark it as collected and update visit status
         if (task.type === 'Collect Feces') {
             updatedTasks[taskIndex].collected = true;
+            onUpdateVisit({ ...visit, scheduled_tasks: updatedTasks, care_log: careLog, fecal_collected: true });
+            return;
         }
-        
+
         // Optimistic update
         onUpdateVisit({ ...visit, scheduled_tasks: updatedTasks, care_log: careLog });
     };
