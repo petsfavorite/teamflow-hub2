@@ -151,7 +151,6 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
                     <AnimatePresence>
                         {petsWithVisits.map(({ pet, visit }) => {
                              const isCat = pet.species === 'Cat';
-                             const isEditing = editingLocation === visit.id;
                              const needsFecesCollection = hasCollectFeces(visit);
                              const hasEmergencyAlert = visit.emergency_alert_active;
 
