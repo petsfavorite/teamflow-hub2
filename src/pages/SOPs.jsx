@@ -23,9 +23,18 @@ export default function SOPs() {
 
   const { data: sops = [], isLoading } = useQuery({
     queryKey: ['sops-all'],
-    queryFn: () => canManage
-      ? base44.entities.SOP.filter({ status: ['draft', 'pending_approval', 'published', 'archived'] }, '-updated_date', 200)
-      : base44.entities.SOP.filter({ status: 'published' }, '-updated_date', 200),
+    queryFn: async () => {
+      if (canManage) {
+        const [drafts, pending, published, archived] = await Promise.all([
+          base44.entities.SOP.filter({ status: 'draft' }, '-updated_date', 200),
+          base44.entities.SOP.filter({ status: 'pending_approval' }, '-updated_date', 200),
+          base44.entities.SOP.filter({ status: 'published' }, '-updated_date', 200),
+          base44.entities.SOP.filter({ status: 'archived' }, '-updated_date', 200),
+        ]);
+        return [...drafts, ...pending, ...published, ...archived].sort((a, b) => new Date(b.updated_date) - new Date(a.updated_date));
+      }
+      return base44.entities.SOP.filter({ status: 'published' }, '-updated_date', 200);
+    },
   });
 
   const deleteMutation = useMutation({
