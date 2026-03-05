@@ -48,11 +48,13 @@ Deno.serve(async (req) => {
         };
 
         if (species === 'Dog') {
-            tasks = [
-                {
+            // Conditionally add walks based on check-in time
+            // Morning walk if checked in before 8:00 AM
+            if (checkInHour < 8 || (checkInHour === 8 && checkInMinute === 0)) {
+                tasks.push({
                     type: 'AM Walk',
                     time: '8:30 AM',
-                    date: getTaskDate('8:30 AM'),
+                    date: checkInDate,
                     is_template: true,
                     completed: false,
                     completed_at: null,
@@ -60,13 +62,31 @@ Deno.serve(async (req) => {
                     notes: '',
                     recurrence_type: 'days',
                     recurrence_interval: 1,
-                    last_completed_iso: null,
-                    skip_first_day: shouldSkipFirstDay('8:30 AM')
-                },
-                {
+                    last_completed_iso: null
+                });
+            } else {
+                // Schedule morning walk for next day if checked in after 8:00 AM
+                tasks.push({
+                    type: 'AM Walk',
+                    time: '8:30 AM',
+                    date: new Date(new Date(checkInDate).getTime() + 86400000).toISOString().split('T')[0],
+                    is_template: true,
+                    completed: false,
+                    completed_at: null,
+                    completed_by: null,
+                    notes: '',
+                    recurrence_type: 'days',
+                    recurrence_interval: 1,
+                    last_completed_iso: null
+                });
+            }
+
+            // Lunch walk if checked in before 1:00 PM
+            if (checkInHour < 13 || (checkInHour === 13 && checkInMinute === 0)) {
+                tasks.push({
                     type: 'Lunch Walk',
                     time: '1:00 PM',
-                    date: getTaskDate('1:00 PM'),
+                    date: checkInDate,
                     is_template: true,
                     completed: false,
                     completed_at: null,
@@ -74,13 +94,31 @@ Deno.serve(async (req) => {
                     notes: '',
                     recurrence_type: 'days',
                     recurrence_interval: 1,
-                    last_completed_iso: null,
-                    skip_first_day: shouldSkipFirstDay('1:00 PM')
-                },
-                {
+                    last_completed_iso: null
+                });
+            } else {
+                // Schedule lunch walk for next day if checked in after 1:00 PM
+                tasks.push({
+                    type: 'Lunch Walk',
+                    time: '1:00 PM',
+                    date: new Date(new Date(checkInDate).getTime() + 86400000).toISOString().split('T')[0],
+                    is_template: true,
+                    completed: false,
+                    completed_at: null,
+                    completed_by: null,
+                    notes: '',
+                    recurrence_type: 'days',
+                    recurrence_interval: 1,
+                    last_completed_iso: null
+                });
+            }
+
+            // Bedtime walk if checked in before 7:30 PM
+            if (checkInHour < 19 || (checkInHour === 19 && checkInMinute < 30)) {
+                tasks.push({
                     type: 'Bedtime Walk',
                     time: '7:30 PM',
-                    date: getTaskDate('7:30 PM'),
+                    date: checkInDate,
                     is_template: true,
                     completed: false,
                     completed_at: null,
@@ -88,9 +126,24 @@ Deno.serve(async (req) => {
                     notes: '',
                     recurrence_type: 'days',
                     recurrence_interval: 1,
-                    last_completed_iso: null,
-                    skip_first_day: shouldSkipFirstDay('7:30 PM')
-                },
+                    last_completed_iso: null
+                });
+            } else {
+                // Schedule bedtime walk for next day if checked in after 7:30 PM
+                tasks.push({
+                    type: 'Bedtime Walk',
+                    time: '7:30 PM',
+                    date: new Date(new Date(checkInDate).getTime() + 86400000).toISOString().split('T')[0],
+                    is_template: true,
+                    completed: false,
+                    completed_at: null,
+                    completed_by: null,
+                    notes: '',
+                    recurrence_type: 'days',
+                    recurrence_interval: 1,
+                    last_completed_iso: null
+                });
+            }
                 {
                     type: 'Refresh Water',
                     time: '',
