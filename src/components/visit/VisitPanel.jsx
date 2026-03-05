@@ -216,11 +216,12 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
 
     const handleAddActivity = () => {
         if (!newNotes) return;
+        const initials = currentUser?.full_name?.split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase() || '?';
         const careLog = [...(visit.care_log || []), {
             time: moment().format('h:mm A'),
             activity: 'Note',
             notes: newNotes,
-            staff: ''
+            staff: initials
         }];
         onUpdateVisit({ ...visit, care_log: careLog });
         setNewActivity('');
