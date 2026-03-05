@@ -234,59 +234,60 @@ Deno.serve(async (req) => {
                     last_completed_iso: null
                 });
             }
-                {
-                    type: 'Clean Beds and Kennel',
-                    time: '',
-                    date: checkInDate,
-                    is_template: true,
-                    completed: false,
-                    completed_at: null,
-                    completed_by: null,
-                    notes: '',
-                    recurrence_type: 'days',
-                    recurrence_interval: 1,
-                    last_completed_iso: null
-                },
-                {
-                    type: 'Refresh Water',
-                    time: '',
-                    date: checkInDate,
-                    is_template: true,
-                    completed: false,
-                    completed_at: null,
-                    completed_by: null,
-                    notes: '',
-                    recurrence_type: 'days',
-                    recurrence_interval: 1,
-                    last_completed_iso: null
-                },
-                {
-                    type: 'Urine Observed',
-                    time: '',
-                    date: checkInDate,
-                    is_template: true,
-                    completed: false,
-                    completed_at: null,
-                    completed_by: null,
-                    notes: '',
-                    recurrence_type: 'days',
-                    recurrence_interval: 1,
-                    last_completed_iso: null
-                },
-                {
-                    type: 'Feces Observed',
-                    time: '',
-                    date: checkInDate,
-                    is_template: true,
-                    completed: false,
-                    completed_at: null,
-                    completed_by: null,
-                    notes: '',
-                    recurrence_type: 'days',
-                    recurrence_interval: 1,
-                    last_completed_iso: null
-                }
-            ];
+
+            // Add remaining non-timed cat tasks
+            tasks.push({
+                type: 'Clean Beds and Kennel',
+                time: '',
+                date: checkInDate,
+                is_template: true,
+                completed: false,
+                completed_at: null,
+                completed_by: null,
+                notes: '',
+                recurrence_type: 'days',
+                recurrence_interval: 1,
+                last_completed_iso: null
+            });
+            tasks.push({
+                type: 'Refresh Water',
+                time: '',
+                date: checkInDate,
+                is_template: true,
+                completed: false,
+                completed_at: null,
+                completed_by: null,
+                notes: '',
+                recurrence_type: 'days',
+                recurrence_interval: 1,
+                last_completed_iso: null
+            });
+            tasks.push({
+                type: 'Urine Observed',
+                time: '',
+                date: checkInDate,
+                is_template: true,
+                completed: false,
+                completed_at: null,
+                completed_by: null,
+                notes: '',
+                recurrence_type: 'days',
+                recurrence_interval: 1,
+                last_completed_iso: null
+            });
+            tasks.push({
+                type: 'Feces Observed',
+                time: '',
+                date: checkInDate,
+                is_template: true,
+                completed: false,
+                completed_at: null,
+                completed_by: null,
+                notes: '',
+                recurrence_type: 'days',
+                recurrence_interval: 1,
+                last_completed_iso: null
+            });
         }
 
         return Response.json({ tasks });
