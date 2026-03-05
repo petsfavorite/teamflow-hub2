@@ -31,9 +31,9 @@ export default function Whiteboard() {
         base44.auth.me().then(setCurrentUser).catch(() => {});
     }, []);
 
-    // Auto-refresh every 5 seconds when on Day View
+    // Auto-refresh every 5 seconds when on Day View (but not when panel is open)
     useEffect(() => {
-        if (activeTab !== 'day') return;
+        if (activeTab !== 'day' || selectedVisit) return;
         
         const interval = setInterval(() => {
             queryClient.invalidateQueries(['visits']);
@@ -41,7 +41,7 @@ export default function Whiteboard() {
         }, 5000); // 5 seconds
         
         return () => clearInterval(interval);
-    }, [activeTab, queryClient]);
+    }, [activeTab, queryClient, selectedVisit]);
 
     const { data: allPets = [], isLoading: petsLoading } = useQuery({
          queryKey: ['pets'],
