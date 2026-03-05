@@ -75,39 +75,26 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
         return visit.scheduled_tasks?.some(task => task.type === 'Collect Feces' && !task.completed) || false;
     };
 
-    // Get the most recent observation time for a given type, using completed_iso or care_log fallback
+    // Get the most recent completed_iso for a given task type
     const getLastObservationTime = (visit, type) => {
-        // First try tasks with completed_iso
-        const fromTasks = visit.scheduled_tasks
+        return visit.scheduled_tasks
             ?.filter(t => t.type === type && t.completed_iso)
             .map(t => moment(t.completed_iso))
-            .sort((a, b) => b.diff(a))[0];
-        if (fromTasks) return fromTasks;
-
-        // Fallback: care_log entries (no date info, so treat as today's date)
-        const fromLog = visit.care_log
-            ?.filter(l => l.activity === type)
-            .map(l => {
-                // Parse as today's date with the given time
-                const t = moment(l.time, 'h:mm A');
-                return t;
-            })
-            .sort((a, b) => b.diff(a))[0];
-        return fromLog || null;
+            .sort((a, b) => b.diff(a))[0] || null;
     };
 
-    // Check if a pet needs alert (yellow) - no "Observed feces" in 48hrs for any pet,
-    // or no "Observed urination" in 48hrs for cats
+    // Yellow alert: Feces Observed not completed in 48hrs for all boarding pets,
+    // or Urine Observed not completed in 48hrs for cats
     const needsAlert = (visit, pet) => {
         if (visit.visit_type !== 'boarding') return false;
 
         const fortyEightHoursAgo = moment().subtract(48, 'hours');
 
-        const lastFeces = getLastObservationTime(visit, 'Observed feces');
+        const lastFeces = getLastObservationTime(visit, 'Feces Observed');
         if (!lastFeces || lastFeces.isBefore(fortyEightHoursAgo)) return true;
 
         if (pet?.species === 'Cat') {
-            const lastUrine = getLastObservationTime(visit, 'Observed urination');
+            const lastUrine = getLastObservationTime(visit, 'Urine Observed');
             if (!lastUrine || lastUrine.isBefore(fortyEightHoursAgo)) return true;
         }
 
