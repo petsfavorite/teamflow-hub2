@@ -443,6 +443,66 @@ export default function Settings() {
           </div>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Edit Profile Dialog */}
+      <Dialog open={editProfileOpen} onOpenChange={setEditProfileOpen}>
+        <DialogContent className="rounded-2xl max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Profile</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                value={profileName}
+                onChange={(e) => setProfileName(e.target.value)}
+                className="rounded-xl"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={profileEmail}
+                onChange={(e) => setProfileEmail(e.target.value)}
+                className="rounded-xl"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="timezone">Timezone</Label>
+              <Select value={profileTimezone} onValueChange={setProfileTimezone}>
+                <SelectTrigger className="rounded-xl">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="America/New_York">Eastern (New York)</SelectItem>
+                  <SelectItem value="America/Chicago">Central (Chicago)</SelectItem>
+                  <SelectItem value="America/Denver">Mountain (Denver)</SelectItem>
+                  <SelectItem value="America/Los_Angeles">Pacific (Los Angeles)</SelectItem>
+                  <SelectItem value="America/Anchorage">Alaska (Anchorage)</SelectItem>
+                  <SelectItem value="Pacific/Honolulu">Hawaii (Honolulu)</SelectItem>
+                  <SelectItem value="UTC">UTC</SelectItem>
+                  <SelectItem value="Europe/London">London</SelectItem>
+                  <SelectItem value="Europe/Paris">Paris</SelectItem>
+                  <SelectItem value="Asia/Tokyo">Tokyo</SelectItem>
+                  <SelectItem value="Asia/Shanghai">Shanghai</SelectItem>
+                  <SelectItem value="Australia/Sydney">Sydney</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" className="rounded-xl" onClick={() => setEditProfileOpen(false)}>
+              Cancel
+            </Button>
+            <Button className="rounded-xl bg-[#82bb32] hover:bg-[#82bb32]/90" onClick={handleSaveProfile} disabled={isSavingProfile}>
+              {isSavingProfile ? 'Saving...' : 'Save'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
