@@ -649,7 +649,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                                  ) : (
                                                      <Button 
                                                          size="sm"
-                                                         onClick={() => {
+                                                         onClick={async () => {
                                                              const updatedSessions = [...visit.play_sessions];
                                                              updatedSessions[idx] = {
                                                                  ...updatedSessions[idx],
@@ -657,7 +657,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                                                  completed_at: null,
                                                                  completed_date: null
                                                              };
-                                                             onUpdateVisit({ ...visit, play_sessions: updatedSessions });
+                                                             await onUpdateVisit({ ...visit, play_sessions: updatedSessions });
                                                          }}
                                                          variant="outline"
                                                          className="rounded-xl h-7 text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-50"
