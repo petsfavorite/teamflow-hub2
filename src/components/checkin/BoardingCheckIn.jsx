@@ -194,6 +194,7 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
                                 id="needfecal" 
                                 checked={needFecal}
                                 onCheckedChange={setNeedFecal}
+                                onClick={(e) => e.preventDefault()}
                             />
                             <Label htmlFor="needfecal" className="cursor-pointer">
                                 Need Fecal?
