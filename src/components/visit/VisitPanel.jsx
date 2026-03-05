@@ -47,11 +47,14 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
          const isCheckInDay = moment(visit.check_in_date).format('YYYY-MM-DD') === date;
          const checkInTime = moment(visit.check_in_time);
 
-         // Don't show "Collect Feces" if already collected during stay
-         if (visit.fecal_collected) {
+         // Don't show "Need Feces" if already completed once
+         const needFecesTask = visit.scheduled_tasks?.find(t => t.type === 'Need Feces');
+         const fecesCompleted = needFecesTask?.completed;
+
+         if (fecesCompleted) {
              let tasks = visit.scheduled_tasks?.filter(task => {
-                 // Filter out "Collect Feces"
-                 if (task.type === 'Collect Feces') return false;
+                 // Filter out "Need Feces"
+                 if (task.type === 'Need Feces') return false;
 
                  if (task.date) {
                      return task.date === date;
@@ -78,22 +81,6 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
              return tasks;
          }
 
-         // Check if there's an uncompleted "Collect Feces" from yesterday
-         const yesterday = moment(date).subtract(1, 'day').format('YYYY-MM-DD');
-         const yesterdayTasks = visit.scheduled_tasks?.filter(task => {
-             if (task.type !== 'Collect Feces') return false;
-             if (task.date) return task.date === yesterday;
-             if (task.is_template) {
-                 const visitStart = moment(visit.check_in_date);
-                 const visitEnd = visit.scheduled_checkout_date ? moment(visit.scheduled_checkout_date) : moment().add(30, 'days');
-                 const yesterdayDate = moment(yesterday);
-                 return yesterdayDate.isBetween(visitStart, visitEnd, 'day', '[]');
-             }
-             return false;
-         }) || [];
-
-         const hasUncompletedFecesFromYesterday = yesterdayTasks.some(task => !task.completed || !task.collected);
-
          let tasks = visit.scheduled_tasks?.filter(task => {
              if (task.date) {
                  return task.date === date;
@@ -117,22 +104,6 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
              }
              return false;
          }) || [];
-
-         // Add rolled-over "Collect Feces" from yesterday if needed
-         if (hasUncompletedFecesFromYesterday && date === moment().format('YYYY-MM-DD')) {
-             const alreadyHasCollectFeces = tasks.some(t => t.type === 'Collect Feces');
-             if (!alreadyHasCollectFeces) {
-                 tasks.push({
-                     type: 'Collect Feces',
-                     time: '',
-                     is_template: true,
-                     completed: false,
-                     completed_at: null,
-                     collected: false,
-                     rolled_over: true
-                 });
-             }
-         }
 
          return tasks;
      };
