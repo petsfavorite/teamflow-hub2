@@ -13,6 +13,21 @@ import { base44 } from '@/api/base44Client';
 export default function DayView({ pets, visits, selectedDate, onDateChange, onViewVisit, onUpdateLocation, onRefresh }) {
     const [editingLocation, setEditingLocation] = useState(null);
     const [locationValue, setLocationValue] = useState('');
+    const [userTimezone, setUserTimezone] = useState('UTC');
+
+    useEffect(() => {
+        const fetchUserTimezone = async () => {
+            try {
+                const user = await base44.auth.me();
+                if (user?.timezone) {
+                    setUserTimezone(user.timezone);
+                }
+            } catch (err) {
+                // Use UTC as fallback
+            }
+        };
+        fetchUserTimezone();
+    }, []);
 
     const todayVisits = visits.filter(v => 
         v.status === 'checked_in' && 
