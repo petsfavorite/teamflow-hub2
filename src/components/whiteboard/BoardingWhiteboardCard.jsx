@@ -33,7 +33,7 @@ export default function BoardingWhiteboardCard({ pet, visit, onViewVisit }) {
     const needsPicture = pet.daily_picture && !visit.picture_sent;
 
     const cardColor = visit.emergency_alert_active 
-        ? 'border-yellow-400 bg-yellow-100' 
+        ? 'border-red-500 bg-red-200' 
         : 'border-stone-200 bg-stone-50';
 
     return (
@@ -70,7 +70,7 @@ export default function BoardingWhiteboardCard({ pet, visit, onViewVisit }) {
                                 <div className="flex items-center gap-2">
                                     <h3 className="font-bold text-base text-stone-800">{pet.name}</h3>
                                     {visit.emergency_alert_active && (
-                                        <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0" title={`Emergency: Missing ${visit.emergency_alert_type}`} />
+                                        <AlertCircle className="w-5 h-5 text-red-700 flex-shrink-0" title={`Emergency: Missing ${visit.emergency_alert_type}`} />
                                     )}
                                 </div>
                                 <p className="text-xs text-stone-500">{visit.location || 'Lobby'}</p>

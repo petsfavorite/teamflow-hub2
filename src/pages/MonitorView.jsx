@@ -90,7 +90,7 @@ export default function MonitorView() {
                             <div 
                                 key={visit.id}
                                 className={`rounded-lg p-3 transition-all ${
-                                    hasEmergencyAlert ? 'bg-yellow-300 border-2 border-yellow-500' :
+                                    hasEmergencyAlert ? 'bg-red-400 border-2 border-red-600' :
                                     needsFecesCollection ? 'bg-stone-300 border-2 border-amber-900' : 
                                     'bg-white border-2 border-stone-300'
                                 }`}

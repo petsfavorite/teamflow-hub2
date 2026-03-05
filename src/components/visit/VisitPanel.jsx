@@ -436,15 +436,15 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                 <div className="p-4 space-y-4 pb-6">
                     {/* Emergency Alert */}
                     {visit.emergency_alert_active && (
-                        <Card className="border-2 border-yellow-400 bg-yellow-50">
+                        <Card className="border-2 border-red-500 bg-red-100">
                             <CardHeader className="pb-2">
-                                <CardTitle className="text-sm flex items-center gap-2 text-yellow-900">
-                                    <AlertCircle className="w-5 h-5 text-yellow-600" />
+                                <CardTitle className="text-sm flex items-center gap-2 text-red-900">
+                                    <AlertCircle className="w-5 h-5 text-red-700" />
                                     EMERGENCY ALERT
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-3">
-                                <p className="text-sm text-yellow-800">
+                                <p className="text-sm text-red-800">
                                     {visit.emergency_alert_type === 'both' 
                                         ? 'No feces or urine observed in the last 48 hours'
                                         : visit.emergency_alert_type === 'feces'
@@ -455,7 +455,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                     <Button
                                         onClick={handleDismissEmergencyAlert}
                                         disabled={dismissingAlert}
-                                        className="w-full rounded-xl bg-yellow-600 hover:bg-yellow-700"
+                                        className="w-full rounded-xl bg-red-600 hover:bg-red-700"
                                     >
                                         {dismissingAlert ? 'Dismissing...' : 'Not an Emergency (24h)'}
                                     </Button>

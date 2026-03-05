@@ -51,7 +51,7 @@ export default function PlayCampWhiteboardCard({ pet, visit, onViewVisit }) {
         >
             <Card className={`overflow-hidden border-2 transition-all duration-300 rounded-2xl hover:shadow-lg ${
                 visit.emergency_alert_active 
-                    ? 'border-yellow-400 bg-yellow-100' 
+                    ? 'border-red-500 bg-red-200' 
                     : 'border-stone-200 bg-white'
             }`}>
                 <CardContent className="p-0">
@@ -79,7 +79,7 @@ export default function PlayCampWhiteboardCard({ pet, visit, onViewVisit }) {
                                 <div className="flex items-center gap-2">
                                     <h3 className="font-bold text-base text-stone-800">{pet.name}</h3>
                                     {visit.emergency_alert_active && (
-                                        <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0" title={`Emergency: Missing ${visit.emergency_alert_type}`} />
+                                        <AlertCircle className="w-5 h-5 text-red-700 flex-shrink-0" title={`Emergency: Missing ${visit.emergency_alert_type}`} />
                                     )}
                                 </div>
                                 <p className="text-xs text-stone-500">{visit.location || 'Lobby'}</p>
