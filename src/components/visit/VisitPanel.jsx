@@ -167,7 +167,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
         onUpdateVisit({ ...visit, scheduled_tasks: updatedTasks, care_log: careLog });
     };
 
-    const handleCompletePlaySession = (sessionIndex) => {
+    const handleCompletePlaySession = async (sessionIndex) => {
          const updatedSessions = [...visit.play_sessions];
          const today = moment().format('YYYY-MM-DD');
          const session = updatedSessions[sessionIndex];
@@ -205,7 +205,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
          }
 
          // Save play session completion
-         onUpdateVisit({ ...visit, play_sessions: updatedSessions, care_log: careLog });
+         await onUpdateVisit({ ...visit, play_sessions: updatedSessions, care_log: careLog });
      };
 
     const handleAddPlayCampToBoarding = () => {
