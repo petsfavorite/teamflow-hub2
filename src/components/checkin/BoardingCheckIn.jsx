@@ -38,21 +38,26 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
     };
 
     // Generate tasks when component mounts
-    useEffect(() => {
-        const generateTasks = async () => {
-            setLoadingTasks(true);
-            const checkInDate = moment().format('YYYY-MM-DD');
-            const checkInTime = new Date().toISOString();
-            const response = await base44.functions.invoke('generateBoardingTasks', {
-                species: pet.species,
-                checkInDate: checkInDate,
-                checkInTime: checkInTime
-            });
-            setGeneratedTasks(response.data.tasks);
-            setLoadingTasks(false);
-        };
-        generateTasks();
-    }, [pet.species]);
+     useEffect(() => {
+         const generateTasks = async () => {
+             setLoadingTasks(true);
+             const checkInDate = moment().format('YYYY-MM-DD');
+             const checkInTime = new Date().toISOString();
+             try {
+                 const response = await base44.functions.invoke('generateBoardingTasks', {
+                     species: pet.species,
+                     checkInDate: checkInDate,
+                     checkInTime: checkInTime
+                 });
+                 setGeneratedTasks(response.data.tasks || []);
+             } catch (error) {
+                 console.error('Error generating tasks:', error);
+                 setGeneratedTasks([]);
+             }
+             setLoadingTasks(false);
+         };
+         generateTasks();
+     }, [pet.species]);
 
     const handleSubmit = (e) => {
     e.preventDefault();

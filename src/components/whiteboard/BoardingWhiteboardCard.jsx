@@ -39,8 +39,8 @@ export default function BoardingWhiteboardCard({ pet, visit, onViewVisit }) {
     // Check if picture needs to be sent
     const needsPicture = pet.daily_picture && !visit.picture_sent;
 
-    // Check if "Collect Feces" has been collected or if fecal_collected is marked
-     const hasUncompletedFeces = visit.scheduled_tasks?.some(t => t.type === 'Collect Feces' && !t.completed && !t.collected) && !visit.fecal_collected;
+    // Check if fecal sample has been collected
+     const hasUncompletedFeces = !visit.fecal_collected;
 
      const cardColor = (hasOverdue || hasUncompletedFeces) ? 'border-rose-400 bg-rose-50' : 'border-stone-200 bg-white';
 
