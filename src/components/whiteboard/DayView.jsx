@@ -36,16 +36,17 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
     const getRemainingTasks = (visit, date) => {
         const isCheckInDay = moment(visit.check_in_date).format('YYYY-MM-DD') === date;
         const checkInTime = moment(visit.check_in_time);
-        const now = moment();
-        const isToday = date === moment().format('YYYY-MM-DD');
         
         // Get tasks for this date
         const dateTasks = visit.scheduled_tasks?.filter(task => {
             if (task.date) return task.date === date;
             if (task.is_template) {
+                // Daily observation tasks: hide if completed today
+                if (task.is_daily_observation) {
+                    return !(task.completed && task.completed_date === date);
+                }
                 // Template tasks appear every day
                 if (isCheckInDay) {
-                    // On check-in day, only show tasks after check-in time
                     const taskTime = moment(task.time, 'h:mm A');
                     return taskTime.isAfter(checkInTime);
                 }
@@ -54,10 +55,8 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
             return false;
         }) || [];
         
-        // Filter out completed tasks but KEEP overdue tasks
-        const remaining = dateTasks.filter(task => {
-            return !task.completed;
-        });
+        // Filter out completed tasks
+        const remaining = dateTasks.filter(task => !task.completed);
         
         // Sort: items without time first, then by time
         return remaining.sort((a, b) => {
