@@ -20,24 +20,23 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
     
     // Check if a pet has overdue tasks or unchecked tasks after 6:45 PM
     const hasOverdueTasks = (visit, date) => {
-        const isToday = date === moment().format('YYYY-MM-DD');
-        if (!isToday) return false;
-        
         const now = moment();
-        const cutoffTime = moment('6:45 PM', 'h:mm A');
+        const tasks = getRemainingTasks(visit, date);
         
-        // If it's after 6:45 PM and there are any unchecked tasks, mark as red
-        if (now.isAfter(cutoffTime)) {
-            const tasks = getRemainingTasks(visit, date);
-            return tasks.length > 0;
+        // If looking at today and it's after 6:45 PM, any unchecked tasks = red
+        const isToday = date === moment().format('YYYY-MM-DD');
+        if (isToday) {
+            const cutoffTime = moment('6:45 PM', 'h:mm A');
+            if (now.isAfter(cutoffTime)) {
+                return tasks.length > 0;
+            }
         }
         
-        // Otherwise check for overdue tasks
-        const tasks = getRemainingTasks(visit, date);
+        // For any date, check if there are tasks with times that have passed
         return tasks.some(task => {
             if (!task.time) return false;
-            const taskTime = moment(task.time, 'h:mm A');
-            return now.isAfter(taskTime);
+            const taskDateTime = moment(`${date} ${task.time}`, 'YYYY-MM-DD h:mm A');
+            return now.isAfter(taskDateTime);
         });
     };
     
