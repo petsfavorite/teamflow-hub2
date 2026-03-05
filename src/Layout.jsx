@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { useCurrentUser } from './components/hooks/useCurrentUser';
 
-const FLOOF_PAGES = ['Whiteboard', 'Pets', 'CheckIn', 'Reports', 'MonitorView', 'Settings'];
+const FLOOF_PAGES = ['Whiteboard', 'Pets', 'CheckIn', 'Reports', 'MonitorView'];
 
 const floofNavItems = [
     { name: 'Whiteboard', icon: LayoutGrid, label: 'Whiteboard' },
