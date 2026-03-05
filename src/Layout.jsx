@@ -13,7 +13,7 @@ const FLOOF_PAGES = ['Whiteboard', 'Pets', 'CheckIn', 'Reports', 'MonitorView'];
 
 const floofNavItems = [
     { name: 'Whiteboard', icon: LayoutGrid, label: 'Whiteboard' },
-    { name: 'Pets', icon: Users, label: 'Pets' },
+    { name: 'Pets', icon: PawPrint, label: 'Pets' },
     { name: 'CheckIn', icon: LogIn, label: 'Check In' },
     { name: 'Reports', icon: Dog, label: 'Reports' },
 ];
