@@ -715,15 +715,18 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                 <div className="space-y-2">
                                     {[...visit.care_log].reverse().map((log, i) => (
                                         <div key={i} className="flex gap-3 text-sm">
-                                            <span className="text-stone-400 text-xs w-16 shrink-0">{log.time}</span>
-                                            <div>
-                                                <span className="font-medium text-stone-700">{log.activity}</span>
-                                                {log.notes && (
-                                                    <p className="text-xs text-stone-500">{log.notes}</p>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
+                                             <span className="text-stone-400 text-xs w-16 shrink-0">{log.time}</span>
+                                             <div className="flex-1">
+                                                 <span className="font-medium text-stone-700">{log.activity}</span>
+                                                 {log.notes && (
+                                                     <p className="text-xs text-stone-500">{log.notes}</p>
+                                                 )}
+                                             </div>
+                                             {log.staff && (
+                                                 <span className="text-stone-500 text-xs font-semibold bg-stone-100 px-2 py-1 rounded">{log.staff}</span>
+                                             )}
+                                         </div>
+                                     ))}
                                 </div>
                             </CardContent>
                         </Card>
