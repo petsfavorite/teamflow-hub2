@@ -73,6 +73,9 @@ export default function BoardingWhiteboardCard({ pet, visit, onViewVisit }) {
                                         <AlertCircle className="w-5 h-5 text-red-700 flex-shrink-0" title={`Emergency: Missing ${visit.emergency_alert_type}`} />
                                     )}
                                 </div>
+                                {pet.special_needs && (
+                                    <p className="text-xs text-amber-600 mb-1">⚠️ {pet.special_needs}</p>
+                                )}
                                 <p className="text-xs text-stone-500">{visit.location || 'Lobby'}</p>
                                 <div className="flex items-center gap-1 mt-1">
                                     <Badge className="bg-blue-100 text-blue-700 border-0 text-xs px-2 py-0">
@@ -164,22 +167,16 @@ export default function BoardingWhiteboardCard({ pet, visit, onViewVisit }) {
                             </div>
                         </div>
 
-                        {/* Right: Special Needs & Play Sessions Count */}
+                        {/* Right: Play Sessions Count */}
                          <div className="flex items-center gap-3 p-4 border-l border-stone-200 min-w-[180px]">
                              <div className="flex-1">
-                                 {pet.special_needs ? (
-                                     <>
-                                         <p className="text-xs font-medium text-amber-700 mb-1">⚠️ Special</p>
-                                         <p className="text-xs text-stone-600 line-clamp-2">{pet.special_needs}</p>
-                                     </>
+                                 {visit.play_sessions && visit.play_sessions.length > 0 ? (
+                                     <div className="text-xs font-medium text-purple-700">
+                                         {visit.play_sessions.filter(s => !s.completed).length}/{visit.play_sessions.length} Sessions Left
+                                     </div>
                                  ) : (
                                      <div className="text-xs text-stone-400">
-                                         No special needs
-                                     </div>
-                                 )}
-                                 {visit.play_sessions && visit.play_sessions.length > 0 && (
-                                     <div className="mt-2 text-xs font-medium text-purple-700">
-                                         {visit.play_sessions.filter(s => !s.completed).length}/{visit.play_sessions.length} Sessions Left
+                                         No play sessions
                                      </div>
                                  )}
                              </div>
