@@ -65,7 +65,8 @@ Deno.serve(async (req) => {
                     notes: '',
                     recurrence_type: 'days',
                     recurrence_interval: 1,
-                    last_completed_iso: null
+                    last_completed_iso: null,
+                    skip_first_day: shouldSkipFirstDay('8:30 AM')
                 },
                 {
                     type: 'Lunch Walk',
@@ -78,7 +79,8 @@ Deno.serve(async (req) => {
                     notes: '',
                     recurrence_type: 'days',
                     recurrence_interval: 1,
-                    last_completed_iso: null
+                    last_completed_iso: null,
+                    skip_first_day: shouldSkipFirstDay('1:00 PM')
                 },
                 {
                     type: 'Bedtime Walk',
@@ -91,7 +93,8 @@ Deno.serve(async (req) => {
                     notes: '',
                     recurrence_type: 'days',
                     recurrence_interval: 1,
-                    last_completed_iso: null
+                    last_completed_iso: null,
+                    skip_first_day: shouldSkipFirstDay('7:30 PM')
                 },
                 {
                     type: 'Refresh Water',
