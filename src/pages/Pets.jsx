@@ -15,6 +15,7 @@ import { createPageUrl } from '@/utils';
 
 import PetCard from '@/components/pets/PetCard';
 import PetForm from '@/components/forms/PetForm';
+import PetArchive from '@/components/whiteboard/PetArchive';
 
 export default function Pets() {
     const [searchQuery, setSearchQuery] = useState('');
