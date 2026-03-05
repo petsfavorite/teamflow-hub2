@@ -392,9 +392,13 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
                                                                 placeholder="Location"
                                                                 className="h-8 rounded-lg"
                                                                 autoFocus
+                                                                onBlur={() => handleLocationBlur(visit)}
                                                                 onKeyDown={(e) => {
                                                                     if (e.key === 'Enter') handleSaveLocation(visit);
-                                                                    if (e.key === 'Escape') setEditingLocation(null);
+                                                                    if (e.key === 'Escape') {
+                                                                        setEditingLocation(null);
+                                                                        setLocationValue('');
+                                                                    }
                                                                 }}
                                                             />
                                                             <Button 
