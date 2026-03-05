@@ -474,7 +474,7 @@ export default function Assets() {
             <div className="space-y-2">
               <Label>Assign to Teams</Label>
               <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto p-2 bg-slate-50 rounded-lg border border-slate-200">
-                {teams.map(t => (
+                {(teams || []).map(t => (
                   <label key={t.id} className="flex items-center gap-2 text-sm">
                     <Checkbox
                       checked={newTaskForm.assigned_to_teams.includes(t.id)}
