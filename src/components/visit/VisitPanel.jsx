@@ -189,8 +189,8 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
         const careLog = [...(visit.care_log || []), {
             time: moment().format('h:mm A'),
             activity: `Play Session ${updatedSessions[sessionIndex].session_number}`,
-            notes: 'Completed play session',
-            staff: ''
+            notes: '',
+            staff: currentUser?.full_name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'
         }];
         
         onUpdateVisit({ ...visit, play_sessions: updatedSessions, care_log: careLog });
