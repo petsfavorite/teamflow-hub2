@@ -12,8 +12,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@base44/sdk": "^0.8.18",
-    "@base44/vite-plugin": "^0.2.29",
+    "@base44/sdk": "^0.8.3",
+    "@base44/vite-plugin": "^0.2.15",
     "@hello-pangea/dnd": "^17.0.0",
     "@hookform/resolvers": "^4.1.2",
     "@radix-ui/react-accordion": "^1.2.3",
@@ -76,8 +76,7 @@
     "tailwindcss-animate": "^1.0.7",
     "three": "^0.171.0",
     "vaul": "^1.1.2",
-    "zod": "^3.24.2",
-    "qrcode.react": "^3.1.0"
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.19.0",
