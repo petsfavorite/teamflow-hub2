@@ -38,15 +38,14 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
     // Check if a pet has overdue tasks in user's timezone
     const hasOverdueTasks = (visit, date) => {
         const now = moment().tz(userTimezone);
-        const selectedMoment = moment.tz(date, 'YYYY-MM-DD', userTimezone);
         const tasks = getRemainingTasks(visit, date);
         
-        // Only check tasks that have a time specified
-        const timedTasks = tasks.filter(t => t.time);
-        if (timedTasks.length === 0) return false;
+        // Only check incomplete tasks that have a time specified
+        const incompleteTimedTasks = tasks.filter(t => t.time && !t.completed);
+        if (incompleteTimedTasks.length === 0) return false;
         
-        // Check if any timed tasks have passed
-        return timedTasks.some(task => {
+        // Check if any incomplete timed tasks have passed
+        return incompleteTimedTasks.some(task => {
             const taskDateTime = moment.tz(`${date} ${task.time}`, 'YYYY-MM-DD h:mm A', userTimezone);
             return now.isAfter(taskDateTime);
         });
