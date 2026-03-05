@@ -47,26 +47,66 @@
  *
  * The mainPage value must match a key in the PAGES object exactly.
  */
+import Analytics from './pages/Analytics';
+import Assets from './pages/Assets';
 import CheckIn from './pages/CheckIn';
+import ChecklistAssignmentEditor from './pages/ChecklistAssignmentEditor';
+import ChecklistEditor from './pages/ChecklistEditor';
+import ChecklistHistory from './pages/ChecklistHistory';
+import Checklists from './pages/Checklists';
+import Dashboard from './pages/Dashboard';
+import DevChecklist from './pages/DevChecklist';
+import EmergencySOPs from './pages/EmergencySOPs';
+import ExternalLinks from './pages/ExternalLinks';
+import IncidentReports from './pages/IncidentReports';
+import Maintenance from './pages/Maintenance';
 import MonitorView from './pages/MonitorView';
 import Pets from './pages/Pets';
 import Reports from './pages/Reports';
+import SOPAssistant from './pages/SOPAssistant';
+import SOPDetail from './pages/SOPDetail';
+import SOPEditor from './pages/SOPEditor';
+import SOPVersions from './pages/SOPVersions';
+import SOPs from './pages/SOPs';
 import Settings from './pages/Settings';
+import Tasks from './pages/Tasks';
+import Teams from './pages/Teams';
+import UserManagement from './pages/UserManagement';
 import Whiteboard from './pages/Whiteboard';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
+    "Analytics": Analytics,
+    "Assets": Assets,
     "CheckIn": CheckIn,
+    "ChecklistAssignmentEditor": ChecklistAssignmentEditor,
+    "ChecklistEditor": ChecklistEditor,
+    "ChecklistHistory": ChecklistHistory,
+    "Checklists": Checklists,
+    "Dashboard": Dashboard,
+    "DevChecklist": DevChecklist,
+    "EmergencySOPs": EmergencySOPs,
+    "ExternalLinks": ExternalLinks,
+    "IncidentReports": IncidentReports,
+    "Maintenance": Maintenance,
     "MonitorView": MonitorView,
     "Pets": Pets,
     "Reports": Reports,
+    "SOPAssistant": SOPAssistant,
+    "SOPDetail": SOPDetail,
+    "SOPEditor": SOPEditor,
+    "SOPVersions": SOPVersions,
+    "SOPs": SOPs,
     "Settings": Settings,
+    "Tasks": Tasks,
+    "Teams": Teams,
+    "UserManagement": UserManagement,
     "Whiteboard": Whiteboard,
 }
 
 export const pagesConfig = {
-    mainPage: "CheckIn",
+    mainPage: "Dashboard",
     Pages: PAGES,
     Layout: __Layout,
 };

@@ -161,9 +161,9 @@ export default function Dashboard() {
       )}
 
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={BookOpen} label="Published SOPs" value={sops.length} color="bg-indigo-600" to={createPageUrl('SOPs')} />
-        <StatCard icon={CheckSquare} label="My Checklists" value={myChecklists.length} color="bg-emerald-600" to={createPageUrl('Checklists')} />
         <StatCard icon={ClipboardList} label="My Tasks" value={myPendingTasks.length} color="bg-purple-600" to={createPageUrl('Tasks')} />
+        <StatCard icon={CheckSquare} label="My Checklists" value={myChecklists.length} color="bg-emerald-600" to={createPageUrl('Checklists')} />
+        <StatCard icon={BookOpen} label="Published SOPs" value={sops.length} color="bg-indigo-600" to={createPageUrl('SOPs')} />
         <StatCard icon={Wrench} label="Open Maintenance" value={openMaintenance.length} color="bg-amber-600" to={createPageUrl('Maintenance')} />
       </div>
 
