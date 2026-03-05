@@ -67,23 +67,31 @@ export default function MonitorView() {
     };
 
     // Yellow alert:
-    // Dogs: alert if Feces Observed not completed in 48hrs
-    // Cats: alert if Feces Observed OR Urine Observed not completed in 48hrs
+    // Dogs: alert if checked in 48+ hrs AND Feces Observed not checked
+    // Cats: alert if checked in 48+ hrs AND (Feces Observed OR Urine Observed not checked)
     const needsAlert = (visit, pet) => {
         if (visit.visit_type !== 'boarding') return false;
 
+        const checkInTime = moment(visit.check_in_time);
         const fortyEightHoursAgo = moment().subtract(48, 'hours');
-
-        const lastFeces = getLastObservationTime(visit, 'Feces Observed');
-        const fecesOverdue = !lastFeces || lastFeces.isBefore(fortyEightHoursAgo);
-
-        if (pet?.species === 'Cat') {
-            const lastUrine = getLastObservationTime(visit, 'Urine Observed');
-            const urineOverdue = !lastUrine || lastUrine.isBefore(fortyEightHoursAgo);
-            return fecesOverdue || urineOverdue;
+        
+        // Only alert if checked in more than 48 hours ago
+        if (checkInTime.isAfter(fortyEightHoursAgo)) {
+            return false;
         }
 
-        return fecesOverdue;
+        // Check if Feces Observed has been completed
+        const fecesTask = visit.scheduled_tasks?.find(t => t.type === 'Feces Observed' && t.completed);
+        const fecesNotChecked = !fecesTask;
+
+        if (pet?.species === 'Cat') {
+            // For cats, also check Urine Observed
+            const urineTask = visit.scheduled_tasks?.find(t => t.type === 'Urine Observed' && t.completed);
+            const urineNotChecked = !urineTask;
+            return fecesNotChecked || urineNotChecked;
+        }
+
+        return fecesNotChecked;
     };
 
     const petsWithVisits = checkedInVisits.map(visit => {
