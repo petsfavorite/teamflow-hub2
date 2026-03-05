@@ -87,7 +87,7 @@ export default function Reports() {
                 {/* Reports Grid */}
                 {isLoading ? (
                     <div className="flex items-center justify-center py-20">
-                        <RefreshCw className="w-8 h-8 text-blue-500 animate-spin" />
+                        <RefreshCw className="w-8 h-8 text-[#82bb32] animate-spin" />
                     </div>
                 ) : sortedReports.length === 0 ? (
                     <Card>
@@ -148,7 +148,7 @@ export default function Reports() {
                                         </div>
 
                                         <Button
-                                            className="w-full rounded-xl bg-blue-500 hover:bg-blue-600"
+                                            className="w-full rounded-xl bg-[#82bb32] hover:bg-[#82bb32]/90"
                                             onClick={() => window.open(report.report_url, '_blank')}
                                         >
                                             <Download className="w-4 h-4 mr-2" />

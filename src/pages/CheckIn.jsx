@@ -289,10 +289,10 @@ export default function CheckIn() {
                             ))}
                         </AnimatePresence>
                     </div>
-                )}
-            </div>
+                    )}
+                    </div>
 
-            {/* Add Pet Dialog */}
+                    {/* Add Pet Dialog */}
             <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
                 <DialogContent className="max-w-3xl max-h-[90vh] overflow-auto">
                     <DialogHeader>
