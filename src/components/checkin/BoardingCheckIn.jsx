@@ -314,11 +314,11 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
                     </CardContent>
                     </Card>
 
-                    <div className="flex gap-3">
-                    <Button type="button" variant="outline" onClick={onCancel} className="flex-1 rounded-xl">
+                    <div className="flex gap-3 pt-4">
+                    <Button type="button" variant="outline" onClick={onCancel} className="flex-1 rounded-xl py-6 text-base">
                     Back
                     </Button>
-                    <Button type="submit" className="flex-1 rounded-xl bg-blue-500 hover:bg-blue-600">
+                    <Button type="submit" className="flex-1 rounded-xl bg-blue-500 hover:bg-blue-600 py-6 text-base">
                     Complete Check-In
                     </Button>
                     </div>
