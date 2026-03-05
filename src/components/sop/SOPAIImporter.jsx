@@ -121,18 +121,30 @@ Return a JSON object with these exact keys:
 
       {expanded && (
         <div className="px-5 pb-5 space-y-3">
-          <Textarea
-            value={rawText}
-            onChange={e => setRawText(e.target.value)}
-            placeholder="Paste your SOP content here, describe the procedure in plain language, or use voice dictation...
+          <div className="relative">
+            <Textarea
+              value={rawText}
+              onChange={e => setRawText(e.target.value)}
+              placeholder="Paste your SOP content here, describe the procedure in plain language, or use voice dictation...
 
-Example: 'When a dog arrives showing signs of illness such as vomiting, lethargy, or loss of appetite, staff should immediately isolate the dog in the medical kennel, notify the shift lead, contact the owner, and document the symptoms in the system...'"
-            rows={8}
-            className="bg-white border-indigo-200 focus-visible:ring-indigo-400 text-sm resize-y"
-            autoFocus
-          />
+      Example: 'When a dog arrives showing signs of illness such as vomiting, lethargy, or loss of appetite, staff should immediately isolate the dog in the medical kennel, notify the shift lead, contact the owner, and document the symptoms in the system...'"
+              rows={8}
+              className="bg-white border-indigo-200 focus-visible:ring-indigo-400 text-sm resize-y pr-12"
+              autoFocus
+            />
+            <Button
+              onClick={toggleDictation}
+              size="icon"
+              variant="ghost"
+              className={`absolute bottom-2 right-2 ${isListening ? 'bg-red-100 text-red-600 hover:bg-red-200' : 'text-slate-400 hover:text-slate-600'}`}
+              type="button"
+              title={isListening ? 'Stop listening' : 'Start voice dictation'}
+            >
+              {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+            </Button>
+          </div>
           <div className="flex items-center justify-between">
-            <p className="text-xs text-indigo-500">AI will structure this into all SOP fields. You can edit after.</p>
+            <p className="text-xs text-indigo-500">{isListening ? '🎤 Listening...' : 'AI will structure this into all SOP fields. You can edit after.'}</p>
             <Button
               onClick={handleGenerate}
               disabled={loading || !rawText.trim()}
