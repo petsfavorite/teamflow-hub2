@@ -53,16 +53,16 @@ export default function BoardingWhiteboardCard({ pet, visit, onViewVisit }) {
         const checkedInMoreThan48Hours = checkInTime.isBefore(fortyEightHoursAgo);
         if (!checkedInMoreThan48Hours) return false;
 
-        // 3. THEN - Only if 48+ hours, check for completed observations
-        // Look for ANY completed Feces/Urine task (not just from the current visit)
+        // 3. THEN - Only if 48+ hours, check for completed observations BEFORE now
+        // Only count tasks completed before the current moment
         const hasFecesObserved = visit.scheduled_tasks?.some(t => 
-            t.type === 'Feces Observed' && t.completed && t.completed_iso
+            t.type === 'Feces Observed' && t.completed && t.completed_iso && moment(t.completed_iso).isBefore(now)
         );
 
         if (isCat) {
-            // For cats, check both Feces and Urine
+            // For cats, check both Feces and Urine completed before now
             const hasUrineObserved = visit.scheduled_tasks?.some(t => 
-                t.type === 'Urine Observed' && t.completed && t.completed_iso
+                t.type === 'Urine Observed' && t.completed && t.completed_iso && moment(t.completed_iso).isBefore(now)
             );
             return !hasFecesObserved || !hasUrineObserved;
         }
