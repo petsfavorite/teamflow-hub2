@@ -198,7 +198,6 @@ export default function Whiteboard() {
                     </Tabs>
                 )}
             </div>
-            </div>
 
             {/* Visit Panel */}
             <Sheet open={!!selectedVisit} onOpenChange={() => { setSelectedVisit(null); setSelectedPet(null); }}>
