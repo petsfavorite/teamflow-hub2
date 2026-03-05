@@ -112,49 +112,44 @@ export default function Whiteboard() {
     const isLoading = petsLoading || visitsLoading;
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-[#82bb32]/10">
+        <div className="space-y-6">
             {/* Header */}
-            <div className="bg-white border-b border-gray-100 sticky top-0 z-40 shadow-sm">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h1 className="text-3xl font-bold text-[#82bb32]">FLOOF</h1>
-                            <p className="text-xs text-gray-500 mt-0.5">Facility Log Of Occupancy & Fun</p>
-                            <p className="text-lg font-semibold text-gray-800 mt-2">
-                                {visits.filter(v => v.status === 'checked_in').length} pets checked in
-                            </p>
-                        </div>
-                        <div className="flex items-center gap-2 md:gap-3">
-                            <Link to={createPageUrl('MonitorView')}>
-                                <Button variant="outline" className="rounded-xl border-gray-200">
-                                    <span className="hidden sm:inline">Monitor View</span>
-                                    <span className="sm:hidden">Monitor</span>
-                                </Button>
-                            </Link>
-                            <Link to={createPageUrl('Reports')}>
-                                <Button variant="outline" className="rounded-xl border-gray-200">
-                                    <FileText className="w-4 h-4 md:mr-2" />
-                                    <span className="hidden md:inline">Reports</span>
-                                </Button>
-                            </Link>
-                            <Link to={createPageUrl('Pets')}>
-                                <Button variant="outline" className="rounded-xl border-gray-200 hidden sm:inline-flex">
-                                    All Pets
-                                </Button>
-                            </Link>
-                            <Link to={createPageUrl('CheckIn')}>
-                                <Button className="rounded-xl bg-[#82bb32] hover:bg-[#82bb32]/90 text-white">
-                                    <Plus className="w-4 h-4 md:mr-2" />
-                                    <span className="hidden md:inline">Check In</span>
-                                </Button>
-                            </Link>
-                        </div>
-                    </div>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Kennel Whiteboard</h1>
+                    <p className="text-slate-500 mt-1">
+                        {visits.filter(v => v.status === 'checked_in').length} pets currently checked in
+                    </p>
+                </div>
+                <div className="flex items-center gap-2 md:gap-3">
+                    <Link to={createPageUrl('MonitorView')}>
+                        <Button variant="outline" className="rounded-xl border-stone-200">
+                            <span className="hidden sm:inline">Monitor View</span>
+                            <span className="sm:hidden">Monitor</span>
+                        </Button>
+                    </Link>
+                    <Link to={createPageUrl('Reports')}>
+                        <Button variant="outline" className="rounded-xl border-stone-200">
+                            <FileText className="w-4 h-4 md:mr-2" />
+                            <span className="hidden md:inline">Reports</span>
+                        </Button>
+                    </Link>
+                    <Link to={createPageUrl('Pets')}>
+                        <Button variant="outline" className="rounded-xl border-stone-200 hidden sm:inline-flex">
+                            All Pets
+                        </Button>
+                    </Link>
+                    <Link to={createPageUrl('CheckIn')}>
+                        <Button className="rounded-xl bg-[#82bb32] hover:bg-[#82bb32]/90 text-white">
+                            <Plus className="w-4 h-4 md:mr-2" />
+                            <span className="hidden md:inline">Check In</span>
+                        </Button>
+                    </Link>
                 </div>
             </div>
 
             {/* Main Content */}
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+            <div>
                 {isLoading ? (
                     <div className="flex items-center justify-center py-20">
                         <RefreshCw className="w-8 h-8 text-[#82bb32] animate-spin" />

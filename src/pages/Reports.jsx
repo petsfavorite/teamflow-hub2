@@ -46,39 +46,17 @@ export default function Reports() {
     });
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30">
+        <div className="space-y-6">
             {/* Header */}
-            <div className="bg-white border-b border-gray-100 sticky top-0 z-40 shadow-sm">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h1 className="text-3xl font-bold text-teal-600">FLOOF</h1>
-                            <p className="text-xs text-gray-500 mt-0.5">Facility Log Of Occupancy & Fun</p>
-                            <p className="text-lg font-semibold text-gray-800 mt-2">Visit Reports</p>
-                            <p className="text-sm text-gray-500">
-                                {sortedReports.length} reports available
-                            </p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <Link to={createPageUrl('Whiteboard')}>
-                                <Button variant="outline" className="rounded-xl border-gray-200">
-                                    <LayoutGrid className="w-4 h-4 mr-2" />
-                                    Whiteboard
-                                </Button>
-                            </Link>
-                            <Link to={createPageUrl('Pets')}>
-                                <Button variant="outline" className="rounded-xl border-gray-200">
-                                    <Users className="w-4 h-4 mr-2" />
-                                    All Pets
-                                </Button>
-                            </Link>
-                        </div>
-                    </div>
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Visit Reports</h1>
+                    <p className="text-slate-500 mt-1">{sortedReports.length} reports available</p>
                 </div>
             </div>
 
             {/* Main Content */}
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+            <div>
                 {/* Filters */}
                 <Card className="mb-6">
                     <CardContent className="pt-6">

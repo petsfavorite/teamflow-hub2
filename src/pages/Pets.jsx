@@ -88,78 +88,65 @@ export default function Pets() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-stone-50 via-amber-50/30 to-stone-50">
+        <div className="space-y-6">
             {/* Header */}
-            <div className="bg-white/80 backdrop-blur-md border-b border-stone-100 sticky top-0 z-40">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div>
-                            <h1 className="text-3xl font-bold text-teal-600">FLOOF</h1>
-                            <p className="text-xs text-stone-500 mt-0.5">Facility Log Of Occupancy & Fun</p>
-                            <p className="text-lg font-semibold text-stone-800 mt-2">
-                                {pets.length} pets registered
-                            </p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <Link to={createPageUrl('Whiteboard')}>
-                                <Button variant="outline" className="rounded-xl border-stone-200">
-                                    <Grid3X3 className="w-4 h-4 mr-2" />
-                                    Whiteboard
-                                </Button>
-                            </Link>
-                            <Button 
-                                onClick={() => setShowAddDialog(true)}
-                                className="rounded-xl bg-amber-500 hover:bg-amber-600"
-                            >
-                                <Plus className="w-4 h-4 mr-2" />
-                                Add Pet
-                            </Button>
-                        </div>
-                    </div>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Pets</h1>
+                    <p className="text-slate-500 mt-1">{pets.length} pets registered</p>
+                </div>
+                <div className="flex items-center gap-3">
+                    <Button 
+                        onClick={() => setShowAddDialog(true)}
+                        className="rounded-xl bg-[#82bb32] hover:bg-[#82bb32]/90"
+                    >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Pet
+                    </Button>
+                </div>
+            </div>
 
-                    {/* Search and Filters */}
-                    <div className="mt-4 flex flex-col sm:flex-row gap-3">
-                        <div className="relative flex-1 max-w-md">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
-                            <Input
-                                placeholder="Search by name, breed, or owner..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-10 rounded-xl border-stone-200 bg-stone-50/50"
-                            />
-                        </div>
-                        <div className="flex gap-2">
-                            <Button
-                                variant={filterCheckedIn === 'all' ? 'default' : 'outline'}
-                                size="sm"
-                                onClick={() => setFilterCheckedIn('all')}
-                                className={`rounded-xl ${filterCheckedIn === 'all' ? 'bg-stone-800' : ''}`}
-                            >
-                                All
-                            </Button>
-                            <Button
-                                variant={filterCheckedIn === 'in' ? 'default' : 'outline'}
-                                size="sm"
-                                onClick={() => setFilterCheckedIn('in')}
-                                className={`rounded-xl ${filterCheckedIn === 'in' ? 'bg-emerald-500 hover:bg-emerald-600' : ''}`}
-                            >
-                                Checked In
-                            </Button>
-                            <Button
-                                variant={filterCheckedIn === 'out' ? 'default' : 'outline'}
-                                size="sm"
-                                onClick={() => setFilterCheckedIn('out')}
-                                className={`rounded-xl ${filterCheckedIn === 'out' ? 'bg-stone-800' : ''}`}
-                            >
-                                Not Here
-                            </Button>
-                        </div>
-                    </div>
+            {/* Search and Filters */}
+            <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1 max-w-md">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+                    <Input
+                        placeholder="Search by name, breed, or owner..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-10 rounded-xl border-stone-200 bg-white"
+                    />
+                </div>
+                <div className="flex gap-2">
+                    <Button
+                        variant={filterCheckedIn === 'all' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setFilterCheckedIn('all')}
+                        className={`rounded-xl ${filterCheckedIn === 'all' ? 'bg-slate-800' : ''}`}
+                    >
+                        All
+                    </Button>
+                    <Button
+                        variant={filterCheckedIn === 'in' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setFilterCheckedIn('in')}
+                        className={`rounded-xl ${filterCheckedIn === 'in' ? 'bg-emerald-500 hover:bg-emerald-600' : ''}`}
+                    >
+                        Checked In
+                    </Button>
+                    <Button
+                        variant={filterCheckedIn === 'out' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setFilterCheckedIn('out')}
+                        className={`rounded-xl ${filterCheckedIn === 'out' ? 'bg-slate-800' : ''}`}
+                    >
+                        Not Here
+                    </Button>
                 </div>
             </div>
 
             {/* Main Content */}
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+            <div>
                 {isLoading ? (
                     <div className="flex items-center justify-center py-20">
                         <RefreshCw className="w-8 h-8 text-amber-500 animate-spin" />
