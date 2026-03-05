@@ -159,10 +159,10 @@ export default function SOPEditor() {
     },
   });
 
-  if (!id && !isAdmin && !isSuperAdmin) {
+  if (!id && !canManage) {
     return (
       <div className="text-center py-20">
-        <p className="text-slate-500">Only admins can create new SOPs</p>
+        <p className="text-slate-500">Only admins and managers can create new SOPs</p>
         <Link to={createPageUrl('SOPs')}><Button variant="ghost" className="mt-4">Back to SOPs</Button></Link>
       </div>
     );
