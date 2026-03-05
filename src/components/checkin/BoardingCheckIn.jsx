@@ -112,16 +112,24 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
         }
     });
         
-    // Add "Collect Feces" if requested
+    // Add "Collect Feces" if requested - no template, persists daily until collected
     if (needFecal) {
-        tasks.push({ 
-            type: 'Collect Feces', 
-            time: '', 
-            is_template: true, 
-            completed: false, 
-            completed_at: null,
-            collected: false
-        });
+        const checkInDate = moment().format('YYYY-MM-DD');
+        const checkOutDate = checkoutDate;
+        let currentDate = moment(checkInDate);
+        
+        while (currentDate.format('YYYY-MM-DD') <= checkOutDate) {
+            tasks.push({ 
+                type: 'Collect Feces', 
+                time: '', 
+                date: currentDate.format('YYYY-MM-DD'),
+                is_template: false, 
+                completed: false, 
+                completed_at: null,
+                collected: false
+            });
+            currentDate.add(1, 'day');
+        }
     }
         
     // Play sessions if added
