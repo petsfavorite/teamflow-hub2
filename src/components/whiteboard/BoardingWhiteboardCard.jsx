@@ -164,18 +164,25 @@ export default function BoardingWhiteboardCard({ pet, visit, onViewVisit }) {
                             </div>
                         </div>
 
-                        {/* Right: Special Needs & Action */}
-                        <div className="flex items-center gap-3 p-4 border-l border-stone-200 min-w-[180px]">
-                            {pet.special_needs ? (
-                                <div className="flex-1">
-                                    <p className="text-xs font-medium text-amber-700 mb-1">⚠️ Special</p>
-                                    <p className="text-xs text-stone-600 line-clamp-2">{pet.special_needs}</p>
-                                </div>
-                            ) : (
-                                <div className="flex-1 text-xs text-stone-400">
-                                    No special needs
-                                </div>
-                            )}
+                        {/* Right: Special Needs & Play Sessions Count */}
+                         <div className="flex items-center gap-3 p-4 border-l border-stone-200 min-w-[180px]">
+                             <div className="flex-1">
+                                 {pet.special_needs ? (
+                                     <>
+                                         <p className="text-xs font-medium text-amber-700 mb-1">⚠️ Special</p>
+                                         <p className="text-xs text-stone-600 line-clamp-2">{pet.special_needs}</p>
+                                     </>
+                                 ) : (
+                                     <div className="text-xs text-stone-400">
+                                         No special needs
+                                     </div>
+                                 )}
+                                 {visit.play_sessions && visit.play_sessions.length > 0 && (
+                                     <div className="mt-2 text-xs font-medium text-purple-700">
+                                         {visit.play_sessions.filter(s => !s.completed).length}/{visit.play_sessions.length} Sessions Left
+                                     </div>
+                                 )}
+                             </div>
                             <Button
                                 variant="ghost"
                                 size="icon"
