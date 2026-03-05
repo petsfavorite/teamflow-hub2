@@ -146,34 +146,32 @@ Deno.serve(async (req) => {
             }
 
             // Add remaining non-timed tasks
-            tasks.push(
-                {
-                    type: 'Refresh Water',
-                    time: '',
-                    date: checkInDate,
-                    is_template: true,
-                    completed: false,
-                    completed_at: null,
-                    completed_by: null,
-                    notes: '',
-                    recurrence_type: 'days',
-                    recurrence_interval: 1,
-                    last_completed_iso: null
-                },
-                {
-                    type: 'Feces Observed',
-                    time: '',
-                    date: checkInDate,
-                    is_template: true,
-                    completed: false,
-                    completed_at: null,
-                    completed_by: null,
-                    notes: '',
-                    recurrence_type: 'days',
-                    recurrence_interval: 1,
-                    last_completed_iso: null
-                }
-            ];
+            tasks.push({
+                type: 'Refresh Water',
+                time: '',
+                date: checkInDate,
+                is_template: true,
+                completed: false,
+                completed_at: null,
+                completed_by: null,
+                notes: '',
+                recurrence_type: 'days',
+                recurrence_interval: 1,
+                last_completed_iso: null
+            });
+            tasks.push({
+                type: 'Feces Observed',
+                time: '',
+                date: checkInDate,
+                is_template: true,
+                completed: false,
+                completed_at: null,
+                completed_by: null,
+                notes: '',
+                recurrence_type: 'days',
+                recurrence_interval: 1,
+                last_completed_iso: null
+            });
         } else if (species === 'Cat') {
             tasks = [
                 {
