@@ -52,7 +52,7 @@ export default function SOPs() {
         title="Standard Operating Procedures"
         description="Browse and search company SOPs"
         actions={
-          (isAdmin || isSuperAdmin || useCurrentUser().isManager) && (
+          (isAdmin || isSuperAdmin || isManager) && (
             <Link to={createPageUrl('SOPEditor')}>
               <Button className="bg-indigo-600 hover:bg-indigo-700 gap-2">
                 <Plus className="w-4 h-4" /> New SOP
