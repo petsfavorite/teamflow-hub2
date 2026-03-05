@@ -89,6 +89,10 @@ export default function Pets() {
         await updatePetMutation.mutateAsync({ id: petId, data: { is_archived: true } });
     };
 
+    const handleRestorePet = async (petId) => {
+        await updatePetMutation.mutateAsync({ id: petId, data: { is_archived: false } });
+    };
+
     let filteredPets = pets.filter(pet =>
         pet.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         pet.breed?.toLowerCase().includes(searchQuery.toLowerCase()) ||
