@@ -66,22 +66,24 @@ export default function MonitorView() {
             .sort((a, b) => b.diff(a))[0] || null;
     };
 
-    // Yellow alert: Feces Observed not completed in 48hrs for all boarding pets,
-    // or Urine Observed not completed in 48hrs for cats
+    // Yellow alert:
+    // Dogs: alert if Feces Observed not completed in 48hrs
+    // Cats: alert if Feces Observed OR Urine Observed not completed in 48hrs
     const needsAlert = (visit, pet) => {
         if (visit.visit_type !== 'boarding') return false;
 
         const fortyEightHoursAgo = moment().subtract(48, 'hours');
 
         const lastFeces = getLastObservationTime(visit, 'Feces Observed');
-        if (!lastFeces || lastFeces.isBefore(fortyEightHoursAgo)) return true;
+        const fecesOverdue = !lastFeces || lastFeces.isBefore(fortyEightHoursAgo);
 
         if (pet?.species === 'Cat') {
             const lastUrine = getLastObservationTime(visit, 'Urine Observed');
-            if (!lastUrine || lastUrine.isBefore(fortyEightHoursAgo)) return true;
+            const urineOverdue = !lastUrine || lastUrine.isBefore(fortyEightHoursAgo);
+            return fecesOverdue || urineOverdue;
         }
 
-        return false;
+        return fecesOverdue;
     };
 
     const petsWithVisits = checkedInVisits.map(visit => {
