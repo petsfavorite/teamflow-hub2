@@ -64,10 +64,11 @@ Deno.serve(async (req) => {
         };
 
         if (species === 'Dog') {
-            // Add three independent walk tasks
-            addWalkTask('Morning Walk', '8:30 AM', 8, 30);
-            addWalkTask('Lunch Walk', '1:00 PM', 13, 0);
-            addWalkTask('Bedtime Walk', '8:00 PM', 20, 0);
+            // Add four independent walk tasks
+            addWalkTask('First Walk', '7:30 AM', 7, 30);
+            addWalkTask('After breakfast', '11:00 AM', 11, 0);
+            addWalkTask('Afternoon', '3:00 PM', 15, 0);
+            addWalkTask('Before bed', '8:00 PM', 20, 0);
 
             // Add remaining non-timed tasks
             tasks.push({
