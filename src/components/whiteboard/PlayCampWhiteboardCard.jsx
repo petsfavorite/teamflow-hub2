@@ -83,27 +83,7 @@ export default function PlayCampWhiteboardCard({ pet, visit, onViewVisit }) {
                         {/* Middle: Play Sessions */}
                         <div className="flex-1 p-4">
                             <div className="flex items-center gap-3 flex-wrap">
-                                {visit.play_sessions?.map((session, idx) => (
-                                    <div 
-                                        key={idx}
-                                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all ${
-                                            session.completed 
-                                                ? 'bg-emerald-50 border-emerald-200' 
-                                                : 'bg-purple-50 border-purple-200'
-                                        }`}
-                                    >
-                                        {session.completed ? (
-                                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                        ) : (
-                                            <div className="w-3 h-3 rounded-full border-2 border-purple-400" />
-                                        )}
-                                        <span className={`text-xs font-medium ${
-                                            session.completed ? 'text-emerald-700' : 'text-purple-700'
-                                        }`}>
-                                            Play {session.session_number}
-                                        </span>
-                                    </div>
-                                ))}
+                                {visit.play_sessions?.map((session) => getPlaySessionDisplay(session))}
 
                                 {/* Daily Picture */}
                                 {needsPicture && (
