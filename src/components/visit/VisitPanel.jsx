@@ -231,11 +231,12 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
 
 
     const handleSendPicture = () => {
+        const initials = currentUser?.full_name?.split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase() || '?';
         const careLog = [...(visit.care_log || []), {
             time: moment().format('h:mm A'),
             activity: 'Daily Picture',
             notes: 'Picture sent to owner',
-            staff: ''
+            staff: initials
         }];
         onUpdateVisit({ ...visit, picture_sent: true, care_log: careLog });
     };
