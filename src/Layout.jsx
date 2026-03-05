@@ -30,14 +30,12 @@ const mainNavItems = [
     { name: 'Assets', icon: Package, label: 'Assets' },
     { name: 'SOPAssistant', icon: MessageSquare, label: 'SOP AI' },
     { name: 'ExternalLinks', icon: LinkIcon, label: 'Links' },
-    { name: 'UserManagement', icon: Settings, label: 'Settings' },
 ];
 
 const adminNavItems = [
     { name: 'UserManagement', icon: Users, label: 'Users' },
     { name: 'ChecklistHistory', icon: History, label: 'Checklist History' },
     { name: 'Analytics', icon: BarChart2, label: 'Analytics' },
-    { name: 'DevChecklist', icon: ShieldCheck, label: 'Dev Checklist' },
 ];
 
 const ADMIN_ROLES = ['admin', 'manager', 'super_admin'];
@@ -53,7 +51,6 @@ export default function Layout({ children }) {
 
     const isActive = (pageName) => location.pathname.toLowerCase().includes(pageName.toLowerCase());
     const canSeeAdmin = user && ADMIN_ROLES.includes(user.role);
-    const isSuperAdmin = user?.role === 'super_admin';
 
     // Auto-open admin dropdown if we're on an admin page
     const isOnAdminPage = adminNavItems.some(i => isActive(i.name));
@@ -115,7 +112,7 @@ export default function Layout({ children }) {
                                 </button>
                                 {(adminOpen || isOnAdminPage) && (
                                     <div className="ml-4 mt-1 flex flex-col gap-1 border-l-2 border-stone-100 pl-3">
-                                        {adminNavItems.filter(item => item.name !== 'DevChecklist' || isSuperAdmin).map((item) => (
+                                        {adminNavItems.map((item) => (
                                             <Link
                                                 key={item.name}
                                                 to={createPageUrl(item.name)}
@@ -134,7 +131,7 @@ export default function Layout({ children }) {
                             </>
                         ) : (
                             // Collapsed: show icon only for admin items
-                            adminNavItems.filter(item => item.name !== 'DevChecklist' || isSuperAdmin).map((item) => (
+                            adminNavItems.map((item) => (
                                 <Link
                                     key={item.name}
                                     to={createPageUrl(item.name)}

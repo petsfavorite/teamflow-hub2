@@ -9,9 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ExternalLink, Plus, Globe, Trash2, Pencil, Loader2, FileText, Upload, Search } from 'lucide-react';
+import { ExternalLink, Plus, Globe, Trash2, Pencil, Loader2 } from 'lucide-react';
 import { toast } from "sonner";
-import { useRef } from 'react';
 
 export default function ExternalLinks() {
   const { isAdmin, isSuperAdmin } = useCurrentUser();
@@ -20,14 +19,6 @@ export default function ExternalLinks() {
   const [showForm, setShowForm] = useState(false);
   const [editingLink, setEditingLink] = useState(null);
   const [form, setForm] = useState({ title: '', url: '', description: '', icon: '🔗', category: '' });
-
-  // PDF Library state
-  const [showPDFForm, setShowPDFForm] = useState(false);
-  const [editingPDF, setEditingPDF] = useState(null);
-  const [pdfForm, setPdfForm] = useState({ title: '', description: '', category: '', file_url: '' });
-  const [uploading, setUploading] = useState(false);
-  const [pdfSearch, setPdfSearch] = useState('');
-  const fileInputRef = useRef(null);
 
   const { data: links = [], isLoading } = useQuery({
     queryKey: ['external-links'],
@@ -69,66 +60,6 @@ export default function ExternalLinks() {
   const grouped = categories.length > 0
     ? categories.map(cat => ({ category: cat, links: links.filter(l => l.category === cat) }))
     : [{ category: null, links }];
-
-  // PDF queries & mutations
-  const { data: pdfs = [], isLoading: pdfsLoading } = useQuery({
-    queryKey: ['pdf-documents'],
-    queryFn: () => base44.entities.PDFDocument.list('order', 100),
-  });
-
-  const savePDFMutation = useMutation({
-    mutationFn: (data) => editingPDF
-      ? base44.entities.PDFDocument.update(editingPDF.id, data)
-      : base44.entities.PDFDocument.create(data),
-    onSuccess: () => {
-      toast.success(editingPDF ? 'PDF updated' : 'PDF added');
-      queryClient.invalidateQueries({ queryKey: ['pdf-documents'] });
-      resetPDFForm();
-    },
-  });
-
-  const deletePDFMutation = useMutation({
-    mutationFn: (id) => base44.entities.PDFDocument.delete(id),
-    onSuccess: () => {
-      toast.success('PDF removed');
-      queryClient.invalidateQueries({ queryKey: ['pdf-documents'] });
-    },
-  });
-
-  const resetPDFForm = () => {
-    setShowPDFForm(false);
-    setEditingPDF(null);
-    setPdfForm({ title: '', description: '', category: '', file_url: '' });
-  };
-
-  const startEditPDF = (pdf) => {
-    setEditingPDF(pdf);
-    setPdfForm(pdf);
-    setShowPDFForm(true);
-  };
-
-  const handleFileUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setUploading(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    setPdfForm(f => ({ ...f, file_url }));
-    setUploading(false);
-    toast.success('File uploaded');
-  };
-
-  const filteredPDFs = pdfSearch.trim()
-    ? pdfs.filter(p =>
-        p.title.toLowerCase().includes(pdfSearch.toLowerCase()) ||
-        (p.description || '').toLowerCase().includes(pdfSearch.toLowerCase()) ||
-        (p.category || '').toLowerCase().includes(pdfSearch.toLowerCase())
-      )
-    : pdfs;
-
-  const pdfCategories = [...new Set(filteredPDFs.map(p => p.category).filter(Boolean))];
-  const groupedPDFs = pdfCategories.length > 0
-    ? pdfCategories.map(cat => ({ category: cat, pdfs: filteredPDFs.filter(p => p.category === cat) }))
-    : [{ category: null, pdfs: filteredPDFs }];
 
   return (
     <div>
@@ -187,121 +118,6 @@ export default function ExternalLinks() {
           ))}
         </div>
       )}
-
-      {/* MSDS Sheets Section */}
-      <div className="mt-12">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2"><FileText className="w-5 h-5 text-amber-500" /> MSDS Sheets</h2>
-            <p className="text-sm text-slate-500 mt-0.5">Safety data sheets and reference documents</p>
-          </div>
-          {canEdit && (
-            <Button onClick={() => setShowPDFForm(true)} className="bg-amber-500 hover:bg-amber-600 gap-2">
-              <Plus className="w-4 h-4" /> Add MSDS Sheet
-            </Button>
-          )}
-        </div>
-
-        {/* Search bar */}
-        <div className="relative mb-6 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <Input
-            value={pdfSearch}
-            onChange={e => setPdfSearch(e.target.value)}
-            placeholder="Search MSDS sheets..."
-            className="pl-9"
-          />
-        </div>
-
-        {pdfsLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[1,2,3].map(i => <Card key={i} className="border-0 shadow-sm animate-pulse"><CardContent className="p-5"><div className="h-14 bg-slate-100 rounded" /></CardContent></Card>)}
-          </div>
-        ) : pdfs.length === 0 ? (
-          <EmptyState icon={FileText} title="No MSDS sheets yet" description="Upload safety data sheets for quick reference" />
-        ) : filteredPDFs.length === 0 ? (
-          <EmptyState icon={Search} title="No results found" description={`No MSDS sheets match "${pdfSearch}"`} />
-        ) : (
-          <div className="space-y-6">
-            {groupedPDFs.map(group => (
-              <div key={group.category || 'all'}>
-                {group.category && <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">{group.category}</h3>}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {group.pdfs.map(pdf => (
-                    <Card key={pdf.id} className="border-0 shadow-sm hover:shadow-lg transition-all group">
-                      <CardContent className="p-5">
-                        <div className="flex items-start justify-between">
-                          <a href={pdf.file_url} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 flex-1 min-w-0">
-                            <div className="w-11 h-11 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
-                              <FileText className="w-5 h-5 text-amber-500" />
-                            </div>
-                            <div className="min-w-0">
-                              <h3 className="font-semibold text-slate-900 group-hover:text-amber-600 transition-colors flex items-center gap-1.5">
-                                {pdf.title}
-                                <ExternalLink className="w-3.5 h-3.5 text-slate-300 group-hover:text-amber-400" />
-                              </h3>
-                              {pdf.description && <p className="text-sm text-slate-500 mt-0.5 line-clamp-2">{pdf.description}</p>}
-                            </div>
-                          </a>
-                          {canEdit && (
-                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
-                              <button onClick={() => startEditPDF(pdf)} className="p-1.5 rounded hover:bg-slate-100"><Pencil className="w-3.5 h-3.5 text-slate-400" /></button>
-                              <button onClick={() => deletePDFMutation.mutate(pdf.id)} className="p-1.5 rounded hover:bg-red-50"><Trash2 className="w-3.5 h-3.5 text-red-400" /></button>
-                            </div>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* PDF Upload Dialog */}
-      <Dialog open={showPDFForm} onOpenChange={resetPDFForm}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>{editingPDF ? 'Edit MSDS Sheet' : 'Add MSDS Sheet'}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Title</Label>
-              <Input value={pdfForm.title} onChange={e => setPdfForm({ ...pdfForm, title: e.target.value })} placeholder="Document name" />
-            </div>
-            <div className="space-y-2">
-              <Label>PDF File</Label>
-              <input ref={fileInputRef} type="file" accept="application/pdf" className="hidden" onChange={handleFileUpload} />
-              {pdfForm.file_url ? (
-                <div className="flex items-center gap-2 p-3 bg-amber-50 rounded-lg border border-amber-200">
-                  <FileText className="w-4 h-4 text-amber-600" />
-                  <span className="text-sm text-amber-700 flex-1 truncate">File uploaded</span>
-                  <button onClick={() => fileInputRef.current.click()} className="text-xs text-amber-600 underline">Replace</button>
-                </div>
-              ) : (
-                <Button type="button" variant="outline" onClick={() => fileInputRef.current.click()} disabled={uploading} className="w-full gap-2">
-                  {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                  {uploading ? 'Uploading...' : 'Upload PDF'}
-                </Button>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label>Description</Label>
-              <Input value={pdfForm.description} onChange={e => setPdfForm({ ...pdfForm, description: e.target.value })} placeholder="Brief description" />
-            </div>
-            <div className="space-y-2">
-              <Label>Category</Label>
-              <Input value={pdfForm.category} onChange={e => setPdfForm({ ...pdfForm, category: e.target.value })} placeholder="e.g. HR, Safety, Training" />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={resetPDFForm}>Cancel</Button>
-            <Button onClick={() => savePDFMutation.mutate(pdfForm)} disabled={savePDFMutation.isPending || !pdfForm.file_url || !pdfForm.title} className="bg-amber-500 hover:bg-amber-600 gap-2">
-              {savePDFMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />} {editingPDF ? 'Update' : 'Add'} Sheet
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={showForm} onOpenChange={resetForm}>
         <DialogContent>
