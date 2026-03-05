@@ -66,38 +66,7 @@ export default function MonitorView() {
             .sort((a, b) => b.diff(a))[0] || null;
     };
 
-    // Yellow alert:
-    // FIRST: Check if pet has been checked in for more than 48 hours
-    // THEN: Check if required observations are missing
-    const needsAlert = (visit, pet) => {
-        // 1. Must be a boarding visit
-        if (visit.visit_type !== 'boarding') return false;
 
-        const checkInTime = moment(visit.check_in_time);
-        const fortyEightHoursAgo = moment().subtract(48, 'hours');
-        
-        // 2. FIRST - Check if checked in MORE than 48 hours ago
-        const checkedInMoreThan48Hours = checkInTime.isBefore(fortyEightHoursAgo);
-        if (!checkedInMoreThan48Hours) return false;
-
-        // 3. THEN - Only if 48+ hours, check for completed observations BEFORE now
-        // Only count tasks completed before the current moment
-        const now = moment();
-        const hasFecesObserved = visit.scheduled_tasks?.some(t => 
-            t.type === 'Feces Observed' && t.completed && t.completed_iso && moment(t.completed_iso).isBefore(now)
-        );
-
-        if (pet?.species === 'Cat') {
-            // For cats, check both Feces and Urine completed before now
-            const hasUrineObserved = visit.scheduled_tasks?.some(t => 
-                t.type === 'Urine Observed' && t.completed && t.completed_iso && moment(t.completed_iso).isBefore(now)
-            );
-            return !hasFecesObserved || !hasUrineObserved;
-        }
-
-        // For dogs, only check Feces
-        return !hasFecesObserved;
-    };
 
     const petsWithVisits = checkedInVisits.map(visit => {
         const pet = pets.find(p => p.id === visit.pet_id);
