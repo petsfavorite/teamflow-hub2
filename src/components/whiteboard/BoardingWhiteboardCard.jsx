@@ -66,7 +66,7 @@ export default function BoardingWhiteboardCard({ pet, visit, onViewVisit }) {
         return !hasFecesObserved;
     })();
 
-    const cardColor = hasOverdue ? 'border-rose-400 bg-rose-50' : hasYellowAlert ? 'border-yellow-400 bg-yellow-50' : 'border-stone-200 bg-white';
+    const cardColor = hasOverdue ? 'border-rose-400 bg-rose-50' : hasYellowAlert ? 'border-yellow-400 bg-yellow-50' : 'border-stone-200 bg-stone-50';
 
     return (
         <motion.div
