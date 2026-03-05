@@ -40,23 +40,27 @@ export default function BoardingWhiteboardCard({ pet, visit, onViewVisit }) {
     const needsPicture = pet.daily_picture && !visit.picture_sent;
 
     // Yellow alert logic
-    // Dogs: alert if checked in 48+ hrs AND Feces Observed not checked
-    // Cats: alert if checked in 48+ hrs AND (Feces Observed OR Urine Observed not checked)
+    // Only alert if CHECKED IN MORE THAN 48 HOURS and missing required observations
+    // Dogs: checked in 48+ hrs AND Feces Observed not found or not completed
+    // Cats: checked in 48+ hrs AND (Feces Observed not found/completed OR Urine Observed not found/completed)
     const fortyEightHoursAgo = moment().subtract(48, 'hours');
     const hasYellowAlert = (() => {
         if (visit.visit_type !== 'boarding') return false;
-        if (checkInTime.isAfter(fortyEightHoursAgo)) return false;
+        
+        // Only alert if checked in MORE than 48 hours ago
+        if (!checkInTime.isBefore(fortyEightHoursAgo)) return false;
 
-        const fecesTask = visit.scheduled_tasks?.find(t => t.type === 'Feces Observed' && t.completed);
-        const fecesNotChecked = !fecesTask;
+        // Check for completed Feces Observed task
+        const hasFecesObserved = visit.scheduled_tasks?.some(t => t.type === 'Feces Observed' && t.completed);
 
         if (isCat) {
-            const urineTask = visit.scheduled_tasks?.find(t => t.type === 'Urine Observed' && t.completed);
-            const urineNotChecked = !urineTask;
-            return fecesNotChecked || urineNotChecked;
+            // For cats, check both Feces and Urine
+            const hasUrineObserved = visit.scheduled_tasks?.some(t => t.type === 'Urine Observed' && t.completed);
+            return !hasFecesObserved || !hasUrineObserved;
         }
 
-        return fecesNotChecked;
+        // For dogs, only check Feces
+        return !hasFecesObserved;
     })();
 
     const cardColor = hasOverdue ? 'border-rose-400 bg-rose-50' : hasYellowAlert ? 'border-yellow-400 bg-yellow-50' : 'border-stone-200 bg-white';
