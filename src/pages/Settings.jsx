@@ -500,28 +500,54 @@ export default function Settings() {
                 className="rounded-xl"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="timezone">Timezone</Label>
-              <Select value={profileTimezone} onValueChange={setProfileTimezone}>
-                <SelectTrigger className="rounded-xl">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="America/New_York">Eastern (New York)</SelectItem>
-                  <SelectItem value="America/Chicago">Central (Chicago)</SelectItem>
-                  <SelectItem value="America/Denver">Mountain (Denver)</SelectItem>
-                  <SelectItem value="America/Los_Angeles">Pacific (Los Angeles)</SelectItem>
-                  <SelectItem value="America/Anchorage">Alaska (Anchorage)</SelectItem>
-                  <SelectItem value="Pacific/Honolulu">Hawaii (Honolulu)</SelectItem>
-                  <SelectItem value="UTC">UTC</SelectItem>
-                  <SelectItem value="Europe/London">London</SelectItem>
-                  <SelectItem value="Europe/Paris">Paris</SelectItem>
-                  <SelectItem value="Asia/Tokyo">Tokyo</SelectItem>
-                  <SelectItem value="Asia/Shanghai">Shanghai</SelectItem>
-                  <SelectItem value="Australia/Sydney">Sydney</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {!isSuperAdmin && (
+              <div className="space-y-2">
+                <Label htmlFor="timezone">Timezone</Label>
+                <Select value={profileTimezone} onValueChange={setProfileTimezone}>
+                  <SelectTrigger className="rounded-xl">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="America/New_York">Eastern (New York)</SelectItem>
+                    <SelectItem value="America/Chicago">Central (Chicago)</SelectItem>
+                    <SelectItem value="America/Denver">Mountain (Denver)</SelectItem>
+                    <SelectItem value="America/Los_Angeles">Pacific (Los Angeles)</SelectItem>
+                    <SelectItem value="America/Anchorage">Alaska (Anchorage)</SelectItem>
+                    <SelectItem value="Pacific/Honolulu">Hawaii (Honolulu)</SelectItem>
+                    <SelectItem value="UTC">UTC</SelectItem>
+                    <SelectItem value="Europe/London">London</SelectItem>
+                    <SelectItem value="Europe/Paris">Paris</SelectItem>
+                    <SelectItem value="Asia/Tokyo">Tokyo</SelectItem>
+                    <SelectItem value="Asia/Shanghai">Shanghai</SelectItem>
+                    <SelectItem value="Australia/Sydney">Sydney</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            {isSuperAdmin && (
+              <div className="space-y-2">
+                <Label htmlFor="global-timezone">Global Timezone (All Users)</Label>
+                <Select value={globalTimezone} onValueChange={setGlobalTimezone}>
+                  <SelectTrigger className="rounded-xl">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="America/New_York">Eastern (New York)</SelectItem>
+                    <SelectItem value="America/Chicago">Central (Chicago)</SelectItem>
+                    <SelectItem value="America/Denver">Mountain (Denver)</SelectItem>
+                    <SelectItem value="America/Los_Angeles">Pacific (Los Angeles)</SelectItem>
+                    <SelectItem value="America/Anchorage">Alaska (Anchorage)</SelectItem>
+                    <SelectItem value="Pacific/Honolulu">Hawaii (Honolulu)</SelectItem>
+                    <SelectItem value="UTC">UTC</SelectItem>
+                    <SelectItem value="Europe/London">London</SelectItem>
+                    <SelectItem value="Europe/Paris">Paris</SelectItem>
+                    <SelectItem value="Asia/Tokyo">Tokyo</SelectItem>
+                    <SelectItem value="Asia/Shanghai">Shanghai</SelectItem>
+                    <SelectItem value="Australia/Sydney">Sydney</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" className="rounded-xl" onClick={() => setEditProfileOpen(false)}>
