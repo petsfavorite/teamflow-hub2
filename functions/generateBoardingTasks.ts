@@ -173,11 +173,12 @@ Deno.serve(async (req) => {
                 last_completed_iso: null
             });
         } else if (species === 'Cat') {
-            tasks = [
-                {
+            // Litter box check at 9:00 AM
+            if (checkInHour < 9 || (checkInHour === 9 && checkInMinute === 0)) {
+                tasks.push({
                     type: 'Check Litterbox',
                     time: '9:00 AM',
-                    date: getTaskDate('9:00 AM'),
+                    date: checkInDate,
                     is_template: true,
                     completed: false,
                     completed_at: null,
@@ -185,13 +186,30 @@ Deno.serve(async (req) => {
                     notes: '',
                     recurrence_type: 'days',
                     recurrence_interval: 1,
-                    last_completed_iso: null,
-                    skip_first_day: shouldSkipFirstDay('9:00 AM')
-                },
-                {
+                    last_completed_iso: null
+                });
+            } else {
+                tasks.push({
+                    type: 'Check Litterbox',
+                    time: '9:00 AM',
+                    date: new Date(new Date(checkInDate).getTime() + 86400000).toISOString().split('T')[0],
+                    is_template: true,
+                    completed: false,
+                    completed_at: null,
+                    completed_by: null,
+                    notes: '',
+                    recurrence_type: 'days',
+                    recurrence_interval: 1,
+                    last_completed_iso: null
+                });
+            }
+
+            // Litter box check at 7:30 PM
+            if (checkInHour < 19 || (checkInHour === 19 && checkInMinute < 30)) {
+                tasks.push({
                     type: 'Check Litterbox',
                     time: '7:30 PM',
-                    date: getTaskDate('7:30 PM'),
+                    date: checkInDate,
                     is_template: true,
                     completed: false,
                     completed_at: null,
@@ -199,9 +217,23 @@ Deno.serve(async (req) => {
                     notes: '',
                     recurrence_type: 'days',
                     recurrence_interval: 1,
-                    last_completed_iso: null,
-                    skip_first_day: shouldSkipFirstDay('7:30 PM')
-                },
+                    last_completed_iso: null
+                });
+            } else {
+                tasks.push({
+                    type: 'Check Litterbox',
+                    time: '7:30 PM',
+                    date: new Date(new Date(checkInDate).getTime() + 86400000).toISOString().split('T')[0],
+                    is_template: true,
+                    completed: false,
+                    completed_at: null,
+                    completed_by: null,
+                    notes: '',
+                    recurrence_type: 'days',
+                    recurrence_interval: 1,
+                    last_completed_iso: null
+                });
+            }
                 {
                     type: 'Clean Beds and Kennel',
                     time: '',
