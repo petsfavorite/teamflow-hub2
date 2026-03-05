@@ -173,44 +173,46 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
          setIsSaving(true);
 
          try {
-             const updatedSessions = [...visit.play_sessions];
+             const completedSession = visit.play_sessions[sessionIndex];
+             const updatedSessions = visit.play_sessions.filter((_, idx) => idx !== sessionIndex);
              const today = moment().format('YYYY-MM-DD');
-             const session = updatedSessions[sessionIndex];
 
-             // If already completed today, toggle undo
-             if (session.completed && session.completed_date === today) {
-                 updatedSessions[sessionIndex] = {
-                     ...updatedSessions[sessionIndex],
+             const careLog = [...(visit.care_log || []), {
+                 time: moment().format('h:mm A'),
+                 activity: `Play Session ${completedSession.session_number}`,
+                 notes: '',
+                 staff: currentUser?.full_name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?',
+                 date: today,
+                 type: 'play_session',
+                 session_number: completedSession.session_number
+             }];
+
+             await onUpdateVisit({ ...visit, play_sessions: updatedSessions, care_log: careLog });
+         } finally {
+             setIsSaving(false);
+         }
+     };
+
+    const handleUndoActivityLog = async (index) => {
+         if (isSaving) return;
+         setIsSaving(true);
+
+         try {
+             const logEntry = visit.care_log[index];
+             const updatedCareLog = visit.care_log.filter((_, idx) => idx !== index);
+             const updatedSessions = [...(visit.play_sessions || [])];
+
+             // If it's a play session, restore it
+             if (logEntry.type === 'play_session') {
+                 updatedSessions.push({
+                     session_number: logEntry.session_number,
                      completed: false,
                      completed_at: null,
-                     completed_date: null,
-                     completed_iso: null
-                 };
-             } else {
-                 // Mark as completed
-                 updatedSessions[sessionIndex] = {
-                     ...updatedSessions[sessionIndex],
-                     completed: true,
-                     completed_at: moment().format('h:mm A'),
-                     completed_date: today,
-                     completed_iso: new Date().toISOString()
-                 };
-             }
-
-             const careLog = [...(visit.care_log || [])];
-             // Only add to care log if marking as completed
-             if (updatedSessions[sessionIndex].completed) {
-                 careLog.push({
-                     time: moment().format('h:mm A'),
-                     activity: `Play Session ${updatedSessions[sessionIndex].session_number}`,
-                     notes: '',
-                     staff: currentUser?.full_name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?',
-                     date: today
+                     completed_date: null
                  });
              }
 
-             // Save play session completion
-             await onUpdateVisit({ ...visit, play_sessions: updatedSessions, care_log: careLog });
+             await onUpdateVisit({ ...visit, play_sessions: updatedSessions, care_log: updatedCareLog });
          } finally {
              setIsSaving(false);
          }
