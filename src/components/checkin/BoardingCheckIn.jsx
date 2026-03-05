@@ -190,13 +190,30 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
         }
     }
         
-    // Play sessions if added (full day = 4 sessions)
-    const playSessions = addPlayCamp ? 
-        Array.from({ length: 4 }, (_, i) => ({
-            session_number: i + 1,
-            completed: false,
-            completed_at: null
-        })) : [];
+    // Play sessions if added (4 per weekday: Mon-Fri)
+    let playSessions = [];
+    if (addPlayCamp && pet.species === 'Dog') {
+        let currentDate = moment(checkInDate);
+        let sessionNumber = 1;
+
+        while (currentDate.format('YYYY-MM-DD') <= checkoutDate) {
+            const dayOfWeek = currentDate.day(); // 0=Sun, 1=Mon, 5=Fri, 6=Sat
+
+            // Only add sessions for weekdays (Mon-Fri)
+            if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+                for (let i = 0; i < 4; i++) {
+                    playSessions.push({
+                        session_number: sessionNumber,
+                        date: currentDate.format('YYYY-MM-DD'),
+                        completed: false,
+                        completed_at: null
+                    });
+                    sessionNumber++;
+                }
+            }
+            currentDate.add(1, 'day');
+        }
+    }
         
     onConfirm({
         visit_type: 'boarding',
