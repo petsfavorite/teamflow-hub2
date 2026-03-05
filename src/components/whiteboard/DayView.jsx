@@ -248,17 +248,18 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
                                                                                 ? 'bg-emerald-500 text-white' 
                                                                                 : 'bg-gray-200 text-gray-400'
                                                                         }`}
+                                                                        title={completedToday ? `Session ${session.session_number} completed` : `Session ${session.session_number} pending`}
                                                                     >
-                                                                        {session.session_number}
+                                                                        {completedToday ? '✓' : session.session_number}
                                                                     </div>
                                                                 );
-                                                            })}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                                
-                                                <div>
-                                                    <p className="text-xs text-gray-500 mb-1">Remaining Tasks</p>
+                                                                })}
+                                                                </div>
+                                                                </div>
+                                                                )}
+
+                                                                <div>
+                                                                <p className="text-xs text-gray-500 mb-1">Remaining Tasks</p>
                                                     {(() => {
                                                         const remaining = getRemainingTasks(visit, selectedDate);
                                                         if (remaining.length === 0) {
@@ -362,8 +363,9 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
                                                                                 ? 'bg-emerald-500 text-white' 
                                                                                 : 'bg-gray-200 text-gray-400'
                                                                         }`}
+                                                                        title={completedToday ? `Session ${session.session_number} completed` : `Session ${session.session_number} pending`}
                                                                     >
-                                                                        {session.session_number}
+                                                                        {completedToday ? '✓' : session.session_number}
                                                                     </div>
                                                                 );
                                                             })}
