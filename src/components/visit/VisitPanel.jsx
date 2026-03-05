@@ -561,7 +561,6 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                             </CardHeader>
                             <CardContent className="space-y-2">
                                 {visit.play_sessions.map((session, idx) => {
-                                     const viewingToday = viewDate === moment().format('YYYY-MM-DD');
                                      const completedToday = session.completed && session.completed_date === viewDate;
                                      return (
                                          <div 
@@ -572,35 +571,45 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                                      : 'bg-purple-50 border-purple-200'
                                              }`}
                                          >
+                                             <p className={`text-sm font-medium ${
+                                                 completedToday ? 'text-emerald-700' : 'text-purple-700'
+                                             }`}>
+                                                 Play Session {session.session_number}
+                                             </p>
                                              <div className="flex items-center gap-2">
-                                                 <Checkbox 
-                                                                      checked={completedToday}
-                                                                      onCheckedChange={() => {
-                                                                          if (completedToday) {
-                                                                              const updatedSessions = [...visit.play_sessions];
-                                                                              updatedSessions[idx] = {
-                                                                                  ...updatedSessions[idx],
-                                                                                  completed: false,
-                                                                                  completed_at: null,
-                                                                                  completed_date: null
-                                                                              };
-                                                                              onUpdateVisit({ ...visit, play_sessions: updatedSessions });
-                                                                          } else {
-                                                                              handleCompletePlaySession(idx);
-                                                                          }
-                                                                      }}
-                                                                  />
-                                                 <p className={`text-sm font-medium ${
-                                                     completedToday ? 'text-emerald-700' : 'text-purple-700'
-                                                 }`}>
-                                                     Play Session {session.session_number}
-                                                 </p>
+                                                 {completedToday && (
+                                                     <p className="text-xs text-emerald-600">
+                                                         {session.completed_at}
+                                                     </p>
+                                                 )}
+                                                 {!completedToday ? (
+                                                     <Button 
+                                                         size="sm"
+                                                         onClick={() => handleCompletePlaySession(idx)}
+                                                         className="rounded-xl h-7 text-xs bg-purple-600 hover:bg-purple-700"
+                                                     >
+                                                         Complete
+                                                     </Button>
+                                                 ) : (
+                                                     <Button 
+                                                         size="sm"
+                                                         onClick={() => {
+                                                             const updatedSessions = [...visit.play_sessions];
+                                                             updatedSessions[idx] = {
+                                                                 ...updatedSessions[idx],
+                                                                 completed: false,
+                                                                 completed_at: null,
+                                                                 completed_date: null
+                                                             };
+                                                             onUpdateVisit({ ...visit, play_sessions: updatedSessions });
+                                                         }}
+                                                         variant="outline"
+                                                         className="rounded-xl h-7 text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                                                     >
+                                                         Undo
+                                                     </Button>
+                                                 )}
                                              </div>
-                                             {completedToday && viewingToday && (
-                                                 <p className="text-xs text-emerald-600">
-                                                     {session.completed_at}
-                                                 </p>
-                                             )}
                                          </div>
                                      );
                                  })}
