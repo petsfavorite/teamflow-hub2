@@ -63,34 +63,37 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
     const isPlayCamp = visit.visit_type === 'play_camp';
     
     // Get tasks for the current viewing date
-      const getTasksForDate = (date) => {
-          const isCheckInDay = moment(visit.check_in_date).format('YYYY-MM-DD') === date;
-          const checkInTime = moment(visit.check_in_time);
+     const getTasksForDate = (date) => {
+         const isCheckInDay = moment(visit.check_in_date).format('YYYY-MM-DD') === date;
+         const checkInTime = moment(visit.check_in_time);
 
-          let tasks = visit.scheduled_tasks?.filter(task => {
-              if (task.date) {
-                  // If task has an explicit date, only show if it matches
-                  return task.date === date;
-              }
-              if (task.is_template) {
-                  const visitStart = moment(visit.check_in_date);
-                  const visitEnd = visit.scheduled_checkout_date ? moment(visit.scheduled_checkout_date) : moment().add(30, 'days');
-                  const currentDate = moment(date);
+         let tasks = visit.scheduled_tasks?.filter(task => {
+             // Hide completed tasks
+             if (task.completed) return false;
 
-                  if (currentDate.isBetween(visitStart, visitEnd, 'day', '[]')) {
-                      if (task.is_daily_observation) {
-                          const completedToday = task.completed && task.completed_date === date;
-                          return !completedToday;
-                      }
-                      // Always show template tasks on or after their start date
-                      return true;
-                  }
-              }
-              return false;
-          }) || [];
+             if (task.date) {
+                 // If task has an explicit date, only show if it matches
+                 return task.date === date;
+             }
+             if (task.is_template) {
+                 const visitStart = moment(visit.check_in_date);
+                 const visitEnd = visit.scheduled_checkout_date ? moment(visit.scheduled_checkout_date) : moment().add(30, 'days');
+                 const currentDate = moment(date);
 
-          return tasks;
-      };
+                 if (currentDate.isBetween(visitStart, visitEnd, 'day', '[]')) {
+                     if (task.is_daily_observation) {
+                         const completedToday = task.completed && task.completed_date === date;
+                         return !completedToday;
+                     }
+                     // Always show template tasks on or after their start date
+                     return true;
+                 }
+             }
+             return false;
+         }) || [];
+
+         return tasks;
+     };
     
     const tasksForDate = getTasksForDate(viewDate).sort((a, b) => {
         // Tasks without time come first
