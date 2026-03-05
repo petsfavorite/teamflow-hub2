@@ -72,6 +72,11 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                 const currentDate = moment(date);
                 
                 if (currentDate.isBetween(visitStart, visitEnd, 'day', '[]')) {
+                    // Daily observation tasks: only show if not yet completed today
+                    if (task.is_daily_observation) {
+                        const completedToday = task.completed && task.completed_date === date;
+                        return !completedToday;
+                    }
                     // On check-in day, only show tasks after check-in time
                     if (isCheckInDay) {
                         const taskTime = moment(task.time, 'h:mm A');
