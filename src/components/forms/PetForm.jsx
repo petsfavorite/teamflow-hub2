@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Plus, Trash2, Upload, Dog, User, Stethoscope, Utensils, Footprints, Pill, Cat } from "lucide-react";
 import { base44 } from '@/api/base44Client';
+import PhotoCropSelector from './PhotoCropSelector';
 
 export default function PetForm({ pet, onSave, onCancel, onDelete, isLoading }) {
     const [formData, setFormData] = useState(pet || {
@@ -43,6 +44,7 @@ export default function PetForm({ pet, onSave, onCancel, onDelete, isLoading }) 
     const [uploading, setUploading] = useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const [errors, setErrors] = useState({});
+    const [showCropSelector, setShowCropSelector] = useState(false);
 
     const handleChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -55,7 +57,14 @@ export default function PetForm({ pet, onSave, onCancel, onDelete, isLoading }) 
         setUploading(true);
         const { file_url } = await base44.integrations.Core.UploadFile({ file });
         handleChange('photo_url', file_url);
+        setShowCropSelector(true);
         setUploading(false);
+    };
+
+    const handleCropConfirm = (cropData) => {
+        handleChange('photo_url', cropData.photo_url);
+        handleChange('crop_offset_y', cropData.crop_offset_y);
+        setShowCropSelector(false);
     };
 
 
@@ -121,40 +130,59 @@ export default function PetForm({ pet, onSave, onCancel, onDelete, isLoading }) 
                         </CardHeader>
                         <CardContent className="space-y-4">
                             {/* Photo Upload */}
-                            <div className="flex items-center gap-4">
-                                <div className="relative">
-                                    {formData.photo_url ? (
-                                        <img 
-                                            src={formData.photo_url} 
-                                            alt="Pet photo"
-                                            className="w-24 h-24 rounded-xl object-cover"
-                                        />
-                                    ) : (
-                                        <div className="w-24 h-24 rounded-xl bg-stone-100 flex items-center justify-center">
-                                            {formData.species === 'Cat' ? (
-                                                <Cat className="w-10 h-10 text-stone-300" />
-                                            ) : (
-                                                <Dog className="w-10 h-10 text-stone-300" />
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                                <div>
-                                    <Label htmlFor="photo" className="cursor-pointer">
-                                        <div className="flex items-center gap-2 px-4 py-2 bg-stone-100 rounded-xl hover:bg-stone-200 transition-colors">
-                                            <Upload className="w-4 h-4" />
-                                            <span>{uploading ? 'Uploading...' : 'Upload Photo'}</span>
-                                        </div>
-                                    </Label>
-                                    <Input
-                                        id="photo"
-                                        type="file"
-                                        accept="image/*"
-                                        className="hidden"
-                                        onChange={handlePhotoUpload}
-                                    />
-                                </div>
-                            </div>
+                             {showCropSelector ? (
+                                 <div className="space-y-4">
+                                     <Label>Position Photo</Label>
+                                     <PhotoCropSelector 
+                                         photoUrl={formData.photo_url}
+                                         onConfirm={handleCropConfirm}
+                                         onCancel={() => {
+                                             setShowCropSelector(false);
+                                             handleChange('photo_url', '');
+                                         }}
+                                     />
+                                 </div>
+                             ) : (
+                                 <div className="flex items-center gap-4">
+                                     <div className="relative">
+                                         {formData.photo_url ? (
+                                             <img 
+                                                 src={formData.photo_url} 
+                                                 alt="Pet photo"
+                                                 className="w-24 h-24 rounded-xl object-cover"
+                                                 style={{
+                                                     objectPosition: formData.crop_offset_y !== undefined 
+                                                         ? `center ${-formData.crop_offset_y}px`
+                                                         : 'center'
+                                                 }}
+                                             />
+                                         ) : (
+                                             <div className="w-24 h-24 rounded-xl bg-stone-100 flex items-center justify-center">
+                                                 {formData.species === 'Cat' ? (
+                                                     <Cat className="w-10 h-10 text-stone-300" />
+                                                 ) : (
+                                                     <Dog className="w-10 h-10 text-stone-300" />
+                                                 )}
+                                             </div>
+                                         )}
+                                     </div>
+                                     <div>
+                                         <Label htmlFor="photo" className="cursor-pointer">
+                                             <div className="flex items-center gap-2 px-4 py-2 bg-stone-100 rounded-xl hover:bg-stone-200 transition-colors">
+                                                 <Upload className="w-4 h-4" />
+                                                 <span>{uploading ? 'Uploading...' : 'Upload Photo'}</span>
+                                             </div>
+                                         </Label>
+                                         <Input
+                                             id="photo"
+                                             type="file"
+                                             accept="image/*"
+                                             className="hidden"
+                                             onChange={handlePhotoUpload}
+                                         />
+                                     </div>
+                                 </div>
+                             )}
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
