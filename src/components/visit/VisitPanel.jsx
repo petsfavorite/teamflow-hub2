@@ -56,6 +56,14 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
     const [showPrelimReport, setShowPrelimReport] = useState(false);
     const [editingTaskIdx, setEditingTaskIdx] = useState(null);
     const [localCompletedSessions, setLocalCompletedSessions] = useState([]);
+
+    // Once the visit prop updates with the new care_log, clear local optimistic state
+    useEffect(() => {
+        const completedInLog = (visit.care_log || [])
+            .filter(log => log.type === 'play_session' && log.date === viewDate)
+            .map(log => log.session_number);
+        setLocalCompletedSessions(prev => prev.filter(n => !completedInLog.includes(n)));
+    }, [visit.care_log]);
     const [recurrenceType, setRecurrenceType] = useState('none');
     const [recurrenceInterval, setRecurrenceInterval] = useState(1);
     const isBoarding = visit.visit_type === 'boarding';
