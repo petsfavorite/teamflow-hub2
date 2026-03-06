@@ -61,7 +61,6 @@ import EmergencySOPs from './pages/EmergencySOPs';
 import ExternalLinks from './pages/ExternalLinks';
 import FetchCallData from './pages/FetchCallData';
 import IncidentReports from './pages/IncidentReports';
-import Maintenance from './pages/Maintenance';
 import MonitorView from './pages/MonitorView';
 import Pets from './pages/Pets';
 import Reports from './pages/Reports';
@@ -94,7 +93,6 @@ export const PAGES = {
     "ExternalLinks": ExternalLinks,
     "FetchCallData": FetchCallData,
     "IncidentReports": IncidentReports,
-    "Maintenance": Maintenance,
     "MonitorView": MonitorView,
     "Pets": Pets,
     "Reports": Reports,
