@@ -91,7 +91,7 @@ export default function Dashboard() {
     !c.assigned_to || c.assigned_to.length === 0 || c.assigned_to.includes(user?.email)
   );
 
-  const openMaintenance = maintenanceRequests.filter(r => r.status === 'open' || r.status === 'in_progress');
+  const openMaintenance = maintenanceRequests.filter(r => r.status !== 'completed');
   const myPendingTasks = tasks.filter(t => t.status === 'pending' || t.status === 'in_progress');
 
   return (
