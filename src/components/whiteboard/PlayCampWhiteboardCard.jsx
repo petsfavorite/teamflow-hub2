@@ -67,7 +67,23 @@ export default function PlayCampWhiteboardCard({ pet, visit, onViewVisit }) {
                         {/* Middle: Play Sessions */}
                         <div className="flex-1 p-4">
                             <div className="flex items-center gap-3 flex-wrap">
-                                {visit.play_sessions?.map((session) => getPlaySessionDisplay(session))}
+                                {playSessions.map((session, idx) => (
+                                    <div 
+                                        key={idx}
+                                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all ${
+                                            session.completed ? 'bg-emerald-50 border-emerald-200' : 'bg-purple-50 border-purple-200'
+                                        }`}
+                                    >
+                                        {session.completed ? (
+                                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                        ) : (
+                                            <div className="w-3 h-3 rounded-full border-2 border-purple-400" />
+                                        )}
+                                        <span className={`text-xs font-medium ${session.completed ? 'text-emerald-700' : 'text-purple-700'}`}>
+                                            {session.type}
+                                        </span>
+                                    </div>
+                                ))}
 
                                 {/* Daily Picture */}
                                 {needsPicture && (
@@ -82,14 +98,12 @@ export default function PlayCampWhiteboardCard({ pet, visit, onViewVisit }) {
                         {/* Right: Play Sessions Count */}
                          <div className="flex items-center gap-3 p-4 border-l border-stone-200 min-w-[180px]">
                              <div className="flex-1">
-                                 {visit.play_sessions && visit.play_sessions.length > 0 ? (
+                                 {playSessions.length > 0 ? (
                                      <div className="text-xs font-medium text-purple-700">
-                                         {visit.play_sessions.filter(s => !s.completed).length}/{totalSessions} Sessions Left
+                                         {playSessions.filter(s => !s.completed).length}/{playSessions.length} Sessions Left
                                      </div>
                                  ) : (
-                                     <div className="text-xs text-stone-400">
-                                         No play sessions
-                                     </div>
+                                     <div className="text-xs text-stone-400">No play sessions</div>
                                  )}
                              </div>
                             <Button
