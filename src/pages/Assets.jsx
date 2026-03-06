@@ -496,7 +496,7 @@ export default function Assets() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreatingTaskForAsset(false)}>Cancel</Button>
             <Button onClick={() => {
-              if (newTaskForm.title && selectedAsset && (newTaskForm.assigned_to_emails.length > 0 || newTaskForm.assigned_to_teams.length > 0)) {
+              if (newTaskForm.title && selectedAsset && ((newTaskForm.assigned_to_emails?.length > 0) || (newTaskForm.assigned_to_teams?.length > 0))) {
                 createTaskMutation.mutate({
                   ...newTaskForm,
                   created_by_name: user?.full_name,
