@@ -237,6 +237,8 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
     const handleCompletePlaySession = async (session) => {
          if (isSaving) return;
          setIsSaving(true);
+         // Optimistically hide this session immediately
+         setLocalCompletedSessions(prev => [...prev, session.session_number]);
 
          try {
              const today = moment().format('YYYY-MM-DD');
@@ -253,6 +255,10 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
              }];
 
              await onUpdateVisit({ ...latestVisit, care_log: careLog });
+         } catch (e) {
+             // Revert optimistic update on error
+             setLocalCompletedSessions(prev => prev.filter(n => n !== session.session_number));
+             throw e;
          } finally {
              setIsSaving(false);
          }
