@@ -51,7 +51,10 @@ export default function Layout({ children }) {
 
     const getActivePageName = () => {
       const pathname = location.pathname.toLowerCase();
-      return FLOOF_PAGES.find(p => pathname.includes(p.toLowerCase())) || null;
+      return FLOOF_PAGES.find(p => {
+        const pagePattern = new RegExp(`/(${p.toLowerCase()})(/|$)`);
+        return pagePattern.test(pathname);
+      }) || null;
     };
     
     const isFloofPage = getActivePageName() !== null;

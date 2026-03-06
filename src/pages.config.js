@@ -55,11 +55,13 @@ import ChecklistAssignmentEditor from './pages/ChecklistAssignmentEditor';
 import ChecklistEditor from './pages/ChecklistEditor';
 import ChecklistHistory from './pages/ChecklistHistory';
 import Checklists from './pages/Checklists';
+import Dashboard from './pages/Dashboard';
 import DevChecklist from './pages/DevChecklist';
 import EmergencySOPs from './pages/EmergencySOPs';
 import ExternalLinks from './pages/ExternalLinks';
 import FetchCallData from './pages/FetchCallData';
 import IncidentReports from './pages/IncidentReports';
+import Maintenance from './pages/Maintenance';
 import MonitorView from './pages/MonitorView';
 import Pets from './pages/Pets';
 import Reports from './pages/Reports';
@@ -74,8 +76,6 @@ import Tasks from './pages/Tasks';
 import Teams from './pages/Teams';
 import UserManagement from './pages/UserManagement';
 import Whiteboard from './pages/Whiteboard';
-import Maintenance from './pages/Maintenance';
-import Dashboard from './pages/Dashboard';
 import __Layout from './Layout.jsx';
 
 
@@ -88,11 +88,13 @@ export const PAGES = {
     "ChecklistEditor": ChecklistEditor,
     "ChecklistHistory": ChecklistHistory,
     "Checklists": Checklists,
+    "Dashboard": Dashboard,
     "DevChecklist": DevChecklist,
     "EmergencySOPs": EmergencySOPs,
     "ExternalLinks": ExternalLinks,
     "FetchCallData": FetchCallData,
     "IncidentReports": IncidentReports,
+    "Maintenance": Maintenance,
     "MonitorView": MonitorView,
     "Pets": Pets,
     "Reports": Reports,
@@ -107,8 +109,6 @@ export const PAGES = {
     "Teams": Teams,
     "UserManagement": UserManagement,
     "Whiteboard": Whiteboard,
-    "Maintenance": Maintenance,
-    "Dashboard": Dashboard,
 }
 
 export const pagesConfig = {
