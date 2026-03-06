@@ -355,9 +355,9 @@ export default function IncidentReports() {
 
       {/* New Report Dialog */}
       <Dialog open={showNew} onOpenChange={setShowNew}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl flex flex-col max-h-[90vh]">
           <DialogHeader><DialogTitle>Report an Incident</DialogTitle></DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 overflow-y-auto flex-1 pr-1">
             <div className="space-y-2">
               <Label>Incident Category <span className="text-red-500">*</span></Label>
               <Select value={form.category} onValueChange={v => setForm({ ...form, category: v })}>
