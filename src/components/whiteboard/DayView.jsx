@@ -354,32 +354,25 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
                                                                 </div>
 
                                                 {/* Play Sessions */}
-                                                {(visit.play_camp_duration || visit.play_sessions?.length > 0) && (() => {
-                                                    const completedToday = (visit.play_sessions || []).filter(s => s.completed && s.completed_date === selectedDate).length;
-                                                    const total = 4;
-                                                    const remaining = total - completedToday;
+                                                {(() => {
+                                                    const playSessions = (visit.scheduled_tasks || []).filter(t => t.type === 'Play Session' && t.date === selectedDate);
+                                                    if (playSessions.length === 0) return null;
+                                                    const completed = playSessions.filter(s => s.completed).length;
+                                                    const remaining = playSessions.length - completed;
                                                     return (
                                                         <div className="p-4 border-l border-gray-100 w-[160px]">
                                                             <p className="text-xs text-gray-500 mb-1">Play Sessions</p>
                                                             <div className="flex items-center gap-1 mb-2">
-                                                                {Array.from({ length: total }, (_, i) => {
-                                                                   const done = i < completedToday;
-                                                                   return (
-                                                                       <div 
-                                                                           key={i}
-                                                                           className={`w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold ${
-                                                                               done ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-400'
-                                                                           }`}
-                                                                       >
-                                                                           {done ? '✓' : i + 1}
-                                                                       </div>
-                                                                   );
-                                                               })}
-                                                           </div>
-                                                           <p className={`text-xs font-semibold ${remaining === 0 ? 'text-emerald-600' : 'text-purple-600'}`}>
-                                                               {remaining === 0 ? 'All done!' : `${remaining} remaining`}
-                                                           </p>
-                                                       </div>
+                                                                {playSessions.map((s, i) => (
+                                                                    <div key={i} className={`w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold ${s.completed ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
+                                                                        {s.completed ? '✓' : i + 1}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                            <p className={`text-xs font-semibold ${remaining === 0 ? 'text-emerald-600' : 'text-purple-600'}`}>
+                                                                {remaining === 0 ? 'All done!' : `${remaining} remaining`}
+                                                            </p>
+                                                        </div>
                                                     );
                                                 })()}
 
