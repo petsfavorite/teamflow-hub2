@@ -227,7 +227,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
         onUpdateVisit(updateObj);
     };
 
-    const handleCompletePlaySession = async (sessionNumber) => {
+    const handleCompletePlaySession = async (session) => {
          if (isSaving) return;
          setIsSaving(true);
 
@@ -236,12 +236,12 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
 
              const careLog = [...(visit.care_log || []), {
                  time: moment().format('h:mm A'),
-                 activity: `Play Session ${sessionNumber + 1}`,
+                 activity: `Play Session ${session.session_number}`,
                  notes: '',
                  staff: currentUser?.full_name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?',
                  date: today,
                  type: 'play_session',
-                 session_number: sessionNumber + 1
+                 session_number: session.session_number
              }];
 
              await onUpdateVisit({ ...visit, care_log: careLog });
