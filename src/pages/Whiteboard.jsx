@@ -93,11 +93,10 @@ export default function Whiteboard() {
 
     const handleUpdateVisit = async (updatedVisit) => {
         await updateVisitMutation.mutateAsync({ id: updatedVisit.id, data: updatedVisit });
-        // Refetch so the cache is fresh, then update selectedVisit from DB
-        await queryClient.invalidateQueries({ queryKey: ['visits'] });
-        const freshVisits = queryClient.getQueryData(['visits']);
-        const fresh = freshVisits?.find(v => v.id === updatedVisit.id);
-        setSelectedVisit(fresh || { ...updatedVisit });
+        // Optimistically update selectedVisit immediately so the UI reacts right away
+        setSelectedVisit({ ...updatedVisit });
+        // Then refetch in background to sync with server
+        queryClient.invalidateQueries({ queryKey: ['visits'] });
     };
 
     const handleCheckout = () => {
