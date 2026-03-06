@@ -252,8 +252,11 @@ export default function IncidentReports() {
 
   const handleSubmit = () => {
     if (!form.category || !form.title) return;
+    const toNum = (v) => (v === '' || v === null || v === undefined) ? undefined : Number(v);
     createMutation.mutate({
       ...form,
+      osha_days_away_from_work: toNum(form.osha_days_away_from_work),
+      osha_days_on_restricted_duty: toNum(form.osha_days_on_restricted_duty),
       reported_by: user?.email,
       reported_by_name: user?.full_name,
     });
