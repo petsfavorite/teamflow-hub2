@@ -30,7 +30,8 @@ function StatCard({ icon: Icon, label, value, color, to }) {
 }
 
 export default function Dashboard() {
-  const { user, canManage, canApprove } = useCurrentUser();
+  const { user, canManage, isSuperAdmin, isAdmin } = useCurrentUser();
+  const canApprove = isSuperAdmin || isAdmin;
 
   const { data: sops = [] } = useQuery({
     queryKey: ['sops-dash'],
