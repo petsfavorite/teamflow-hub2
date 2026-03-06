@@ -563,22 +563,25 @@ export default function Checklists() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setUseDialogOpen(false)}>Cancel</Button>
             <Button 
-              onClick={() => {
-                assignChecklistMutation.mutate({
-                  assigned_to_emails: useForm.assigned_to_emails,
-                  assigned_to_names: useForm.assigned_to_names || [],
-                  assigned_teams: useForm.assigned_teams,
-                  due_date: useForm.due_date || undefined,
-                  due_time: useForm.due_time || '21:00',
-                  recurrence_type: useForm.recurrence_type,
-                  status: 'active'
-                });
-              }}
-              disabled={assignChecklistMutation.isPending}
-              className="bg-indigo-600 hover:bg-indigo-700 gap-2"
+             onClick={() => {
+               assignChecklistMutation.mutate({
+                 assigned_to_emails: useForm.assigned_to_emails,
+                 assigned_to_names: useForm.assigned_to_names || [],
+                 assigned_teams: useForm.assigned_teams,
+                 due_date: useForm.due_date || undefined,
+                 due_time: useForm.due_time || '21:00',
+                 recurrence_type: useForm.recurrence_type,
+                 recurrence_days_of_week: useForm.recurrence_days_of_week,
+                 recurrence_day_of_month: useForm.recurrence_day_of_month,
+                 recurrence_interval_months: useForm.recurrence_interval_months,
+                 status: 'active'
+               });
+             }}
+             disabled={assignChecklistMutation.isPending}
+             className="bg-indigo-600 hover:bg-indigo-700 gap-2"
             >
-              {assignChecklistMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-              Assign
+             {assignChecklistMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+             Assign
             </Button>
           </DialogFooter>
         </DialogContent>
