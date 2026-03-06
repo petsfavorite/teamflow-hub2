@@ -111,6 +111,20 @@ export default function ChecklistHistory() {
         </div>
       )}
 
+      {dateFilter && (
+        <div className="mb-4 flex items-center gap-3">
+          <span className="text-sm text-slate-600 bg-slate-100 px-3 py-1.5 rounded-lg">
+            Showing checklists for <strong>{dateFilter}</strong>
+          </span>
+          <button
+            className="text-xs text-slate-400 hover:text-slate-600 underline"
+            onClick={() => window.history.replaceState(null, '', window.location.pathname)}
+          >
+            Clear filter
+          </button>
+        </div>
+      )}
+
       {isLoading ? (
         <div className="space-y-3">
           {[1, 2, 3].map(i => <Card key={i} className="border-0 shadow-sm animate-pulse"><CardContent className="p-4"><div className="h-12 bg-slate-100 rounded" /></CardContent></Card>)}
@@ -119,7 +133,7 @@ export default function ChecklistHistory() {
         <EmptyState icon={CheckSquare} title="No completed checklists" description="Checklist completions will appear here" />
       ) : (
         <div className="space-y-3">
-          {completions.map(c => (
+          {completions.filter(c => !dateFilter || c.completion_date === dateFilter).map(c => (
             <Card key={c.id} className="border-0 shadow-sm hover:shadow-md transition-all cursor-pointer" onClick={() => openDetail(c)}>
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
