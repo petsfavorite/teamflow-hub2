@@ -12,7 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { 
     Dog, Cat, MapPin, Clock, Utensils, Pill, 
-    CheckCircle2, Plus, X, FileText, Camera, Sparkles, ChevronLeft, AlertCircle
+    CheckCircle2, Plus, X, FileText, Camera, ChevronLeft, AlertCircle
 } from "lucide-react";
 import moment from "moment";
 
