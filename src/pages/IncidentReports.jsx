@@ -12,48 +12,100 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { AlertTriangle, Plus, Clock, User, Eye, CheckCircle, Loader2 } from 'lucide-react';
+import { Checkbox } from "@/components/ui/checkbox";
+import { AlertTriangle, Plus, Clock, User, Loader2, ChevronDown, Paperclip, Lock, Archive } from 'lucide-react';
 import { toast } from "sonner";
 
-const INCIDENT_TYPES = [
-  { value: "dog_fight", label: "Dog Fight" },
-  { value: "animal_injury", label: "Animal Injury" },
-  { value: "staff_injury", label: "Staff Injury" },
-  { value: "client_incident", label: "Client Incident" },
-  { value: "equipment_failure", label: "Equipment Failure" },
-  { value: "escape", label: "Animal Escape" },
-  { value: "medical_emergency", label: "Medical Emergency" },
+const CATEGORIES = [
+  { value: "interpersonal", label: "Interpersonal" },
+  { value: "pet_issue", label: "Pet Issue" },
+  { value: "osha_reportable", label: "OSHA Reportable Incident" },
   { value: "other", label: "Other" },
 ];
 
-const typeColors = {
-  dog_fight: "bg-red-100 text-red-700",
-  animal_injury: "bg-orange-100 text-orange-700",
-  staff_injury: "bg-red-100 text-red-700",
-  client_incident: "bg-purple-100 text-purple-700",
-  equipment_failure: "bg-amber-100 text-amber-700",
-  escape: "bg-rose-100 text-rose-700",
-  medical_emergency: "bg-red-100 text-red-700",
+const categoryColors = {
+  interpersonal: "bg-purple-100 text-purple-700",
+  pet_issue: "bg-orange-100 text-orange-700",
+  osha_reportable: "bg-red-100 text-red-700",
   other: "bg-slate-100 text-slate-600",
 };
 
 const emptyForm = {
-  incident_type: '', title: '', description: '', location_detail: '',
-  incident_date: new Date().toISOString().split('T')[0], incident_time: '',
-  animals_involved: '', client_involved: '', immediate_action_taken: '',
+  category: '',
+  title: '',
+  description: '',
+  incident_date: new Date().toISOString().split('T')[0],
+  incident_time: '',
+  is_private: false,
+  // OSHA fields
+  osha_employee_name: '',
+  osha_job_title: '',
+  osha_date_of_birth: '',
+  osha_date_hired: '',
+  osha_sex: '',
+  osha_what_was_employee_doing: '',
+  osha_what_happened: '',
+  osha_injury_or_illness: '',
+  osha_object_or_substance: '',
+  osha_medical_treatment: '',
+  osha_days_away_from_work: '',
+  osha_days_on_restricted_duty: '',
+  osha_physician_name: '',
+  osha_treatment_facility: '',
+  osha_treatment_facility_address: '',
 };
 
 export default function IncidentReports() {
-  const { user, canManage } = useCurrentUser();
+  const { user, canManage, isAdmin, isSuperAdmin } = useCurrentUser();
   const queryClient = useQueryClient();
   const [showNew, setShowNew] = useState(false);
   const [selected, setSelected] = useState(null);
-  const [managerNotes, setManagerNotes] = useState('');
   const [form, setForm] = useState(emptyForm);
+  const [newNote, setNewNote] = useState('');
+  const [newNoteAttachment, setNewNoteAttachment] = useState(null);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const [expandedNotesLog, setExpandedNotesLog] = useState(false);
+  const [showArchive, setShowArchive] = useState(false);
+  const [archiveSearch, setArchiveSearch] = useState('');
 
-  const { data: reports = [], isLoading } = useQuery({
+  const canSeePrivate = isAdmin || isSuperAdmin;
+  const canAssign = canManage;
+
+  const { data: allReports = [], isLoading } = useQuery({
     queryKey: ['incidents'],
-    queryFn: () => base44.entities.IncidentReport.list('-created_date', 200),
+    queryFn: () => base44.entities.IncidentReport.list('-created_date', 500),
+  });
+
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ['users-all'],
+    queryFn: () => base44.entities.User.list(),
+    enabled: canAssign,
+  });
+
+  // Filter based on privacy + role
+  const visibleReports = allReports.filter(r => {
+    if (r.is_private && !canSeePrivate) {
+      // non-admin can only see their own private reports
+      return r.reported_by === user?.email;
+    }
+    return true;
+  });
+
+  const activeReports = visibleReports.filter(r => r.status !== 'resolved');
+  const archivedReports = visibleReports.filter(r => r.status === 'resolved');
+
+  // Non-managers only see their own reports
+  const visibleActive = canManage
+    ? activeReports
+    : activeReports.filter(r => r.reported_by === user?.email || r.assigned_to === user?.email);
+
+  const filteredArchive = archivedReports.filter(r => {
+    const q = archiveSearch.toLowerCase();
+    return (
+      r.title?.toLowerCase().includes(q) ||
+      r.description?.toLowerCase().includes(q) ||
+      new Date(r.created_date).toLocaleDateString().includes(q)
+    );
   });
 
   const createMutation = useMutation({
@@ -68,14 +120,15 @@ export default function IncidentReports() {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.IncidentReport.update(id, data),
-    onSuccess: () => {
+    onSuccess: (_, vars) => {
       toast.success('Report updated');
       queryClient.invalidateQueries({ queryKey: ['incidents'] });
-      setSelected(null);
+      if (vars.closeAfter) setSelected(null);
     },
   });
 
   const handleSubmit = () => {
+    if (!form.category || !form.title) return;
     createMutation.mutate({
       ...form,
       reported_by: user?.email,
@@ -83,9 +136,17 @@ export default function IncidentReports() {
     });
   };
 
-  const resolveReport = (report) => {
-    updateMutation.mutate({ id: report.id, data: { status: 'resolved', manager_notes: managerNotes, resolved_by: user?.full_name } });
+  const handleStatusUpdate = (id, status) => {
+    updateMutation.mutate({ id, data: { status }, closeAfter: status === 'resolved' });
   };
+
+  const canEdit = (r) => {
+    if (!r) return false;
+    if (!r.assigned_to) return true;
+    return r.assigned_to === user?.email || canManage;
+  };
+
+  const f = (key) => (e) => setForm({ ...form, [key]: e.target.value });
 
   return (
     <div>
@@ -101,68 +162,200 @@ export default function IncidentReports() {
 
       {isLoading ? (
         <div className="space-y-3">{[1,2,3].map(i=><Card key={i} className="border-0 shadow-sm animate-pulse"><CardContent className="p-4"><div className="h-16 bg-slate-100 rounded"/></CardContent></Card>)}</div>
-      ) : reports.length === 0 ? (
-        <EmptyState icon={AlertTriangle} title="No incidents reported" description="Incidents submitted by staff will appear here" />
+      ) : visibleActive.length === 0 ? (
+        <EmptyState icon={AlertTriangle} title="No open incidents" description="Reported incidents will appear here" />
       ) : (
         <div className="space-y-3">
-          {reports.map(r => (
-            <Card key={r.id} className="border-0 shadow-sm hover:shadow-md transition-all cursor-pointer" onClick={() => { setSelected(r); setManagerNotes(r.manager_notes || ''); }}>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-4 min-w-0">
-                    <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center flex-shrink-0">
-                      <AlertTriangle className="w-5 h-5 text-red-600" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-medium text-slate-900 truncate">{r.title}</p>
-                      <div className="flex items-center gap-3 mt-1 text-xs text-slate-400 flex-wrap">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${typeColors[r.incident_type]}`}>
-                          {INCIDENT_TYPES.find(t => t.value === r.incident_type)?.label || r.incident_type}
-                        </span>
-                        <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{r.incident_date}</span>
-                        <span className="flex items-center gap-1"><User className="w-3 h-3" />{r.reported_by_name}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <StatusBadge status={r.status} />
-                    <Eye className="w-4 h-4 text-slate-300" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          {visibleActive.map(r => (
+            <IncidentCard key={r.id} report={r} onClick={() => { setSelected(r); setExpandedNotesLog(false); setNewNote(''); }} />
           ))}
+        </div>
+      )}
+
+      {/* Archive — managers+ only */}
+      {canManage && archivedReports.length > 0 && (
+        <div className="mt-8 border-t pt-6">
+          <button
+            onClick={() => setShowArchive(!showArchive)}
+            className="flex items-center gap-2 text-sm font-semibold text-slate-900 hover:text-slate-700 transition-colors mb-4"
+          >
+            <Archive className="w-4 h-4 text-slate-500" />
+            <ChevronDown className={`w-4 h-4 transition-transform ${showArchive ? 'rotate-180' : ''}`} />
+            Archive — Resolved ({archivedReports.length})
+          </button>
+          {showArchive && (
+            <div className="space-y-4">
+              <Input
+                placeholder="Search by title, description, or date..."
+                value={archiveSearch}
+                onChange={(e) => setArchiveSearch(e.target.value)}
+                className="border-0 shadow-sm"
+              />
+              <div className="space-y-3">
+                {filteredArchive.length === 0 ? (
+                  <p className="text-sm text-slate-400 py-8 text-center">No archived reports match your search</p>
+                ) : filteredArchive.map(r => (
+                  <IncidentCard key={r.id} report={r} archived onClick={() => { setSelected(r); setExpandedNotesLog(false); setNewNote(''); }} />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
       {/* New Report Dialog */}
       <Dialog open={showNew} onOpenChange={setShowNew}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Report an Incident</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Incident Type</Label>
-                <Select value={form.incident_type} onValueChange={v => setForm({ ...form, incident_type: v })}>
-                  <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
-                  <SelectContent>{INCIDENT_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Date</Label>
-                <Input type="date" value={form.incident_date} onChange={e => setForm({ ...form, incident_date: e.target.value })} />
-              </div>
+            {/* Category first */}
+            <div className="space-y-2">
+              <Label>Incident Category <span className="text-red-500">*</span></Label>
+              <Select value={form.category} onValueChange={v => setForm({ ...form, category: v })}>
+                <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+                <SelectContent>
+                  {CATEGORIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
-            <div className="space-y-2"><Label>Title</Label><Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Brief description" /></div>
-            <div className="space-y-2"><Label>Location / Area</Label><Input value={form.location_detail} onChange={e => setForm({ ...form, location_detail: e.target.value })} placeholder="e.g. Kennel B, Grooming Room" /></div>
-            <div className="space-y-2"><Label>Full Description</Label><Textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={3} placeholder="What happened?" /></div>
-            <div className="space-y-2"><Label>Animals Involved</Label><Input value={form.animals_involved} onChange={e => setForm({ ...form, animals_involved: e.target.value })} placeholder="Pet names / breeds" /></div>
-            <div className="space-y-2"><Label>Client Involved (if any)</Label><Input value={form.client_involved} onChange={e => setForm({ ...form, client_involved: e.target.value })} /></div>
-            <div className="space-y-2"><Label>Immediate Action Taken</Label><Textarea value={form.immediate_action_taken} onChange={e => setForm({ ...form, immediate_action_taken: e.target.value })} rows={2} /></div>
+
+            {form.category && (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Date <span className="text-red-500">*</span></Label>
+                    <Input type="date" value={form.incident_date} onChange={f('incident_date')} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Time (optional)</Label>
+                    <Input type="time" value={form.incident_time} onChange={f('incident_time')} />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Title <span className="text-red-500">*</span></Label>
+                  <Input value={form.title} onChange={f('title')} placeholder="Brief description of the incident" />
+                </div>
+
+                {/* OSHA-specific form */}
+                {form.category === 'osha_reportable' && (
+                  <div className="border border-red-200 rounded-xl p-4 space-y-4 bg-red-50">
+                    <p className="text-sm font-semibold text-red-800">OSHA — Employee's First Report of Injury or Illness</p>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Employee Full Name</Label>
+                        <Input value={form.osha_employee_name} onChange={f('osha_employee_name')} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Job Title</Label>
+                        <Input value={form.osha_job_title} onChange={f('osha_job_title')} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Date of Birth</Label>
+                        <Input type="date" value={form.osha_date_of_birth} onChange={f('osha_date_of_birth')} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Date Hired</Label>
+                        <Input type="date" value={form.osha_date_hired} onChange={f('osha_date_hired')} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Sex</Label>
+                        <Select value={form.osha_sex} onValueChange={v => setForm({ ...form, osha_sex: v })}>
+                          <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="male">Male</SelectItem>
+                            <SelectItem value="female">Female</SelectItem>
+                            <SelectItem value="prefer_not_to_say">Prefer not to say</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Time of Incident</Label>
+                        <Input type="time" value={form.osha_time_of_incident} onChange={f('osha_time_of_incident')} />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>What was the employee doing just before the incident?</Label>
+                      <Textarea value={form.osha_what_was_employee_doing} onChange={f('osha_what_was_employee_doing')} rows={2} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>What happened? (How did the injury/illness occur?)</Label>
+                      <Textarea value={form.osha_what_happened} onChange={f('osha_what_happened')} rows={2} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Nature of injury / illness and body part affected</Label>
+                      <Input value={form.osha_injury_or_illness} onChange={f('osha_injury_or_illness')} placeholder="e.g. Laceration to left hand" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Object or substance that directly caused the harm</Label>
+                      <Input value={form.osha_object_or_substance} onChange={f('osha_object_or_substance')} placeholder="e.g. Dog bite, chemical, floor" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Medical treatment received</Label>
+                      <Select value={form.osha_medical_treatment} onValueChange={v => setForm({ ...form, osha_medical_treatment: v })}>
+                        <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">None</SelectItem>
+                          <SelectItem value="first_aid_only">First aid only (on-site)</SelectItem>
+                          <SelectItem value="physician_or_er">Physician / Emergency Room</SelectItem>
+                          <SelectItem value="hospitalized">Hospitalized overnight</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Days away from work</Label>
+                        <Input type="number" min="0" value={form.osha_days_away_from_work} onChange={f('osha_days_away_from_work')} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Days on restricted duty</Label>
+                        <Input type="number" min="0" value={form.osha_days_on_restricted_duty} onChange={f('osha_days_on_restricted_duty')} />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Treating physician name</Label>
+                      <Input value={form.osha_physician_name} onChange={f('osha_physician_name')} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Treatment facility name</Label>
+                      <Input value={form.osha_treatment_facility} onChange={f('osha_treatment_facility')} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Treatment facility address</Label>
+                      <Input value={form.osha_treatment_facility_address} onChange={f('osha_treatment_facility_address')} />
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label>Full Description</Label>
+                  <Textarea value={form.description} onChange={f('description')} rows={4} placeholder="Provide a detailed account of what happened..." />
+                </div>
+
+                {/* Privacy checkbox */}
+                <div className="flex items-center gap-3 pt-2 border-t">
+                  <Checkbox
+                    id="private-check"
+                    checked={form.is_private}
+                    onCheckedChange={v => setForm({ ...form, is_private: !!v })}
+                  />
+                  <div>
+                    <Label htmlFor="private-check" className="cursor-pointer font-medium">Mark as Private</Label>
+                    <p className="text-xs text-slate-400">Only admins and super admins will be able to view this report</p>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowNew(false)}>Cancel</Button>
-            <Button onClick={handleSubmit} disabled={createMutation.isPending || !form.incident_type || !form.title} className="bg-red-600 hover:bg-red-700 gap-2">
+            <Button
+              onClick={handleSubmit}
+              disabled={createMutation.isPending || !form.category || !form.title}
+              className="bg-red-600 hover:bg-red-700 gap-2"
+            >
               {createMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Submit Report
             </Button>
           </DialogFooter>
@@ -170,43 +363,216 @@ export default function IncidentReports() {
       </Dialog>
 
       {/* Detail Dialog */}
-      <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{selected?.title}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div className="flex gap-2 flex-wrap">
-              <span className={`px-2 py-1 rounded-full text-xs font-medium ${typeColors[selected?.incident_type]}`}>
-                {INCIDENT_TYPES.find(t => t.value === selected?.incident_type)?.label}
-              </span>
-              <StatusBadge status={selected?.status} />
-            </div>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div><p className="text-slate-400 text-xs">Date</p><p className="font-medium">{selected?.incident_date}</p></div>
-              <div><p className="text-slate-400 text-xs">Location</p><p className="font-medium">{selected?.location_detail || 'N/A'}</p></div>
-              <div><p className="text-slate-400 text-xs">Reported By</p><p className="font-medium">{selected?.reported_by_name}</p></div>
-              <div><p className="text-slate-400 text-xs">Animals</p><p className="font-medium">{selected?.animals_involved || 'N/A'}</p></div>
-            </div>
-            <div><p className="text-slate-400 text-xs mb-1">Description</p><p className="text-sm bg-slate-50 rounded-lg p-3">{selected?.description}</p></div>
-            {selected?.immediate_action_taken && <div><p className="text-slate-400 text-xs mb-1">Immediate Action</p><p className="text-sm bg-emerald-50 rounded-lg p-3">{selected.immediate_action_taken}</p></div>}
-            {canManage && selected?.status !== 'resolved' && (
-              <div className="space-y-2 pt-2 border-t">
-                <Label>Manager Notes</Label>
-                <Textarea value={managerNotes} onChange={e => setManagerNotes(e.target.value)} rows={3} placeholder="Resolution notes..." />
+      <Dialog open={!!selected} onOpenChange={() => { setSelected(null); setNewNote(''); setNewNoteAttachment(null); setExpandedNotesLog(false); }}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {selected?.title}
+              {selected?.is_private && <Lock className="w-4 h-4 text-slate-400" title="Private" />}
+            </DialogTitle>
+          </DialogHeader>
+          {selected && (
+            <div className="space-y-4">
+              <div className="flex gap-2 flex-wrap">
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${categoryColors[selected.category]}`}>
+                  {CATEGORIES.find(c => c.value === selected.category)?.label}
+                </span>
+                <StatusBadge status={selected.status} />
+                {selected.is_private && (
+                  <span className="px-2 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600 flex items-center gap-1">
+                    <Lock className="w-3 h-3" /> Private
+                  </span>
+                )}
               </div>
-            )}
-            {selected?.manager_notes && <div><p className="text-slate-400 text-xs mb-1">Manager Notes</p><p className="text-sm bg-blue-50 rounded-lg p-3">{selected.manager_notes}</p></div>}
-          </div>
-          {canManage && selected?.status !== 'resolved' && (
-            <DialogFooter>
-              <Button variant="outline" onClick={() => updateMutation.mutate({ id: selected.id, data: { status: 'under_review', manager_notes: managerNotes } })}>Mark Under Review</Button>
-              <Button onClick={() => resolveReport(selected)} disabled={updateMutation.isPending} className="bg-emerald-600 hover:bg-emerald-700 gap-2">
-                {updateMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-                <CheckCircle className="w-4 h-4" /> Resolve
-              </Button>
-            </DialogFooter>
+
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div><p className="text-slate-400 text-xs">Date</p><p className="font-medium">{selected.incident_date}</p></div>
+                <div><p className="text-slate-400 text-xs">Reported By</p><p className="font-medium">{selected.reported_by_name}</p></div>
+                {selected.incident_time && <div><p className="text-slate-400 text-xs">Time</p><p className="font-medium">{selected.incident_time}</p></div>}
+                {selected.assigned_to && <div><p className="text-slate-400 text-xs">Assigned To</p><p className="font-medium text-purple-700">{selected.assigned_to}</p></div>}
+              </div>
+
+              {selected.description && (
+                <div><p className="text-slate-400 text-xs mb-1">Description</p><p className="text-sm bg-slate-50 rounded-lg p-3">{selected.description}</p></div>
+              )}
+
+              {/* OSHA details */}
+              {selected.category === 'osha_reportable' && (
+                <div className="border border-red-200 rounded-xl p-4 space-y-3 bg-red-50">
+                  <p className="text-sm font-semibold text-red-800">OSHA Report Details</p>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    {selected.osha_employee_name && <div><span className="text-slate-400">Employee:</span> <span className="font-medium">{selected.osha_employee_name}</span></div>}
+                    {selected.osha_job_title && <div><span className="text-slate-400">Job Title:</span> <span className="font-medium">{selected.osha_job_title}</span></div>}
+                    {selected.osha_date_of_birth && <div><span className="text-slate-400">DOB:</span> <span className="font-medium">{selected.osha_date_of_birth}</span></div>}
+                    {selected.osha_date_hired && <div><span className="text-slate-400">Date Hired:</span> <span className="font-medium">{selected.osha_date_hired}</span></div>}
+                    {selected.osha_sex && <div><span className="text-slate-400">Sex:</span> <span className="font-medium capitalize">{selected.osha_sex.replace(/_/g,' ')}</span></div>}
+                    {selected.osha_time_of_incident && <div><span className="text-slate-400">Time:</span> <span className="font-medium">{selected.osha_time_of_incident}</span></div>}
+                    {selected.osha_medical_treatment && <div><span className="text-slate-400">Treatment:</span> <span className="font-medium capitalize">{selected.osha_medical_treatment.replace(/_/g,' ')}</span></div>}
+                    {selected.osha_days_away_from_work !== '' && selected.osha_days_away_from_work != null && <div><span className="text-slate-400">Days off:</span> <span className="font-medium">{selected.osha_days_away_from_work}</span></div>}
+                    {selected.osha_days_on_restricted_duty !== '' && selected.osha_days_on_restricted_duty != null && <div><span className="text-slate-400">Restricted days:</span> <span className="font-medium">{selected.osha_days_on_restricted_duty}</span></div>}
+                    {selected.osha_physician_name && <div className="col-span-2"><span className="text-slate-400">Physician:</span> <span className="font-medium">{selected.osha_physician_name}</span></div>}
+                    {selected.osha_treatment_facility && <div className="col-span-2"><span className="text-slate-400">Facility:</span> <span className="font-medium">{selected.osha_treatment_facility}</span></div>}
+                    {selected.osha_treatment_facility_address && <div className="col-span-2"><span className="text-slate-400">Address:</span> <span className="font-medium">{selected.osha_treatment_facility_address}</span></div>}
+                  </div>
+                  {selected.osha_what_was_employee_doing && <div><p className="text-slate-400 text-xs mb-1">What employee was doing:</p><p className="text-xs bg-white rounded p-2">{selected.osha_what_was_employee_doing}</p></div>}
+                  {selected.osha_what_happened && <div><p className="text-slate-400 text-xs mb-1">What happened:</p><p className="text-xs bg-white rounded p-2">{selected.osha_what_happened}</p></div>}
+                  {selected.osha_injury_or_illness && <div><p className="text-slate-400 text-xs mb-1">Injury/Illness:</p><p className="text-xs bg-white rounded p-2">{selected.osha_injury_or_illness}</p></div>}
+                  {selected.osha_object_or_substance && <div><p className="text-slate-400 text-xs mb-1">Caused by:</p><p className="text-xs bg-white rounded p-2">{selected.osha_object_or_substance}</p></div>}
+                </div>
+              )}
+
+              {/* Status update */}
+              {canEdit(selected) && selected.status !== 'resolved' && (
+                <div className="border-t pt-4 space-y-3">
+                  <p className="text-sm font-medium text-slate-900">Update Status</p>
+                  <div className="flex gap-2 flex-wrap">
+                    <Button variant={selected.status === 'open' ? 'default' : 'outline'} size="sm"
+                      onClick={() => { handleStatusUpdate(selected.id, 'open'); setSelected({ ...selected, status: 'open' }); }}>
+                      Open
+                    </Button>
+                    <Button variant={selected.status === 'under_review' ? 'default' : 'outline'} size="sm"
+                      onClick={() => { handleStatusUpdate(selected.id, 'under_review'); setSelected({ ...selected, status: 'under_review' }); }}>
+                      Under Review
+                    </Button>
+                    {canManage && (
+                      <Button className="bg-emerald-600 hover:bg-emerald-700" size="sm"
+                        onClick={() => handleStatusUpdate(selected.id, 'resolved')}>
+                        Resolve
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Add Note */}
+              {canEdit(selected) && (
+                <div className="border-t pt-4 space-y-3">
+                  <p className="text-sm font-medium text-slate-900">Add Note</p>
+                  <Textarea placeholder="Add a note" value={newNote} onChange={e => setNewNote(e.target.value)} rows={2} />
+                  <div className="space-y-1">
+                    <Label className="text-xs">Attachment (optional)</Label>
+                    <input type="file" className="text-xs text-slate-600" onChange={e => setNewNoteAttachment(e.target.files?.[0] || null)} disabled={uploadingAttachment} />
+                  </div>
+                  <Button
+                    type="button" variant="outline" size="sm"
+                    onClick={async () => {
+                      if (!newNote.trim() || !user || !selected) return;
+                      let attachmentUrl = null;
+                      if (newNoteAttachment) {
+                        setUploadingAttachment(true);
+                        const { file_url } = await base44.integrations.Core.UploadFile({ file: newNoteAttachment });
+                        attachmentUrl = file_url;
+                        setUploadingAttachment(false);
+                      }
+                      const noteEntry = {
+                        note: newNote,
+                        date: new Date().toISOString().split('T')[0],
+                        added_by: user.email,
+                        added_by_name: user.full_name || user.email,
+                        ...(attachmentUrl && { attachment_url: attachmentUrl })
+                      };
+                      await base44.entities.IncidentReport.update(selected.id, {
+                        notes_log: [...(selected.notes_log || []), noteEntry]
+                      });
+                      queryClient.invalidateQueries({ queryKey: ['incidents'] });
+                      setNewNote('');
+                      setNewNoteAttachment(null);
+                      setSelected({ ...selected, notes_log: [...(selected.notes_log || []), noteEntry] });
+                      toast.success('Note added');
+                    }}
+                    disabled={!newNote.trim() || uploadingAttachment}
+                  >
+                    {uploadingAttachment && <Loader2 className="w-4 h-4 animate-spin mr-2" />} Add Note
+                  </Button>
+                </div>
+              )}
+
+              {/* Notes Log */}
+              {selected.notes_log?.length > 0 && (
+                <div className="border-t pt-4">
+                  <button onClick={() => setExpandedNotesLog(!expandedNotesLog)} className="flex items-center gap-2 text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors">
+                    <ChevronDown className={`w-4 h-4 transition-transform ${expandedNotesLog ? 'rotate-180' : ''}`} />
+                    Notes Log ({selected.notes_log.length})
+                  </button>
+                  {expandedNotesLog && (
+                    <div className="mt-3 space-y-2 max-h-64 overflow-y-auto">
+                      {selected.notes_log.map((log, idx) => (
+                        <div key={idx} className="text-xs bg-slate-50 rounded p-2">
+                          <p className="text-slate-700">{log.note}</p>
+                          <div className="text-xs text-slate-400 mt-1">{log.added_by_name} • {log.date}</div>
+                          {log.attachment_url && (
+                            <a href={log.attachment_url} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 hover:underline flex items-center gap-1 mt-1.5">
+                              <Paperclip className="w-3 h-3" /> View Attachment
+                            </a>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Assign To */}
+              {canAssign && selected.status !== 'resolved' && (
+                <div className="border-t pt-4">
+                  <p className="text-sm font-medium text-slate-900 mb-2">Assign To (optional)</p>
+                  <Select
+                    value={selected.assigned_to || ''}
+                    onValueChange={v => {
+                      const val = v || null;
+                      updateMutation.mutate({ id: selected.id, data: { assigned_to: val } });
+                      setSelected({ ...selected, assigned_to: val });
+                    }}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select user" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={null}>Unassigned</SelectItem>
+                      {allUsers.map(u => (
+                        <SelectItem key={u.id} value={u.email}>{u.full_name || u.email}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
           )}
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function IncidentCard({ report, onClick, archived }) {
+  return (
+    <Card
+      className={`border-0 shadow-sm hover:shadow-md transition-all cursor-pointer ${archived ? 'bg-emerald-50' : ''}`}
+      onClick={onClick}
+    >
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4 min-w-0 flex-1">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${archived ? 'bg-emerald-100' : 'bg-red-100'}`}>
+              <AlertTriangle className={`w-5 h-5 ${archived ? 'text-emerald-600' : 'text-red-600'}`} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <p className="font-medium text-slate-900 truncate">{report.title}</p>
+                {report.is_private && <Lock className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />}
+              </div>
+              <div className="flex items-center gap-3 mt-1 text-xs text-slate-400 flex-wrap">
+                <span className={`px-2 py-0.5 rounded-full font-medium ${categoryColors[report.category]}`}>
+                  {CATEGORIES.find(c => c.value === report.category)?.label}
+                </span>
+                <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{report.incident_date}</span>
+                <span className="flex items-center gap-1"><User className="w-3 h-3" />{report.reported_by_name}</span>
+              </div>
+            </div>
+          </div>
+          <div className="flex-shrink-0">
+            <StatusBadge status={report.status} />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
