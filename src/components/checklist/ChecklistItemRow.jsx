@@ -5,10 +5,10 @@ import { base44 } from '@/api/base44Client';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Upload, X, Loader2 } from 'lucide-react';
+import { Upload, X, Loader2, RotateCcw } from 'lucide-react';
 import { toast } from "sonner";
 
-export default function ChecklistItemRow({ item, index, notes, onNotesChange, onItemUpdate }) {
+export default function ChecklistItemRow({ item, index, notes, onNotesChange, onItemUpdate, canUndo }) {
   const [uploading, setUploading] = useState(false);
   const [photoUrl, setPhotoUrl] = useState(item.photo_url || '');
 
@@ -58,9 +58,20 @@ export default function ChecklistItemRow({ item, index, notes, onNotesChange, on
             <p className="text-xs text-slate-500 mb-2">Assigned to: {item.assigned_to_name}</p>
           )}
           {item.checked && (
-            <p className="text-xs text-emerald-600 mb-2">
-              ✓ Checked by {item.checked_by_name} at {new Date(item.checked_at).toLocaleString()}
-            </p>
+            <div className="text-xs text-emerald-600 mb-2 flex items-center justify-between">
+              <span>✓ Checked by {item.checked_by_name} at {new Date(item.checked_at).toLocaleString()}</span>
+              {canUndo && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onItemUpdate(index, { checked: false })}
+                  className="h-6 px-2 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 gap-1"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  Undo
+                </Button>
+              )}
+            </div>
           )}
 
           <div className="mt-3 space-y-2">
