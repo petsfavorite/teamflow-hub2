@@ -19,10 +19,11 @@ Deno.serve(async (req) => {
                 continue;
             }
             
-            // Find tasks due today that are not completed
+            // Find tasks due TODAY that are not completed.
+            // Only target tasks with an explicit date (day-specific tasks).
+            // Template tasks (is_template: true, no date) recur every day — never delete them.
             const undoneTasks = visit.scheduled_tasks.filter(task => {
-                const taskDate = task.date || today;
-                return taskDate === today && !task.completed;
+                return task.date === today && !task.completed && !task.is_template;
             });
             
             if (undoneTasks.length === 0) {
@@ -42,10 +43,9 @@ Deno.serve(async (req) => {
                 });
             });
             
-            // Remove undone tasks from scheduled_tasks
+            // Remove only the day-specific undone tasks for today — leave template tasks untouched
             const updatedTasks = visit.scheduled_tasks.filter(task => {
-                const taskDate = task.date || today;
-                return !(taskDate === today && !task.completed);
+                return !(task.date === today && !task.completed && !task.is_template);
             });
             
             // Remove uncompleted play sessions for today
