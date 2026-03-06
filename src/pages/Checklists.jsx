@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
@@ -26,7 +26,17 @@ export default function Checklists() {
   const [canSubmitWithIncomplete, setCanSubmitWithIncomplete] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [templateToDelete, setTemplateToDelete] = useState(null);
+  const [useDialogOpen, setUseDialogOpen] = useState(false);
+  const [templateToUse, setTemplateToUse] = useState(null);
+  const [useForm, setUseForm] = useState({
+    assigned_to_emails: [],
+    assigned_teams: [],
+    due_date: '',
+    due_time: '21:00',
+    recurrence_type: 'once'
+  });
 
+  // Only show published templates
   const { data: publishedTemplates = [], isLoading } = useQuery({
     queryKey: ['checklist-templates-published'],
     queryFn: async () => {
@@ -53,7 +63,19 @@ export default function Checklists() {
     enabled: canManage,
   });
 
-  const myTemplates = publishedTemplates;
+  // For regular users: show only checklists visible today and assigned to them
+  const myTemplates = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    return publishedTemplates.filter(t => {
+      if (!canManage) {
+        // Regular users: only show if due_date is today and assigned to them
+        const assignedToMe = t.assigned_to_emails?.includes(user?.email);
+        const inMyTeam = t.assigned_teams?.some(teamId => teams.some(team => team.id === teamId && team.member_emails?.includes(user?.email)));
+        return (assignedToMe || inMyTeam) && t.due_date === today && t.is_visible !== false;
+      }
+      return true; // Managers/admins see all published templates
+    });
+  }, [publishedTemplates, user, teams, canManage]);
 
   const submitMutation = useMutation({
     mutationFn: async (data) => {
@@ -86,7 +108,23 @@ export default function Checklists() {
     },
   });
 
-
+  const useMutation = useMutation({
+    mutationFn: (data) => base44.entities.ChecklistTemplate.update(templateToUse.id, data),
+    onSuccess: () => {
+      toast.success('Checklist assigned!');
+      setUseDialogOpen(false);
+      setTemplateToUse(null);
+      setUseForm({
+        assigned_to_emails: [],
+        assigned_teams: [],
+        due_date: '',
+        due_time: '21:00',
+        recurrence_type: 'once'
+      });
+      queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
+      queryClient.invalidateQueries({ queryKey: ['checklist-templates-published'] });
+    },
+  });
 
   const startChecklist = async (template) => {
     // Load existing in-progress completion if it exists
@@ -112,7 +150,7 @@ export default function Checklists() {
     }
     
     setActiveChecklist({ ...template, completionId: existingCompletion?.id });
-    setCanSubmitWithIncomplete(!template.auto_close_datetime && !template.auto_close_time);
+    setCanSubmitWithIncomplete(!template.due_date && !template.due_time);
   };
 
   const updateItem = async (index, updates) => {
@@ -133,7 +171,6 @@ export default function Checklists() {
         }
         return item;
       });
-      // Auto-save to in-progress completion
       saveChecklistProgress(updated);
       return updated;
     });
@@ -142,7 +179,6 @@ export default function Checklists() {
   const updateNotes = async (index, value) => {
     setNotes(prev => {
       const updated = { ...prev, [index]: value };
-      // Auto-save with updated notes
       const itemsWithNotes = items.map((item, i) => ({
         ...item,
         notes: updated[i] || ''
@@ -156,15 +192,12 @@ export default function Checklists() {
     if (!activeChecklist) return;
     
     try {
-      // Find or create in-progress completion record
       if (activeChecklist.completionId) {
-        // Update existing record
         await base44.entities.ChecklistCompletion.update(activeChecklist.completionId, {
           completed_items: currentItems,
           status: 'in_progress'
         });
       } else {
-        // Create new in-progress record
         const completion = await base44.entities.ChecklistCompletion.create({
           checklist_template_id: activeChecklist.id,
           checklist_title: activeChecklist.title,
@@ -200,13 +233,10 @@ export default function Checklists() {
 
     submitMutation.mutate(completion, {
       onSuccess: async (data) => {
-        // Finalize checklist assignment: remove from assigned list and create notifications
         await base44.functions.invoke('finalizeChecklistAssignment', {
           checklist_template_id: activeChecklist.id,
           checklist_completion_id: data.id
-        }).catch(() => {
-          // Silently fail if finalization fails
-        });
+        }).catch(() => {});
       }
     });
   };
@@ -247,7 +277,6 @@ export default function Checklists() {
                 {canManage && (
                    <Button
                      onClick={async () => {
-                       // Create completion record when stopping
                        const completion = await base44.entities.ChecklistCompletion.create({
                          checklist_template_id: activeChecklist.id,
                          checklist_title: activeChecklist.title,
@@ -257,13 +286,10 @@ export default function Checklists() {
                          completion_date: new Date().toISOString().split('T')[0],
                          status: 'edited'
                        });
-                       // Finalize the assignment
                        await base44.functions.invoke('finalizeChecklistAssignment', {
                          checklist_template_id: activeChecklist.id,
                          checklist_completion_id: completion.id
-                       }).catch(() => {
-                         // Silently fail if finalization fails
-                       });
+                       }).catch(() => {});
                        toast.success('Checklist stopped and moved to history');
                        setActiveChecklist(null);
                        setItems([]);
@@ -298,7 +324,7 @@ export default function Checklists() {
     <div>
       <PageHeader
         title="Checklists"
-        description="Complete your assigned checklists"
+        description={canManage ? "Manage and assign checklists" : "Complete your assigned checklists"}
         actions={
           (isSuperAdmin || isAdmin) && (
             <Link to={createPageUrl('ChecklistEditor')}>
@@ -321,28 +347,63 @@ export default function Checklists() {
       ) : myTemplates.length === 0 ? (
         <EmptyState
           icon={CheckSquare}
-          title="No checklists assigned"
-          description="You don't have any active checklists right now"
+          title={canManage ? "No checklists to assign" : "No checklists assigned"}
+          description={canManage ? "Create a checklist and use the 'Use' button to assign it" : "You don't have any checklists assigned for today"}
         />
       ) : (
         <div>
+          {canManage && <h2 className="text-lg font-semibold text-slate-900 mb-4">Assign Checklists</h2>}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {myTemplates.map(template => (
               <Card key={template.id} className="border-0 shadow-sm">
                 <CardContent className="p-6">
-                  <div className="flex items-start justify-between mb-3 cursor-pointer" onClick={() => startChecklist(template)}>
+                  <div className="flex items-start justify-between mb-3">
                     <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
                       <CheckSquare className="w-5 h-5 text-emerald-600" />
                     </div>
-                    <StatusBadge status={template.frequency} />
+                    {canManage && template.due_date && (
+                      <StatusBadge status={template.recurrence_type} />
+                    )}
                   </div>
-                  <h3 className="font-semibold text-slate-900 mb-1 cursor-pointer" onClick={() => startChecklist(template)}>{template.title}</h3>
-                  {template.description && <p className="text-sm text-slate-500 mb-3 cursor-pointer" onClick={() => startChecklist(template)}>{template.description}</p>}
-                  <div className="flex items-center gap-2 text-xs text-slate-400 mb-4 cursor-pointer" onClick={() => startChecklist(template)}>
+                  <h3 className="font-semibold text-slate-900 mb-1">{template.title}</h3>
+                  {template.description && <p className="text-sm text-slate-500 mb-3">{template.description}</p>}
+                  <div className="flex items-center gap-2 text-xs text-slate-400 mb-4">
                     <Clock className="w-3 h-3" />
                     {template.items?.length || 0} items
                   </div>
 
+                  {canManage ? (
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        className="flex-1 bg-blue-600 hover:bg-blue-700"
+                        onClick={() => {
+                          setTemplateToUse(template);
+                          setUseForm({
+                            assigned_to_emails: template.assigned_to_emails || [],
+                            assigned_teams: template.assigned_teams || [],
+                            due_date: template.due_date || '',
+                            due_time: template.due_time || '21:00',
+                            recurrence_type: template.recurrence_type || 'once'
+                          });
+                          setUseDialogOpen(true);
+                        }}
+                      >
+                        Use
+                      </Button>
+                      <Link to={createPageUrl('ChecklistEditor') + `?id=${template.id}`}>
+                        <Button variant="outline" size="sm">Edit</Button>
+                      </Link>
+                    </div>
+                  ) : (
+                    <Button
+                      size="sm"
+                      className="w-full bg-emerald-600 hover:bg-emerald-700"
+                      onClick={() => startChecklist(template)}
+                    >
+                      Start
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             ))}
@@ -350,58 +411,182 @@ export default function Checklists() {
         </div>
       )}
 
-
-
-      {canManage && (
-       <div className="mt-8">
-         <h2 className="text-lg font-semibold text-slate-900 mb-4">All Checklist Templates</h2>
-         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-           {allTemplates.map(t => (
-             <Card key={t.id} className="border-0 shadow-sm">
-               <CardContent className="p-4">
-                 <div className="flex items-center justify-between">
-                   <div>
-                     <p className="font-medium text-sm text-slate-800">{t.title}</p>
-                     <p className="text-xs text-slate-400">{t.items?.length} items</p>
-                   </div>
-                   <div className="flex gap-1">
-                     <Link to={createPageUrl('ChecklistEditor') + `?id=${t.id}`}>
-                       <Button variant="ghost" size="sm" className="text-slate-600 hover:text-slate-700 hover:bg-slate-50">Edit</Button>
-                     </Link>
-                     {(isSuperAdmin || isAdmin) && (
-                       <Button 
-                         variant="ghost" 
-                         size="sm"
-                         className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                         onClick={() => {
-                           setTemplateToDelete(t);
-                           setDeleteDialogOpen(true);
-                         }}
-                       >
-                         <Trash2 className="w-4 h-4" />
-                       </Button>
-                     )}
-                   </div>
-                 </div>
-               </CardContent>
-             </Card>
-           ))}
-         </div>
-       </div>
+      {canManage && allTemplates.length > publishedTemplates.length && (
+        <div className="mt-8">
+          <h2 className="text-lg font-semibold text-slate-900 mb-4">Draft Templates</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {allTemplates.filter(t => t.status === 'draft' || t.status === 'pending_approval').map(t => (
+              <Card key={t.id} className="border-0 shadow-sm">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-sm text-slate-800">{t.title}</p>
+                      <p className="text-xs text-slate-400">{t.items?.length} items · {t.status}</p>
+                    </div>
+                    <div className="flex gap-1">
+                      <Link to={createPageUrl('ChecklistEditor') + `?id=${t.id}`}>
+                        <Button variant="ghost" size="sm" className="text-slate-600 hover:text-slate-700 hover:bg-slate-50">Edit</Button>
+                      </Link>
+                      {(isSuperAdmin || isAdmin) && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => {
+                            setTemplateToDelete(t);
+                            setDeleteDialogOpen(true);
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
       )}
 
-          <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <DialogContent>
+      {/* Use Dialog */}
+      <Dialog open={useDialogOpen} onOpenChange={setUseDialogOpen}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Use "{templateToUse?.title}"</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* Assign Users */}
+            <div>
+              <label className="text-sm font-medium text-slate-900 block mb-2">Assign to Users</label>
+              <div className="max-h-32 overflow-y-auto space-y-2 p-2 bg-slate-50 rounded-lg border border-slate-200">
+                {allUsers.map(u => (
+                  <label key={u.id} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={useForm.assigned_to_emails.includes(u.email)}
+                      onChange={e => {
+                        if (e.target.checked) {
+                          setUseForm({
+                            ...useForm,
+                            assigned_to_emails: [...useForm.assigned_to_emails, u.email],
+                            assigned_to_names: [...(useForm.assigned_to_names || []), u.full_name]
+                          });
+                        } else {
+                          const idx = useForm.assigned_to_emails.indexOf(u.email);
+                          setUseForm({
+                            ...useForm,
+                            assigned_to_emails: useForm.assigned_to_emails.filter(e => e !== u.email),
+                            assigned_to_names: (useForm.assigned_to_names || []).filter((_, i) => i !== idx)
+                          });
+                        }
+                      }}
+                      className="w-4 h-4 rounded border-slate-300"
+                    />
+                    <span className="text-sm text-slate-700">{u.full_name || u.email}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Assign Teams */}
+            <div>
+              <label className="text-sm font-medium text-slate-900 block mb-2">Assign to Teams</label>
+              <div className="max-h-32 overflow-y-auto space-y-2 p-2 bg-slate-50 rounded-lg border border-slate-200">
+                {teams.map(t => (
+                  <label key={t.id} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={useForm.assigned_teams.includes(t.id)}
+                      onChange={e => {
+                        if (e.target.checked) {
+                          setUseForm({ ...useForm, assigned_teams: [...useForm.assigned_teams, t.id] });
+                        } else {
+                          setUseForm({ ...useForm, assigned_teams: useForm.assigned_teams.filter(id => id !== t.id) });
+                        }
+                      }}
+                      className="w-4 h-4 rounded border-slate-300"
+                    />
+                    <span className="text-sm text-slate-700">{t.name}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Due Date */}
+            <div className="space-y-2">
+              <Label>Due Date (optional)</Label>
+              <Input
+                type="date"
+                value={useForm.due_date}
+                onChange={(e) => setUseForm({ ...useForm, due_date: e.target.value })}
+              />
+            </div>
+
+            {/* Due Time */}
+            <div className="space-y-2">
+              <Label>Due Time (defaults to 9:00 PM if not set)</Label>
+              <Input
+                type="time"
+                value={useForm.due_time}
+                onChange={(e) => setUseForm({ ...useForm, due_time: e.target.value })}
+              />
+            </div>
+
+            {/* Recurrence */}
+            <div className="space-y-2">
+              <Label>Frequency</Label>
+              <Select value={useForm.recurrence_type} onValueChange={(value) => setUseForm({ ...useForm, recurrence_type: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="once">One Time Only</SelectItem>
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="weekdays">Weekdays</SelectItem>
+                  <SelectItem value="weekly">Weekly</SelectItem>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                  <SelectItem value="annually">Annually</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUseDialogOpen(false)}>Cancel</Button>
+            <Button 
+              onClick={() => {
+                useMutation.mutate({
+                  assigned_to_emails: useForm.assigned_to_emails,
+                  assigned_to_names: useForm.assigned_to_names || [],
+                  assigned_teams: useForm.assigned_teams,
+                  due_date: useForm.due_date || undefined,
+                  due_time: useForm.due_time || '21:00',
+                  recurrence_type: useForm.recurrence_type,
+                  status: 'active'
+                });
+              }}
+              disabled={useMutation.isPending}
+              className="bg-indigo-600 hover:bg-indigo-700 gap-2"
+            >
+              {useMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+              Assign
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete Checklist Template</DialogTitle>
           </DialogHeader>
           <p className="text-slate-600">
-            Are you sure you want to delete "<strong>{templateToDelete?.title}</strong>"? This action cannot be undone. Checklist history will be preserved.
+            Are you sure you want to delete "<strong>{templateToDelete?.title}</strong>"? This action cannot be undone.
           </p>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-              Cancel
-            </Button>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
             <Button 
               variant="destructive" 
               onClick={() => deleteMutation.mutate(templateToDelete.id)}
@@ -411,10 +596,8 @@ export default function Checklists() {
               Delete
             </Button>
           </DialogFooter>
-          </DialogContent>
-          </Dialog>
-
-
-          </div>
-          );
-          }
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
