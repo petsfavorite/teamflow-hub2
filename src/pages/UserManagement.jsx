@@ -110,7 +110,16 @@ export default function UserManagement() {
                         setEditRole(u.role || 'user');
                         setEditName(u.full_name || '');
                       }}
-                      className={u.id === user?.id || (canManage && !((isSuperAdmin || isAdmin || (isManager && (u.role === 'user' || !u.role))) || u.id === user?.id)) ? 'invisible' : ''}
+                      className={(() => {
+                        if (u.id === user?.id) return 'invisible';
+                        // super_admin can edit anyone
+                        if (isSuperAdmin) return '';
+                        // admin can edit user/manager/admin (but not super_admin)
+                        if (isAdmin && u.role !== 'super_admin') return '';
+                        // manager can only change roles of regular users (no name changes)
+                        if (isManager && (u.role === 'user' || !u.role)) return '';
+                        return 'invisible';
+                      })()}
                     >
                       <Pencil className="w-4 h-4 text-slate-400" />
                     </Button>
