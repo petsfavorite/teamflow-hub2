@@ -219,7 +219,7 @@ export default function UserManagement() {
                 if (namePromise) await namePromise;
                 if (rolePromise) await rolePromise;
               }}
-              disabled={updateNameMutation.isPending || updateRoleMutation.isPending || (editName === editingUser?.full_name && editRole === (editingUser?.role || 'user'))}
+              disabled={updateNameMutation.isPending || updateRoleMutation.isPending || (editName === (editingUser?.full_name || '') && editRole === (editingUser?.role || 'user'))}
               className="bg-indigo-600 hover:bg-indigo-700 gap-2"
             >
               {(updateNameMutation.isPending || updateRoleMutation.isPending) && <Loader2 className="w-4 h-4 animate-spin" />} Save Changes
