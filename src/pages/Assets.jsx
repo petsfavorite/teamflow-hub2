@@ -477,13 +477,13 @@ export default function Assets() {
                 {(teams || []).map(t => (
                   <label key={t.id} className="flex items-center gap-2 text-sm">
                     <Checkbox
-                      checked={(newTaskForm.assigned_to_teams || []).includes(t.id)}
+                      checked={(newTaskForm.assigned_teams || []).includes(t.id)}
                       onCheckedChange={checked => {
                         setNewTaskForm({
                           ...newTaskForm,
-                          assigned_to_teams: checked
-                            ? [...newTaskForm.assigned_to_teams, t.id]
-                            : newTaskForm.assigned_to_teams.filter(id => id !== t.id)
+                          assigned_teams: checked
+                            ? [...(newTaskForm.assigned_teams || []), t.id]
+                            : (newTaskForm.assigned_teams || []).filter(id => id !== t.id)
                         });
                       }}
                     />
