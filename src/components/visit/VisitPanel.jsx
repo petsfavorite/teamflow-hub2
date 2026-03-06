@@ -743,7 +743,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                          </p>
                                          <Button 
                                              size="sm"
-                                             onClick={() => handleCompletePlaySession(idx)}
+                                             onClick={() => handleCompletePlaySession(session)}
                                              disabled={isSaving}
                                              className="rounded-xl h-7 text-xs bg-purple-600 hover:bg-purple-700 disabled:opacity-50"
                                          >
