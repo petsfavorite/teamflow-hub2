@@ -45,8 +45,6 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
 
     const canDismissAlert = currentUser && ['admin', 'manager', 'super_admin'].includes(currentUser.role);
     const [locationInput, setLocationInput] = useState(visit?.location || '');
-    const [addingPlayCamp, setAddingPlayCamp] = useState(false);
-    const [playCampDuration, setPlayCampDuration] = useState('full_day');
     const [addingTask, setAddingTask] = useState(false);
     const [newTaskType, setNewTaskType] = useState('');
     const [newTaskTime, setNewTaskTime] = useState('');
@@ -229,24 +227,6 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
              setIsSaving(false);
          }
      };
-
-    const handleAddPlayCampToBoarding = () => {
-        const playSessions = Array.from(
-            { length: playCampDuration === 'half_day' ? 2 : 4 }, 
-            (_, i) => ({
-                session_number: i + 1,
-                completed: false,
-                completed_at: null
-            })
-        );
-        
-        onUpdateVisit({ 
-            ...visit, 
-            play_sessions: playSessions,
-            play_camp_duration: playCampDuration
-        });
-        setAddingPlayCamp(false);
-    };
 
     const handleAddActivity = () => {
         if (!newNotes) return;
