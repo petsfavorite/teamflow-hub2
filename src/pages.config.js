@@ -55,7 +55,6 @@ import ChecklistAssignmentEditor from './pages/ChecklistAssignmentEditor';
 import ChecklistEditor from './pages/ChecklistEditor';
 import ChecklistHistory from './pages/ChecklistHistory';
 import Checklists from './pages/Checklists';
-import Dashboard from './pages/Dashboard';
 import DevChecklist from './pages/DevChecklist';
 import EmergencySOPs from './pages/EmergencySOPs';
 import ExternalLinks from './pages/ExternalLinks';
@@ -88,7 +87,6 @@ export const PAGES = {
     "ChecklistEditor": ChecklistEditor,
     "ChecklistHistory": ChecklistHistory,
     "Checklists": Checklists,
-    "Dashboard": Dashboard,
     "DevChecklist": DevChecklist,
     "EmergencySOPs": EmergencySOPs,
     "ExternalLinks": ExternalLinks,
@@ -112,7 +110,7 @@ export const PAGES = {
 }
 
 export const pagesConfig = {
-    mainPage: "Dashboard",
+    mainPage: "Analytics",
     Pages: PAGES,
     Layout: __Layout,
 };
