@@ -342,27 +342,7 @@ export default function Checklists() {
                     <Clock className="w-3 h-3" />
                     {template.items?.length || 0} items
                   </div>
-                  {canManage && template.recurrence_type !== 'once' && template.recurrence_type !== 'one_time' && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setTemplateToEdit(template);
-                        setFrequencyForm({
-                          recurrence_type: template.recurrence_type || 'once',
-                          custom_frequency_type: template.custom_frequency_type || 'days',
-                          custom_frequency_value: template.custom_frequency_value || 1,
-                          custom_frequency_days: template.custom_frequency_days || [],
-                          custom_frequency_day_of_month: template.custom_frequency_day_of_month || 1
-                        });
-                        setFrequencyDialogOpen(true);
-                      }}
-                    >
-                      Edit Frequency
-                    </Button>
-                  )}
+
                 </CardContent>
               </Card>
             ))}
