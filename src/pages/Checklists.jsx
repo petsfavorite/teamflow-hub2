@@ -353,80 +353,42 @@ export default function Checklists() {
 
 
       {canManage && (
-        <div className="mt-8">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">All Checklist Templates</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {allTemplates.map(t => (
-              <Card key={t.id} className="border-0 shadow-sm">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-sm text-slate-800">{t.title}</p>
-                          <p className="text-xs text-slate-400">{t.items?.length} items · {t.recurrence_type} · Closes at {t.auto_close_time || '17:00'}</p>
-                        </div>
-                        <div className="flex gap-1">
-                           {canManage && (
-                             <>
-                               <Button
-                                 variant="ghost"
-                                 size="sm"
-                                 className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                 onClick={() => {
-                                   setTemplateToEdit(t);
-                                   setEditForm({
-                                     recurrence_type: t.recurrence_type || 'once',
-                                     auto_close_time: t.auto_close_time || '17:00',
-                                     assigned_to_emails: t.assigned_to_emails || [],
-                                     assigned_to_names: t.assigned_to_names || [],
-                                     assigned_teams: t.assigned_teams || [],
-                                     custom_frequency_type: t.custom_frequency_type || 'days',
-                                     custom_frequency_value: t.custom_frequency_value || 1,
-                                     custom_frequency_days: t.custom_frequency_days || [],
-                                     custom_frequency_day_of_month: t.custom_frequency_day_of_month || 1
-                                   });
-                                   setEditDialogOpen(true);
-                                 }}
-                               >
-                                 Open to Assign
-                               </Button>
-                               <Link to={createPageUrl('ChecklistEditor') + `?id=${t.id}`}>
-                                 <Button variant="ghost" size="sm" className="text-slate-600 hover:text-slate-700 hover:bg-slate-50">Edit</Button>
-                               </Link>
-                             </>
-                           )}
-                          {(canManage) && t.status === 'published' && (
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
-                              onClick={() => {
-                                closeChecklistMutation.mutate(t.id);
-                              }}
-                            >
-                              <X className="w-4 h-4" />
-                            </Button>
-                          )}
-                          {(isSuperAdmin || isAdmin) && (
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                              onClick={() => {
-                                setTemplateToDelete(t);
-                                setDeleteDialogOpen(true);
-                              }}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          )}
-                          </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-          </div>
-          )}
+       <div className="mt-8">
+         <h2 className="text-lg font-semibold text-slate-900 mb-4">All Checklist Templates</h2>
+         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+           {allTemplates.map(t => (
+             <Card key={t.id} className="border-0 shadow-sm">
+               <CardContent className="p-4">
+                 <div className="flex items-center justify-between">
+                   <div>
+                     <p className="font-medium text-sm text-slate-800">{t.title}</p>
+                     <p className="text-xs text-slate-400">{t.items?.length} items</p>
+                   </div>
+                   <div className="flex gap-1">
+                     <Link to={createPageUrl('ChecklistEditor') + `?id=${t.id}`}>
+                       <Button variant="ghost" size="sm" className="text-slate-600 hover:text-slate-700 hover:bg-slate-50">Edit</Button>
+                     </Link>
+                     {(isSuperAdmin || isAdmin) && (
+                       <Button 
+                         variant="ghost" 
+                         size="sm"
+                         className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                         onClick={() => {
+                           setTemplateToDelete(t);
+                           setDeleteDialogOpen(true);
+                         }}
+                       >
+                         <Trash2 className="w-4 h-4" />
+                       </Button>
+                     )}
+                   </div>
+                 </div>
+               </CardContent>
+             </Card>
+           ))}
+         </div>
+       </div>
+      )}
 
           <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <DialogContent>
