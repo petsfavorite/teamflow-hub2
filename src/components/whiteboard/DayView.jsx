@@ -349,29 +349,37 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
                                                                 </div>
 
                                                 {/* Play Sessions */}
-                                                {visit.play_sessions && visit.play_sessions.length > 0 && (
-                                                    <div className="p-4 border-l border-gray-100 w-[160px]">
-                                                        <p className="text-xs text-gray-500 mb-1">Play Sessions</p>
-                                                        <div className="flex items-center gap-1">
-                                                            {visit.play_sessions.map((session, idx) => {
-                                                                const completedToday = session.completed && session.completed_date === selectedDate;
-                                                                return (
-                                                                    <div 
-                                                                        key={idx}
-                                                                        className={`w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold ${
-                                                                            completedToday
-                                                                                ? 'bg-emerald-500 text-white' 
-                                                                                : 'bg-gray-200 text-gray-400'
-                                                                        }`}
-                                                                        title={completedToday ? `Session ${session.session_number} completed` : `Session ${session.session_number} pending`}
-                                                                    >
-                                                                        {completedToday ? '✓' : session.session_number}
-                                                                    </div>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    </div>
-                                                )}
+                                                {visit.play_sessions && visit.play_sessions.length > 0 && (() => {
+                                                    const totalSessions = visit.play_sessions.length;
+                                                    const completedToday = visit.play_sessions.filter(s => s.completed && s.completed_date === selectedDate).length;
+                                                    const remaining = totalSessions - completedToday;
+                                                    return (
+                                                        <div className="p-4 border-l border-gray-100 w-[160px]">
+                                                            <p className="text-xs text-gray-500 mb-1">Play Sessions</p>
+                                                            <div className="flex items-center gap-1 mb-2">
+                                                                {visit.play_sessions.map((session, idx) => {
+                                                                   const done = session.completed && session.completed_date === selectedDate;
+                                                                   return (
+                                                                       <div 
+                                                                           key={idx}
+                                                                           className={`w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold ${
+                                                                               done
+                                                                                   ? 'bg-emerald-500 text-white' 
+                                                                                   : 'bg-gray-200 text-gray-400'
+                                                                           }`}
+                                                                           title={done ? `Session ${session.session_number} completed` : `Session ${session.session_number} pending`}
+                                                                       >
+                                                                           {done ? '✓' : session.session_number}
+                                                                       </div>
+                                                                   );
+                                                               })}
+                                                           </div>
+                                                           <p className={`text-xs font-semibold ${remaining === 0 ? 'text-emerald-600' : 'text-purple-600'}`}>
+                                                               {remaining === 0 ? 'All done!' : `${remaining} remaining`}
+                                                           </p>
+                                                       </div>
+                                                    );
+                                                })()}
 
                                                 {/* Remaining Tasks */}
                                                 <div className="flex-1 p-4 border-l border-gray-100">
