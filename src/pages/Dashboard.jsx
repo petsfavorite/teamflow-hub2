@@ -248,30 +248,7 @@ export default function Dashboard() {
 
 
 
-      {/* Open Incidents (managers) */}
-      {canManage && incidents.length > 0 && (
-        <Card className="border-0 shadow-sm border-l-4 border-l-red-400">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
-                <h2 className="font-semibold text-red-900">{incidents.length} Open Incident{incidents.length > 1 ? 's' : ''}</h2>
-              </div>
-              <Link to={createPageUrl('IncidentReports')} className="text-sm text-red-600 hover:text-red-700 flex items-center gap-1">
-                View all <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-            <div className="space-y-2">
-              {incidents.slice(0, 3).map(inc => (
-                <div key={inc.id} className="flex items-center justify-between py-2 border-b border-red-50 last:border-0">
-                  <p className="text-sm font-medium text-slate-800">{inc.title}</p>
-                  <StatusBadge status={inc.status} />
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+
     </div>
   );
 }
