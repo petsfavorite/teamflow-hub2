@@ -108,7 +108,7 @@ export default function Checklists() {
     },
   });
 
-  const useMutation = useMutation({
+  const assignChecklistMutation = useMutation({
     mutationFn: (data) => base44.entities.ChecklistTemplate.update(templateToUse.id, data),
     onSuccess: () => {
       toast.success('Checklist assigned!');
@@ -556,7 +556,7 @@ export default function Checklists() {
             <Button variant="outline" onClick={() => setUseDialogOpen(false)}>Cancel</Button>
             <Button 
               onClick={() => {
-                useMutation.mutate({
+                assignChecklistMutation.mutate({
                   assigned_to_emails: useForm.assigned_to_emails,
                   assigned_to_names: useForm.assigned_to_names || [],
                   assigned_teams: useForm.assigned_teams,
@@ -566,10 +566,10 @@ export default function Checklists() {
                   status: 'active'
                 });
               }}
-              disabled={useMutation.isPending}
+              disabled={assignChecklistMutation.isPending}
               className="bg-indigo-600 hover:bg-indigo-700 gap-2"
             >
-              {useMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+              {assignChecklistMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
               Assign
             </Button>
           </DialogFooter>
