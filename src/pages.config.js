@@ -74,6 +74,8 @@ import Tasks from './pages/Tasks';
 import Teams from './pages/Teams';
 import UserManagement from './pages/UserManagement';
 import Whiteboard from './pages/Whiteboard';
+import CallDashboard from './pages/CallDashboard';
+import FetchCallData from './pages/FetchCallData';
 import __Layout from './Layout.jsx';
 
 
@@ -105,6 +107,8 @@ export const PAGES = {
     "Teams": Teams,
     "UserManagement": UserManagement,
     "Whiteboard": Whiteboard,
+    "CallDashboard": CallDashboard,
+    "FetchCallData": FetchCallData,
 }
 
 export const pagesConfig = {
