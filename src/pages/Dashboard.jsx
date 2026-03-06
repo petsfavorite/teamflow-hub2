@@ -127,6 +127,20 @@ export default function Dashboard() {
               <p className="text-sm text-slate-400 py-2 text-center">No pending notifications</p>
             ) : (
               <div className="space-y-2">
+                {incidents.map(inc => (
+                  <Link key={inc.id} to={createPageUrl('IncidentReports')}>
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-red-50 hover:bg-red-100 transition-colors">
+                      <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-red-900 truncate">
+                          {inc.is_private ? '🔒 ' : ''}{inc.status === 'under_review' ? 'Under Review' : 'New Incident'}: {inc.title}
+                        </p>
+                        <p className="text-xs text-red-700">Reported by {inc.reported_by_name} • {inc.incident_date}</p>
+                      </div>
+                      <ArrowRight className="w-3.5 h-3.5 text-red-600 flex-shrink-0" />
+                    </div>
+                  </Link>
+                ))}
                 {canApprove && pendingSOPs.map(sop => (
                   <Link key={sop.id} to={createPageUrl('SOPDetail') + `?id=${sop.id}`}>
                     <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 hover:bg-amber-100 transition-colors">
