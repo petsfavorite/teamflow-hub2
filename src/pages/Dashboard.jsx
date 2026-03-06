@@ -100,6 +100,17 @@ export default function Dashboard() {
     return dA - dB;
   });
 
+  const today = new Date().toISOString().split('T')[0];
+  const myTeamIds = teams.filter(t => t.member_emails?.includes(user?.email)).map(t => t.id);
+
+  const myPendingTasks = tasks.filter(t => {
+    if (t.status === 'completed' || t.status === 'cancelled') return false;
+    if (t.due_date !== today) return false;
+    const assignedToMe = t.assigned_to_emails?.includes(user?.email);
+    const assignedToMyTeam = t.assigned_teams?.some(tid => myTeamIds.includes(tid));
+    return assignedToMe || assignedToMyTeam;
+  });
+
   const myChecklists = checklists.filter(c =>
     !c.assigned_to || c.assigned_to.length === 0 || c.assigned_to.includes(user?.email)
   );
