@@ -517,6 +517,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                             <Input
                                 value={locationInput}
                                 onChange={(e) => handleLocationChange(e.target.value)}
+                                onBlur={handleLocationBlur}
                                 placeholder="e.g., Yard 2"
                                 maxLength={10}
                                 className="rounded-xl"
