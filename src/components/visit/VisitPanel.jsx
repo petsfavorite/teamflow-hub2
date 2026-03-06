@@ -236,17 +236,14 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
         const initials = currentUser?.full_name?.split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase() || '?';
         const timestamp = moment().format('h:mm A');
 
-        // Mark the session as completed directly on play_sessions (same pattern as tasks)
-        const updatedSessions = [
-            ...(visit.play_sessions || []),
-            {
-                session_number: session.session_number,
-                completed: true,
-                completed_at: timestamp,
-                completed_date: today,
-                completed_by: initials
-            }
-        ];
+        // Find the first incomplete slot in play_sessions and mark it done, or add a new one
+        const existing = [...(visit.play_sessions || [])];
+        const slotIdx = existing.findIndex(s => !s.completed || s.completed_date !== today);
+        if (slotIdx >= 0) {
+            existing[slotIdx] = { ...existing[slotIdx], completed: true, completed_at: timestamp, completed_date: today, completed_by: initials };
+        } else {
+            existing.push({ session_number: session.session_number, completed: true, completed_at: timestamp, completed_date: today, completed_by: initials });
+        }
 
         const careLog = [...(visit.care_log || []), {
             time: timestamp,
@@ -258,7 +255,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
             session_number: session.session_number
         }];
 
-        onUpdateVisit({ ...visit, play_sessions: updatedSessions, care_log: careLog });
+        onUpdateVisit({ ...visit, play_sessions: existing, care_log: careLog });
     };
 
     const handleUndoActivityLog = async (index) => {
