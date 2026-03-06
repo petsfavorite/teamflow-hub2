@@ -231,35 +231,35 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
         onUpdateVisit(updateObj);
     };
 
-    const handleCompletePlaySession = async (session) => {
-         if (isSaving) return;
-         setIsSaving(true);
-         // Optimistically hide this session immediately
-         setLocalCompletedSessions(prev => [...prev, session.session_number]);
+    const handleCompletePlaySession = (session) => {
+        const today = moment().format('YYYY-MM-DD');
+        const initials = currentUser?.full_name?.split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase() || '?';
+        const timestamp = moment().format('h:mm A');
 
-         try {
-             const today = moment().format('YYYY-MM-DD');
-             // Fetch the latest visit from DB to avoid stale care_log overwrites
-             const latestVisit = await base44.entities.Visit.get(visit.id);
-             const careLog = [...(latestVisit.care_log || []), {
-                 time: moment().format('h:mm A'),
-                 activity: `Play Session ${session.session_number}`,
-                 notes: '',
-                 staff: currentUser?.full_name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?',
-                 date: today,
-                 type: 'play_session',
-                 session_number: session.session_number
-             }];
+        // Mark the session as completed directly on play_sessions (same pattern as tasks)
+        const updatedSessions = [
+            ...(visit.play_sessions || []),
+            {
+                session_number: session.session_number,
+                completed: true,
+                completed_at: timestamp,
+                completed_date: today,
+                completed_by: initials
+            }
+        ];
 
-             await onUpdateVisit({ ...latestVisit, care_log: careLog });
-         } catch (e) {
-             // Revert optimistic update on error
-             setLocalCompletedSessions(prev => prev.filter(n => n !== session.session_number));
-             throw e;
-         } finally {
-             setIsSaving(false);
-         }
-     };
+        const careLog = [...(visit.care_log || []), {
+            time: timestamp,
+            activity: `Play Session ${session.session_number}`,
+            notes: '',
+            staff: initials,
+            date: today,
+            type: 'play_session',
+            session_number: session.session_number
+        }];
+
+        onUpdateVisit({ ...visit, play_sessions: updatedSessions, care_log: careLog });
+    };
 
     const handleUndoActivityLog = async (index) => {
          if (isSaving) return;
