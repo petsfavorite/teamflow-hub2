@@ -73,7 +73,10 @@ export default function Whiteboard() {
     };
 
     const handleViewVisit = (visit, pet) => {
-        setSelectedVisit(visit);
+        // Always use the freshest version from the query cache
+        const freshVisits = queryClient.getQueryData(['visits']);
+        const fresh = freshVisits?.find(v => v.id === visit.id);
+        setSelectedVisit(fresh || visit);
         setSelectedPet(pet);
     };
 
