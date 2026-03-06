@@ -26,35 +26,6 @@ export default function Checklists() {
   const [canSubmitWithIncomplete, setCanSubmitWithIncomplete] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [templateToDelete, setTemplateToDelete] = useState(null);
-  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
-  const [templateToAssign, setTemplateToAssign] = useState(null);
-  const [assignForm, setAssignForm] = useState({ emails: [], teams: [] });
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [templateToEdit, setTemplateToEdit] = useState(null);
-  const [editForm, setEditForm] = useState({ 
-    recurrence_type: 'once', 
-    auto_close_time: '17:00', 
-    assigned_to_emails: [], 
-    assigned_teams: [],
-    custom_frequency_type: 'days',
-    custom_frequency_value: 1,
-    custom_frequency_days: [],
-    custom_frequency_day_of_month: 1
-  });
-  const [frequencyDialogOpen, setFrequencyDialogOpen] = useState(false);
-  const [frequencyForm, setFrequencyForm] = useState({
-    recurrence_type: 'once',
-    custom_frequency_type: 'days',
-    custom_frequency_value: 1,
-    custom_frequency_days: [],
-    custom_frequency_day_of_month: 1
-  });
-  const [assignedFilters, setAssignedFilters] = useState({
-    dueTime: '',
-    team: '',
-    individual: '',
-    frequency: ''
-  });
 
   const { data: publishedTemplates = [], isLoading } = useQuery({
     queryKey: ['checklist-templates-published'],
