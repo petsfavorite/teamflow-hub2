@@ -97,59 +97,7 @@ export default function Checklists() {
     },
   });
 
-  const assignMutation = useMutation({
-    mutationFn: (data) => base44.entities.ChecklistTemplate.update(templateToAssign.id, data),
-    onSuccess: () => {
-      toast.success('Checklist assigned!');
-      setAssignDialogOpen(false);
-      setTemplateToAssign(null);
-      setAssignForm({ emails: [], teams: [] });
-      queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
-      queryClient.invalidateQueries({ queryKey: ['checklist-templates-published'] });
-    },
-  });
 
-  const editTemplateMutation = useMutation({
-    mutationFn: (data) => base44.entities.ChecklistTemplate.update(templateToEdit.id, data),
-    onSuccess: () => {
-      toast.success('Checklist updated!');
-      setEditDialogOpen(false);
-      setTemplateToEdit(null);
-      queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
-      queryClient.invalidateQueries({ queryKey: ['checklist-templates-published'] });
-    },
-  });
-
-  const closeChecklistMutation = useMutation({
-    mutationFn: (id) => base44.entities.ChecklistTemplate.update(id, { status: 'closed' }),
-    onSuccess: () => {
-      toast.success('Checklist closed');
-      queryClient.invalidateQueries({ queryKey: ['checklist-templates-published'] });
-      queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
-    },
-  });
-
-  const updateFrequencyMutation = useMutation({
-    mutationFn: (data) => base44.entities.ChecklistTemplate.update(templateToEdit.id, data),
-    onSuccess: () => {
-      toast.success('Frequency updated');
-      setFrequencyDialogOpen(false);
-      setTemplateToEdit(null);
-      queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
-      queryClient.invalidateQueries({ queryKey: ['checklist-templates-published'] });
-    },
-  });
-
-  const cancelFutureAssignmentsMutation = useMutation({
-    mutationFn: (id) => base44.entities.ChecklistTemplate.update(id, { recurrence_type: 'once' }),
-    onSuccess: () => {
-      toast.success('Future assignments cancelled');
-      setFrequencyDialogOpen(false);
-      setTemplateToEdit(null);
-      queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
-      queryClient.invalidateQueries({ queryKey: ['checklist-templates-published'] });
-    },
-  });
 
   const startChecklist = async (template) => {
     // Load existing in-progress completion if it exists
