@@ -153,6 +153,23 @@ export default function Checklists() {
     setCanSubmitWithIncomplete(!template.due_date && !template.due_time);
   };
 
+  const handleUseClick = (template) => {
+    setTemplateToUse(template);
+    // Pre-populate with template's recurrence settings
+    setUseForm({
+      assigned_to_emails: template.assigned_to_emails || [],
+      assigned_to_names: template.assigned_to_names || [],
+      assigned_teams: template.assigned_teams || [],
+      due_date: template.due_date || '',
+      due_time: template.due_time || '21:00',
+      recurrence_type: template.recurrence_type || 'once',
+      recurrence_days_of_week: template.recurrence_days_of_week || [],
+      recurrence_day_of_month: template.recurrence_day_of_month || undefined,
+      recurrence_interval_months: template.recurrence_interval_months || undefined
+    });
+    setUseDialogOpen(true);
+  };
+
   const updateItem = async (index, updates) => {
     setItems(prev => {
       const updated = prev.map((item, i) => {
@@ -262,6 +279,7 @@ export default function Checklists() {
                   notes={notes}
                   onNotesChange={updateNotes}
                   onItemUpdate={updateItem}
+                  canUndo={canManage}
                 />
               ))}
             </div>
@@ -377,17 +395,7 @@ export default function Checklists() {
                       <Button
                         size="sm"
                         className="flex-1 bg-blue-600 hover:bg-blue-700"
-                        onClick={() => {
-                          setTemplateToUse(template);
-                          setUseForm({
-                            assigned_to_emails: template.assigned_to_emails || [],
-                            assigned_teams: template.assigned_teams || [],
-                            due_date: template.due_date || '',
-                            due_time: template.due_time || '21:00',
-                            recurrence_type: template.recurrence_type || 'once'
-                          });
-                          setUseDialogOpen(true);
-                        }}
+                        onClick={() => handleUseClick(template)}
                       >
                         Use
                       </Button>
