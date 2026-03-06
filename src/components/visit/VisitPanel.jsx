@@ -107,35 +107,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
         return timeA.diff(timeB);
     });
 
-    // Compute remaining play sessions for today
-    const getPlaySessionsForDate = () => {
-        const viewMoment = moment(viewDate);
-        const dayOfWeek = viewMoment.day();
 
-        // Check if play camp is enabled
-        if (!visit.play_camp_duration && (!visit.play_sessions || visit.play_sessions.length === 0)) {
-            return [];
-        }
-
-        // Only show sessions on weekdays (Mon-Fri)
-        if (dayOfWeek < 1 || dayOfWeek > 5) return [];
-
-        const totalSessions = 4;
-
-        // Count sessions completed today (stored directly on play_sessions with a date)
-        const completedToday = (visit.play_sessions || []).filter(
-            s => s.completed && s.completed_date === viewDate
-        ).length;
-
-        const remaining = totalSessions - completedToday;
-        if (remaining <= 0) return [];
-
-        return Array.from({ length: remaining }, (_, i) => ({
-            session_number: completedToday + i + 1,
-        }));
-    };
-
-    const playSessions = getPlaySessionsForDate();
 
     const handleLocationChange = (location) => {
         const trimmed = location.slice(0, 10);
@@ -231,29 +203,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
         onUpdateVisit(updateObj);
     };
 
-    const handleCompletePlaySession = (session) => {
-        const today = moment().format('YYYY-MM-DD');
-        const initials = currentUser?.full_name?.split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase() || '?';
-        const timestamp = moment().format('h:mm A');
 
-        // Always push a new completion entry for today
-        const updatedSessions = [
-            ...(visit.play_sessions || []),
-            { session_number: session.session_number, completed: true, completed_at: timestamp, completed_date: today, completed_by: initials }
-        ];
-
-        const careLog = [...(visit.care_log || []), {
-            time: timestamp,
-            activity: `Play Session ${session.session_number}`,
-            notes: '',
-            staff: initials,
-            date: today,
-            type: 'play_session',
-            session_number: session.session_number
-        }];
-
-        onUpdateVisit({ ...visit, play_sessions: updatedSessions, care_log: careLog });
-    };
 
     const handleUndoActivityLog = async (index) => {
          if (isSaving) return;
