@@ -6,6 +6,7 @@ import { QrCode, Printer } from 'lucide-react';
 
 export default function AssetQRCode({ asset }) {
   const printRef = useRef();
+  if (!asset) return null;
   const assetUrl = `${window.location.origin}${window.location.pathname}#/Assets?id=${asset.id}`;
 
   const handlePrint = () => {
