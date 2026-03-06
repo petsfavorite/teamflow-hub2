@@ -10,37 +10,9 @@ import { motion } from "framer-motion";
 export default function PlayCampWhiteboardCard({ pet, visit, onViewVisit }) {
     const isCat = pet.species === 'Cat';
     
-    const completedSessions = visit.play_sessions?.filter(s => s.completed).length || 0;
-    const totalSessions = visit.play_sessions?.length || 0;
-    const allSessionsComplete = completedSessions === totalSessions;
-    
+    const today = new Date().toISOString().split('T')[0];
+    const playSessions = (visit.scheduled_tasks || []).filter(t => t.type === 'Play Session' && t.date === today);
     const needsPicture = pet.daily_picture && !visit.picture_sent;
-    
-    // Format play sessions display
-    const getPlaySessionDisplay = (session) => {
-        const isCompleted = session.completed;
-        return (
-            <div 
-                key={`${session.session_number}`}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all ${
-                    isCompleted
-                        ? 'bg-emerald-50 border-emerald-200' 
-                        : 'bg-purple-50 border-purple-200'
-                }`}
-            >
-                {isCompleted ? (
-                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                ) : (
-                    <div className="w-3 h-3 rounded-full border-2 border-purple-400" />
-                )}
-                <span className={`text-xs font-medium ${
-                    isCompleted ? 'text-emerald-700' : 'text-purple-700'
-                }`}>
-                    Play {session.session_number}
-                </span>
-            </div>
-        );
-    };
 
     return (
         <motion.div

@@ -81,7 +81,7 @@ export default function BoardingWhiteboardCard({ pet, visit, onViewVisit }) {
                                     <Badge className="bg-blue-100 text-blue-700 border-0 text-xs px-2 py-0">
                                         Boarding
                                     </Badge>
-                                    {visit.play_sessions && visit.play_sessions.length > 0 && (
+                                    {(visit.scheduled_tasks || []).some(t => t.type === 'Play Session' && t.date === moment().format('YYYY-MM-DD')) && (
                                         <Badge className="bg-emerald-100 text-emerald-700 border-0 text-xs px-2 py-0">
                                             <Sparkles className="w-2 h-2 mr-1" />
                                             Play
