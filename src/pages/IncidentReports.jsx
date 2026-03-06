@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useCurrentUser } from '../components/hooks/useCurrentUser';
@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { AlertTriangle, Plus, Clock, User, Loader2, ChevronDown, Paperclip, Lock, Archive } from 'lucide-react';
+import { AlertTriangle, Plus, Clock, User, Loader2, ChevronDown, Paperclip, Lock, Archive, Printer } from 'lucide-react';
 import { toast } from "sonner";
 
 const CATEGORIES = [
@@ -37,12 +37,14 @@ const emptyForm = {
   incident_date: new Date().toISOString().split('T')[0],
   incident_time: '',
   is_private: false,
+  osha_not_sure_about_care: false,
   // OSHA fields
   osha_employee_name: '',
   osha_job_title: '',
   osha_date_of_birth: '',
   osha_date_hired: '',
   osha_sex: '',
+  osha_time_of_incident: '',
   osha_what_was_employee_doing: '',
   osha_what_happened: '',
   osha_injury_or_illness: '',
@@ -54,6 +56,129 @@ const emptyForm = {
   osha_treatment_facility: '',
   osha_treatment_facility_address: '',
 };
+
+function PrintableReport({ report }) {
+  const catLabel = CATEGORIES.find(c => c.value === report.category)?.label || report.category;
+  const isOsha = report.category === 'osha_reportable';
+
+  return (
+    <div style={{ fontFamily: 'Arial, sans-serif', fontSize: '11pt', color: '#111', padding: '20px', maxWidth: '720px', margin: '0 auto' }}>
+      <div style={{ borderBottom: '2px solid #dc2626', paddingBottom: '10px', marginBottom: '16px' }}>
+        <h1 style={{ fontSize: '16pt', fontWeight: 'bold', margin: 0 }}>Incident Report</h1>
+        <p style={{ margin: '4px 0 0', color: '#555', fontSize: '10pt' }}>
+          {isOsha ? 'OSHA — Employee\'s First Report of Injury or Illness' : catLabel}
+        </p>
+      </div>
+
+      <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '14px' }}>
+        <tbody>
+          <tr>
+            <td style={{ width: '25%', color: '#555', paddingBottom: '6px' }}>Title:</td>
+            <td style={{ fontWeight: 'bold', paddingBottom: '6px' }}>{report.title}</td>
+            <td style={{ width: '25%', color: '#555', paddingBottom: '6px' }}>Category:</td>
+            <td style={{ paddingBottom: '6px' }}>{catLabel}</td>
+          </tr>
+          <tr>
+            <td style={{ color: '#555', paddingBottom: '6px' }}>Date:</td>
+            <td style={{ paddingBottom: '6px' }}>{report.incident_date}</td>
+            <td style={{ color: '#555', paddingBottom: '6px' }}>Time:</td>
+            <td style={{ paddingBottom: '6px' }}>{report.incident_time || '—'}</td>
+          </tr>
+          <tr>
+            <td style={{ color: '#555', paddingBottom: '6px' }}>Reported By:</td>
+            <td style={{ paddingBottom: '6px' }}>{report.reported_by_name}</td>
+            <td style={{ color: '#555', paddingBottom: '6px' }}>Status:</td>
+            <td style={{ paddingBottom: '6px' }}>{report.status?.replace(/_/g, ' ')}</td>
+          </tr>
+          {report.assigned_to && (
+            <tr>
+              <td style={{ color: '#555', paddingBottom: '6px' }}>Assigned To:</td>
+              <td colSpan={3} style={{ paddingBottom: '6px' }}>{report.assigned_to}</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+
+      {report.description && (
+        <div style={{ marginBottom: '14px' }}>
+          <p style={{ fontWeight: 'bold', marginBottom: '4px' }}>Description</p>
+          <p style={{ background: '#f9f9f9', border: '1px solid #ddd', padding: '8px', borderRadius: '4px', margin: 0 }}>{report.description}</p>
+        </div>
+      )}
+
+      {isOsha && (
+        <div style={{ border: '1px solid #fca5a5', borderRadius: '6px', padding: '14px', background: '#fff5f5', marginBottom: '14px' }}>
+          <p style={{ fontWeight: 'bold', color: '#b91c1c', marginBottom: '10px', marginTop: 0 }}>OSHA Details</p>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <tbody>
+              {report.osha_employee_name && <tr><td style={{ width: '35%', color: '#555', paddingBottom: '5px' }}>Employee Name:</td><td style={{ paddingBottom: '5px', fontWeight: '500' }}>{report.osha_employee_name}</td></tr>}
+              {report.osha_job_title && <tr><td style={{ color: '#555', paddingBottom: '5px' }}>Job Title:</td><td style={{ paddingBottom: '5px' }}>{report.osha_job_title}</td></tr>}
+              {report.osha_date_of_birth && <tr><td style={{ color: '#555', paddingBottom: '5px' }}>Date of Birth:</td><td style={{ paddingBottom: '5px' }}>{report.osha_date_of_birth}</td></tr>}
+              {report.osha_date_hired && <tr><td style={{ color: '#555', paddingBottom: '5px' }}>Date Hired:</td><td style={{ paddingBottom: '5px' }}>{report.osha_date_hired}</td></tr>}
+              {report.osha_sex && <tr><td style={{ color: '#555', paddingBottom: '5px' }}>Sex:</td><td style={{ paddingBottom: '5px', textTransform: 'capitalize' }}>{report.osha_sex.replace(/_/g, ' ')}</td></tr>}
+              {report.osha_time_of_incident && <tr><td style={{ color: '#555', paddingBottom: '5px' }}>Time of Incident:</td><td style={{ paddingBottom: '5px' }}>{report.osha_time_of_incident}</td></tr>}
+            </tbody>
+          </table>
+          {report.osha_what_was_employee_doing && (
+            <div style={{ marginTop: '8px' }}>
+              <p style={{ color: '#555', marginBottom: '2px', fontSize: '10pt' }}>What was the employee doing just before the incident?</p>
+              <p style={{ background: 'white', border: '1px solid #fca5a5', padding: '6px', borderRadius: '3px', margin: 0, fontSize: '10pt' }}>{report.osha_what_was_employee_doing}</p>
+            </div>
+          )}
+          {report.osha_what_happened && (
+            <div style={{ marginTop: '8px' }}>
+              <p style={{ color: '#555', marginBottom: '2px', fontSize: '10pt' }}>What happened?</p>
+              <p style={{ background: 'white', border: '1px solid #fca5a5', padding: '6px', borderRadius: '3px', margin: 0, fontSize: '10pt' }}>{report.osha_what_happened}</p>
+            </div>
+          )}
+          {report.osha_injury_or_illness && (
+            <div style={{ marginTop: '8px' }}>
+              <p style={{ color: '#555', marginBottom: '2px', fontSize: '10pt' }}>Nature of injury / illness:</p>
+              <p style={{ background: 'white', border: '1px solid #fca5a5', padding: '6px', borderRadius: '3px', margin: 0, fontSize: '10pt' }}>{report.osha_injury_or_illness}</p>
+            </div>
+          )}
+          {report.osha_object_or_substance && (
+            <div style={{ marginTop: '8px' }}>
+              <p style={{ color: '#555', marginBottom: '2px', fontSize: '10pt' }}>Object or substance that caused harm:</p>
+              <p style={{ background: 'white', border: '1px solid #fca5a5', padding: '6px', borderRadius: '3px', margin: 0, fontSize: '10pt' }}>{report.osha_object_or_substance}</p>
+            </div>
+          )}
+          {!report.osha_not_sure_about_care && (
+            <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px' }}>
+              <tbody>
+                {report.osha_medical_treatment && <tr><td style={{ width: '35%', color: '#555', paddingBottom: '5px' }}>Medical Treatment:</td><td style={{ paddingBottom: '5px', textTransform: 'capitalize' }}>{report.osha_medical_treatment.replace(/_/g, ' ')}</td></tr>}
+                {(report.osha_days_away_from_work !== '' && report.osha_days_away_from_work != null) && <tr><td style={{ color: '#555', paddingBottom: '5px' }}>Days Away from Work:</td><td style={{ paddingBottom: '5px' }}>{report.osha_days_away_from_work}</td></tr>}
+                {(report.osha_days_on_restricted_duty !== '' && report.osha_days_on_restricted_duty != null) && <tr><td style={{ color: '#555', paddingBottom: '5px' }}>Days Restricted Duty:</td><td style={{ paddingBottom: '5px' }}>{report.osha_days_on_restricted_duty}</td></tr>}
+                {report.osha_physician_name && <tr><td style={{ color: '#555', paddingBottom: '5px' }}>Treating Physician:</td><td style={{ paddingBottom: '5px' }}>{report.osha_physician_name}</td></tr>}
+                {report.osha_treatment_facility && <tr><td style={{ color: '#555', paddingBottom: '5px' }}>Treatment Facility:</td><td style={{ paddingBottom: '5px' }}>{report.osha_treatment_facility}</td></tr>}
+                {report.osha_treatment_facility_address && <tr><td style={{ color: '#555', paddingBottom: '5px' }}>Facility Address:</td><td style={{ paddingBottom: '5px' }}>{report.osha_treatment_facility_address}</td></tr>}
+              </tbody>
+            </table>
+          )}
+          {report.osha_not_sure_about_care && (
+            <p style={{ marginTop: '10px', fontStyle: 'italic', color: '#666', fontSize: '10pt' }}>* Care details not yet determined at time of report</p>
+          )}
+        </div>
+      )}
+
+      {report.notes_log?.length > 0 && (
+        <div>
+          <p style={{ fontWeight: 'bold', marginBottom: '6px' }}>Notes Log</p>
+          {report.notes_log.map((log, i) => (
+            <div key={i} style={{ background: '#f9f9f9', border: '1px solid #e5e7eb', borderRadius: '4px', padding: '8px', marginBottom: '6px' }}>
+              <p style={{ margin: '0 0 4px' }}>{log.note}</p>
+              <p style={{ margin: 0, fontSize: '9pt', color: '#777' }}>{log.added_by_name} — {log.date}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div style={{ marginTop: '30px', borderTop: '1px solid #ddd', paddingTop: '10px', fontSize: '9pt', color: '#aaa', textAlign: 'center' }}>
+        Printed on {new Date().toLocaleDateString()} • Confidential
+      </div>
+    </div>
+  );
+}
 
 export default function IncidentReports() {
   const { user, canManage, isAdmin, isSuperAdmin } = useCurrentUser();
@@ -67,6 +192,7 @@ export default function IncidentReports() {
   const [expandedNotesLog, setExpandedNotesLog] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
   const [archiveSearch, setArchiveSearch] = useState('');
+  const printRef = useRef(null);
 
   const canSeePrivate = isAdmin || isSuperAdmin;
   const canAssign = canManage;
@@ -82,10 +208,8 @@ export default function IncidentReports() {
     enabled: canAssign,
   });
 
-  // Filter based on privacy + role
   const visibleReports = allReports.filter(r => {
     if (r.is_private && !canSeePrivate) {
-      // non-admin can only see their own private reports
       return r.reported_by === user?.email;
     }
     return true;
@@ -94,7 +218,6 @@ export default function IncidentReports() {
   const activeReports = visibleReports.filter(r => r.status !== 'resolved');
   const archivedReports = visibleReports.filter(r => r.status === 'resolved');
 
-  // Non-managers only see their own reports
   const visibleActive = canManage
     ? activeReports
     : activeReports.filter(r => r.reported_by === user?.email || r.assigned_to === user?.email);
@@ -144,6 +267,33 @@ export default function IncidentReports() {
     if (!r) return false;
     if (!r.assigned_to) return true;
     return r.assigned_to === user?.email || canManage;
+  };
+
+  const canPrint = (r) => {
+    if (!r) return false;
+    return canManage || r.assigned_to === user?.email;
+  };
+
+  const handlePrint = (report) => {
+    const printWindow = window.open('', '_blank');
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Incident Report - ${report.title}</title>
+        <style>
+          @page { size: A4; margin: 20mm; }
+          body { font-family: Arial, sans-serif; font-size: 11pt; color: #111; margin: 0; }
+          * { box-sizing: border-box; }
+        </style>
+      </head>
+      <body>${printRef.current?.innerHTML || ''}</body>
+      </html>
+    `;
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => { printWindow.print(); printWindow.close(); }, 300);
   };
 
   const f = (key) => (e) => setForm({ ...form, [key]: e.target.value });
@@ -208,7 +358,6 @@ export default function IncidentReports() {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Report an Incident</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            {/* Category first */}
             <div className="space-y-2">
               <Label>Incident Category <span className="text-red-500">*</span></Label>
               <Select value={form.category} onValueChange={v => setForm({ ...form, category: v })}>
@@ -292,47 +441,68 @@ export default function IncidentReports() {
                       <Label>Object or substance that directly caused the harm</Label>
                       <Input value={form.osha_object_or_substance} onChange={f('osha_object_or_substance')} placeholder="e.g. Dog bite, chemical, floor" />
                     </div>
-                    <div className="space-y-2">
-                      <Label>Medical treatment received</Label>
-                      <Select value={form.osha_medical_treatment} onValueChange={v => setForm({ ...form, osha_medical_treatment: v })}>
-                        <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">None</SelectItem>
-                          <SelectItem value="first_aid_only">First aid only (on-site)</SelectItem>
-                          <SelectItem value="physician_or_er">Physician / Emergency Room</SelectItem>
-                          <SelectItem value="hospitalized">Hospitalized overnight</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Days away from work</Label>
-                        <Input type="number" min="0" value={form.osha_days_away_from_work} onChange={f('osha_days_away_from_work')} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Days on restricted duty</Label>
-                        <Input type="number" min="0" value={form.osha_days_on_restricted_duty} onChange={f('osha_days_on_restricted_duty')} />
+
+                    {/* Not Sure About Care checkbox */}
+                    <div className="flex items-center gap-3 py-2 border-y border-red-200">
+                      <Checkbox
+                        id="not-sure-care"
+                        checked={!!form.osha_not_sure_about_care}
+                        onCheckedChange={v => setForm({ ...form, osha_not_sure_about_care: !!v })}
+                      />
+                      <div>
+                        <Label htmlFor="not-sure-care" className="cursor-pointer font-medium text-red-900">Not Sure About Care</Label>
+                        <p className="text-xs text-red-700">Check this if care details are unknown at this time</p>
                       </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label>Treating physician name</Label>
-                      <Input value={form.osha_physician_name} onChange={f('osha_physician_name')} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Treatment facility name</Label>
-                      <Input value={form.osha_treatment_facility} onChange={f('osha_treatment_facility')} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Treatment facility address</Label>
-                      <Input value={form.osha_treatment_facility_address} onChange={f('osha_treatment_facility_address')} />
-                    </div>
+
+                    {!form.osha_not_sure_about_care && (
+                      <>
+                        <div className="space-y-2">
+                          <Label>Medical treatment received</Label>
+                          <Select value={form.osha_medical_treatment} onValueChange={v => setForm({ ...form, osha_medical_treatment: v })}>
+                            <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">None</SelectItem>
+                              <SelectItem value="first_aid_only">First aid only (on-site)</SelectItem>
+                              <SelectItem value="physician_or_er">Physician / Emergency Room</SelectItem>
+                              <SelectItem value="hospitalized">Hospitalized overnight</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Days away from work</Label>
+                            <Input type="number" min="0" value={form.osha_days_away_from_work} onChange={f('osha_days_away_from_work')} />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Days on restricted duty</Label>
+                            <Input type="number" min="0" value={form.osha_days_on_restricted_duty} onChange={f('osha_days_on_restricted_duty')} />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Treating physician name</Label>
+                          <Input value={form.osha_physician_name} onChange={f('osha_physician_name')} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Treatment facility name</Label>
+                          <Input value={form.osha_treatment_facility} onChange={f('osha_treatment_facility')} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Treatment facility address</Label>
+                          <Input value={form.osha_treatment_facility_address} onChange={f('osha_treatment_facility_address')} />
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
 
-                <div className="space-y-2">
-                  <Label>Full Description</Label>
-                  <Textarea value={form.description} onChange={f('description')} rows={4} placeholder="Provide a detailed account of what happened..." />
-                </div>
+                {/* General description for non-OSHA */}
+                {form.category !== 'osha_reportable' && (
+                  <div className="space-y-2">
+                    <Label>Description</Label>
+                    <Textarea value={form.description} onChange={f('description')} rows={4} placeholder="Provide a detailed account of what happened..." />
+                  </div>
+                )}
 
                 {/* Privacy checkbox */}
                 <div className="flex items-center gap-3 pt-2 border-t">
@@ -407,17 +577,24 @@ export default function IncidentReports() {
                     {selected.osha_date_hired && <div><span className="text-slate-400">Date Hired:</span> <span className="font-medium">{selected.osha_date_hired}</span></div>}
                     {selected.osha_sex && <div><span className="text-slate-400">Sex:</span> <span className="font-medium capitalize">{selected.osha_sex.replace(/_/g,' ')}</span></div>}
                     {selected.osha_time_of_incident && <div><span className="text-slate-400">Time:</span> <span className="font-medium">{selected.osha_time_of_incident}</span></div>}
-                    {selected.osha_medical_treatment && <div><span className="text-slate-400">Treatment:</span> <span className="font-medium capitalize">{selected.osha_medical_treatment.replace(/_/g,' ')}</span></div>}
-                    {selected.osha_days_away_from_work !== '' && selected.osha_days_away_from_work != null && <div><span className="text-slate-400">Days off:</span> <span className="font-medium">{selected.osha_days_away_from_work}</span></div>}
-                    {selected.osha_days_on_restricted_duty !== '' && selected.osha_days_on_restricted_duty != null && <div><span className="text-slate-400">Restricted days:</span> <span className="font-medium">{selected.osha_days_on_restricted_duty}</span></div>}
-                    {selected.osha_physician_name && <div className="col-span-2"><span className="text-slate-400">Physician:</span> <span className="font-medium">{selected.osha_physician_name}</span></div>}
-                    {selected.osha_treatment_facility && <div className="col-span-2"><span className="text-slate-400">Facility:</span> <span className="font-medium">{selected.osha_treatment_facility}</span></div>}
-                    {selected.osha_treatment_facility_address && <div className="col-span-2"><span className="text-slate-400">Address:</span> <span className="font-medium">{selected.osha_treatment_facility_address}</span></div>}
                   </div>
                   {selected.osha_what_was_employee_doing && <div><p className="text-slate-400 text-xs mb-1">What employee was doing:</p><p className="text-xs bg-white rounded p-2">{selected.osha_what_was_employee_doing}</p></div>}
                   {selected.osha_what_happened && <div><p className="text-slate-400 text-xs mb-1">What happened:</p><p className="text-xs bg-white rounded p-2">{selected.osha_what_happened}</p></div>}
                   {selected.osha_injury_or_illness && <div><p className="text-slate-400 text-xs mb-1">Injury/Illness:</p><p className="text-xs bg-white rounded p-2">{selected.osha_injury_or_illness}</p></div>}
                   {selected.osha_object_or_substance && <div><p className="text-slate-400 text-xs mb-1">Caused by:</p><p className="text-xs bg-white rounded p-2">{selected.osha_object_or_substance}</p></div>}
+
+                  {selected.osha_not_sure_about_care ? (
+                    <p className="text-xs italic text-red-700 mt-2">* Care details not yet determined at time of report</p>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-2 text-xs mt-2">
+                      {selected.osha_medical_treatment && <div><span className="text-slate-400">Treatment:</span> <span className="font-medium capitalize">{selected.osha_medical_treatment.replace(/_/g,' ')}</span></div>}
+                      {selected.osha_days_away_from_work !== '' && selected.osha_days_away_from_work != null && <div><span className="text-slate-400">Days off:</span> <span className="font-medium">{selected.osha_days_away_from_work}</span></div>}
+                      {selected.osha_days_on_restricted_duty !== '' && selected.osha_days_on_restricted_duty != null && <div><span className="text-slate-400">Restricted days:</span> <span className="font-medium">{selected.osha_days_on_restricted_duty}</span></div>}
+                      {selected.osha_physician_name && <div className="col-span-2"><span className="text-slate-400">Physician:</span> <span className="font-medium">{selected.osha_physician_name}</span></div>}
+                      {selected.osha_treatment_facility && <div className="col-span-2"><span className="text-slate-400">Facility:</span> <span className="font-medium">{selected.osha_treatment_facility}</span></div>}
+                      {selected.osha_treatment_facility_address && <div className="col-span-2"><span className="text-slate-400">Address:</span> <span className="font-medium">{selected.osha_treatment_facility_address}</span></div>}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -532,6 +709,23 @@ export default function IncidentReports() {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+              )}
+
+              {/* Print Button */}
+              {canPrint(selected) && (
+                <div className="border-t pt-4">
+                  {/* Hidden printable version */}
+                  <div ref={printRef} style={{ display: 'none' }}>
+                    <PrintableReport report={selected} />
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="gap-2 w-full"
+                    onClick={() => handlePrint(selected)}
+                  >
+                    <Printer className="w-4 h-4" /> Print as PDF (A4)
+                  </Button>
                 </div>
               )}
             </div>
