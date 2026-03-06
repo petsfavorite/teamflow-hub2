@@ -123,13 +123,17 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
         const totalSessions = 4;
 
         // Count how many sessions have already been logged in the care log for today
-        const completedToday = (visit.care_log || []).filter(
+        const completedFromLog = (visit.care_log || []).filter(
             log => log.type === 'play_session' && log.date === viewDate
-        ).length;
+        ).map(log => log.session_number);
 
-        const remaining = totalSessions - completedToday;
+        // Also include locally completed ones (optimistic)
+        const allCompleted = new Set([...completedFromLog, ...localCompletedSessions]);
+        const remaining = totalSessions - allCompleted.size;
+        if (remaining <= 0) return [];
+
         return Array.from({ length: remaining }, (_, i) => ({
-            session_number: completedToday + i + 1,
+            session_number: allCompleted.size + i + 1,
             temp: true
         }));
     };
