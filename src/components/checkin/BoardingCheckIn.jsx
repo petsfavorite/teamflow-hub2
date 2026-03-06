@@ -200,12 +200,27 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
         }
     }
         
-    // Play sessions if added (4 per weekday: Mon-Fri, generated dynamically per day)
-    let playSessions = [];
+    // Add 4 Play Session tasks per weekday if play camp is selected
     if (addPlayCamp && pet.species === 'Dog') {
-        // Mark that play camp is enabled; sessions will be generated dynamically per viewing date
-        // Store just a flag to indicate play camp is active
-        playSessions = [];
+        let currentDate = moment(checkInDate);
+        while (currentDate.format('YYYY-MM-DD') <= checkoutDate) {
+            const dow = currentDate.day(); // 0=Sun, 6=Sat
+            if (dow >= 1 && dow <= 5) { // weekdays only
+                for (let i = 0; i < 4; i++) {
+                    tasks.push({
+                        type: 'Play Session',
+                        time: '',
+                        date: currentDate.format('YYYY-MM-DD'),
+                        is_template: false,
+                        completed: false,
+                        completed_at: null,
+                        completed_by: null,
+                        notes: `Session ${i + 1}`
+                    });
+                }
+            }
+            currentDate.add(1, 'day');
+        }
     }
         
     onConfirm({
@@ -213,9 +228,8 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
         scheduled_checkout_date: checkoutDate,
         feeding_frequency: feedingFrequency,
         scheduled_tasks: tasks,
-        play_sessions: playSessions,
-         play_camp_duration: addPlayCamp ? 'full_day' : null,
-         what_was_brought: whatWasBrought,
+        play_camp_duration: addPlayCamp ? 'full_day' : null,
+        what_was_brought: whatWasBrought,
         visit_medications: visitMedications
     });
     };
