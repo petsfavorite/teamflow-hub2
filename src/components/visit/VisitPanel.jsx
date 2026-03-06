@@ -233,8 +233,9 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
 
          try {
              const today = moment().format('YYYY-MM-DD');
-
-             const careLog = [...(visit.care_log || []), {
+             // Fetch the latest visit from DB to avoid stale care_log overwrites
+             const latestVisit = await base44.entities.Visit.get(visit.id);
+             const careLog = [...(latestVisit.care_log || []), {
                  time: moment().format('h:mm A'),
                  activity: `Play Session ${session.session_number}`,
                  notes: '',
@@ -244,7 +245,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                  session_number: session.session_number
              }];
 
-             await onUpdateVisit({ ...visit, care_log: careLog });
+             await onUpdateVisit({ ...latestVisit, care_log: careLog });
          } finally {
              setIsSaving(false);
          }
