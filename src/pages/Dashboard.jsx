@@ -116,7 +116,6 @@ export default function Dashboard() {
   );
 
   const openMaintenance = maintenanceRequests.filter(r => r.status !== 'completed');
-  const myPendingTasks = tasks.filter(t => t.status === 'pending' || t.status === 'in_progress');
 
   return (
     <div className="space-y-8">
