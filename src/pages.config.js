@@ -75,6 +75,7 @@ import Tasks from './pages/Tasks';
 import Teams from './pages/Teams';
 import UserManagement from './pages/UserManagement';
 import Whiteboard from './pages/Whiteboard';
+import Maintenance from './pages/Maintenance';
 import __Layout from './Layout.jsx';
 
 
@@ -107,6 +108,7 @@ export const PAGES = {
     "Teams": Teams,
     "UserManagement": UserManagement,
     "Whiteboard": Whiteboard,
+    "Maintenance": Maintenance,
 }
 
 export const pagesConfig = {
