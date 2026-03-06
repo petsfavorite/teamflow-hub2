@@ -14,41 +14,36 @@ export default function PlayCampCheckIn({ pet, onConfirm, onCancel }) {
     const handleSubmit = (e) => {
         e.preventDefault();
         
-        // Create play sessions
-        const playSessions = Array.from(
-            { length: duration === 'half_day' ? 2 : 4 }, 
-            (_, i) => ({
-                session_number: i + 1,
-                completed: false,
-                completed_at: null
-            })
-        );
-        
-        // Add "Collect Feces" task if requested - no template, persists for play camp duration
-        const tasks = [];
+        const today = moment().format('YYYY-MM-DD');
+        const sessionCount = duration === 'half_day' ? 2 : 4;
+
+        // Generate Play Session tasks for today
+        const tasks = Array.from({ length: sessionCount }, (_, i) => ({
+            type: 'Play Session',
+            time: '',
+            date: today,
+            is_template: false,
+            completed: false,
+            completed_at: null,
+            completed_by: null,
+            notes: `Session ${i + 1}`
+        }));
+
+        // Add "Collect Feces" task if requested
         if (needFecal) {
-            const checkInDate = moment().format('YYYY-MM-DD');
-            const checkOutDate = checkInDate; // Play camp is same-day
-            let currentDate = moment(checkInDate);
-            
-            while (currentDate.format('YYYY-MM-DD') <= checkOutDate) {
-                tasks.push({ 
-                    type: 'Collect Feces', 
-                    time: '', 
-                    date: currentDate.format('YYYY-MM-DD'),
-                    is_template: false, 
-                    completed: false, 
-                    completed_at: null,
-                    collected: false
-                });
-                currentDate.add(1, 'day');
-            }
+            tasks.push({ 
+                type: 'Collect Feces', 
+                time: '', 
+                date: today,
+                is_template: false, 
+                completed: false, 
+                completed_at: null
+            });
         }
         
         onConfirm({
             visit_type: 'play_camp',
             play_camp_duration: duration,
-            play_sessions: playSessions,
             scheduled_tasks: tasks
         });
     };
