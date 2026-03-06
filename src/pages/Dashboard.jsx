@@ -53,10 +53,17 @@ export default function Dashboard() {
     queryFn: () => base44.entities.ExternalLink.list('order', 50),
   });
 
-  const { data: incidents = [] } = useQuery({
+  const { data: allIncidents = [] } = useQuery({
     queryKey: ['incidents-dash'],
-    queryFn: () => base44.entities.IncidentReport.filter({ status: 'open' }, '-created_date', 5),
+    queryFn: () => base44.entities.IncidentReport.list('-created_date', 100),
     enabled: canManage,
+  });
+
+  // Managers see non-private + their own; admins/super_admins see all
+  const incidents = allIncidents.filter(r => {
+    if (r.status === 'resolved') return false;
+    if (r.is_private && !(isAdmin || isSuperAdmin)) return false;
+    return true;
   });
 
   const { data: pendingSOPs = [] } = useQuery({
