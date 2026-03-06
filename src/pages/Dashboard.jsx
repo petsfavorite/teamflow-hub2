@@ -80,7 +80,13 @@ export default function Dashboard() {
 
   const { data: tasks = [] } = useQuery({
     queryKey: ['tasks-dash'],
-    queryFn: () => base44.entities.Task.filter({ assigned_to_email: user?.email }, '-created_date', 10),
+    queryFn: () => base44.entities.Task.list('-due_date', 200),
+    enabled: !!user?.email,
+  });
+
+  const { data: teams = [] } = useQuery({
+    queryKey: ['teams-dash'],
+    queryFn: () => base44.entities.Team.list(),
     enabled: !!user?.email,
   });
 
