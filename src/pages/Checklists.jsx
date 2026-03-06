@@ -53,18 +53,7 @@ export default function Checklists() {
     enabled: canManage,
   });
 
-  const myTeamIds = new Set(
-    canManage 
-      ? teams.filter(t => t.member_emails?.includes(user?.email)).map(t => t.id)
-      : []
-  );
-
-  const myTemplates = publishedTemplates
-    .filter(t => {
-      const assignedToMe = t.assigned_to_emails?.includes(user?.email);
-      const inMyTeam = t.assigned_teams?.some(teamId => myTeamIds.has(teamId));
-      return assignedToMe || inMyTeam;
-    });
+  const myTemplates = publishedTemplates;
 
   const submitMutation = useMutation({
     mutationFn: async (data) => {
