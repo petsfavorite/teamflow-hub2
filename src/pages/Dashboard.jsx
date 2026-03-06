@@ -45,7 +45,7 @@ export default function Dashboard() {
 
   const { data: maintenanceRequests = [] } = useQuery({
     queryKey: ['maintenance'],
-    queryFn: () => base44.entities.MaintenanceRequest.list('-created_date', 5),
+    queryFn: () => base44.entities.MaintenanceRequest.list('-created_date', 200),
   });
 
   const { data: links = [] } = useQuery({
