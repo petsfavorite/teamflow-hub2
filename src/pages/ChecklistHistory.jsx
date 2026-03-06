@@ -22,6 +22,10 @@ export default function ChecklistHistory() {
   const [managerNotes, setManagerNotes] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
 
+  // Optional date filter from URL (e.g. ?date=2026-03-06 from Analytics click)
+  const urlParams = new URLSearchParams(window.location.search);
+  const dateFilter = urlParams.get('date') || '';
+
   const { data: completions = [], isLoading } = useQuery({
     queryKey: ['completions-history'],
     queryFn: () => base44.entities.ChecklistCompletion.list('-created_date', 200),
