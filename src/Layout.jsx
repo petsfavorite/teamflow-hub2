@@ -5,7 +5,7 @@ import {
     Dog, LayoutGrid, Users, LogIn, Settings, Menu, X,
     LayoutDashboard, BookOpen, CheckSquare, ClipboardList, Wrench,
     AlertTriangle, BarChart2, MessageSquare, Link as LinkIcon, Package, PawPrint,
-    ChevronDown, ChevronRight, ShieldCheck, History, Upload
+    ChevronDown, ChevronRight, ShieldCheck, History, Upload, Phone, FileSpreadsheet
 } from 'lucide-react';
 import { useCurrentUser } from './components/hooks/useCurrentUser';
 
@@ -30,6 +30,7 @@ const mainNavItems = [
     { name: 'SOPAssistant', icon: MessageSquare, label: 'SOP AI' },
     { name: 'ExternalLinks', icon: LinkIcon, label: 'Links' },
     { name: 'Settings', icon: Settings, label: 'Settings' },
+    { name: 'CallDashboard', icon: Phone, label: 'Call Dashboard', requiredRole: 'admin' },
 ];
 
 const adminNavItems = [
@@ -37,6 +38,7 @@ const adminNavItems = [
     { name: 'SOPsUnderConstruction', icon: BookOpen, label: 'SOPs Under Construction' },
     { name: 'ChecklistHistory', icon: History, label: 'Checklist History' },
     { name: 'Analytics', icon: BarChart2, label: 'Analytics' },
+    { name: 'FetchCallData', icon: FileSpreadsheet, label: 'Fetch Call Data' },
 ];
 
 const ADMIN_ROLES = ['admin', 'manager', 'super_admin'];

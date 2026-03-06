@@ -1,10 +1,9 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 import OpenAI from 'npm:openai';
 
-const openai = new OpenAI({ apiKey: Deno.env.get("OPENAI_API_KEY") });
-
 async function analyzeTranscript(transcript, callerInfo, userList) {
   if (!transcript) return {};
+  const openai = new OpenAI({ apiKey: Deno.env.get("OPENAI_API_KEY") });
 
   const teamEntries = userList.map(u => `"${u.full_name}"`).join("\n");
 
