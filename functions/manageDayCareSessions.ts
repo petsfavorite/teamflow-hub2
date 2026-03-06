@@ -10,54 +10,53 @@ Deno.serve(async (req) => {
         }
 
         const now = new Date();
-        const currentDate = now.toISOString().split('T')[0];
-        const currentTime = now.toTimeString().split(' ')[0];
+        const dayOfWeek = now.getDay(); // 0=Sun, 6=Sat
+        const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
+        const today = now.toISOString().split('T')[0];
 
-        // Get all visits with day camp enabled
-        const visits = await base44.entities.Visit.filter({
-            visit_type: 'boarding',
-            play_camp_duration: 'full_day',
-            status: 'checked_in'
-        });
-
-        for (const visit of visits) {
-            // Remove unchecked sessions at 11:59 PM (23:59)
-            if (currentTime >= '23:59') {
-                const updatedSessions = (visit.play_sessions || []).filter(session => session.completed);
-                if (updatedSessions.length !== (visit.play_sessions || []).length) {
-                    await base44.entities.Visit.update(visit.id, {
-                        play_sessions: updatedSessions
-                    });
-                }
-            }
-
-            // Add new sessions at 12:01 AM on weekdays (Mon-Fri)
-            if (currentTime >= '00:01' && currentTime < '06:00') {
-                const dayOfWeek = now.getDay(); // 0=Sun, 6=Sat
-                const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
-
-                if (isWeekday) {
-                    const sessions = visit.play_sessions || [];
-                    const maxSessionNumber = sessions.length > 0 
-                        ? Math.max(...sessions.map(s => s.session_number)) 
-                        : 0;
-
-                    const newSessions = [
-                        ...sessions,
-                        { session_number: maxSessionNumber + 1, completed: false, completed_at: null },
-                        { session_number: maxSessionNumber + 2, completed: false, completed_at: null },
-                        { session_number: maxSessionNumber + 3, completed: false, completed_at: null },
-                        { session_number: maxSessionNumber + 4, completed: false, completed_at: null }
-                    ];
-
-                    await base44.entities.Visit.update(visit.id, {
-                        play_sessions: newSessions
-                    });
-                }
-            }
+        if (!isWeekday) {
+            return Response.json({ success: true, message: 'Weekend - no sessions to generate' });
         }
 
-        return Response.json({ success: true, processedVisits: visits.length });
+        // Get all play camp visits (both visit types that have play camp)
+        const boardingVisits = await base44.asServiceRole.entities.Visit.filter({
+            status: 'checked_in',
+            play_camp_duration: { $exists: true }
+        });
+
+        const playCampVisits = await base44.asServiceRole.entities.Visit.filter({
+            status: 'checked_in',
+            visit_type: 'play_camp'
+        });
+
+        const allVisits = [...boardingVisits, ...playCampVisits.filter(v => !boardingVisits.find(b => b.id === v.id))];
+
+        for (const visit of allVisits) {
+            const tasks = visit.scheduled_tasks || [];
+
+            // Check if play sessions already exist for today
+            const existingToday = tasks.filter(t => t.type === 'Play Session' && t.date === today);
+            if (existingToday.length > 0) continue;
+
+            const totalSessions = visit.play_camp_duration === 'half_day' ? 2 : 4;
+
+            const newSessionTasks = Array.from({ length: totalSessions }, (_, i) => ({
+                type: 'Play Session',
+                time: '',
+                date: today,
+                is_template: false,
+                completed: false,
+                completed_at: null,
+                completed_by: null,
+                notes: `Session ${i + 1}`
+            }));
+
+            await base44.asServiceRole.entities.Visit.update(visit.id, {
+                scheduled_tasks: [...tasks, ...newSessionTasks]
+            });
+        }
+
+        return Response.json({ success: true, processedVisits: allVisits.length });
     } catch (error) {
         return Response.json({ error: error.message }, { status: 500 });
     }
