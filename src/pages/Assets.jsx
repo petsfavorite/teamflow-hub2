@@ -505,7 +505,7 @@ export default function Assets() {
               } else {
                 toast.error('Please fill in title and assign to at least one user or team');
               }
-            }} disabled={createTaskMutation.isPending || !newTaskForm.title || (!(newTaskForm.assigned_to_emails?.length > 0) && !(newTaskForm.assigned_to_teams?.length > 0))} className="bg-indigo-600 hover:bg-indigo-700 gap-2">
+            }} disabled={createTaskMutation.isPending || !newTaskForm.title || (!(newTaskForm.assigned_to_emails?.length > 0) && !(newTaskForm.assigned_teams?.length > 0))} className="bg-indigo-600 hover:bg-indigo-700 gap-2">
               {createTaskMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Create Task
             </Button>
           </DialogFooter>
