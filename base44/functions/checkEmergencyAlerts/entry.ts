@@ -46,21 +46,18 @@ Deno.serve(async (req) => {
       const hasObservedUrine = recentCareLog.some(log =>
         log.activity && log.activity.toLowerCase().includes('urine') && log.staff
       );
+      const hasObservedAte = recentCareLog.some(log =>
+        log.activity && log.activity.toLowerCase().includes('ate') && log.staff
+      );
 
-      if (species === 'Dog') {
-        if (!hasObservedFeces) {
-          shouldTriggerAlert = true;
-          alertType = alertType ? 'both' : 'feces';
-        }
-        if (!hasObservedUrine) {
-          shouldTriggerAlert = true;
-          alertType = alertType ? 'both' : 'urine';
-        }
-      } else if (species === 'Cat') {
-        if (!hasObservedFeces || !hasObservedUrine) {
-          shouldTriggerAlert = true;
-          alertType = !hasObservedFeces && !hasObservedUrine ? 'both' : (!hasObservedFeces ? 'feces' : 'urine');
-        }
+      const missingItems = [];
+      if (!hasObservedFeces) missingItems.push('feces');
+      if (!hasObservedUrine) missingItems.push('urine');
+      if (!hasObservedAte) missingItems.push('ate');
+
+      if (missingItems.length > 0) {
+        shouldTriggerAlert = true;
+        alertType = missingItems.length === 1 ? missingItems[0] : missingItems.join(',');
       }
 
       // Update visit with alert status
