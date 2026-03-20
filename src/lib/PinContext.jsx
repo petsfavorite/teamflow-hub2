@@ -24,12 +24,14 @@ export function PinProvider({ children }) {
 
   // Synchronously determine initial lock state to avoid flash of unlocked content
   const [isLocked, setIsLocked] = useState(() => {
+    if (IS_PREVIEW) return false;
     const s = readSessionStorage();
     if (!s?.lockedAt) return false;
     return (Date.now() - s.lockedAt) / 60000 < MAX_LOCK_MINUTES;
   });
 
   const [lockedAt, setLockedAt] = useState(() => {
+    if (IS_PREVIEW) return null;
     const s = readSessionStorage();
     return s?.lockedAt || null;
   });
