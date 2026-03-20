@@ -75,18 +75,17 @@ export default function DismissibleOverdueTask({ task, user }) {
         </div>
       </Link>
 
-      {canEditDueDate && (
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-          <DialogTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-red-600 hover:text-red-700 hover:bg-red-100 flex-shrink-0"
-              onClick={(e) => e.preventDefault()}
-            >
-              <Calendar className="w-4 h-4" />
-            </Button>
-          </DialogTrigger>
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-red-600 hover:text-red-700 hover:bg-red-100 flex-shrink-0"
+            onClick={(e) => e.preventDefault()}
+          >
+            <Calendar className="w-4 h-4" />
+          </Button>
+        </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Update Due Date</DialogTitle>
