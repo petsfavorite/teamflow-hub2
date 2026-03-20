@@ -303,7 +303,7 @@ export default function SOPEditor() {
       </Card>
 
       {/* SOP Content */}
-      <Card className="border-0 shadow-sm mb-4">
+      <Card className="border-0 shadow-sm mb-8">
         <CardHeader className="pb-2"><CardTitle className="text-base text-slate-700">SOP Content</CardTitle></CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-2">
