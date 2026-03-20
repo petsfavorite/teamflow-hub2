@@ -310,7 +310,7 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
                                                         return (
                                                             <div className="space-y-1">
                                                                 {remaining.slice(0, 3).map((task, i) => (
-                                                                    <p key={i} className="text-xs text-gray-600">
+                                                                    <p key={i} className={`text-xs ${getTaskColor(task)}`}>
                                                                         • {task.time ? `${task.time}: ` : ''}{task.type === 'Medication' ? task.medication_name : task.type}
                                                                     </p>
                                                                 ))}
