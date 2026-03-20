@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckSquare, Plus, Trash2, Send, AlertCircle, Loader2, Clock } from 'lucide-react';
+import { CheckSquare, Plus, Trash2, Send, AlertCircle, Loader2, Clock, Search } from 'lucide-react';
 import { toast } from "sonner";
 
 export default function Checklists() {
@@ -27,6 +27,7 @@ export default function Checklists() {
   const [templateToUse, setTemplateToUse] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [templateToDelete, setTemplateToDelete] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const [useForm, setUseForm] = useState({
     assigned_to_emails: [],
     assigned_to_names: [],
