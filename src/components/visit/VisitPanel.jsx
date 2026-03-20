@@ -55,8 +55,11 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
     const [editingTaskIdx, setEditingTaskIdx] = useState(null);
 
     const [recurrenceType, setRecurrenceType] = useState('none');
-    const [recurrenceInterval, setRecurrenceInterval] = useState(1);
     const isBoarding = visit.visit_type === 'boarding';
+
+    const today = moment().format('YYYY-MM-DD');
+    // Tasks are locked for editing after 9 PM on their own day
+    const isAfter9PM = moment().isAfter(moment('9:00 PM', 'h:mm A'));
 
     const isCat = pet.species === 'Cat';
     const isPlayCamp = visit.visit_type === 'play_camp';
@@ -274,27 +277,53 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
     const handleAddTask = () => {
          if (!newTaskType) return;
 
-         const newTask = {
+         // Expand recurring tasks into individual dated instances
+         const stayStart = moment(newTaskDate);
+         const stayEnd = visit.scheduled_checkout_date
+             ? moment(visit.scheduled_checkout_date)
+             : moment(visit.check_in_date).add(30, 'days');
+
+         let dates = [];
+         if (recurrenceType === 'none') {
+             dates = [newTaskDate];
+         } else if (recurrenceType === 'daily') {
+             let d = stayStart.clone();
+             while (d.isSameOrBefore(stayEnd, 'day')) {
+                 dates.push(d.format('YYYY-MM-DD'));
+                 d.add(1, 'day');
+             }
+         } else if (recurrenceType === 'every_other_day') {
+             let d = stayStart.clone();
+             while (d.isSameOrBefore(stayEnd, 'day')) {
+                 dates.push(d.format('YYYY-MM-DD'));
+                 d.add(2, 'days');
+             }
+         } else if (recurrenceType === 'every_3_days') {
+             let d = stayStart.clone();
+             while (d.isSameOrBefore(stayEnd, 'day')) {
+                 dates.push(d.format('YYYY-MM-DD'));
+                 d.add(3, 'days');
+             }
+         }
+
+         const newInstances = dates.map(date => ({
              type: newTaskType,
              time: newTaskTime,
-             date: newTaskDate,
+             date,
              is_template: false,
              completed: false,
              completed_at: null,
              notes: newTaskNotes,
-             collected: false,
-             recurrence_type: recurrenceType,
-             recurrence_interval: recurrenceType !== 'none' ? recurrenceInterval : null,
-             last_completed_iso: null
-         };
+             recurrence_type: 'none', // each instance is a standalone one-time task
+         }));
 
          if (editingTaskIdx !== null) {
              const updatedTasks = [...visit.scheduled_tasks];
-             updatedTasks[editingTaskIdx] = { ...updatedTasks[editingTaskIdx], ...newTask };
+             updatedTasks[editingTaskIdx] = { ...updatedTasks[editingTaskIdx], ...newInstances[0] };
              onUpdateVisit({ ...visit, scheduled_tasks: updatedTasks });
              setEditingTaskIdx(null);
          } else {
-             const updatedTasks = [...(visit.scheduled_tasks || []), newTask];
+             const updatedTasks = [...(visit.scheduled_tasks || []), ...newInstances];
              onUpdateVisit({ ...visit, scheduled_tasks: updatedTasks });
          }
 
@@ -303,7 +332,6 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
          setNewTaskNotes('');
          setNewTaskDate(viewDate);
          setRecurrenceType('none');
-         setRecurrenceInterval(1);
          setAddingTask(false);
      };
 
@@ -314,8 +342,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
          setNewTaskTime(task.time);
          setNewTaskNotes(task.notes || '');
          setNewTaskDate(task.date);
-         setRecurrenceType(task.recurrence_type || 'none');
-         setRecurrenceInterval(task.recurrence_interval || 1);
+         setRecurrenceType('none'); // editing a single instance, no recurrence expansion
          setAddingTask(true);
      };
 
@@ -326,7 +353,6 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
          setNewTaskNotes('');
          setNewTaskDate(viewDate);
          setRecurrenceType('none');
-         setRecurrenceInterval(1);
          setAddingTask(false);
      };
 
@@ -469,12 +495,13 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                             </CardHeader>
                             <CardContent className="space-y-2">
                                 {tasksForDate.map((task, idx) => {
-                                         const taskTime = task.time ? moment(task.time, 'h:mm A') : moment('7:30 PM', 'h:mm A');
-                                         const isOverdue = viewDate === moment().format('YYYY-MM-DD') && !task.completed && moment().isAfter(taskTime);
+                                         const taskTime = task.time ? moment(task.time, 'h:mm A') : moment('9:00 PM', 'h:mm A');
+                                         // Overdue: only on the task's own day, only before 9 PM lock
+                                         const taskIsToday = viewDate === today;
+                                         const isLocked = taskIsToday && isAfter9PM;
+                                         const isOverdue = taskIsToday && !task.completed && !isAfter9PM && moment().isAfter(taskTime);
                                         const actualIdx = visit.scheduled_tasks?.findIndex(t => t === task);
-                                        const recurrenceLabel = task.recurrence_type && task.recurrence_type !== 'none' 
-                                            ? `(repeats every ${task.recurrence_interval} ${task.recurrence_type})` 
-                                            : '';
+                                        const recurrenceLabel = '';
                                         
                                         return (
                                             <div 
@@ -509,15 +536,17 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                                     )}
                                                 </div>
                                                 <div className="flex items-center gap-2 ml-2">
-                                                    <Button 
-                                                        size="sm" 
-                                                        variant="ghost"
-                                                        onClick={() => handleEditTask(actualIdx)}
-                                                        className="rounded-xl h-7 text-xs text-stone-600 hover:bg-stone-100"
-                                                    >
-                                                        Edit
-                                                    </Button>
-                                                    {viewDate === moment().format('YYYY-MM-DD') && (
+                                                    {!isLocked && (
+                                                        <Button 
+                                                            size="sm" 
+                                                            variant="ghost"
+                                                            onClick={() => handleEditTask(actualIdx)}
+                                                            className="rounded-xl h-7 text-xs text-stone-600 hover:bg-stone-100"
+                                                        >
+                                                            Edit
+                                                        </Button>
+                                                    )}
+                                                    {taskIsToday && !isLocked && (
                                                         <Button 
                                                             size="sm" 
                                                             onClick={() => handleCompleteTask(actualIdx)}
@@ -532,6 +561,9 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                                         >
                                                             {task.completed ? 'Undo' : 'Complete'}
                                                         </Button>
+                                                    )}
+                                                    {taskIsToday && isLocked && (
+                                                        <span className="text-xs text-stone-400 italic">Locked</span>
                                                     )}
                                                 </div>
                                             </div>
@@ -614,27 +646,12 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                                 <SelectValue placeholder="No repeat" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="none">No repeat</SelectItem>
-                                                <SelectItem value="hours">Every X hours</SelectItem>
-                                                <SelectItem value="days">Every X days</SelectItem>
+                                                <SelectItem value="none">No repeat (one day only)</SelectItem>
+                                                <SelectItem value="daily">Daily (every day of stay)</SelectItem>
+                                                <SelectItem value="every_other_day">Every other day</SelectItem>
+                                                <SelectItem value="every_3_days">Every 3 days</SelectItem>
                                             </SelectContent>
                                         </Select>
-                                        {recurrenceType !== 'none' && (
-                                            <div className="flex items-center gap-2">
-                                                <Label className="text-xs text-stone-600">Every</Label>
-                                                <Input
-                                                    type="number"
-                                                    min="1"
-                                                    max={recurrenceType === 'hours' ? '24' : '31'}
-                                                    value={recurrenceInterval}
-                                                    onChange={(e) => setRecurrenceInterval(Number(e.target.value))}
-                                                    className="rounded-xl w-16 h-8"
-                                                />
-                                                <span className="text-xs text-stone-600">
-                                                    {recurrenceType === 'hours' ? 'hours' : 'days'}
-                                                </span>
-                                            </div>
-                                        )}
                                     </div>
                                     <div className="flex gap-2">
                                          <Button 
