@@ -28,7 +28,6 @@ export default function Settings() {
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [profileName, setProfileName] = useState('');
   const [profileEmail, setProfileEmail] = useState('');
-  const [profileTimezone, setProfileTimezone] = useState('America/New_York');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   useEffect(() => {
