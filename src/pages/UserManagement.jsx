@@ -234,8 +234,63 @@ export default function UserManagement() {
               </CardContent>
             </Card>
           ))}
-        </div>
-      )}
+          </div>
+          )}
+          </>
+          )}
+
+          {activeTab === 'teams' && (
+          <div className="space-y-4">
+          <div className="flex justify-between items-center">
+          <h2 className="text-lg font-semibold text-slate-900">Team Management</h2>
+          <Button onClick={() => setShowTeamDialog(true)} className="bg-indigo-600 hover:bg-indigo-700 gap-2">
+          <Plus className="w-4 h-4" /> Create Team
+          </Button>
+          </div>
+          {teams.length === 0 ? (
+          <EmptyState icon={Users} title="No teams yet" description="Create your first team" />
+          ) : (
+          <div className="space-y-3">
+          {teams.map(team => (
+           <Card key={team.id} className="border-0 shadow-sm">
+             <CardContent className="p-4">
+               <div className="flex items-center justify-between">
+                 <div>
+                   <p className="font-medium text-slate-900">{team.name}</p>
+                   <p className="text-sm text-slate-400">{team.member_emails?.length || 0} members</p>
+                 </div>
+                 <AlertDialog>
+                   <AlertDialogTrigger asChild>
+                     <Button variant="ghost" size="sm">
+                       <Trash2 className="w-4 h-4 text-red-400" />
+                     </Button>
+                   </AlertDialogTrigger>
+                   <AlertDialogContent>
+                     <AlertDialogHeader>
+                       <AlertDialogTitle>Delete Team</AlertDialogTitle>
+                       <AlertDialogDescription>
+                         Are you sure you want to delete "{team.name}"? This cannot be undone.
+                       </AlertDialogDescription>
+                     </AlertDialogHeader>
+                     <AlertDialogFooter>
+                       <AlertDialogCancel>Cancel</AlertDialogCancel>
+                       <AlertDialogAction
+                         onClick={() => deleteTeamMutation.mutate(team.id)}
+                         className="bg-red-600 hover:bg-red-700"
+                       >
+                         Delete
+                       </AlertDialogAction>
+                     </AlertDialogFooter>
+                   </AlertDialogContent>
+                 </AlertDialog>
+               </div>
+             </CardContent>
+           </Card>
+          ))}
+          </div>
+          )}
+          </div>
+          )}
 
       {/* Invite Dialog */}
       <Dialog open={showInvite} onOpenChange={setShowInvite}>
