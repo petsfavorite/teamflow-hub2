@@ -466,7 +466,7 @@ export default function SOPEditor() {
       </Card>
 
       {isManagerOnly && id && (
-        <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800 mb-4">
+        <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800 mb-8">
           <strong>Note:</strong> Your edits will be submitted for admin approval before going live.
         </div>
       )}
