@@ -351,20 +351,20 @@ export default function Dashboard() {
        </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Maintenance Requests */}
+        {/* Active Maintenance Requests */}
         <Card className="border-0 shadow-sm">
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-slate-900">Recent Maintenance</h2>
+              <h2 className="font-semibold text-slate-900">Active Maintenance</h2>
               <Link to={createPageUrl('Maintenance')} className="text-sm text-indigo-600 hover:text-indigo-700 flex items-center gap-1">
                 View all <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
-            {maintenanceRequests.length === 0 ? (
-              <p className="text-sm text-slate-400 py-4 text-center">No requests yet</p>
+            {openMaintenance.length === 0 ? (
+              <p className="text-sm text-slate-400 py-4 text-center">No active requests</p>
             ) : (
               <div className="space-y-3">
-                {maintenanceRequests.slice(0, 4).map(req => (
+                {openMaintenance.slice(0, 4).map(req => (
                   <div key={req.id} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-slate-800 truncate">{req.title}</p>
