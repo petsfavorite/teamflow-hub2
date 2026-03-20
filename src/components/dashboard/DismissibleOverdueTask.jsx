@@ -108,11 +108,10 @@ export default function DismissibleOverdueTask({ task, user }) {
                 </Button>
               </div>
             </div>
-          </DialogContent>
-        </Dialog>
-      )}
+            </DialogContent>
+            </Dialog>
 
-      <button
+            <button
         onClick={(e) => {
           e.preventDefault();
           handleDismiss();
