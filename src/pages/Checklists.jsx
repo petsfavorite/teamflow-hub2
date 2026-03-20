@@ -195,13 +195,13 @@ export default function Checklists() {
 
   const removeRecurrence = (template) => {
     assignChecklistMutation.mutate({
-      assigned_to_emails: template.assigned_to_emails || [],
-      assigned_to_names: template.assigned_to_names || [],
-      assigned_teams: template.assigned_teams || [],
-      due_date: template.due_date || '',
-      due_time: template.due_time || '21:00',
+      assigned_to_emails: [],
+      assigned_to_names: [],
+      assigned_teams: [],
+      due_date: '',
+      due_time: '21:00',
       recurrence_type: 'once',
-      status: 'active'
+      status: 'published'
     }, {
       onSuccess: () => {
         toast.success('Recurrence removed');
