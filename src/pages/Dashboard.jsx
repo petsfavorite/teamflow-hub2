@@ -85,7 +85,16 @@ export default function Dashboard() {
     return dA - dB;
   });
 
-  const pendingSOPs = allSOPs.filter(s => s.status === 'pending_approval');
+  // For managers: only show pending SOPs assigned to them or their teams
+  // For admins/super admins: show all pending SOPs
+  const pendingSOPs = allSOPs.filter(s => {
+    if (s.status !== 'pending_approval') return false;
+    if (canApprove) return true; // Admins/Super Admins see all
+    // Managers see only those assigned to them or their teams
+    const assignedToMe = s.acknowledgement_assigned_emails?.includes(user?.email);
+    const assignedToMyTeam = s.acknowledgement_assigned_teams?.some(tid => myTeamIds.includes(tid));
+    return assignedToMe || assignedToMyTeam;
+  });
 
   const incidents = allIncidents.filter(inc => {
     if (inc.status === 'resolved') return false;
