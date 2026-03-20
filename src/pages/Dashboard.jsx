@@ -234,13 +234,13 @@ export default function Dashboard() {
             <div className="flex items-center gap-2 mb-4">
               <Bell className="w-5 h-5 text-indigo-600" />
               <h2 className="font-semibold text-slate-900">Notifications</h2>
-              {(pendingSOPs.length + verificationDueSops.length + incidents.length) > 0 && (
+              {(pendingSOPs.length + verificationDueSops.length + incidents.length + openMaintenance.length) > 0 && (
                 <span className="ml-auto bg-amber-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                  {pendingSOPs.length + verificationDueSops.length + incidents.length}
+                  {pendingSOPs.length + verificationDueSops.length + incidents.length + openMaintenance.length}
                 </span>
               )}
             </div>
-            {pendingSOPs.length === 0 && verificationDueSops.length === 0 && incidents.length === 0 ? (
+            {pendingSOPs.length === 0 && verificationDueSops.length === 0 && incidents.length === 0 && openMaintenance.length === 0 ? (
               <p className="text-sm text-slate-400 py-2 text-center">No pending notifications</p>
             ) : (
               <div className="space-y-2">
@@ -255,6 +255,18 @@ export default function Dashboard() {
                         <p className="text-xs text-red-700">Reported by {inc.reported_by_name} • {inc.incident_date}</p>
                       </div>
                       <ArrowRight className="w-3.5 h-3.5 text-red-600 flex-shrink-0" />
+                    </div>
+                  </Link>
+                ))}
+                {openMaintenance.map(req => (
+                  <Link key={req.id} to={createPageUrl('Maintenance')}>
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 hover:bg-amber-100 transition-colors">
+                      <Wrench className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-amber-900 truncate">Maintenance: {req.title}</p>
+                        <p className="text-xs text-amber-700">Status: {req.status}</p>
+                      </div>
+                      <ArrowRight className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
                     </div>
                   </Link>
                 ))}
