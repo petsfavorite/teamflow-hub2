@@ -25,5 +25,15 @@ export function useCurrentUser() {
   const isUser = user?.role === 'user';
   const canManage = isSuperAdmin || isAdmin || isManager;
 
-  return { user, loading, isSuperAdmin, isAdmin, isManager, isUser, canManage };
+  // Initials: first letter of first_name + first letter of last_name
+  const initials = user
+    ? ((user.first_name?.[0] || '') + (user.last_name?.[0] || '')).toUpperCase() || user.full_name?.[0]?.toUpperCase() || '?'
+    : '?';
+
+  // Display name: prefer first+last, fall back to full_name
+  const displayName = user
+    ? (user.first_name && user.last_name ? `${user.first_name} ${user.last_name}` : user.full_name || '')
+    : '';
+
+  return { user, loading, isSuperAdmin, isAdmin, isManager, isUser, canManage, initials, displayName };
 }

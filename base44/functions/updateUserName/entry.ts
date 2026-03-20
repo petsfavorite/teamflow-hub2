@@ -13,6 +13,10 @@ Deno.serve(async (req) => {
     const resolvedName = (first_name !== undefined || last_name !== undefined)
       ? `${(first_name || '').trim()} ${(last_name || '').trim()}`.trim()
       : full_name;
+    // Also persist the individual name fields
+    const nameFields = { full_name: resolvedName };
+    if (first_name !== undefined) nameFields.first_name = first_name.trim();
+    if (last_name !== undefined) nameFields.last_name = last_name.trim();
 
     // Fetch the target user to check their role
     const targetUser = await base44.asServiceRole.entities.User.get(userId);
