@@ -556,13 +556,18 @@ export default function Checklists() {
                           <Button
                             size="sm"
                             className="flex-1 bg-purple-600 hover:bg-purple-700"
-                            onClick={() => handleUseClick(template)}
+                            onClick={() => handleAssignClick(template)}
                           >
-                            Use
+                            Edit
                           </Button>
-                          <Link to={createPageUrl('ChecklistEditor') + `?id=${template.id}`}>
-                            <Button variant="outline" size="sm">Edit</Button>
-                          </Link>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                            onClick={() => removeRecurrence(template)}
+                          >
+                            Remove
+                          </Button>
                           {(isSuperAdmin || isAdmin) && (
                             <Button
                               variant="ghost"
