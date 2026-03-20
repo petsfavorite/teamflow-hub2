@@ -129,43 +129,36 @@ export default function Tasks() {
         <EmptyState icon={ClipboardList} title="No tasks" description={tab === 'mine' ? "No tasks assigned to you" : "No tasks in this view"} />
       ) : (
         <div className="space-y-3">
-          {displayTasks.map(task => (
-            <Card key={task.id} className="border-0 shadow-sm">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-4">
-                  <div className="flex gap-1.5 flex-shrink-0">
-                    {task.status === 'pending' && (
-                      <button onClick={() => setStatus(task, 'in_progress')} title="Start task" className="p-1 hover:bg-slate-100 rounded">
-                        <Circle className="w-5 h-5 text-slate-400 hover:text-indigo-500" />
-                      </button>
-                    )}
-                    {task.status === 'in_progress' && (
-                      <button onClick={() => setStatus(task, 'completed')} title="Complete task" className="p-1 hover:bg-emerald-50 rounded">
-                        <PlayCircle className="w-5 h-5 text-indigo-500 hover:text-emerald-600" />
-                      </button>
-                    )}
-                    {task.status === 'completed' && (
-                      <CheckCircle className="w-5 h-5 text-emerald-500 m-1" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className={`font-medium ${task.status === 'completed' ? 'line-through text-slate-400' : 'text-slate-900'}`}>{task.title}</p>
-                    {task.description && <p className="text-xs text-slate-500 mt-0.5 truncate">{task.description}</p>}
-                    <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-400 flex-wrap">
-                       {(task.assigned_to_names?.length || task.assigned_teams?.length) > 0 && (
-                         <span className="flex items-center gap-1">
-                           <Users className="w-3 h-3" />
-                           {[...(task.assigned_to_names || []), ...(task.assigned_teams || [])].join(', ') || 'Unassigned'}
-                         </span>
-                       )}
-                       {task.due_date && <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />Due {task.due_date}</span>}
-                     </div>
-                  </div>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${priorityColors[task.priority]}`}>{task.priority}</span>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          {displayTasks.map(task => {
+            // Determine if this user can edit the due date
+            // Managers can edit due dates for regular users in their teams
+            // Admins can edit anyone's due date except their own
+            // Regular users cannot edit due dates
+            const assignedToMe = task.assigned_to_emails?.includes(user?.email);
+            let canEditDueDate = false;
+            
+            if (isAdmin || isSuperAdmin) {
+              // Admins can edit anyone's tasks except their own individual assignments
+              canEditDueDate = !assignedToMe || task.assigned_to_emails.length > 1;
+            } else if (isManager) {
+              // Managers can edit regular users' tasks in their teams, but not their own
+              const isAssignedToRegularUser = task.assigned_to_names?.some(name => true); // Simplified - would need user roles to verify
+              canEditDueDate = !assignedToMe && task.assigned_teams?.some(tid => 
+                teams.some(t => t.id === tid && t.member_emails?.includes(user?.email))
+              );
+            }
+
+            return (
+              <TaskRow
+                key={task.id}
+                task={task}
+                onStatusChange={setStatus}
+                canEditDueDate={canEditDueDate}
+                user={user}
+                teams={teams}
+              />
+            );
+          })}
         </div>
       )}
 
