@@ -159,13 +159,15 @@ export default function UserManagement() {
         </button>
       </div>
 
-      {isLoading ? (
-        <div className="space-y-3">{[1, 2, 3].map(i => <Card key={i} className="border-0 shadow-sm animate-pulse"><CardContent className="p-4"><div className="h-14 bg-slate-100 rounded" /></CardContent></Card>)}</div>
-      ) : users.length === 0 ? (
-        <EmptyState icon={Users} title="No users yet" description="Invite team members to get started" />
-      ) : (
-        <div className="space-y-3">
-          {users.map(u => (
+      {activeTab === 'users' && (
+        <>
+          {isLoading ? (
+            <div className="space-y-3">{[1, 2, 3].map(i => <Card key={i} className="border-0 shadow-sm animate-pulse"><CardContent className="p-4"><div className="h-14 bg-slate-100 rounded" /></CardContent></Card>)}</div>
+          ) : users.length === 0 ? (
+            <EmptyState icon={Users} title="No users yet" description="Invite team members to get started" />
+          ) : (
+            <div className="space-y-3">
+               {users.map(u => (
             <Card key={u.id} className="border-0 shadow-sm">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
