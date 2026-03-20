@@ -528,11 +528,11 @@ export default function Checklists() {
               {canManage && (
               <div>
               <h2 className="text-lg font-semibold text-slate-900 mb-4">Template Checklists</h2>
-              {templateChecklists.length === 0 ? (
+              {templateChecklists.filter(t => t.title.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 ? (
                 <p className="text-slate-500 text-sm">No template checklists</p>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {templateChecklists.map(template => (
+                  {templateChecklists.filter(t => t.title.toLowerCase().includes(searchTerm.toLowerCase())).map(template => (
                     <Card key={template.id} className="border-0 shadow-sm">
                       <CardContent className="p-6">
                         <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center mb-3">
