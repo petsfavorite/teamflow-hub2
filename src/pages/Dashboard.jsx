@@ -47,7 +47,7 @@ export default function Dashboard() {
 
   const { data: checklists = [] } = useQuery({
     queryKey: ['checklists-dash'],
-    queryFn: () => base44.entities.ChecklistTemplate.filter({ status: 'published' }),
+    queryFn: () => base44.entities.ChecklistTemplate.list(),
     enabled: !!user?.email,
   });
 
