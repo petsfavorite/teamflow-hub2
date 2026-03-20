@@ -94,7 +94,51 @@ export default function Dashboard() {
   });
 
   const today = new Date().toISOString().split('T')[0];
+  const now = new Date();
+  const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
   const myTeamIds = teams.filter(t => t.member_emails?.includes(user?.email)).map(t => t.id);
+
+  // For regular users: tasks/checklists due in ~1 hour (yellow)
+  const urgentTasks = tasks.filter(t => {
+    if (t.status === 'completed' || t.status === 'cancelled') return false;
+    if (!t.due_date) return false;
+    if (t.due_date < today) return false; // Skip overdue
+    const assignedToMe = t.assigned_to_emails?.includes(user?.email);
+    const assignedToMyTeam = t.assigned_teams?.some(tid => myTeamIds.includes(tid));
+    if (!assignedToMe && !assignedToMyTeam) return false;
+    const dueDateTime = parseISO(t.due_date + 'T23:59:59');
+    return dueDateTime <= oneHourFromNow && dueDateTime > now;
+  });
+
+  // For regular users: checklists due in ~1 hour (yellow)
+  const urgentChecklists = checklists.filter(c => {
+    if (!c.due_date) return false;
+    if (c.due_date < today) return false;
+    const assignedToMe = c.assigned_to_emails?.includes(user?.email);
+    const assignedToMyTeam = c.assigned_teams?.some(tid => myTeamIds.includes(tid));
+    if (!assignedToMe && !assignedToMyTeam) return false;
+    const dueTime = c.due_time || '21:00';
+    const dueDateTime = parseISO(c.due_date + 'T' + dueTime);
+    return dueDateTime <= oneHourFromNow && dueDateTime > now;
+  });
+
+  // For regular users: new tasks/checklists assigned to acknowledge
+  const newTasksToAck = tasks.filter(t => {
+    if (t.status === 'completed' || t.status === 'cancelled') return false;
+    const createdDateObj = parseISO(t.created_date || '');
+    const isNew = (now.getTime() - createdDateObj.getTime()) / (1000 * 60) <= 1440; // Created in last 24 hours
+    const assignedToMe = t.assigned_to_emails?.includes(user?.email);
+    const assignedToMyTeam = t.assigned_teams?.some(tid => myTeamIds.includes(tid));
+    return (assignedToMe || assignedToMyTeam) && isNew;
+  });
+
+  const newChecklistsToAck = checklists.filter(c => {
+    const createdDateObj = parseISO(c.created_date || '');
+    const isNew = (now.getTime() - createdDateObj.getTime()) / (1000 * 60) <= 1440;
+    const assignedToMe = c.assigned_to_emails?.includes(user?.email);
+    const assignedToMyTeam = c.assigned_teams?.some(tid => myTeamIds.includes(tid));
+    return (assignedToMe || assignedToMyTeam) && isNew;
+  });
 
   const myPendingTasks = tasks.filter(t => {
     if (t.status === 'completed' || t.status === 'cancelled') return false;
