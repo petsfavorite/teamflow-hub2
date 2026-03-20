@@ -212,9 +212,10 @@ export default function UserManagement() {
       <Dialog open={!!editingUser} onOpenChange={async (open) => {
         if (!open && editingUser) {
           // Auto-save name if changed when closing
-          if (editName !== (editingUser.full_name || '') && editName.trim()) {
-            updateNameMutation.mutate({ id: editingUser.id, full_name: editName.trim() });
-            return; // mutation closes dialog on success
+          const nameChanged = editFirstName !== (editingUser.first_name || '') || editLastName !== (editingUser.last_name || '');
+          if (nameChanged && (editFirstName.trim() || editLastName.trim())) {
+            updateNameMutation.mutate({ id: editingUser.id, first_name: editFirstName, last_name: editLastName });
+            return;
           }
         }
         setEditingUser(null);
