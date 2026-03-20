@@ -364,7 +364,7 @@ export default function SOPEditor() {
       </Card>
 
       {/* Verification */}
-      <Card className="border-0 shadow-sm mb-4">
+      <Card className="border-0 shadow-sm mb-8">
         <CardHeader className="pb-2"><CardTitle className="text-base text-slate-700 flex items-center gap-2"><CalendarCheck className="w-4 h-4 text-indigo-600" /> Verification Schedule</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-slate-500">Set a future date (max 90 days) by which a manager or admin on an applicable team must re-verify this SOP.</p>
