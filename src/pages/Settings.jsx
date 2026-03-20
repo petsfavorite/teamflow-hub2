@@ -648,6 +648,30 @@ export default function Settings() {
                 </Select>
               </div>
             )}
+            {(isSuperAdmin || isAdmin) && (
+              <div className="space-y-2">
+                <Label>Teams</Label>
+                <div className="space-y-2">
+                  {allTeams.map(team => (
+                    <label key={team.id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-stone-100 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedTeamIds.includes(team.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedTeamIds([...selectedTeamIds, team.id]);
+                          } else {
+                            setSelectedTeamIds(selectedTeamIds.filter(id => id !== team.id));
+                          }
+                        }}
+                        className="rounded"
+                      />
+                      <span className="text-sm text-stone-700">{team.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" className="rounded-xl" onClick={() => setEditProfileOpen(false)}>
