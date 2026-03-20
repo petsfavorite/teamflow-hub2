@@ -38,8 +38,16 @@ export default function Settings() {
   const [inactivityMinutes, setInactivityMinutes] = useState(5);
   const [isSavingTimeout, setIsSavingTimeout] = useState(false);
   const [appSettingsId, setAppSettingsId] = useState(null);
+  const [selectedTeamIds, setSelectedTeamIds] = useState([]);
+  const [isSavingTeams, setIsSavingTeams] = useState(false);
 
   const isSuperAdmin = user?.role === 'super_admin';
+  const isAdmin = user?.role === 'admin';
+
+  const { data: allTeams = [] } = useQuery({
+    queryKey: ['teams'],
+    queryFn: () => base44.entities.Team.list(),
+  });
 
   useEffect(() => {
     base44.auth.me().then(u => {
