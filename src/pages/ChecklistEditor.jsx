@@ -106,6 +106,10 @@ export default function ChecklistEditor() {
   };
 
   const handleSave = () => {
+    if (!form.due_date) {
+      alert('Due date is required');
+      return;
+    }
     saveMutation.mutate({
       title: form.title,
       description: form.description,
@@ -115,7 +119,7 @@ export default function ChecklistEditor() {
       assigned_to_emails: selectedUsers,
       assigned_to_names: selectedUsers.map(email => users.find(u => u.email === email)?.full_name || email),
       assigned_teams: selectedTeams,
-      due_date: form.due_date || undefined,
+      due_date: form.due_date,
       due_time: form.due_time || '21:00',
       recurrence_type: form.recurrence_type,
       recurrence_days_of_week: form.recurrence_days_of_week,
