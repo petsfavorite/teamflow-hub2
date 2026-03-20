@@ -459,11 +459,11 @@ export default function UserManagement() {
                    setEditingUser(null);
                  }
               }}
-              disabled={updateNameMutation.isPending || updateRoleMutation.isPending || !!pinError}
+              disabled={updateNameMutation.isPending || updateRoleMutation.isPending || updateTeamsMutation.isPending || !!pinError}
               className="bg-indigo-600 hover:bg-indigo-700 gap-2"
-            >
-              {(updateNameMutation.isPending || updateRoleMutation.isPending) && <Loader2 className="w-4 h-4 animate-spin" />} Save Changes
-            </Button>
+              >
+              {(updateNameMutation.isPending || updateRoleMutation.isPending || updateTeamsMutation.isPending) && <Loader2 className="w-4 h-4 animate-spin" />} Save Changes
+              </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
