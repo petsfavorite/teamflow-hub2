@@ -466,7 +466,26 @@ export default function UserManagement() {
               </Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
+        </Dialog>
+
+        {/* Create Team Dialog */}
+        <Dialog open={showTeamDialog} onOpenChange={setShowTeamDialog}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Create Team</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Team Name</Label>
+              <Input value={newTeamName} onChange={e => setNewTeamName(e.target.value)} placeholder="e.g. Night Shift, Daytime Staff" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowTeamDialog(false)}>Cancel</Button>
+            <Button onClick={() => createTeamMutation.mutate(newTeamName)} disabled={createTeamMutation.isPending || !newTeamName.trim()} className="bg-indigo-600 hover:bg-indigo-700 gap-2">
+              {createTeamMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Create Team
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+        </Dialog>
+        </div>
+        );
+        }
