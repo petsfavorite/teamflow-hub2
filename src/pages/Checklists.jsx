@@ -170,7 +170,7 @@ export default function Checklists() {
     setCanSubmitWithIncomplete(!template.due_date && !template.due_time);
   };
 
-  const handleUseClick = (template) => {
+  const handleAssignClick = (template) => {
     setTemplateToUse(template);
     setUseForm({
       assigned_to_emails: template.assigned_to_emails || [],
@@ -184,6 +184,22 @@ export default function Checklists() {
       recurrence_interval_months: template.recurrence_interval_months || undefined
     });
     setUseDialogOpen(true);
+  };
+
+  const removeRecurrence = (template) => {
+    assignChecklistMutation.mutate({
+      assigned_to_emails: template.assigned_to_emails || [],
+      assigned_to_names: template.assigned_to_names || [],
+      assigned_teams: template.assigned_teams || [],
+      due_date: template.due_date || '',
+      due_time: template.due_time || '21:00',
+      recurrence_type: 'once',
+      status: 'active'
+    }, {
+      onSuccess: () => {
+        toast.success('Recurrence removed');
+      }
+    });
   };
 
   const updateItem = async (index, updates) => {
