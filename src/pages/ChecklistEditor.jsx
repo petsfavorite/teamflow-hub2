@@ -172,143 +172,148 @@ export default function ChecklistEditor() {
             <Textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Brief description" rows={2} />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Recurrence</Label>
-              <Select value={form.recurrence_type} onValueChange={v => setForm({ ...form, recurrence_type: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="once">Once</SelectItem>
-                  <SelectItem value="daily">Daily</SelectItem>
-                  <SelectItem value="weekdays">Weekdays</SelectItem>
-                  <SelectItem value="specific_days">Specific Days</SelectItem>
-                  <SelectItem value="monthly">Monthly</SelectItem>
-                  <SelectItem value="every_x_months">Every X Months</SelectItem>
-                  <SelectItem value="annually">Annually</SelectItem>
-                  <SelectItem value="manual">Manual</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <Select value={form.status} onValueChange={v => setForm({ ...form, status: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-2">
+            <Label>Status</Label>
+            <Select value={form.status} onValueChange={v => setForm({ ...form, status: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Due Date <span className="text-red-500">*</span></Label>
-              <Input
-                type="date"
-                value={form.due_date}
-                onChange={e => setForm({ ...form, due_date: e.target.value })}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2"><Clock className="w-4 h-4" /> Due Time</Label>
-              <Input
-                type="time"
-                value={form.due_time}
-                onChange={e => setForm({ ...form, due_time: e.target.value })}
-              />
-            </div>
-          </div>
-
-          {form.recurrence_type === 'specific_days' && (
-            <div className="space-y-2 bg-slate-50 p-4 rounded-lg border border-slate-200">
-              <Label>On these days</Label>
-              <div className="grid grid-cols-2 gap-2">
-                {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((day, idx) => (
-                  <label key={idx} className="flex items-center gap-2 text-sm">
-                    <Checkbox
-                      checked={form.recurrence_days_of_week?.includes(idx)}
-                      onCheckedChange={checked => {
-                        setForm(prev => ({
-                          ...prev,
-                          recurrence_days_of_week: checked
-                            ? [...(prev.recurrence_days_of_week || []), idx]
-                            : (prev.recurrence_days_of_week || []).filter(d => d !== idx)
-                        }));
-                      }}
-                    />
-                    {day}
-                  </label>
-                ))}
+          {id && (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Recurrence</Label>
+                  <Select value={form.recurrence_type} onValueChange={v => setForm({ ...form, recurrence_type: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="once">Once</SelectItem>
+                      <SelectItem value="daily">Daily</SelectItem>
+                      <SelectItem value="weekdays">Weekdays</SelectItem>
+                      <SelectItem value="specific_days">Specific Days</SelectItem>
+                      <SelectItem value="monthly">Monthly</SelectItem>
+                      <SelectItem value="every_x_months">Every X Months</SelectItem>
+                      <SelectItem value="annually">Annually</SelectItem>
+                      <SelectItem value="manual">Manual</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-            </div>
-          )}
 
-          {form.recurrence_type === 'monthly' && (
-            <div className="space-y-2 bg-slate-50 p-4 rounded-lg border border-slate-200">
-              <Label>On day of month</Label>
-              <Input type="number" min="1" max="31" value={form.recurrence_day_of_month} onChange={e => setForm({ ...form, recurrence_day_of_month: parseInt(e.target.value) || 1 })} />
-            </div>
-          )}
-
-          {form.recurrence_type === 'every_x_months' && (
-            <div className="space-y-2 bg-slate-50 p-4 rounded-lg border border-slate-200">
-              <Label>Repeat every X months</Label>
-              <Input type="number" min="1" value={form.recurrence_interval_months} onChange={e => setForm({ ...form, recurrence_interval_months: parseInt(e.target.value) || 1 })} />
-              <Label className="mt-4">On day of month</Label>
-              <Input type="number" min="1" max="31" value={form.recurrence_day_of_month} onChange={e => setForm({ ...form, recurrence_day_of_month: parseInt(e.target.value) || 1 })} />
-            </div>
-          )}
-
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Assign to Users</Label>
-              <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 bg-slate-50 rounded-lg border border-slate-200">
-                {users.map(u => (
-                  <label key={u.id} className="flex items-center gap-2 text-sm">
-                    <Checkbox
-                      checked={selectedUsers.includes(u.email)}
-                      onCheckedChange={checked => {
-                        setSelectedUsers(checked
-                          ? [...selectedUsers, u.email]
-                          : selectedUsers.filter(e => e !== u.email)
-                        );
-                      }}
-                    />
-                    {u.full_name || u.email}
-                  </label>
-                ))}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Due Date <span className="text-red-500">*</span></Label>
+                  <Input
+                    type="date"
+                    value={form.due_date}
+                    onChange={e => setForm({ ...form, due_date: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2"><Clock className="w-4 h-4" /> Due Time</Label>
+                  <Input
+                    type="time"
+                    value={form.due_time}
+                    onChange={e => setForm({ ...form, due_time: e.target.value })}
+                  />
+                </div>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label>Assign to Teams</Label>
-              <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 bg-slate-50 rounded-lg border border-slate-200">
-                {teams.map(t => (
-                  <label key={t.id} className="flex items-center gap-2 text-sm">
-                    <Checkbox
-                      checked={selectedTeams.includes(t.id)}
-                      onCheckedChange={checked => {
-                        setSelectedTeams(checked
-                          ? [...selectedTeams, t.id]
-                          : selectedTeams.filter(id => id !== t.id)
-                        );
-                      }}
-                    />
-                    {t.name}
-                  </label>
-                ))}
+              {form.recurrence_type === 'specific_days' && (
+                <div className="space-y-2 bg-slate-50 p-4 rounded-lg border border-slate-200">
+                  <Label>On these days</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((day, idx) => (
+                      <label key={idx} className="flex items-center gap-2 text-sm">
+                        <Checkbox
+                          checked={form.recurrence_days_of_week?.includes(idx)}
+                          onCheckedChange={checked => {
+                            setForm(prev => ({
+                              ...prev,
+                              recurrence_days_of_week: checked
+                                ? [...(prev.recurrence_days_of_week || []), idx]
+                                : (prev.recurrence_days_of_week || []).filter(d => d !== idx)
+                            }));
+                          }}
+                        />
+                        {day}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {form.recurrence_type === 'monthly' && (
+                <div className="space-y-2 bg-slate-50 p-4 rounded-lg border border-slate-200">
+                  <Label>On day of month</Label>
+                  <Input type="number" min="1" max="31" value={form.recurrence_day_of_month} onChange={e => setForm({ ...form, recurrence_day_of_month: parseInt(e.target.value) || 1 })} />
+                </div>
+              )}
+
+              {form.recurrence_type === 'every_x_months' && (
+                <div className="space-y-2 bg-slate-50 p-4 rounded-lg border border-slate-200">
+                  <Label>Repeat every X months</Label>
+                  <Input type="number" min="1" value={form.recurrence_interval_months} onChange={e => setForm({ ...form, recurrence_interval_months: parseInt(e.target.value) || 1 })} />
+                  <Label className="mt-4">On day of month</Label>
+                  <Input type="number" min="1" max="31" value={form.recurrence_day_of_month} onChange={e => setForm({ ...form, recurrence_day_of_month: parseInt(e.target.value) || 1 })} />
+                </div>
+              )}
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Assign to Users</Label>
+                  <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 bg-slate-50 rounded-lg border border-slate-200">
+                    {users.map(u => (
+                      <label key={u.id} className="flex items-center gap-2 text-sm">
+                        <Checkbox
+                          checked={selectedUsers.includes(u.email)}
+                          onCheckedChange={checked => {
+                            setSelectedUsers(checked
+                              ? [...selectedUsers, u.email]
+                              : selectedUsers.filter(e => e !== u.email)
+                            );
+                          }}
+                        />
+                        {u.full_name || u.email}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Assign to Teams</Label>
+                  <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 bg-slate-50 rounded-lg border border-slate-200">
+                    {teams.map(t => (
+                      <label key={t.id} className="flex items-center gap-2 text-sm">
+                        <Checkbox
+                          checked={selectedTeams.includes(t.id)}
+                          onCheckedChange={checked => {
+                            setSelectedTeams(checked
+                              ? [...selectedTeams, t.id]
+                              : selectedTeams.filter(id => id !== t.id)
+                            );
+                          }}
+                        />
+                        {t.name}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {selectedUsers.length > 0 && (
+                  <div className="text-sm text-slate-600">Selected {selectedUsers.length} user(s)</div>
+                )}
+                {selectedTeams.length > 0 && (
+                  <div className="text-sm text-slate-600">Selected {selectedTeams.length} team(s)</div>
+                )}
               </div>
-            </div>
-
-            {selectedUsers.length > 0 && (
-              <div className="text-sm text-slate-600">Selected {selectedUsers.length} user(s)</div>
-            )}
-            {selectedTeams.length > 0 && (
-              <div className="text-sm text-slate-600">Selected {selectedTeams.length} team(s)</div>
-            )}
-          </div>
+            </>
+          )}
 
           <div className="space-y-3">
             <div className="flex items-center justify-between">
