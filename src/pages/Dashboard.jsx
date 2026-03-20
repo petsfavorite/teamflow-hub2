@@ -75,17 +75,37 @@ export default function Dashboard() {
     enabled: !!user?.email && canManage,
   });
 
+  const isManager = user && canManage && !isAdmin && !isSuperAdmin;
+
   const verificationDueSops = allSOPs.filter(sop => {
     if (!sop.verification_due_date) return false;
     const daysLeft = differenceInDays(parseISO(sop.verification_due_date), new Date());
-    return daysLeft <= 7;
+    if (daysLeft > 7) return false;
+    
+    // Managers only see SOPs assigned to them or their teams
+    if (isManager) {
+      const assignedToMe = sop.acknowledgement_assigned_emails?.includes(user?.email);
+      const assignedToMyTeam = sop.acknowledgement_assigned_teams?.some(tid => myTeamIds.includes(tid));
+      return assignedToMe || assignedToMyTeam;
+    }
+    return true;
   }).sort((a, b) => {
     const dA = differenceInDays(parseISO(a.verification_due_date), new Date());
     const dB = differenceInDays(parseISO(b.verification_due_date), new Date());
     return dA - dB;
   });
 
-  const pendingSOPs = allSOPs.filter(s => s.status === 'pending_approval');
+  const pendingSOPs = allSOPs.filter(s => {
+    if (s.status !== 'pending_approval') return false;
+    
+    // Managers only see pending SOPs assigned to them or their teams
+    if (isManager) {
+      const assignedToMe = s.acknowledgement_assigned_emails?.includes(user?.email);
+      const assignedToMyTeam = s.acknowledgement_assigned_teams?.some(tid => myTeamIds.includes(tid));
+      return assignedToMe || assignedToMyTeam;
+    }
+    return true;
+  });
 
   const incidents = allIncidents.filter(inc => {
     if (inc.status === 'resolved') return false;
