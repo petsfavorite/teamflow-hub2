@@ -23,7 +23,8 @@ export default function UserManagement() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('user');
   const [editRole, setEditRole] = useState('user');
-  const [editName, setEditName] = useState('');
+  const [editFirstName, setEditFirstName] = useState('');
+  const [editLastName, setEditLastName] = useState('');
   const [editPin, setEditPin] = useState('');
   const [pinError, setPinError] = useState('');
 

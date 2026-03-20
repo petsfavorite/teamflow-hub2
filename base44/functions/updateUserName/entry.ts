@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Managers cannot rename users' }, { status: 403 });
     }
 
-    await base44.asServiceRole.entities.User.update(userId, { full_name });
+    await base44.asServiceRole.entities.User.update(userId, nameFields);
 
     return Response.json({ success: true });
   } catch (error) {
