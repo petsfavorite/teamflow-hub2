@@ -165,6 +165,13 @@ export default function Dashboard() {
     return assignedToMe || assignedToMyTeam;
   });
 
+  // "My Checklists Due Soon" - active checklists with due date within next 7 days
+  const myChecklistsDueSoon = myChecklists.filter(c => {
+    if (!c.due_date) return false;
+    const daysUntilDue = differenceInDays(parseISO(c.due_date), new Date());
+    return daysUntilDue >= 0 && daysUntilDue <= 7;
+  });
+
   const openMaintenance = maintenanceRequests.filter(r => r.status !== 'completed');
 
   return (
