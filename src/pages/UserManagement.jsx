@@ -30,6 +30,22 @@ export default function UserManagement() {
     queryFn: () => base44.entities.User.list('full_name', 500),
   });
 
+  const deleteUserMutation = useMutation({
+    mutationFn: (id) => base44.entities.User.delete(id),
+    onSuccess: () => {
+      toast.success('User deleted');
+      queryClient.invalidateQueries({ queryKey: ['all-users'] });
+    },
+  });
+
+  const canDelete = (u) => {
+    if (u.id === user?.id) return false;
+    if (u.role === 'super_admin') return false;
+    if (isSuperAdmin) return true;
+    if (isAdmin && (u.role === 'manager' || u.role === 'user' || !u.role)) return true;
+    return false;
+  };
+
   const updateRoleMutation = useMutation({
     mutationFn: ({ id, role }) => base44.entities.User.update(id, { role }),
     onSuccess: () => {
