@@ -465,11 +465,11 @@ export default function Checklists() {
           {canManage && (
             <div>
               <h2 className="text-lg font-semibold text-slate-900 mb-4">Actively Recurring Checklists</h2>
-              {recurringChecklists.length === 0 ? (
+              {recurringChecklists.filter(t => t.title.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 ? (
                 <p className="text-slate-500 text-sm">No recurring checklists</p>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {recurringChecklists.map(template => (
+                  {recurringChecklists.filter(t => t.title.toLowerCase().includes(searchTerm.toLowerCase())).map(template => (
                     <Card key={template.id} className="border-0 shadow-sm">
                       <CardContent className="p-6">
                         <div className="flex items-start justify-between mb-3">
