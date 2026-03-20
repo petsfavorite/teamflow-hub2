@@ -129,17 +129,40 @@ export default function UserManagement() {
                       }}
                       className={(() => {
                         if (u.id === user?.id) return 'invisible';
-                        // super_admin can edit anyone
                         if (isSuperAdmin) return '';
-                        // admin can edit user/manager/admin (but not super_admin)
                         if (isAdmin && u.role !== 'super_admin') return '';
-                        // manager can only change roles of regular users (no name changes)
                         if (isManager && (u.role === 'user' || !u.role)) return '';
                         return 'invisible';
                       })()}
                     >
                       <Pencil className="w-4 h-4 text-slate-400" />
                     </Button>
+                    {canDelete(u) && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <Trash2 className="w-4 h-4 text-red-400" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete User</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete {u.full_name || u.email}? This cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => deleteUserMutation.mutate(u.id)}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
                   </div>
                 </div>
               </CardContent>
