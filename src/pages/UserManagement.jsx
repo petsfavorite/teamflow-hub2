@@ -448,7 +448,10 @@ export default function UserManagement() {
                    updateRoleMutation.mutate({ id: editingUser.id, role: editRole });
                    return;
                  }
-                 const teamsChanged = JSON.stringify(editingUser?.team_ids || []) !== JSON.stringify(editingUser?.team_ids || []);
+
+                 // Get original user from the users list to compare teams
+                 const originalUser = users.find(u => u.id === editingUser.id);
+                 const teamsChanged = JSON.stringify(originalUser?.team_ids || []) !== JSON.stringify(editingUser?.team_ids || []);
                  if (teamsChanged) {
                    updateTeamsMutation.mutate({ id: editingUser.id, team_ids: editingUser?.team_ids || [] });
                    return;
