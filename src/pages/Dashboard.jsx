@@ -134,14 +134,22 @@ export default function Dashboard() {
   const managersSeenOverdueTasks = canManage ? tasks.filter(t => {
     if (t.status === 'completed' || t.status === 'cancelled') return false;
     if (!t.due_date || t.due_date >= today) return false; // Only overdue
-    if (dismissedOverdueTasks.includes(t.id)) return false; // Exclude dismissed
+    
+    // Check if dismissed in the last 24 hours
+    const dismissalForUser = t.dismissed_notifications?.find(d => d.user_email === user?.email);
+    if (dismissalForUser) {
+      const dismissedAt = new Date(dismissalForUser.dismissed_at);
+      const hoursSinceDismissal = (now.getTime() - dismissedAt.getTime()) / (1000 * 60 * 60);
+      if (hoursSinceDismissal < 24) return false; // Still within 24-hour window
+    }
+    
     // Don't show own tasks (regular users see overdue own tasks above)
     const assignedToMe = t.assigned_to_emails?.includes(user?.email);
     if (assignedToMe && t.assigned_to_emails.length === 1) return false;
     // Show if assigned to team members (not self)
     const assignedToMyTeam = t.assigned_teams?.some(tid => myTeamIds.includes(tid));
     return assignedToMyTeam && !assignedToMe;
-  }).filter(t => !dismissedOverdueTasks.includes(t.id)) : [];
+  }) : [];
 
   // For regular users: checklists due in ~1 hour (yellow)
   const urgentChecklists = checklists.filter(c => {
