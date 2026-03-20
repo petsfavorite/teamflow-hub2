@@ -149,12 +149,24 @@ export default function Dashboard() {
     return (assignedToMe || assignedToMyTeam) && isNew;
   });
 
+  // "My Tasks" - all pending tasks assigned to user or their teams with due date today
   const myPendingTasks = tasks.filter(t => {
     if (t.status === 'completed' || t.status === 'cancelled') return false;
     if (t.due_date !== today) return false;
     const assignedToMe = t.assigned_to_emails?.includes(user?.email);
     const assignedToMyTeam = t.assigned_teams?.some(tid => myTeamIds.includes(tid));
     return assignedToMe || assignedToMyTeam;
+  });
+
+  // "My Tasks Due Soon" - pending tasks assigned to user or their teams with due date within next 7 days (today through +7 days)
+  const myTasksDueSoon = tasks.filter(t => {
+    if (t.status === 'completed' || t.status === 'cancelled') return false;
+    if (!t.due_date) return false;
+    const assignedToMe = t.assigned_to_emails?.includes(user?.email);
+    const assignedToMyTeam = t.assigned_teams?.some(tid => myTeamIds.includes(tid));
+    if (!assignedToMe && !assignedToMyTeam) return false;
+    const daysUntilDue = differenceInDays(parseISO(t.due_date), new Date());
+    return daysUntilDue >= 0 && daysUntilDue <= 7;
   });
 
   // "My Checklists" shows all published or active checklists assigned to user (any role) or their teams
