@@ -401,7 +401,7 @@ export default function SOPEditor() {
       </Card>
 
       {/* Acknowledgement */}
-      <Card className="border-0 shadow-sm mb-4">
+      <Card className="border-0 shadow-sm mb-8">
         <CardContent className="p-6 space-y-4">
           <div className="flex items-center gap-4">
             <Switch checked={form.requires_acknowledgement} onCheckedChange={v => set('requires_acknowledgement', v)} />
