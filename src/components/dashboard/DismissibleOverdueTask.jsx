@@ -116,9 +116,10 @@ export default function DismissibleOverdueTask({ task, user }) {
       <button
         onClick={(e) => {
           e.preventDefault();
-          onDismiss(task.id);
+          handleDismiss();
         }}
-        className="opacity-0 group-hover:opacity-100 transition-opacity text-red-600 hover:text-red-700 flex-shrink-0"
+        disabled={isDismissing}
+        className="opacity-0 group-hover:opacity-100 transition-opacity text-red-600 hover:text-red-700 flex-shrink-0 disabled:opacity-50"
       >
         <X className="w-4 h-4" />
       </button>
