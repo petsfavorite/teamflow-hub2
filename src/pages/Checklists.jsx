@@ -195,18 +195,17 @@ export default function Checklists() {
   };
 
   const removeRecurrence = (template) => {
-    assignChecklistMutation.mutate({
+    base44.entities.ChecklistTemplate.update(template.id, {
       assigned_to_emails: [],
       assigned_to_names: [],
       assigned_teams: [],
       due_date: '',
       due_time: '21:00',
       recurrence_type: 'once',
-      status: 'published'
-    }, {
-      onSuccess: () => {
-        toast.success('Recurrence removed');
-      }
+      status: 'active'
+    }).then(() => {
+      toast.success('Checklist returned to templates');
+      queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
     });
   };
 
