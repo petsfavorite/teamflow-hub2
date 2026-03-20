@@ -1,60 +1,58 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { useCurrentUser } from '../components/hooks/useCurrentUser';
 import PageHeader from '../components/shared/PageHeader';
 import EmptyState from '../components/shared/EmptyState';
 import StatusBadge from '../components/shared/StatusBadge';
 import ChecklistItemRow from '../components/checklist/ChecklistItemRow';
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CheckSquare, Plus, Send, Loader2, Clock, Trash2, Share2, X, AlertCircle, Edit2 } from 'lucide-react';
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CheckSquare, Plus, Trash2, Send, AlertCircle, Loader2, Clock } from 'lucide-react';
 import { toast } from "sonner";
 
 export default function Checklists() {
-  const { user, isSuperAdmin, isAdmin, isManager, canManage } = useCurrentUser();
-  const queryClient = useQueryClient();
+  const { user, canManage, isSuperAdmin, isAdmin } = useCurrentUser();
   const [activeChecklist, setActiveChecklist] = useState(null);
   const [items, setItems] = useState([]);
   const [notes, setNotes] = useState({});
   const [canSubmitWithIncomplete, setCanSubmitWithIncomplete] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [templateToDelete, setTemplateToDelete] = useState(null);
   const [useDialogOpen, setUseDialogOpen] = useState(false);
   const [templateToUse, setTemplateToUse] = useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [templateToDelete, setTemplateToDelete] = useState(null);
   const [useForm, setUseForm] = useState({
     assigned_to_emails: [],
+    assigned_to_names: [],
     assigned_teams: [],
     due_date: '',
     due_time: '21:00',
-    recurrence_type: 'once'
+    recurrence_type: 'once',
+    recurrence_days_of_week: [],
+    recurrence_day_of_month: undefined,
+    recurrence_interval_months: undefined
   });
+  const queryClient = useQueryClient();
 
-  // Only show published templates
-  const { data: publishedTemplates = [], isLoading } = useQuery({
-    queryKey: ['checklist-templates-published'],
-    queryFn: async () => {
-      const templates = await base44.entities.ChecklistTemplate.list('-created_date', 100);
-      return templates.filter(t => (t.status === 'published' || t.status === 'active') && t.status !== 'closed');
-    },
-  });
-
-  const { data: allTemplates = [] } = useQuery({
+  const { data: allTemplates = [], isLoading: isLoadingTemplates } = useQuery({
     queryKey: ['checklist-templates-all'],
-    queryFn: () => base44.entities.ChecklistTemplate.list('-created_date', 100),
-    enabled: canManage,
+    queryFn: () => base44.entities.ChecklistTemplate.list('title', 200),
+  });
+
+  const { data: checklists = [] } = useQuery({
+    queryKey: ['checklist-completions'],
+    queryFn: () => base44.entities.ChecklistCompletion.list(),
   });
 
   const { data: teams = [] } = useQuery({
-    queryKey: ['teams'],
-    queryFn: () => base44.entities.Team.list(),
-    enabled: canManage,
+    queryKey: ['teams-list'],
+    queryFn: () => base44.entities.Team.list('name', 200),
   });
 
   const { data: allUsers = [] } = useQuery({
@@ -63,35 +61,45 @@ export default function Checklists() {
     enabled: canManage,
   });
 
+  const myTeamIds = useMemo(() => {
+    return teams
+      .filter(team => team.member_emails?.includes(user?.email))
+      .map(team => team.id);
+  }, [teams, user]);
+
   // "My Checklists" - all active, unfinished checklists assigned to user (any role) or their teams
   const myChecklists = useMemo(() => {
-    return publishedTemplates.filter(t => {
+    const published = allTemplates.filter(t => t.status === 'published');
+    return published.filter(t => {
       if (t.status !== 'active' && t.status !== 'published') return false;
       const assignedToMe = t.assigned_to_emails?.includes(user?.email);
       const assignedToMyTeam = t.assigned_teams?.some(teamId => teams.some(team => team.id === teamId && team.member_emails?.includes(user?.email)));
       return assignedToMe || assignedToMyTeam;
     });
-  }, [publishedTemplates, user, teams]);
+  }, [allTemplates, user, teams]);
 
   // Template checklists - published templates visible to managers/admins/super admins only (for assignment)
   const templateChecklists = useMemo(() => {
-    return publishedTemplates.filter(t => !t.recurrence_type || t.recurrence_type === 'once');
-  }, [publishedTemplates]);
+    const published = allTemplates.filter(t => t.status === 'published');
+    return published.filter(t => !t.recurrence_type || t.recurrence_type === 'once');
+  }, [allTemplates]);
 
   // Recurring checklists - assigned checklists with recurrence !== 'once'
   const recurringChecklists = useMemo(() => {
-    return publishedTemplates.filter(t => t.recurrence_type && t.recurrence_type !== 'once');
-  }, [publishedTemplates]);
+    const published = allTemplates.filter(t => t.status === 'published');
+    return published.filter(t => t.recurrence_type && t.recurrence_type !== 'once');
+  }, [allTemplates]);
 
   // Draft templates - only visible to creator
   const draftTemplates = useMemo(() => {
     return allTemplates.filter(t => (t.status === 'draft' || t.status === 'pending_approval') && t.created_by === user?.email);
   }, [allTemplates, user]);
 
+  const isLoading = isLoadingTemplates;
+
   const submitMutation = useMutation({
     mutationFn: async (data) => {
       const completion = await base44.entities.ChecklistCompletion.create(data);
-      // Close the template after submission
       const template = allTemplates.find(t => t.id === data.checklist_template_id);
       if (template && template.status === 'published') {
         await base44.entities.ChecklistTemplate.update(template.id, { status: 'closed' });
@@ -127,6 +135,7 @@ export default function Checklists() {
       setTemplateToUse(null);
       setUseForm({
         assigned_to_emails: [],
+        assigned_to_names: [],
         assigned_teams: [],
         due_date: '',
         due_time: '21:00',
@@ -138,7 +147,6 @@ export default function Checklists() {
   });
 
   const startChecklist = async (template) => {
-    // Load existing in-progress completion if it exists
     const existingCompletions = await base44.entities.ChecklistCompletion.filter({ 
       checklist_template_id: template.id, 
       status: 'in_progress' 
@@ -147,7 +155,6 @@ export default function Checklists() {
     const existingCompletion = existingCompletions?.[0];
     
     if (existingCompletion && existingCompletion.completed_items?.length > 0) {
-      // Load from existing progress
       setItems(existingCompletion.completed_items);
       const notesMap = {};
       existingCompletion.completed_items.forEach((item, idx) => {
@@ -155,7 +162,6 @@ export default function Checklists() {
       });
       setNotes(notesMap);
     } else {
-      // Start fresh
       setItems(template.items.map(item => ({ ...item, checked: false })));
       setNotes({});
     }
@@ -166,7 +172,6 @@ export default function Checklists() {
 
   const handleUseClick = (template) => {
     setTemplateToUse(template);
-    // Pre-populate with template's recurrence settings
     setUseForm({
       assigned_to_emails: template.assigned_to_emails || [],
       assigned_to_names: template.assigned_to_names || [],
@@ -387,61 +392,63 @@ export default function Checklists() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {myChecklists.map(template => (
-              <Card key={template.id} className="border-0 shadow-sm">
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
-                      <CheckSquare className="w-5 h-5 text-emerald-600" />
-                    </div>
-                    {canManage && template.due_date && (
-                      <StatusBadge status={template.recurrence_type} />
-                    )}
-                  </div>
-                  <h3 className="font-semibold text-slate-900 mb-1">{template.title}</h3>
-                  {template.description && <p className="text-sm text-slate-500 mb-3">{template.description}</p>}
-                  <div className="flex items-center gap-2 text-xs text-slate-400 mb-4">
-                    <Clock className="w-3 h-3" />
-                    {template.items?.length || 0} items
-                  </div>
+                  <Card key={template.id} className="border-0 shadow-sm">
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
+                          <CheckSquare className="w-5 h-5 text-emerald-600" />
+                        </div>
+                        {canManage && template.due_date && (
+                          <StatusBadge status={template.recurrence_type} />
+                        )}
+                      </div>
+                      <h3 className="font-semibold text-slate-900 mb-1">{template.title}</h3>
+                      {template.description && <p className="text-sm text-slate-500 mb-3">{template.description}</p>}
+                      <div className="flex items-center gap-2 text-xs text-slate-400 mb-4">
+                        <Clock className="w-3 h-3" />
+                        {template.items?.length || 0} items
+                      </div>
 
-                  {canManage ? (
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        className="flex-1 bg-blue-600 hover:bg-blue-700"
-                        onClick={() => handleUseClick(template)}
-                      >
-                        Use
-                      </Button>
-                      <Link to={createPageUrl('ChecklistEditor') + `?id=${template.id}`}>
-                        <Button variant="outline" size="sm">Edit</Button>
-                      </Link>
-                      {(isSuperAdmin || isAdmin) && (
+                      {canManage ? (
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            className="flex-1 bg-blue-600 hover:bg-blue-700"
+                            onClick={() => handleUseClick(template)}
+                          >
+                            Use
+                          </Button>
+                          <Link to={createPageUrl('ChecklistEditor') + `?id=${template.id}`}>
+                            <Button variant="outline" size="sm">Edit</Button>
+                          </Link>
+                          {(isSuperAdmin || isAdmin) && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => {
+                                setTemplateToDelete(template);
+                                setDeleteDialogOpen(true);
+                              }}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      ) : (
                         <Button
-                          variant="ghost"
                           size="sm"
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          onClick={() => {
-                            setTemplateToDelete(template);
-                            setDeleteDialogOpen(true);
-                          }}
+                          className="w-full bg-emerald-600 hover:bg-emerald-700"
+                          onClick={() => startChecklist(template)}
                         >
-                          <Trash2 className="w-4 h-4" />
+                          Start
                         </Button>
                       )}
-                    </div>
-                  ) : (
-                    <Button
-                      size="sm"
-                      className="w-full bg-emerald-600 hover:bg-emerald-700"
-                      onClick={() => startChecklist(template)}
-                    >
-                      Start
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Template Checklists - visible only to managers/admins/super admins */}
@@ -680,48 +687,48 @@ export default function Checklists() {
             </div>
 
             {/* Recurrence */}
-             <div className="space-y-2">
-               <Label>Frequency</Label>
-               <Select value={useForm.recurrence_type} onValueChange={(value) => setUseForm({ ...useForm, recurrence_type: value })}>
-                 <SelectTrigger>
-                   <SelectValue />
-                 </SelectTrigger>
-                 <SelectContent>
-                   <SelectItem value="once">Once</SelectItem>
-                   <SelectItem value="daily">Daily</SelectItem>
-                   <SelectItem value="weekdays">Weekdays</SelectItem>
-                   <SelectItem value="specific_days">Specific Days</SelectItem>
-                   <SelectItem value="monthly">Monthly</SelectItem>
-                   <SelectItem value="every_x_months">Every X Months</SelectItem>
-                   <SelectItem value="annually">Annually</SelectItem>
-                   <SelectItem value="manual">Manual</SelectItem>
-                 </SelectContent>
-               </Select>
-             </div>
+            <div className="space-y-2">
+              <Label>Frequency</Label>
+              <Select value={useForm.recurrence_type} onValueChange={(value) => setUseForm({ ...useForm, recurrence_type: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="once">Once</SelectItem>
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="weekdays">Weekdays</SelectItem>
+                  <SelectItem value="specific_days">Specific Days</SelectItem>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                  <SelectItem value="every_x_months">Every X Months</SelectItem>
+                  <SelectItem value="annually">Annually</SelectItem>
+                  <SelectItem value="manual">Manual</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setUseDialogOpen(false)}>Cancel</Button>
             <Button 
-             onClick={() => {
-               assignChecklistMutation.mutate({
-                 assigned_to_emails: useForm.assigned_to_emails,
-                 assigned_to_names: useForm.assigned_to_names || [],
-                 assigned_teams: useForm.assigned_teams,
-                 due_date: useForm.due_date || undefined,
-                 due_time: useForm.due_time || '21:00',
-                 recurrence_type: useForm.recurrence_type,
-                 recurrence_days_of_week: useForm.recurrence_days_of_week,
-                 recurrence_day_of_month: useForm.recurrence_day_of_month,
-                 recurrence_interval_months: useForm.recurrence_interval_months,
-                 status: 'active'
-               });
-             }}
-             disabled={assignChecklistMutation.isPending}
-             className="bg-indigo-600 hover:bg-indigo-700 gap-2"
+              onClick={() => {
+                assignChecklistMutation.mutate({
+                  assigned_to_emails: useForm.assigned_to_emails,
+                  assigned_to_names: useForm.assigned_to_names || [],
+                  assigned_teams: useForm.assigned_teams,
+                  due_date: useForm.due_date || undefined,
+                  due_time: useForm.due_time || '21:00',
+                  recurrence_type: useForm.recurrence_type,
+                  recurrence_days_of_week: useForm.recurrence_days_of_week,
+                  recurrence_day_of_month: useForm.recurrence_day_of_month,
+                  recurrence_interval_months: useForm.recurrence_interval_months,
+                  status: 'active'
+                });
+              }}
+              disabled={assignChecklistMutation.isPending}
+              className="bg-indigo-600 hover:bg-indigo-700 gap-2"
             >
-             {assignChecklistMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-             Assign
+              {assignChecklistMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+              Assign
             </Button>
           </DialogFooter>
         </DialogContent>
