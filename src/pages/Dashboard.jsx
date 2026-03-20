@@ -157,9 +157,9 @@ export default function Dashboard() {
     return assignedToMe || assignedToMyTeam;
   });
 
-  // "My Checklists" shows all published checklists assigned to user (any role) or their teams
+  // "My Checklists" shows all published or active checklists assigned to user (any role) or their teams
   const myChecklists = checklists.filter(c => {
-    if (c.status !== 'published') return false;
+    if (c.status !== 'published' && c.status !== 'active') return false;
     const assignedToMe = c.assigned_to_emails?.includes(user?.email);
     const assignedToMyTeam = c.assigned_teams?.some(tid => myTeamIds.includes(tid));
     return assignedToMe || assignedToMyTeam;
