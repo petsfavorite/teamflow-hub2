@@ -331,8 +331,7 @@ export default function Dashboard() {
                   <DismissibleOverdueTask
                     key={task.id}
                     task={task}
-                    onDismiss={(taskId) => setDismissedOverdueTasks([...dismissedOverdueTasks, taskId])}
-                    canEditDueDate={!isManager || task.assigned_to_emails?.every(e => e !== user?.email)}
+                    user={user}
                   />
                 ))}
                 {incidents.map(inc => (
