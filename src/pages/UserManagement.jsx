@@ -128,7 +128,8 @@ export default function UserManagement() {
                       onClick={() => { 
                         setEditingUser(u); 
                         setEditRole(u.role || 'user');
-                        setEditName(u.full_name || '');
+                        setEditFirstName(u.first_name || '');
+                        setEditLastName(u.last_name || '');
                         setEditPin(u.pin || '');
                         setPinError('');
                       }}
