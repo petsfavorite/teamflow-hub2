@@ -60,14 +60,15 @@ export default function CheckoutDialog({ pet, visit, open, onClose, onConfirm })
             const pdfBlob = pdf.output('blob');
 
             // Upload PDF - create a File object from the blob
-            // Extract owner's last name
-            const ownerLastName = pet.owner_name ? pet.owner_name.split(' ').pop() : 'Owner';
+            // Build filename: PetFirstName_OwnerLastName_Type_CheckoutDate
+            const petFirstName = pet.name ? pet.name.trim().split(' ')[0] : 'Pet';
+            const ownerLastName = pet.owner_name ? pet.owner_name.trim().split(' ').pop() : 'Owner';
             const serviceType = visit.visit_type === 'boarding' ? 'Boarding' : 'PlayCamp';
             const checkoutDate = moment().format('YYYY-MM-DD');
             
             const pdfFile = new File(
                 [pdfBlob], 
-                `${pet.name.replace(/\s/g, '_')}_${ownerLastName}_${serviceType}_${checkoutDate}.pdf`,
+                `${petFirstName}_${ownerLastName}_${serviceType}_${checkoutDate}.pdf`,
                 { type: 'application/pdf' }
             );
             
