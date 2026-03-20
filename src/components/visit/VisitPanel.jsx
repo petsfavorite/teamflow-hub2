@@ -273,18 +273,23 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
             staff: initials
         }];
 
-        // Check if this activity mentions feces or urine, and clear alert if it does
+        // Check if this activity mentions feces, urine, or ate, and clear alert if resolved
         let updateObj = { ...visit, care_log: careLog };
         if (visit.emergency_alert_active) {
             const notesLower = newNotes.toLowerCase();
-            if ((visit.emergency_alert_type === 'feces' || visit.emergency_alert_type === 'both') && notesLower.includes('feces')) {
+            const alertTypes = visit.emergency_alert_type?.split(',') || [];
+            const remaining = alertTypes.filter(t => {
+                if (t === 'feces') return !notesLower.includes('feces');
+                if (t === 'urine') return !notesLower.includes('urine');
+                if (t === 'ate') return !notesLower.includes('ate');
+                return true;
+            });
+            if (remaining.length === 0) {
                 updateObj.emergency_alert_active = false;
                 updateObj.emergency_alert_type = null;
                 updateObj.emergency_alert_dismissed_until = null;
-            } else if ((visit.emergency_alert_type === 'urine' || visit.emergency_alert_type === 'both') && notesLower.includes('urine')) {
-                updateObj.emergency_alert_active = false;
-                updateObj.emergency_alert_type = null;
-                updateObj.emergency_alert_dismissed_until = null;
+            } else if (remaining.length < alertTypes.length) {
+                updateObj.emergency_alert_type = remaining.join(',');
             }
         }
 
