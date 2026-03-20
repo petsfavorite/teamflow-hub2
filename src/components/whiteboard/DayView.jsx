@@ -26,11 +26,14 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
         fetchUserTimezone();
     }, []);
 
-    const todayVisits = visits.filter(v => 
-        v.status === 'checked_in' && 
-        moment(v.check_in_date).format('YYYY-MM-DD') <= selectedDate &&
-        (!v.scheduled_checkout_date || moment(v.scheduled_checkout_date).format('YYYY-MM-DD') >= selectedDate)
-    );
+    const todayVisits = visits.filter(v => {
+        if (v.status !== 'checked_in') return false;
+        if (moment(v.check_in_date).format('YYYY-MM-DD') > selectedDate) return false;
+        // Boarding: always show if still checked in, regardless of scheduled checkout date
+        if (v.visit_type === 'boarding') return true;
+        // Play camp: respect scheduled checkout date
+        return !v.scheduled_checkout_date || moment(v.scheduled_checkout_date).format('YYYY-MM-DD') >= selectedDate;
+    });
     
 
     // Helper to get remaining tasks for a pet on a specific date
