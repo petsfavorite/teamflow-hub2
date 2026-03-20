@@ -63,19 +63,30 @@ export default function Checklists() {
     enabled: canManage,
   });
 
-  // For regular users: show only checklists visible today and assigned to them
-  const myTemplates = useMemo(() => {
-    const today = new Date().toISOString().split('T')[0];
+  // "My Checklists" - all active, unfinished checklists assigned to user (any role) or their teams
+  const myChecklists = useMemo(() => {
     return publishedTemplates.filter(t => {
-      if (!canManage) {
-        // Regular users: only show if due_date is today and assigned to them
-        const assignedToMe = t.assigned_to_emails?.includes(user?.email);
-        const inMyTeam = t.assigned_teams?.some(teamId => teams.some(team => team.id === teamId && team.member_emails?.includes(user?.email)));
-        return (assignedToMe || inMyTeam) && t.due_date === today && t.is_visible !== false;
-      }
-      return true; // Managers/admins see all published templates
+      if (t.status !== 'active' && t.status !== 'published') return false;
+      const assignedToMe = t.assigned_to_emails?.includes(user?.email);
+      const assignedToMyTeam = t.assigned_teams?.some(teamId => teams.some(team => team.id === teamId && team.member_emails?.includes(user?.email)));
+      return assignedToMe || assignedToMyTeam;
     });
-  }, [publishedTemplates, user, teams, canManage]);
+  }, [publishedTemplates, user, teams]);
+
+  // Template checklists - published templates visible to managers/admins/super admins only (for assignment)
+  const templateChecklists = useMemo(() => {
+    return publishedTemplates.filter(t => !t.recurrence_type || t.recurrence_type === 'once');
+  }, [publishedTemplates]);
+
+  // Recurring checklists - assigned checklists with recurrence !== 'once'
+  const recurringChecklists = useMemo(() => {
+    return publishedTemplates.filter(t => t.recurrence_type && t.recurrence_type !== 'once');
+  }, [publishedTemplates]);
+
+  // Draft templates - only visible to creator
+  const draftTemplates = useMemo(() => {
+    return allTemplates.filter(t => (t.status === 'draft' || t.status === 'pending_approval') && t.created_by === user?.email);
+  }, [allTemplates, user]);
 
   const submitMutation = useMutation({
     mutationFn: async (data) => {
