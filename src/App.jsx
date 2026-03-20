@@ -73,7 +73,10 @@ function App() {
       <QueryClientProvider client={queryClientInstance}>
         <Router>
           <NavigationTracker />
-          <AuthenticatedApp />
+          <PinProvider>
+            <PinLockScreen />
+            <AuthenticatedApp />
+          </PinProvider>
         </Router>
         <Toaster />
       </QueryClientProvider>
