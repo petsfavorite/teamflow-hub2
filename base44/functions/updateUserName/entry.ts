@@ -9,7 +9,10 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    const { userId, full_name } = await req.json();
+    const { userId, full_name, first_name, last_name } = await req.json();
+    const resolvedName = (first_name !== undefined || last_name !== undefined)
+      ? `${(first_name || '').trim()} ${(last_name || '').trim()}`.trim()
+      : full_name;
 
     // Fetch the target user to check their role
     const targetUser = await base44.asServiceRole.entities.User.get(userId);
