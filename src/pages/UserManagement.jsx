@@ -403,6 +403,7 @@ export default function UserManagement() {
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="user">User</SelectItem>
+                    <SelectItem value="general_account">General Account</SelectItem>
                     {(isSuperAdmin || isAdmin) && <SelectItem value="manager">Manager</SelectItem>}
                     {(isSuperAdmin || isAdmin) && <SelectItem value="admin">Admin</SelectItem>}
                     {isSuperAdmin && <SelectItem value="super_admin">Super Admin</SelectItem>}
