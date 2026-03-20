@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Settings as SettingsIcon, Trash2, ChevronLeft, Download, Upload, CheckCircle2, AlertCircle, AlertTriangle, User } from "lucide-react";
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import * as XLSX from 'xlsx';
 
 export default function Settings() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -52,36 +53,54 @@ export default function Settings() {
   const [isSavingGlobalTimezone, setIsSavingGlobalTimezone] = useState(false);
 
   const handleDownloadTemplate = () => {
+    // Row 1: column headers
     const headers = [
       'name', 'species', 'breed', 'color', 'gender', 'group_play',
-      'social_media', 'photo_url', 'owner_name', 'email',
-      'feeding_instructions', 'medication_notes',
+      'social_media', 'owner_name', 'email',
+      'feeding_frequency', 'feeding_instructions', 'medication_notes',
       'special_needs', 'daily_picture', 'notes'
     ];
-    const notes = [
-      'Pet name (required)', 'Dog or Cat (required)', 'Breed', 'Color/markings',
-      'Male / Neutered Male / Female / Spayed Female',
-      'Approved / Not Approved / Not Tested',
+    // Row 2: human-readable guidance
+    const guidance = [
+      'Pet name (REQUIRED)',
+      'Dog or Cat (REQUIRED, default: Dog)',
+      'Breed (optional)',
+      'Color/markings (REQUIRED)',
+      'Male / Neutered Male / Female / Spayed Female (REQUIRED)',
+      'Approved / Not Approved / Not Tested (default: Not Tested)',
       'Approved for Social Media / Not Approved for Social Media / No Record of Social Media Consent',
-      'URL to pet photo (optional)',
-      'Owner full name (required)', 'Owner email',
-      'Feeding instructions',
-      'General medication notes (e.g. must give with food)',
-      'Special needs / health notes', 'true or false', 'Additional notes'
+      'Owner full name (REQUIRED)',
+      'Owner email (optional)',
+      'Just Breakfast / Just Dinner / Two Meals (default: Two Meals)',
+      'Feeding instructions (optional)',
+      'General medication notes (optional)',
+      'Special needs / health / behavioral notes (optional)',
+      'true or false (default: false)',
+      'Additional notes (optional)'
+    ];
+    // Row 3: example data
+    const example = [
+      'Buddy', 'Dog', 'Golden Retriever', 'Golden', 'Neutered Male',
+      'Approved', 'Approved for Social Media', 'Jane Smith', 'jane@example.com',
+      'Two Meals', 'Measure 1 cup kibble per meal', 'Give with food',
+      'Anxious during thunderstorms', 'true', 'Loves belly rubs'
     ];
 
-    const csvContent = [
-      headers.join(','),
-      notes.map(n => `"${n}"`).join(',')
-    ].join('\n');
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet([headers, guidance, example]);
 
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'pet_import_template.csv';
-    a.click();
-    URL.revokeObjectURL(url);
+    // Set column widths
+    ws['!cols'] = headers.map(() => ({ wch: 28 }));
+
+    // Style header row (bold) — basic cell metadata
+    headers.forEach((_, ci) => {
+      const cellRef = XLSX.utils.encode_cell({ r: 0, c: ci });
+      if (!ws[cellRef]) return;
+      ws[cellRef].s = { font: { bold: true } };
+    });
+
+    XLSX.utils.book_append_sheet(wb, ws, 'Pets');
+    XLSX.writeFile(wb, 'pet_import_template.xlsx');
   };
 
   const parseCSVFile = async (file) => {
