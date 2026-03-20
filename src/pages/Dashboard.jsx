@@ -349,7 +349,7 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
          <div className="h-24">
-           <StatCard icon={ClipboardList} label="My Tasks" value={myPendingTasks.length} color="bg-purple-600" to={createPageUrl('Tasks')} />
+           <StatCard icon={ClipboardList} label="Tasks Due Soon" value={myTasksDueSoon.length} color="bg-purple-600" to={createPageUrl('Tasks')} />
          </div>
          <div className="h-24">
            <StatCard icon={CheckSquare} label="Checklists Due Soon" value={myChecklistsDueSoon.length} color="bg-emerald-600" to={createPageUrl('Checklists')} />
