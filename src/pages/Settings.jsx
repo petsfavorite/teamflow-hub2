@@ -28,7 +28,16 @@ export default function Settings() {
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [profileName, setProfileName] = useState('');
   const [profileEmail, setProfileEmail] = useState('');
+  const [profileTimezone, setProfileTimezone] = useState('America/New_York');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [globalTimezone, setGlobalTimezone] = useState('America/New_York');
+  const [allUsers, setAllUsers] = useState([]);
+  const [isSavingGlobalTimezone, setIsSavingGlobalTimezone] = useState(false);
+  const [inactivityMinutes, setInactivityMinutes] = useState(5);
+  const [isSavingTimeout, setIsSavingTimeout] = useState(false);
+  const [appSettingsId, setAppSettingsId] = useState(null);
+
+  const isSuperAdmin = user?.role === 'super_admin';
 
   useEffect(() => {
     base44.auth.me().then(u => {
@@ -53,14 +62,6 @@ export default function Settings() {
       }
     }).catch(() => {});
   }, [isSuperAdmin]);
-
-  const isSuperAdmin = user?.role === 'super_admin';
-  const [globalTimezone, setGlobalTimezone] = useState('America/New_York');
-  const [allUsers, setAllUsers] = useState([]);
-  const [isSavingGlobalTimezone, setIsSavingGlobalTimezone] = useState(false);
-  const [inactivityMinutes, setInactivityMinutes] = useState(5);
-  const [isSavingTimeout, setIsSavingTimeout] = useState(false);
-  const [appSettingsId, setAppSettingsId] = useState(null);
 
   const handleDownloadTemplate = () => {
     // Row 1: column headers
