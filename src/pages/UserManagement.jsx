@@ -445,14 +445,19 @@ export default function UserManagement() {
                   return;
                 }
                 if (editRole !== (editingUser?.role || 'user') && (isSuperAdmin || isAdmin || (isManager && editingUser?.id !== user?.id && (editingUser?.role === 'user' || !editingUser?.role)))) {
-                  updateRoleMutation.mutate({ id: editingUser.id, role: editRole });
-                  return;
-                }
-                if (Object.keys(updates).length > 0) {
-                  toast.success('User updated');
-                  queryClient.invalidateQueries({ queryKey: ['all-users'] });
-                  setEditingUser(null);
-                }
+                   updateRoleMutation.mutate({ id: editingUser.id, role: editRole });
+                   return;
+                 }
+                 const teamsChanged = JSON.stringify(editingUser?.team_ids || []) !== JSON.stringify(editingUser?.team_ids || []);
+                 if (teamsChanged) {
+                   updateTeamsMutation.mutate({ id: editingUser.id, team_ids: editingUser?.team_ids || [] });
+                   return;
+                 }
+                 if (Object.keys(updates).length > 0) {
+                   toast.success('User updated');
+                   queryClient.invalidateQueries({ queryKey: ['all-users'] });
+                   setEditingUser(null);
+                 }
               }}
               disabled={updateNameMutation.isPending || updateRoleMutation.isPending || !!pinError}
               className="bg-indigo-600 hover:bg-indigo-700 gap-2"
