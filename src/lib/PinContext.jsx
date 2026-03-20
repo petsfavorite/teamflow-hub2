@@ -117,6 +117,7 @@ export function PinProvider({ children }) {
   useEffect(() => {
     if (!isAuthenticated) return;
     const handleVisibility = () => {
+      if (IS_PREVIEW) return; // Disabled in Base44 preview
       if (document.visibilityState !== 'visible' || isLocked) return;
       const elapsed = (Date.now() - lastActivityRef.current) / 60000;
       if (elapsed >= timeoutRef.current) {
