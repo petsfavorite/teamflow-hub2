@@ -163,6 +163,70 @@ export default function Dashboard() {
         <p className="text-slate-500 mt-1">Here's what's happening today.</p>
       </div>
 
+      {/* Notifications tile for regular users */}
+      {!canManage && (urgentTasks.length > 0 || urgentChecklists.length > 0 || newTasksToAck.length > 0 || newChecklistsToAck.length > 0) && (
+        <Card className="border-0 shadow-sm">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Bell className="w-5 h-5 text-slate-600" />
+              <h2 className="font-semibold text-slate-900">Notifications</h2>
+            </div>
+            <div className="space-y-2">
+              {/* Yellow: Urgent (1 hour left) */}
+              {urgentTasks.map(task => (
+                <Link key={task.id} to={createPageUrl('Tasks')}>
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-yellow-50 hover:bg-yellow-100 transition-colors">
+                    <Clock className="w-4 h-4 text-yellow-600 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-yellow-900 truncate">⏰ Task due soon: {task.title}</p>
+                      <p className="text-xs text-yellow-700">Due {task.due_date}</p>
+                    </div>
+                    <ArrowRight className="w-3.5 h-3.5 text-yellow-600 flex-shrink-0" />
+                  </div>
+                </Link>
+              ))}
+              {urgentChecklists.map(checklist => (
+                <Link key={checklist.id} to={createPageUrl('Checklists')}>
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-yellow-50 hover:bg-yellow-100 transition-colors">
+                    <Clock className="w-4 h-4 text-yellow-600 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-yellow-900 truncate">⏰ Checklist due soon: {checklist.title}</p>
+                      <p className="text-xs text-yellow-700">Due {checklist.due_date}</p>
+                    </div>
+                    <ArrowRight className="w-3.5 h-3.5 text-yellow-600 flex-shrink-0" />
+                  </div>
+                </Link>
+              ))}
+              {/* White: New items to acknowledge */}
+              {newTasksToAck.map(task => (
+                <Link key={task.id} to={createPageUrl('Tasks')}>
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors border border-slate-200">
+                    <ClipboardList className="w-4 h-4 text-slate-600 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-slate-900 truncate">New task assigned: {task.title}</p>
+                      <p className="text-xs text-slate-500">Tap to acknowledge</p>
+                    </div>
+                    <ArrowRight className="w-3.5 h-3.5 text-slate-600 flex-shrink-0" />
+                  </div>
+                </Link>
+              ))}
+              {newChecklistsToAck.map(checklist => (
+                <Link key={checklist.id} to={createPageUrl('Checklists')}>
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors border border-slate-200">
+                    <CheckSquare className="w-4 h-4 text-slate-600 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-slate-900 truncate">New checklist assigned: {checklist.title}</p>
+                      <p className="text-xs text-slate-500">Tap to acknowledge</p>
+                    </div>
+                    <ArrowRight className="w-3.5 h-3.5 text-slate-600 flex-shrink-0" />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Notifications tile for managers/admins */}
       {canManage && (
         <Card className="border-0 shadow-sm">
