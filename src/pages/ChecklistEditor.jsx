@@ -60,11 +60,12 @@ export default function ChecklistEditor() {
         ...existing,
         assigned_to_emails: existing.assigned_to_emails || [],
         assigned_to_teams: existing.assigned_to_teams || [],
-        custom_frequency_type: existing.custom_frequency_type || 'days',
-        custom_frequency_value: existing.custom_frequency_value || 1,
-        custom_frequency_days: existing.custom_frequency_days || [],
-        custom_frequency_day_of_month: existing.custom_frequency_day_of_month || 1,
-        auto_close_time: existing.auto_close_time || '17:00'
+        recurrence_type: existing.recurrence_type || 'once',
+        recurrence_days_of_week: existing.recurrence_days_of_week || [],
+        recurrence_day_of_month: existing.recurrence_day_of_month || 1,
+        recurrence_interval_months: existing.recurrence_interval_months || 1,
+        due_date: existing.due_date || '',
+        due_time: existing.due_time || '21:00'
       });
       setSelectedUsers(existing.assigned_to_emails || []);
       setSelectedTeams(existing.assigned_to_teams || []);
