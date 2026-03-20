@@ -224,13 +224,23 @@ export default function UserManagement() {
           <div className="space-y-4">
             {/* Name editing: admin can rename user/manager, super_admin can also rename admin */}
             {(isSuperAdmin || (isAdmin && !['admin', 'super_admin'].includes(editingUser?.role))) && (
-              <div className="space-y-2">
-                <Label>Display Name</Label>
-                <Input 
-                  value={editName} 
-                  onChange={e => setEditName(e.target.value)}
-                  placeholder="Full name"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>First Name</Label>
+                  <Input
+                    value={editFirstName}
+                    onChange={e => setEditFirstName(e.target.value)}
+                    placeholder="First name"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Last Name</Label>
+                  <Input
+                    value={editLastName}
+                    onChange={e => setEditLastName(e.target.value)}
+                    placeholder="Last name"
+                  />
+                </div>
               </div>
             )}
             {/* PIN assignment — superadmin/admin can set any user's PIN; manager can set user-role PINs */}
