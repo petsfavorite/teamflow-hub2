@@ -75,49 +75,28 @@ export default function Dashboard() {
     enabled: !!user?.email && canManage,
   });
 
-  const today = new Date().toISOString().split('T')[0];
-  const now = new Date();
-  const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
-  const myTeamIds = teams.filter(t => t.member_emails?.includes(user?.email)).map(t => t.id);
-  const isManager = user && canManage && !isAdmin && !isSuperAdmin;
-
   const verificationDueSops = allSOPs.filter(sop => {
     if (!sop.verification_due_date) return false;
     const daysLeft = differenceInDays(parseISO(sop.verification_due_date), new Date());
-    if (daysLeft > 7) return false;
-    
-    // Managers only see SOPs assigned to them or their teams
-    if (isManager) {
-      const assignedToMe = sop.acknowledgement_assigned_emails?.includes(user?.email);
-      const assignedToMyTeam = sop.acknowledgement_assigned_teams?.some(tid => myTeamIds.includes(tid));
-      return assignedToMe || assignedToMyTeam;
-    }
-    return true;
+    return daysLeft <= 7;
   }).sort((a, b) => {
     const dA = differenceInDays(parseISO(a.verification_due_date), new Date());
     const dB = differenceInDays(parseISO(b.verification_due_date), new Date());
     return dA - dB;
   });
 
-  const pendingSOPs = allSOPs.filter(s => {
-    if (s.status !== 'pending_approval') return false;
-    
-    // Managers only see pending SOPs assigned to them or their teams
-    if (isManager) {
-      const assignedToMe = s.acknowledgement_assigned_emails?.includes(user?.email);
-      const assignedToMyTeam = s.acknowledgement_assigned_teams?.some(tid => myTeamIds.includes(tid));
-      return assignedToMe || assignedToMyTeam;
-    }
-    return true;
-  });
+  const pendingSOPs = allSOPs.filter(s => s.status === 'pending_approval');
 
   const incidents = allIncidents.filter(inc => {
     if (inc.status === 'resolved') return false;
     if (inc.is_private && !canApprove) return false;
-    // If assigned, only show to assigned user
-    if (inc.assigned_to && inc.assigned_to !== user?.email) return false;
     return true;
   });
+
+  const today = new Date().toISOString().split('T')[0];
+  const now = new Date();
+  const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+  const myTeamIds = teams.filter(t => t.member_emails?.includes(user?.email)).map(t => t.id);
 
   // For regular users: tasks/checklists due in ~1 hour (yellow)
   const urgentTasks = tasks.filter(t => {
@@ -173,29 +152,7 @@ export default function Dashboard() {
     !c.assigned_to || c.assigned_to.length === 0 || c.assigned_to.includes(user?.email)
   );
 
-  const openMaintenance = maintenanceRequests.filter(r => {
-    if (r.status === 'completed') return false;
-    // If assigned, only show to assigned user
-    if (r.assigned_to && r.assigned_to !== user?.email) return false;
-    return true;
-  });
-
-  const today = new Date().toISOString().split('T')[0];
-  const overdueItems = {
-    tasks: tasks.filter(t => {
-      if (t.status === 'completed' || t.status === 'cancelled') return false;
-      if (!t.due_date || t.due_date >= today) return false;
-      const assignedToMe = t.assigned_to_emails?.includes(user?.email);
-      const assignedToMyTeam = t.assigned_teams?.some(tid => myTeamIds.includes(tid));
-      return assignedToMe || assignedToMyTeam;
-    }),
-    checklists: checklists.filter(c => {
-      if (!c.due_date || c.due_date >= today) return false;
-      const assignedToMe = c.assigned_to_emails?.includes(user?.email);
-      const assignedToMyTeam = c.assigned_teams?.some(tid => myTeamIds.includes(tid));
-      return assignedToMe || assignedToMyTeam;
-    })
-  };
+  const openMaintenance = maintenanceRequests.filter(r => r.status !== 'completed');
 
   return (
     <div className="space-y-8">
@@ -313,7 +270,7 @@ export default function Dashboard() {
                     </div>
                   </Link>
                 ))}
-                {pendingSOPs.map(sop => (
+                {canApprove && pendingSOPs.map(sop => (
                   <Link key={sop.id} to={createPageUrl('SOPDetail') + `?id=${sop.id}`}>
                     <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 hover:bg-amber-100 transition-colors">
                       <ShieldAlert className="w-4 h-4 text-amber-600 flex-shrink-0" />
