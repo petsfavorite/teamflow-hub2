@@ -262,6 +262,25 @@ export default function Settings() {
     }
   };
 
+  const handleSaveInactivityTimeout = async () => {
+    setIsSavingTimeout(true);
+    try {
+      const mins = Math.max(1, Math.min(120, Number(inactivityMinutes)));
+      if (appSettingsId) {
+        await base44.entities.AppSettings.update(appSettingsId, { inactivity_timeout_minutes: mins });
+      } else {
+        const created = await base44.entities.AppSettings.create({ key: 'global', inactivity_timeout_minutes: mins });
+        setAppSettingsId(created.id);
+      }
+      setInactivityMinutes(mins);
+      alert(`Inactivity timeout set to ${mins} minute${mins !== 1 ? 's' : ''}`);
+    } catch {
+      alert('Failed to save timeout setting');
+    } finally {
+      setIsSavingTimeout(false);
+    }
+  };
+
   const handleSaveGlobalTimezone = async () => {
     setIsSavingGlobalTimezone(true);
     try {
