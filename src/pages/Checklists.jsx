@@ -630,11 +630,11 @@ export default function Checklists() {
         </div>
       )}
 
-      {/* Use Dialog */}
+      {/* Assignment Dialog */}
       <Dialog open={useDialogOpen} onOpenChange={setUseDialogOpen}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Use "{templateToUse?.title}"</DialogTitle>
+            <DialogTitle>{templateToUse?.assigned_to_emails?.length > 0 || templateToUse?.assigned_teams?.length > 0 ? 'Edit' : 'Assign'} "{templateToUse?.title}"</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             {/* Assign Users */}
