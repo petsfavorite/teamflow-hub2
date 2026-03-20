@@ -68,6 +68,34 @@ export default function UserManagement() {
     },
   });
 
+  const updateTeamsMutation = useMutation({
+    mutationFn: ({ id, team_ids }) => base44.entities.User.update(id, { team_ids }),
+    onSuccess: () => {
+      toast.success('Teams updated');
+      queryClient.invalidateQueries({ queryKey: ['all-users'] });
+      setEditingUser(null);
+    },
+  });
+
+  const createTeamMutation = useMutation({
+    mutationFn: (name) => base44.entities.Team.create({ name, member_emails: [], member_names: [] }),
+    onSuccess: () => {
+      toast.success('Team created');
+      queryClient.invalidateQueries({ queryKey: ['teams-mgmt'] });
+      setNewTeamName('');
+      setShowTeamDialog(false);
+    },
+  });
+
+  const deleteTeamMutation = useMutation({
+    mutationFn: (id) => base44.entities.Team.delete(id),
+    onSuccess: () => {
+      toast.success('Team deleted');
+      queryClient.invalidateQueries({ queryKey: ['teams-mgmt'] });
+      queryClient.invalidateQueries({ queryKey: ['all-users'] });
+    },
+  });
+
   const updateNameMutation = useMutation({
     mutationFn: ({ id, first_name, last_name, full_name }) => base44.functions.invoke('updateUserName', { userId: id, first_name, last_name, full_name }),
     onSuccess: () => {
