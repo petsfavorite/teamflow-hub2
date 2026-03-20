@@ -210,7 +210,7 @@ export default function Dashboard() {
       </div>
 
       {/* Notifications tile for regular users */}
-      {!canManage && (urgentTasks.length > 0 || urgentChecklists.length > 0 || newTasksToAck.length > 0 || newChecklistsToAck.length > 0) && (
+      {!canManage && (overdueIncompleteTeasks.length > 0 || urgentTasks.length > 0 || urgentChecklists.length > 0 || newTasksToAck.length > 0 || newChecklistsToAck.length > 0) && (
         <Card className="border-0 shadow-sm">
           <CardContent className="p-6">
             <div className="flex items-center gap-2 mb-4">
@@ -218,6 +218,19 @@ export default function Dashboard() {
               <h2 className="font-semibold text-slate-900">Notifications</h2>
             </div>
             <div className="space-y-2">
+              {/* Red: Overdue incomplete tasks */}
+              {overdueIncompleteTeasks.map(task => (
+                <Link key={task.id} to={createPageUrl('Tasks')}>
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-red-50 hover:bg-red-100 transition-colors">
+                    <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-red-900 truncate">⚠️ Task overdue: {task.title}</p>
+                      <p className="text-xs text-red-700">Was due {task.due_date}</p>
+                    </div>
+                    <ArrowRight className="w-3.5 h-3.5 text-red-600 flex-shrink-0" />
+                  </div>
+                </Link>
+              ))}
               {/* Yellow: Urgent (1 hour left) */}
               {urgentTasks.map(task => (
                 <Link key={task.id} to={createPageUrl('Tasks')}>
