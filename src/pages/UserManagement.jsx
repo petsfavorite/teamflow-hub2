@@ -128,6 +128,8 @@ export default function UserManagement() {
                         setEditingUser(u); 
                         setEditRole(u.role || 'user');
                         setEditName(u.full_name || '');
+                        setEditPin(u.pin || '');
+                        setPinError('');
                       }}
                       className={(() => {
                         if (u.id === user?.id) return 'invisible';
