@@ -39,6 +39,7 @@ const adminNavItems = [
     { name: 'ChecklistHistory', icon: History, label: 'Checklist History' },
     { name: 'Analytics', icon: BarChart2, label: 'Analytics' },
     { name: 'FetchCallData', icon: FileSpreadsheet, label: 'Fetch Call Data' },
+    { name: 'DevChecklist', icon: ClipboardList, label: 'Dev Checklist', superAdminOnly: true },
 ];
 
 const ADMIN_ROLES = ['admin', 'manager', 'super_admin'];
