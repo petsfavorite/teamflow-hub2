@@ -446,12 +446,13 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                             </CardHeader>
                             <CardContent className="space-y-3">
                                 <p className="text-sm text-red-800">
-                                    {visit.emergency_alert_type === 'both' 
-                                        ? 'No feces or urine observed in the last 48 hours'
-                                        : visit.emergency_alert_type === 'feces'
-                                        ? 'No feces observed in the last 48 hours'
-                                        : 'No urine observed in the last 48 hours'}
-                                </p>
+                                                                    {(() => {
+                                                                        const types = visit.emergency_alert_type?.split(',') || [];
+                                                                        const labels = { feces: 'feces', urine: 'urine', ate: 'eating' };
+                                                                        const missing = types.map(t => labels[t] || t).join(', ');
+                                                                        return `No ${missing} observed in the last 48 hours`;
+                                                                    })()}
+                                                                </p>
                                 {canDismissAlert && (
                                     <Button
                                         onClick={handleDismissEmergencyAlert}
