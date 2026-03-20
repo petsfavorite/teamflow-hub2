@@ -82,9 +82,25 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
         });
     };
 
-    const today2 = moment().format('YYYY-MM-DD');
+    const today2 = nowTick.format('YYYY-MM-DD');
     const hasCollectFeces = (visit) => visit.scheduled_tasks?.some(t => t.type === 'Collect Feces' && t.date === today2 && !t.completed) || false;
     const hasCollectUrine = (visit) => visit.scheduled_tasks?.some(t => t.type === 'Collect Urine' && t.date === today2 && !t.completed) || false;
+
+    const isOverdueAlert = (visit) => {
+        if (selectedDate !== today2) return false;
+        const cutoff = nowTick.clone().hour(19).minute(30).second(0);
+        return (visit.scheduled_tasks || []).some(task => {
+            if (task.completed) return false;
+            if (OVERDUE_EXEMPT_TYPES.includes(task.type)) return false;
+            if (task.date && task.date !== today2) return false;
+            if (task.time) {
+                const taskMoment = nowTick.clone().startOf('day').add(moment(task.time, 'h:mm A').diff(moment(task.time, 'h:mm A').clone().startOf('day')));
+                return nowTick.isAfter(taskMoment);
+            }
+            // No time — flag if it's past 7:30 PM
+            return nowTick.isAfter(cutoff);
+        });
+    };
 
 
 
