@@ -24,6 +24,8 @@ export default function UserManagement() {
   const [inviteRole, setInviteRole] = useState('user');
   const [editRole, setEditRole] = useState('user');
   const [editName, setEditName] = useState('');
+  const [editPin, setEditPin] = useState('');
+  const [pinError, setPinError] = useState('');
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['all-users'],
