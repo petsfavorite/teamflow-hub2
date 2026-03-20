@@ -170,11 +170,23 @@ export default function Reports() {
 
                                         <div className="space-y-2">
                                             <Button
-                                                className="w-full rounded-xl bg-[#82bb32] hover:bg-[#82bb32]/90"
-                                                onClick={() => window.open(report.report_url, '_blank')}
+                                            className="w-full rounded-xl bg-[#82bb32] hover:bg-[#82bb32]/90"
+                                            onClick={() => {
+                                            const pet = pets.find(p => p.id === report.pet_id);
+                                            const petFirstName = report.pet_name?.trim().split(' ')[0] || 'Pet';
+                                            const ownerLastName = pet?.owner_name ? pet.owner_name.trim().split(' ').pop() : 'Owner';
+                                            const serviceType = report.visit_type === 'boarding' ? 'Boarding' : 'PlayCamp';
+                                            const checkoutDate = report.check_out_date ? moment(report.check_out_date).format('YYYY-MM-DD') : '';
+                                            const filename = `${petFirstName}_${ownerLastName}_${serviceType}_${checkoutDate}.pdf`;
+                                            const a = document.createElement('a');
+                                            a.href = report.report_url;
+                                            a.download = filename;
+                                            a.target = '_blank';
+                                            a.click();
+                                            }}
                                             >
-                                                <Download className="w-4 h-4 mr-2" />
-                                                Download Report
+                                            <Download className="w-4 h-4 mr-2" />
+                                            Download Report
                                             </Button>
                                             {canDeleteReports && (
                                                 <Button
