@@ -309,6 +309,20 @@ export default function Settings() {
     }
   };
 
+  const handleSaveTeams = async () => {
+    setIsSavingTeams(true);
+    try {
+      await base44.auth.updateMe({ team_ids: selectedTeamIds });
+      setUser(prev => ({ ...prev, team_ids: selectedTeamIds }));
+      setEditProfileOpen(false);
+      alert('Teams updated successfully');
+    } catch (error) {
+      console.error('Error saving teams:', error);
+    } finally {
+      setIsSavingTeams(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-stone-50 pb-24">
       {/* Header */}
