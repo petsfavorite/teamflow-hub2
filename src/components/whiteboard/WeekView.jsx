@@ -129,9 +129,14 @@ export default function WeekView({ pets, visits, selectedWeekStart, onWeekChange
                                                         )}
                                                         <div>
                                                             <p className="font-medium text-sm text-gray-800">{pet.name}</p>
-                                                            {pet.special_needs && (
-                                                                <p className="text-xs text-amber-600">⚠️</p>
-                                                            )}
+                                                               <div className="flex items-center gap-1 flex-wrap">
+                                                                   {visit.location && (
+                                                                       <span className="text-xs font-medium text-stone-500 bg-stone-100 px-1.5 py-0.5 rounded">{visit.location}</span>
+                                                                   )}
+                                                                   {pet.special_needs && (
+                                                                       <span className="text-xs text-amber-600">⚠️</span>
+                                                                   )}
+                                                               </div>
                                                         </div>
                                                     </div>
                                                 </td>
