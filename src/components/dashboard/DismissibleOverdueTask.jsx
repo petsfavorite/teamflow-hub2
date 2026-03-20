@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useQueryClient } from '@tanstack/react-query';
 import { createPageUrl } from '@/utils';
 import { Link } from 'react-router-dom';
 import { AlertTriangle, ArrowRight, X, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -14,10 +16,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export default function DismissibleOverdueTask({ task, onDismiss, canEditDueDate }) {
+export default function DismissibleOverdueTask({ task, user }) {
   const [isOpen, setIsOpen] = useState(false);
   const [newDueDate, setNewDueDate] = useState(task.due_date || '');
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isDismissing, setIsDismissing] = useState(false);
+  const queryClient = useQueryClient();
 
   const handleUpdateDueDate = async () => {
     if (!newDueDate || newDueDate === task.due_date) {
