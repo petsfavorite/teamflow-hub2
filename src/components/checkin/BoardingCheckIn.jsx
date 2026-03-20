@@ -181,22 +181,22 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
         }
     });
         
-    // Add "Collect Feces" if requested - no template, persists daily until collected
+    // Add "Collect Feces" if requested
     if (needFecal) {
         const checkInDate = moment().format('YYYY-MM-DD');
-        const checkOutDate = checkoutDate;
         let currentDate = moment(checkInDate);
-        
-        while (currentDate.format('YYYY-MM-DD') <= checkOutDate) {
-            tasks.push({ 
-                type: 'Collect Feces', 
-                time: '', 
-                date: currentDate.format('YYYY-MM-DD'),
-                is_template: false, 
-                completed: false, 
-                completed_at: null,
-                collected: false
-            });
+        while (currentDate.format('YYYY-MM-DD') <= checkoutDate) {
+            tasks.push({ type: 'Collect Feces', time: '', date: currentDate.format('YYYY-MM-DD'), is_template: false, completed: false, completed_at: null, collected: false });
+            currentDate.add(1, 'day');
+        }
+    }
+
+    // Add "Collect Urine" if requested
+    if (needUrine) {
+        const checkInDate = moment().format('YYYY-MM-DD');
+        let currentDate = moment(checkInDate);
+        while (currentDate.format('YYYY-MM-DD') <= checkoutDate) {
+            tasks.push({ type: 'Collect Urine', time: '', date: currentDate.format('YYYY-MM-DD'), is_template: false, completed: false, completed_at: null, collected: false });
             currentDate.add(1, 'day');
         }
     }
@@ -279,7 +279,7 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
                     </div>
 
                     <div className="pt-4 border-t border-stone-100">
-                        <div className="flex items-center space-x-2 mb-4">
+                        <div className="flex items-center space-x-2 mb-2">
                             <Checkbox 
                                 id="needfecal" 
                                 checked={needFecal}
@@ -287,6 +287,16 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
                             />
                             <Label htmlFor="needfecal" className="cursor-pointer">
                                 Need Fecal?
+                            </Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <Checkbox 
+                                id="needurine" 
+                                checked={needUrine}
+                                onCheckedChange={setNeedUrine}
+                            />
+                            <Label htmlFor="needurine" className="cursor-pointer">
+                                Need Urine?
                             </Label>
                         </div>
                     </div>
