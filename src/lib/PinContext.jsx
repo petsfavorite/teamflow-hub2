@@ -17,6 +17,8 @@ function readSessionStorage() {
   }
 }
 
+const IS_PREVIEW = window.location.hostname.includes('base44.com') || window.location.hostname.includes('localhost');
+
 export function PinProvider({ children }) {
   const { isAuthenticated } = useAuth();
 
