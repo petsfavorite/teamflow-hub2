@@ -165,11 +165,11 @@ export default function Dashboard() {
     return assignedToMe || assignedToMyTeam;
   });
 
-  // "My Checklists Due Soon" - published checklists assigned to user with due date within next 7 days
+  // "My Checklists Due Soon" - published checklists assigned to user with due date within next 7 days (today through +7 days)
   const myChecklistsDueSoon = myChecklists.filter(c => {
     if (!c.due_date) return false;
-    const daysUntilDue = differenceInDays(parseISO(c.due_date), new Date());
-    return daysUntilDue >= 0 && daysUntilDue <= 7;
+    const daysUntilDue = differenceInDays(parseISO(c.due_date + 'T00:00:00'), new Date());
+    return daysUntilDue >= 0 && daysUntilDue <= 6;
   });
 
   const openMaintenance = maintenanceRequests.filter(r => {
