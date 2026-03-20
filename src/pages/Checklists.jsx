@@ -81,7 +81,7 @@ export default function Checklists() {
   // Template checklists - unassigned templates (no users, teams, or frequency set) for managers/admins only
   const templateChecklists = useMemo(() => {
     return allTemplates.filter(t => 
-      t.status === 'published' && 
+      (t.status === 'published' || t.status === 'active') && 
       (!t.assigned_to_emails || t.assigned_to_emails.length === 0) &&
       (!t.assigned_teams || t.assigned_teams.length === 0) &&
       (!t.recurrence_type || t.recurrence_type === 'once')
