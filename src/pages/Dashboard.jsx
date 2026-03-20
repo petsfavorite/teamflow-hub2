@@ -172,7 +172,12 @@ export default function Dashboard() {
     return daysUntilDue >= 0 && daysUntilDue <= 7;
   });
 
-  const openMaintenance = maintenanceRequests.filter(r => r.status !== 'completed');
+  const openMaintenance = maintenanceRequests.filter(r => {
+    if (r.status === 'completed') return false;
+    if (canManage) return true; // Managers see all
+    // Regular users see only maintenance they requested
+    return r.requested_by === user?.email;
+  });
 
   return (
     <div className="space-y-8">
