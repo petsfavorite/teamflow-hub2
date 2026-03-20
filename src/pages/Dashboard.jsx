@@ -75,6 +75,10 @@ export default function Dashboard() {
     enabled: !!user?.email && canManage,
   });
 
+  const today = new Date().toISOString().split('T')[0];
+  const now = new Date();
+  const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+  const myTeamIds = teams.filter(t => t.member_emails?.includes(user?.email)).map(t => t.id);
   const isManager = user && canManage && !isAdmin && !isSuperAdmin;
 
   const verificationDueSops = allSOPs.filter(sop => {
