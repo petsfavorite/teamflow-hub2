@@ -265,29 +265,37 @@ export default function UserManagement() {
             <Button variant="outline" onClick={() => setEditingUser(null)}>Cancel</Button>
             <Button
               onClick={async () => {
-                let namePromise = null;
-                let rolePromise = null;
-                
+                if (editPin && editPin.length !== 6) {
+                  setPinError('PIN must be exactly 6 digits');
+                  return;
+                }
+
+                const updates = {};
+                // Save PIN if changed (including clearing it)
+                const currentPin = editingUser?.pin || '';
+                if (editPin !== currentPin) {
+                  updates.pin = editPin || null;
+                }
+
+                if (Object.keys(updates).length > 0) {
+                  await base44.entities.User.update(editingUser.id, updates);
+                }
+
                 if (editName !== editingUser?.full_name) {
-                  namePromise = new Promise((resolve) => {
-                    const unsubscribe = updateNameMutation.status;
-                    updateNameMutation.mutate({ id: editingUser.id, full_name: editName }, {
-                      onSuccess: () => resolve()
-                    });
-                  });
+                  updateNameMutation.mutate({ id: editingUser.id, full_name: editName });
+                  return; // mutation closes dialog on success
                 }
                 if (editRole !== (editingUser?.role || 'user') && (isSuperAdmin || isAdmin || (isManager && editingUser?.id !== user?.id && (editingUser?.role === 'user' || !editingUser?.role)))) {
-                  rolePromise = new Promise((resolve) => {
-                    updateRoleMutation.mutate({ id: editingUser.id, role: editRole }, {
-                      onSuccess: () => resolve()
-                    });
-                  });
+                  updateRoleMutation.mutate({ id: editingUser.id, role: editRole });
+                  return;
                 }
-                
-                if (namePromise) await namePromise;
-                if (rolePromise) await rolePromise;
+                if (Object.keys(updates).length > 0) {
+                  toast.success('User updated');
+                  queryClient.invalidateQueries({ queryKey: ['all-users'] });
+                  setEditingUser(null);
+                }
               }}
-              disabled={updateNameMutation.isPending || updateRoleMutation.isPending || (editName === (editingUser?.full_name || '') && editRole === (editingUser?.role || 'user'))}
+              disabled={updateNameMutation.isPending || updateRoleMutation.isPending || !!pinError}
               className="bg-indigo-600 hover:bg-indigo-700 gap-2"
             >
               {(updateNameMutation.isPending || updateRoleMutation.isPending) && <Loader2 className="w-4 h-4 animate-spin" />} Save Changes
