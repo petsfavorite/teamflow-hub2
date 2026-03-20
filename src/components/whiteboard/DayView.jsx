@@ -155,6 +155,7 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
                         {petsWithVisits.map(({ pet, visit }) => {
                              const isCat = pet.species === 'Cat';
                              const needsFecesCollection = hasCollectFeces(visit);
+                             const needsUrineCollection = hasCollectUrine(visit);
                              const hasEmergencyAlert = visit.emergency_alert_active;
 
                             return (
@@ -166,8 +167,9 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
                                     layout
                                 >
                                     <Card className={`hover:shadow-md transition-shadow cursor-pointer ${
-                                        hasEmergencyAlert ? 'border-red-500 bg-red-200' :
-                                        needsFecesCollection ? 'border-amber-900 bg-stone-300' : 'border-gray-200'
+                                       hasEmergencyAlert ? 'border-red-500 bg-red-200' :
+                                       needsFecesCollection ? 'border-amber-800 bg-amber-100' :
+                                       needsUrineCollection ? 'border-yellow-400 bg-yellow-100' : 'border-gray-200'
                                     }`}
                                     onClick={() => onViewVisit(visit, pet)}>
                                         <CardContent className="p-0">
