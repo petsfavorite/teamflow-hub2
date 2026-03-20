@@ -86,6 +86,7 @@ export function PinProvider({ children }) {
   }, []);
 
   const startTimer = useCallback(() => {
+    if (IS_PREVIEW) return; // Disabled in Base44 preview
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => lock(), timeoutRef.current * 60 * 1000);
   }, [lock]);
