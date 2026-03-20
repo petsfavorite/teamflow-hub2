@@ -11,9 +11,12 @@ import PullToRefresh from '@/components/PullToRefresh';
 import { base44 } from '@/api/base44Client';
 import LocationEditor from './LocationEditor';
 
+const OVERDUE_EXEMPT_TYPES = ['Collect Feces', 'Collect Urine', 'Feces Observed', 'Ate', 'Urine Observed'];
+
 export default function DayView({ pets, visits, selectedDate, onDateChange, onViewVisit, onUpdateLocation, onRefresh }) {
 
     const [userTimezone, setUserTimezone] = useState('UTC');
+    const [nowTick, setNowTick] = useState(() => moment());
 
     useEffect(() => {
         const fetchUserTimezone = async () => {
@@ -25,6 +28,11 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
             }
         };
         fetchUserTimezone();
+    }, []);
+
+    useEffect(() => {
+        const interval = setInterval(() => setNowTick(moment()), 15 * 60 * 1000);
+        return () => clearInterval(interval);
     }, []);
 
     const todayVisits = visits.filter(v => {
