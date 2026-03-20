@@ -224,7 +224,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                         time: timestamp,
                         date: today,
                         activity: updatedTasks[i].type,
-                        notes: 'Auto-completed (within 60 min of play session)',
+                        notes: 'Auto-completed with play session',
                         staff: initials
                     }];
                 }
