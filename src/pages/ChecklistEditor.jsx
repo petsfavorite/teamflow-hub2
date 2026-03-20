@@ -199,11 +199,12 @@ export default function ChecklistEditor() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Due Date (optional)</Label>
+              <Label>Due Date <span className="text-red-500">*</span></Label>
               <Input
                 type="date"
                 value={form.due_date}
                 onChange={e => setForm({ ...form, due_date: e.target.value })}
+                required
               />
             </div>
             <div className="space-y-2">
