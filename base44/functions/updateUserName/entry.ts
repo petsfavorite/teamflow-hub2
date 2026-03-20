@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 
 Deno.serve(async (req) => {
   try {
@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    const { userId, full_name, first_name, last_name } = await req.json();
+    const { userId, full_name } = await req.json();
 
     // Fetch the target user to check their role
     const targetUser = await base44.asServiceRole.entities.User.get(userId);
@@ -24,16 +24,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Managers cannot rename users' }, { status: 403 });
     }
 
-    // Build the combined full_name from first/last if provided
-    const combinedName = (first_name || last_name)
-      ? `${first_name || ''} ${last_name || ''}`.trim()
-      : full_name;
-
-    const updates = { full_name: combinedName };
-    if (first_name !== undefined) updates.first_name = first_name;
-    if (last_name !== undefined) updates.last_name = last_name;
-
-    await base44.asServiceRole.entities.User.update(userId, updates);
+    await base44.asServiceRole.entities.User.update(userId, { full_name });
 
     return Response.json({ success: true });
   } catch (error) {

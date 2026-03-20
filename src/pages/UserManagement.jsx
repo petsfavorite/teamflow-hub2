@@ -24,8 +24,6 @@ export default function UserManagement() {
   const [inviteRole, setInviteRole] = useState('user');
   const [editRole, setEditRole] = useState('user');
   const [editName, setEditName] = useState('');
-  const [editFirstName, setEditFirstName] = useState('');
-  const [editLastName, setEditLastName] = useState('');
   const [editPin, setEditPin] = useState('');
   const [pinError, setPinError] = useState('');
 
@@ -209,16 +207,7 @@ export default function UserManagement() {
       </Dialog>
 
       {/* Edit User Dialog */}
-      <Dialog open={!!editingUser} onOpenChange={async (open) => {
-        if (!open && editingUser) {
-          // Auto-save name if changed when closing
-          if (editName !== (editingUser.full_name || '') && editName.trim()) {
-            updateNameMutation.mutate({ id: editingUser.id, full_name: editName.trim() });
-            return; // mutation closes dialog on success
-          }
-        }
-        setEditingUser(null);
-      }}>
+      <Dialog open={!!editingUser} onOpenChange={() => setEditingUser(null)}>
         <DialogContent>
           <DialogHeader><DialogTitle>Edit User — {editingUser?.email}</DialogTitle></DialogHeader>
           <div className="space-y-4">
