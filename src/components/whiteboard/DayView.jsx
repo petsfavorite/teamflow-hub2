@@ -74,10 +74,9 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
         });
     };
 
-    // Check if pet has an incomplete "Collect Feces" task
-    const hasCollectFeces = (visit) => {
-        return visit.scheduled_tasks?.some(task => task.type === 'Collect Feces' && !task.completed) || false;
-    };
+    const today2 = moment().format('YYYY-MM-DD');
+    const hasCollectFeces = (visit) => visit.scheduled_tasks?.some(t => t.type === 'Collect Feces' && t.date === today2 && !t.completed) || false;
+    const hasCollectUrine = (visit) => visit.scheduled_tasks?.some(t => t.type === 'Collect Urine' && t.date === today2 && !t.completed) || false;
 
 
 
