@@ -322,10 +322,28 @@ export default function SOPEditor() {
           </div>
 
           <div className="space-y-2">
-            <Label>Step-by-Step Instructions *</Label>
-            <div className="min-h-[300px]">
-              <ReactQuill value={form.instructions} onChange={v => set('instructions', v)} className="bg-white rounded-lg" theme="snow" />
+            <div className="flex items-center justify-between">
+              <Label>Step-by-Step Instructions *</Label>
+              <button
+                type="button"
+                onClick={() => setEditInstructions(!editInstructions)}
+                className="text-xs text-indigo-600 hover:text-indigo-700 font-medium"
+              >
+                {editInstructions ? 'Rich Editor' : 'Edit as Text'}
+              </button>
             </div>
+            {editInstructions ? (
+              <Textarea
+                value={form.instructions}
+                onChange={e => set('instructions', e.target.value)}
+                placeholder="Enter step-by-step instructions..."
+                rows={10}
+              />
+            ) : (
+              <div className="min-h-[300px]">
+                <ReactQuill value={form.instructions} onChange={v => set('instructions', v)} className="bg-white rounded-lg" theme="snow" />
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
