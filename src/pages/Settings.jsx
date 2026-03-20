@@ -687,6 +687,11 @@ export default function Settings() {
                 {isSavingGlobalTimezone ? 'Saving...' : 'Update All Users'}
               </Button>
             )}
+            {(isSuperAdmin || isAdmin) && (
+              <Button className="rounded-xl bg-[#82bb32] hover:bg-[#82bb32]/90" onClick={handleSaveTeams} disabled={isSavingTeams}>
+                {isSavingTeams ? 'Saving...' : 'Save Teams'}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
