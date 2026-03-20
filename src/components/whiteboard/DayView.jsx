@@ -228,10 +228,8 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
                                                 
                                                 <div className="flex items-center justify-between mb-2">
                                                     <div>
-                                                        <p className="text-xs text-gray-500">Location</p>
-                                                        <p className="text-sm font-medium text-gray-700">
-                                                            {visit.location || 'Not Set'}
-                                                        </p>
+                                                        <p className="text-xs text-gray-500 mb-1">Location</p>
+                                                        <LocationEditor visit={visit} onSaved={(loc) => onUpdateLocation?.(visit, loc)} />
                                                     </div>
                                                     <p className={`text-xs ${visit.picture_sent ? 'text-emerald-600' : 'text-gray-400'}`}>
                                                         📸 {visit.picture_sent ? 'Sent' : 'Not Sent'}
@@ -337,13 +335,11 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
                                                             </div>
 
                                                             {/* Location & Photo Status */}
-                                                                <div className="p-4 w-[140px]">
-                                                                    <div className="rounded-lg px-3 py-2">
-                                                                        <p className="text-xs text-gray-500">Location</p>
-                                                                        <p className="text-sm font-medium text-gray-700">
-                                                                            {visit.location || 'Not Set'}
-                                                                        </p>
-                                                                        <p className={`text-xs mt-1 ${visit.picture_sent ? 'text-emerald-600' : 'text-gray-400'}`}>
+                                                                <div className="p-4 w-[160px]">
+                                                                    <div className="rounded-lg">
+                                                                        <p className="text-xs text-gray-500 mb-1">Location</p>
+                                                                        <LocationEditor visit={visit} onSaved={(loc) => onUpdateLocation?.(visit, loc)} />
+                                                                        <p className={`text-xs mt-2 ${visit.picture_sent ? 'text-emerald-600' : 'text-gray-400'}`}>
                                                                             📸 Photo {visit.picture_sent ? 'Sent' : 'Not Sent'}
                                                                         </p>
                                                                     </div>
