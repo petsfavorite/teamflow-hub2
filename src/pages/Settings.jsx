@@ -355,6 +355,43 @@ export default function Settings() {
           </CardContent>
         </Card>
 
+        {/* Inactivity Timeout - SuperAdmin only */}
+        {isSuperAdmin && (
+          <Card className="border-0 shadow-sm rounded-2xl">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2 text-stone-800">
+                <Timer className="w-4 h-4 text-[#82bb32]" />
+                PIN Lock — Inactivity Timeout
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-stone-600">
+                After this many minutes of inactivity, users will be prompted to re-enter their 6-digit PIN. 
+                If they don't unlock within 60 minutes, they must sign in with email & password again.
+              </p>
+              <div className="flex items-center gap-3">
+                <Input
+                  type="number"
+                  min={1}
+                  max={120}
+                  value={inactivityMinutes}
+                  onChange={e => setInactivityMinutes(e.target.value)}
+                  className="rounded-xl w-28 text-center font-mono text-lg"
+                />
+                <span className="text-sm text-stone-500">minutes</span>
+                <Button
+                  onClick={handleSaveInactivityTimeout}
+                  disabled={isSavingTimeout}
+                  className="rounded-xl bg-[#82bb32] hover:bg-[#82bb32]/90 ml-auto"
+                >
+                  {isSavingTimeout ? 'Saving…' : 'Save'}
+                </Button>
+              </div>
+              <p className="text-xs text-stone-400">Min: 1 min · Max: 120 min · Current: {inactivityMinutes} min</p>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Pet Import - Admin only */}
         {isSuperAdmin && (<Card className="border-0 shadow-sm rounded-2xl">
           <CardHeader className="pb-2">
