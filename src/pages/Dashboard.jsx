@@ -173,7 +173,29 @@ export default function Dashboard() {
     !c.assigned_to || c.assigned_to.length === 0 || c.assigned_to.includes(user?.email)
   );
 
-  const openMaintenance = maintenanceRequests.filter(r => r.status !== 'completed');
+  const openMaintenance = maintenanceRequests.filter(r => {
+    if (r.status === 'completed') return false;
+    // If assigned, only show to assigned user
+    if (r.assigned_to && r.assigned_to !== user?.email) return false;
+    return true;
+  });
+
+  const today = new Date().toISOString().split('T')[0];
+  const overdueItems = {
+    tasks: tasks.filter(t => {
+      if (t.status === 'completed' || t.status === 'cancelled') return false;
+      if (!t.due_date || t.due_date >= today) return false;
+      const assignedToMe = t.assigned_to_emails?.includes(user?.email);
+      const assignedToMyTeam = t.assigned_teams?.some(tid => myTeamIds.includes(tid));
+      return assignedToMe || assignedToMyTeam;
+    }),
+    checklists: checklists.filter(c => {
+      if (!c.due_date || c.due_date >= today) return false;
+      const assignedToMe = c.assigned_to_emails?.includes(user?.email);
+      const assignedToMyTeam = c.assigned_teams?.some(tid => myTeamIds.includes(tid));
+      return assignedToMe || assignedToMyTeam;
+    })
+  };
 
   return (
     <div className="space-y-8">
