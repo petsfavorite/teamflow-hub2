@@ -200,6 +200,38 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
              return;
          }
 
+        // If this is a Play Session task, auto-complete nearby Walk tasks (within 60 min)
+        if (task.type && task.type.toLowerCase().includes('play')) {
+            const taskMoment = task.time ? moment(task.time, 'h:mm A') : moment();
+            const taskDate = task.date || today;
+            updatedTasks.forEach((t, i) => {
+                if (t.completed) return;
+                if (!t.type?.toLowerCase().includes('walk')) return;
+                if ((t.date || taskDate) !== taskDate) return;
+                const walkTime = t.time ? moment(t.time, 'h:mm A') : null;
+                if (!walkTime) return;
+                const diffMins = Math.abs(walkTime.diff(taskMoment, 'minutes'));
+                if (diffMins <= 60) {
+                    updatedTasks[i] = {
+                        ...updatedTasks[i],
+                        completed: true,
+                        completed_at: timestamp,
+                        completed_iso: new Date().toISOString(),
+                        completed_by: initials,
+                        completed_date: today
+                    };
+                    updateObj.care_log = [...(updateObj.care_log || careLog), {
+                        time: timestamp,
+                        date: today,
+                        activity: updatedTasks[i].type,
+                        notes: 'Auto-completed (within 60 min of play session)',
+                        staff: initials
+                    }];
+                }
+            });
+            updateObj.scheduled_tasks = updatedTasks;
+        }
+
         // Optimistic update
         onUpdateVisit(updateObj);
     };
