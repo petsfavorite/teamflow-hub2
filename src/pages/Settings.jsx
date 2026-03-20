@@ -103,35 +103,24 @@ export default function Settings() {
     XLSX.writeFile(wb, 'pet_import_template.xlsx');
   };
 
-  const parseCSVFile = async (file) => {
-    const text = await file.text();
-    const lines = text.split('\n').filter(l => l.trim());
-    if (lines.length < 3) return null;
+  const parseXLSXFile = async (file) => {
+    const buffer = await file.arrayBuffer();
+    const wb = XLSX.read(buffer, { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const allRows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
 
-    const parseCSVLine = (line) => {
-      const result = [];
-      let current = '';
-      let inQuotes = false;
-      for (let i = 0; i < line.length; i++) {
-        if (line[i] === '"') { inQuotes = !inQuotes; }
-        else if (line[i] === ',' && !inQuotes) { result.push(current.trim()); current = ''; }
-        else { current += line[i]; }
-      }
-      result.push(current.trim());
-      return result;
-    };
+    // Row 0 = headers, Row 1 = guidance (skip), Row 2+ = data
+    if (allRows.length < 3) return null;
+    const headers = allRows[0].map(h => String(h).trim());
+    const dataRows = allRows.slice(2);
 
-    const headers = parseCSVLine(lines[0]);
-    const dataLines = lines.slice(2);
     const rows = [];
-    for (const line of dataLines) {
-      if (!line.trim()) continue;
-      const values = parseCSVLine(line);
+    for (const values of dataRows) {
       const row = {};
-      headers.forEach((h, i) => { row[h] = values[i] || ''; });
+      headers.forEach((h, i) => { row[h] = values[i] !== undefined ? String(values[i]).trim() : ''; });
       if (row.name && row.owner_name) rows.push(row);
     }
-    return rows;
+    return rows.length > 0 ? rows : null;
   };
 
   const handleFileChange = async (file) => {
@@ -142,7 +131,7 @@ export default function Settings() {
     if (!file) return;
 
     setCheckingDuplicates(true);
-    const rows = await parseCSVFile(file);
+    const rows = await parseXLSXFile(file);
     if (!rows) { setCheckingDuplicates(false); return; }
 
     const existingPets = await base44.entities.Pet.list();
@@ -206,9 +195,9 @@ export default function Settings() {
     setImporting(true);
     setImportResult(null);
 
-    const rows = parsedRows.length > 0 ? parsedRows : await parseCSVFile(importFile);
+    const rows = parsedRows.length > 0 ? parsedRows : await parseXLSXFile(importFile);
     if (!rows) {
-      setImportResult({ error: 'File must have a header row, notes row, and at least one data row.' });
+      setImportResult({ error: 'File must have a header row, guidance row, and at least one data row.' });
       setImporting(false);
       return;
     }
@@ -346,7 +335,7 @@ export default function Settings() {
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-sm text-stone-600">
-              Download the CSV template, fill it in with pet data, then upload it to bulk-import pets.
+              Download the Excel template, fill it in with pet data, then upload it to bulk-import pets.
             </p>
             <Button
               variant="outline"
@@ -354,20 +343,20 @@ export default function Settings() {
               onClick={handleDownloadTemplate}
             >
               <Download className="w-4 h-4 mr-2" />
-              Download Template CSV
+              Download Template (.xlsx)
             </Button>
             <div className="flex items-center gap-3">
               <input
                 type="file"
-                accept=".csv"
-                id="csvUpload"
+                accept=".xlsx,.xls"
+                id="xlsxUpload"
                 className="hidden"
                 onChange={(e) => handleFileChange(e.target.files[0])}
               />
-              <label htmlFor="csvUpload" className="flex-1">
+              <label htmlFor="xlsxUpload" className="flex-1">
                 <div className="border-2 border-dashed border-stone-200 rounded-xl p-3 text-center cursor-pointer hover:border-[#82bb32]/40 transition-colors">
                   <p className="text-sm text-stone-500">
-                    {importFile ? importFile.name : 'Click to select filled CSV'}
+                    {importFile ? importFile.name : 'Click to select filled .xlsx file'}
                   </p>
                 </div>
               </label>
