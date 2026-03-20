@@ -301,18 +301,31 @@ export default function ChecklistEditor() {
               </Button>
             </div>
             {form.items.map((item, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <GripVertical className="w-4 h-4 text-slate-300 flex-shrink-0" />
-                <span className="text-xs text-slate-400 w-6">{i + 1}.</span>
-                <Input
-                  value={item.label}
-                  onChange={e => updateItem(i, e.target.value)}
-                  placeholder="Item description"
-                  className="flex-1"
-                />
-                <Button type="button" variant="ghost" size="icon" onClick={() => removeItem(i)}>
-                  <Trash2 className="w-4 h-4 text-red-400" />
-                </Button>
+              <div key={i} className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <GripVertical className="w-4 h-4 text-slate-300 flex-shrink-0" />
+                  <span className="text-xs text-slate-400 w-6">{i + 1}.</span>
+                  <Input
+                    value={item.label}
+                    onChange={e => updateItem(i, 'label', e.target.value)}
+                    placeholder="Item description"
+                    className="flex-1"
+                  />
+                  <Button type="button" variant="ghost" size="icon" onClick={() => removeItem(i)}>
+                    <Trash2 className="w-4 h-4 text-red-400" />
+                  </Button>
+                </div>
+                <div className="ml-10">
+                  <Select value={item.sop_id || ''} onValueChange={v => updateItem(i, 'sop_id', v || undefined)}>
+                    <SelectTrigger className="text-xs"><SelectValue placeholder="Attach SOP (optional)" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={null}>No SOP</SelectItem>
+                      {sops.map(sop => (
+                        <SelectItem key={sop.id} value={sop.id}>{sop.title}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             ))}
             {form.items.length === 0 && (
