@@ -16,6 +16,7 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
      const [addPlayCamp, setAddPlayCamp] = useState(false);
      const [whatWasBrought, setWhatWasBrought] = useState('');
      const [needFecal, setNeedFecal] = useState(false);
+     const [needUrine, setNeedUrine] = useState(false);
      const [visitMedications, setVisitMedications] = useState(
          pet.medications?.length > 0 ? pet.medications.map(m => ({ ...m })) : []
      );

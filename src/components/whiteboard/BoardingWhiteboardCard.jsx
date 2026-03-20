@@ -32,8 +32,16 @@ export default function BoardingWhiteboardCard({ pet, visit, onViewVisit }) {
     // Check if picture needs to be sent
     const needsPicture = pet.daily_picture && !visit.picture_sent;
 
+    const today = moment().format('YYYY-MM-DD');
+    const hasPendingFeces = (visit.scheduled_tasks || []).some(t => t.type === 'Collect Feces' && t.date === today && !t.completed);
+    const hasPendingUrine = (visit.scheduled_tasks || []).some(t => t.type === 'Collect Urine' && t.date === today && !t.completed);
+
     const cardColor = visit.emergency_alert_active 
         ? 'border-red-500 bg-red-200' 
+        : (hasPendingFeces || (hasPendingFeces && hasPendingUrine))
+        ? 'border-amber-800 bg-amber-100'
+        : hasPendingUrine
+        ? 'border-yellow-400 bg-yellow-100'
         : 'border-stone-200 bg-stone-50';
 
     return (
