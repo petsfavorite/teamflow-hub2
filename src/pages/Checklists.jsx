@@ -406,10 +406,21 @@ export default function Checklists() {
         </div>
       ) : (
         <div className="space-y-8">
+          {/* Search Bar */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Input
+              placeholder="Search checklists..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
           {/* My Checklists - visible to all users */}
           <div>
             <h2 className="text-lg font-semibold text-slate-900 mb-4">My Checklists</h2>
-            {myChecklists.length === 0 ? (
+            {myChecklists.filter(t => t.title.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 ? (
               <EmptyState
                 icon={CheckSquare}
                 title="No checklists assigned"
