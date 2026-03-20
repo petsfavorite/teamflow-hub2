@@ -122,7 +122,7 @@ export default function Dashboard() {
     return dueDateTime <= oneHourFromNow && dueDateTime > now;
   });
 
-  // For regular users: overdue incomplete tasks (red)
+  // For regular users: overdue incomplete tasks (red) - only removed when completed
   const overdueIncompleteTeasks = tasks.filter(t => {
     if (t.status === 'completed' || t.status === 'cancelled') return false;
     if (!t.due_date || t.due_date >= today) return false; // Only overdue
@@ -130,6 +130,19 @@ export default function Dashboard() {
     const assignedToMyTeam = t.assigned_teams?.some(tid => myTeamIds.includes(tid));
     return assignedToMe || assignedToMyTeam;
   });
+
+  // For managers/admins: overdue incomplete tasks assigned to others in their teams (dismissible)
+  const managersSeenOverdueTasks = canManage ? tasks.filter(t => {
+    if (t.status === 'completed' || t.status === 'cancelled') return false;
+    if (!t.due_date || t.due_date >= today) return false; // Only overdue
+    if (dismissedOverdueTasks.includes(t.id)) return false; // Exclude dismissed
+    // Don't show own tasks (regular users see overdue own tasks above)
+    const assignedToMe = t.assigned_to_emails?.includes(user?.email);
+    if (assignedToMe && t.assigned_to_emails.length === 1) return false;
+    // Show if assigned to team members (not self)
+    const assignedToMyTeam = t.assigned_teams?.some(tid => myTeamIds.includes(tid));
+    return assignedToMyTeam && !assignedToMe;
+  }).filter(t => !dismissedOverdueTasks.includes(t.id)) : [];
 
   // For regular users: checklists due in ~1 hour (yellow)
   const urgentChecklists = checklists.filter(c => {
