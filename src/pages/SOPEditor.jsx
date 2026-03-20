@@ -41,6 +41,7 @@ export default function SOPEditor() {
   const [form, setForm] = useState(defaultForm);
   const [tagsInput, setTagsInput] = useState('');
   const [changeSummary, setChangeSummary] = useState('');
+  const [editInstructions, setEditInstructions] = useState(false);
 
   const { data: teams = [] } = useQuery({
     queryKey: ['teams'],
