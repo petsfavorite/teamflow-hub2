@@ -157,9 +157,13 @@ export default function Dashboard() {
     return assignedToMe || assignedToMyTeam;
   });
 
-  const myChecklists = checklists.filter(c =>
-    !c.assigned_to || c.assigned_to.length === 0 || c.assigned_to.includes(user?.email)
-  );
+  // "My Checklists" shows all active, unfinished checklists assigned to user (any role) or their teams
+  const myChecklists = checklists.filter(c => {
+    if (c.status !== 'active' && c.status !== 'published') return false;
+    const assignedToMe = c.assigned_to_emails?.includes(user?.email);
+    const assignedToMyTeam = c.assigned_teams?.some(tid => myTeamIds.includes(tid));
+    return assignedToMe || assignedToMyTeam;
+  });
 
   const openMaintenance = maintenanceRequests.filter(r => r.status !== 'completed');
 
