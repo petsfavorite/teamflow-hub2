@@ -727,32 +727,40 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
 
 
                     {/* Daily Picture */}
-                    {(pet.daily_picture || isPlayCamp) && (
-                        <Card className="border-0 shadow-sm rounded-2xl">
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-sm flex items-center gap-2">
-                                    <Camera className="w-4 h-4 text-blue-500" />
-                                    Daily Picture
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                {visit.picture_sent ? (
-                                    <div className="flex items-center gap-2 text-emerald-600 bg-emerald-50 p-2 rounded-lg">
-                                        <CheckCircle2 className="w-4 h-4" />
-                                        <span className="text-sm font-medium">Picture sent to {pet.owner_name}</span>
-                                    </div>
-                                ) : (
-                                    <Button 
-                                        size="sm" 
-                                        onClick={handleSendPicture}
-                                        className="w-full rounded-xl bg-blue-500 hover:bg-blue-600 h-8 text-xs"
-                                    >
-                                        Mark Picture as Sent
-                                    </Button>
-                                )}
-                            </CardContent>
-                        </Card>
-                    )}
+                     <Card className="border-0 shadow-sm rounded-2xl">
+                         <CardHeader className="pb-2">
+                             <CardTitle className="text-sm flex items-center gap-2">
+                                 <Camera className="w-4 h-4 text-blue-500" />
+                                 Daily Picture
+                             </CardTitle>
+                         </CardHeader>
+                         <CardContent>
+                             {visit.picture_sent ? (
+                                 <div className="flex items-center justify-between gap-3">
+                                     <div className="flex items-center gap-2 text-emerald-600 bg-emerald-50 p-2 rounded-lg flex-1">
+                                         <CheckCircle2 className="w-4 h-4" />
+                                         <span className="text-sm font-medium">Picture sent to {pet.owner_name}</span>
+                                     </div>
+                                     <Button 
+                                         size="sm" 
+                                         variant="outline"
+                                         onClick={() => onUpdateVisit({ ...visit, picture_sent: false })}
+                                         className="rounded-xl h-8 text-xs text-stone-600 hover:bg-stone-100"
+                                     >
+                                         Undo
+                                     </Button>
+                                 </div>
+                             ) : (
+                                 <Button 
+                                     size="sm" 
+                                     onClick={handleSendPicture}
+                                     className="w-full rounded-xl bg-blue-500 hover:bg-blue-600 h-8 text-xs"
+                                 >
+                                     Photo Sent
+                                 </Button>
+                             )}
+                         </CardContent>
+                     </Card>
 
                     {/* Ate Meal Notes */}
                     {(() => {
