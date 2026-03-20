@@ -212,7 +212,23 @@ export default function UserManagement() {
           <DialogHeader><DialogTitle>Edit User — {editingUser?.email}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             {/* Name editing: admin can rename user/manager, super_admin can also rename admin */}
-            {(isSuperAdmin || (isAdmin && !['admin', 'super_admin'].includes(editingUser?.role))) && (
+            {isSuperAdmin && (
+              <div className="space-y-2">
+                <Label>Display Name</Label>
+                <Input 
+                  value={editName} 
+                  onChange={e => setEditName(e.target.value)}
+                  onBlur={() => {
+                    if (editName.trim() && editName !== editingUser?.full_name) {
+                      updateNameMutation.mutate({ id: editingUser.id, full_name: editName.trim() });
+                    }
+                  }}
+                  placeholder="Full name"
+                />
+                {updateNameMutation.isPending && <p className="text-xs text-slate-400">Saving name…</p>}
+              </div>
+            )}
+            {(!isSuperAdmin && isAdmin && !['admin', 'super_admin'].includes(editingUser?.role)) && (
               <div className="space-y-2">
                 <Label>Display Name</Label>
                 <Input 
