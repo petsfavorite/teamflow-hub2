@@ -428,7 +428,7 @@ export default function Checklists() {
               />
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {myChecklists.map(template => (
+                {myChecklists.filter(t => t.title.toLowerCase().includes(searchTerm.toLowerCase())).map(template => (
                   <Card 
                     key={template.id} 
                     className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
