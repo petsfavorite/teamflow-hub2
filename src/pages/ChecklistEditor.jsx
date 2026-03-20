@@ -107,9 +107,20 @@ export default function ChecklistEditor() {
 
   const handleSave = () => {
     saveMutation.mutate({
-      ...form,
+      title: form.title,
+      description: form.description,
+      category: form.category,
+      status: form.status,
+      items: form.items,
       assigned_to_emails: selectedUsers,
-      assigned_to_teams: selectedTeams
+      assigned_to_names: selectedUsers.map(email => users.find(u => u.email === email)?.full_name || email),
+      assigned_teams: selectedTeams,
+      due_date: form.due_date || undefined,
+      due_time: form.due_time || '21:00',
+      recurrence_type: form.recurrence_type,
+      recurrence_days_of_week: form.recurrence_days_of_week,
+      recurrence_day_of_month: form.recurrence_day_of_month,
+      recurrence_interval_months: form.recurrence_interval_months
     });
   };
 
