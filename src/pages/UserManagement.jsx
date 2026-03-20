@@ -59,7 +59,7 @@ export default function UserManagement() {
   });
 
   const updateNameMutation = useMutation({
-    mutationFn: ({ id, full_name }) => base44.functions.invoke('updateUserName', { userId: id, full_name }),
+    mutationFn: ({ id, first_name, last_name, full_name }) => base44.functions.invoke('updateUserName', { userId: id, first_name, last_name, full_name }),
     onSuccess: () => {
       toast.success('Name updated');
       queryClient.invalidateQueries({ queryKey: ['all-users'] });
