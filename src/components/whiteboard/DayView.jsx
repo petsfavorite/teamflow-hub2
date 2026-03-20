@@ -9,6 +9,7 @@ import moment from "moment";
 import 'moment-timezone';
 import PullToRefresh from '@/components/PullToRefresh';
 import { base44 } from '@/api/base44Client';
+import LocationEditor from './LocationEditor';
 
 export default function DayView({ pets, visits, selectedDate, onDateChange, onViewVisit, onUpdateLocation, onRefresh }) {
 

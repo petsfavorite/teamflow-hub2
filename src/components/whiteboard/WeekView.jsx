@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dog, Cat, ChevronRight, ChevronLeft, Calendar } from "lucide-react";
 import moment from "moment";
+import LocationEditor from './LocationEditor';
 
 export default function WeekView({ pets, visits, selectedWeekStart, onWeekChange, onViewVisit, onViewVisitForDate }) {
     const weekDays = Array.from({ length: 7 }, (_, i) => 
