@@ -373,17 +373,20 @@ export default function Checklists() {
             </Card>
           ))}
         </div>
-      ) : myTemplates.length === 0 ? (
-        <EmptyState
-          icon={CheckSquare}
-          title={canManage ? "No checklists to assign" : "No checklists assigned"}
-          description={canManage ? "Create a checklist and use the 'Use' button to assign it" : "You don't have any checklists assigned for today"}
-        />
       ) : (
-        <div>
-          {canManage && <h2 className="text-lg font-semibold text-slate-900 mb-4">Assign Checklists</h2>}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {myTemplates.map(template => (
+        <div className="space-y-8">
+          {/* My Checklists - visible to all users */}
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900 mb-4">My Checklists</h2>
+            {myChecklists.length === 0 ? (
+              <EmptyState
+                icon={CheckSquare}
+                title="No checklists assigned"
+                description="You don't have any checklists assigned"
+              />
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {myChecklists.map(template => (
               <Card key={template.id} className="border-0 shadow-sm">
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between mb-3">
