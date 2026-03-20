@@ -319,6 +319,15 @@ export default function Dashboard() {
               <p className="text-sm text-slate-400 py-2 text-center">No pending notifications</p>
             ) : (
               <div className="space-y-2">
+                {/* Team members' overdue tasks - dismissible for managers */}
+                {managersSeenOverdueTasks.map(task => (
+                  <DismissibleOverdueTask
+                    key={task.id}
+                    task={task}
+                    onDismiss={(taskId) => setDismissedOverdueTasks([...dismissedOverdueTasks, taskId])}
+                    canEditDueDate={!isManager || task.assigned_to_emails?.every(e => e !== user?.email)}
+                  />
+                ))}
                 {incidents.map(inc => (
                   <Link key={inc.id} to={createPageUrl('IncidentReports')}>
                     <div className="flex items-center gap-3 p-3 rounded-lg bg-red-50 hover:bg-red-100 transition-colors">
