@@ -45,6 +45,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
 
     const canDismissAlert = currentUser && ['admin', 'manager', 'super_admin'].includes(currentUser.role);
     const [locationInput, setLocationInput] = useState(visit?.location || '');
+    useEffect(() => { setLocationInput(visit?.location || ''); }, [visit?.location]);
     const [addingTask, setAddingTask] = useState(false);
     const [newTaskType, setNewTaskType] = useState('');
     const [newTaskTime, setNewTaskTime] = useState('');
