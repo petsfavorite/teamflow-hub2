@@ -51,6 +51,9 @@ export default function Settings() {
   const [globalTimezone, setGlobalTimezone] = useState('America/New_York');
   const [allUsers, setAllUsers] = useState([]);
   const [isSavingGlobalTimezone, setIsSavingGlobalTimezone] = useState(false);
+  const [inactivityMinutes, setInactivityMinutes] = useState(5);
+  const [isSavingTimeout, setIsSavingTimeout] = useState(false);
+  const [appSettingsId, setAppSettingsId] = useState(null);
 
   const handleDownloadTemplate = () => {
     // Row 1: column headers
