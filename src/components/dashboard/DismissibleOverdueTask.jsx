@@ -32,11 +32,36 @@ export default function DismissibleOverdueTask({ task, user }) {
     setIsUpdating(true);
     try {
       await base44.entities.Task.update(task.id, { due_date: newDueDate });
+      toast.success('Due date updated');
+      queryClient.invalidateQueries({ queryKey: ['tasks-dash'] });
       setIsOpen(false);
     } catch (error) {
       console.error('Failed to update due date:', error);
+      toast.error('Failed to update due date');
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  const handleDismiss = async () => {
+    setIsDismissing(true);
+    try {
+      const dismissals = task.dismissed_notifications || [];
+      const updatedDismissals = [
+        ...dismissals,
+        {
+          user_email: user?.email,
+          dismissed_at: new Date().toISOString()
+        }
+      ];
+      await base44.entities.Task.update(task.id, { dismissed_notifications: updatedDismissals });
+      toast.success('Notification dismissed for 24 hours');
+      queryClient.invalidateQueries({ queryKey: ['tasks-dash'] });
+    } catch (error) {
+      console.error('Failed to dismiss notification:', error);
+      toast.error('Failed to dismiss notification');
+    } finally {
+      setIsDismissing(false);
     }
   };
 
