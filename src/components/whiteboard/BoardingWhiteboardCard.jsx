@@ -38,7 +38,7 @@ export default function BoardingWhiteboardCard({ pet, visit, onViewVisit }) {
 
     const cardColor = visit.emergency_alert_active 
         ? 'border-red-500 bg-red-200' 
-        : (hasPendingFeces || (hasPendingFeces && hasPendingUrine))
+        : hasPendingFeces
         ? 'border-amber-800 bg-amber-100'
         : hasPendingUrine
         ? 'border-yellow-400 bg-yellow-100'
@@ -93,6 +93,16 @@ export default function BoardingWhiteboardCard({ pet, visit, onViewVisit }) {
                                         <Badge className="bg-emerald-100 text-emerald-700 border-0 text-xs px-2 py-0">
                                             <Sparkles className="w-2 h-2 mr-1" />
                                             Play
+                                        </Badge>
+                                    )}
+                                    {hasPendingUrine && (
+                                        <Badge className="bg-yellow-200 text-yellow-800 border-yellow-400 text-xs px-2 py-0">
+                                            Need Urine Sample
+                                        </Badge>
+                                    )}
+                                    {hasPendingFeces && (
+                                        <Badge className="bg-amber-200 text-amber-800 border-amber-400 text-xs px-2 py-0">
+                                            Need Fecal Sample
                                         </Badge>
                                     )}
                                 </div>
