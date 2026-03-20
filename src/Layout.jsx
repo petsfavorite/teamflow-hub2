@@ -159,7 +159,7 @@ export default function Layout({ children }) {
                             </>
                         ) : (
                             // Collapsed: show icon only for admin items
-                            adminNavItems.map((item) => (
+                            adminNavItems.filter(item => !item.superAdminOnly || user?.role === 'super_admin').map((item) => (
                                 <Link
                                     key={item.name}
                                     to={createPageUrl(item.name)}
