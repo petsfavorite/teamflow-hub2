@@ -209,6 +209,8 @@ export default function Checklists() {
     });
   };
 
+  const handleUseClick = handleAssignClick;
+
   const updateItem = async (index, updates) => {
     setItems(prev => {
       const updated = prev.map((item, i) => {
