@@ -106,26 +106,29 @@ export default function ChecklistEditor() {
   };
 
   const handleSave = () => {
-    if (!form.due_date) {
+    if (id && !form.due_date) {
       alert('Due date is required');
       return;
     }
-    saveMutation.mutate({
+    const data = {
       title: form.title,
       description: form.description,
       category: form.category,
       status: form.status,
-      items: form.items,
-      assigned_to_emails: selectedUsers,
-      assigned_to_names: selectedUsers.map(email => users.find(u => u.email === email)?.full_name || email),
-      assigned_teams: selectedTeams,
-      due_date: form.due_date,
-      due_time: form.due_time || '21:00',
-      recurrence_type: form.recurrence_type,
-      recurrence_days_of_week: form.recurrence_days_of_week,
-      recurrence_day_of_month: form.recurrence_day_of_month,
-      recurrence_interval_months: form.recurrence_interval_months
-    });
+      items: form.items
+    };
+    if (id) {
+      data.assigned_to_emails = selectedUsers;
+      data.assigned_to_names = selectedUsers.map(email => users.find(u => u.email === email)?.full_name || email);
+      data.assigned_teams = selectedTeams;
+      data.due_date = form.due_date;
+      data.due_time = form.due_time || '21:00';
+      data.recurrence_type = form.recurrence_type;
+      data.recurrence_days_of_week = form.recurrence_days_of_week;
+      data.recurrence_day_of_month = form.recurrence_day_of_month;
+      data.recurrence_interval_months = form.recurrence_interval_months;
+    }
+    saveMutation.mutate(data);
   };
 
   if (!id && !isAdmin && !isSuperAdmin) {
