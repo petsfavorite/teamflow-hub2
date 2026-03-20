@@ -15,6 +15,7 @@ import { createPageUrl } from '@/utils';
 import * as XLSX from 'xlsx';
 import { useQuery } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
+// Note: useState and useEffect may already be imported elsewhere
 
 export default function Settings() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
