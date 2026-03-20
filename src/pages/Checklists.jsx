@@ -67,27 +67,34 @@ export default function Checklists() {
       .map(team => team.id);
   }, [teams, user]);
 
-  // "My Checklists" - all active, unfinished checklists assigned to user (any role) or their teams
+  // "My Checklists" - checklists assigned to user or their teams (active status)
   const myChecklists = useMemo(() => {
-    const published = allTemplates.filter(t => t.status === 'published');
-    return published.filter(t => {
-      if (t.status !== 'active' && t.status !== 'published') return false;
+    return allTemplates.filter(t => {
+      if (t.status !== 'active') return false;
       const assignedToMe = t.assigned_to_emails?.includes(user?.email);
       const assignedToMyTeam = t.assigned_teams?.some(teamId => teams.some(team => team.id === teamId && team.member_emails?.includes(user?.email)));
       return assignedToMe || assignedToMyTeam;
     });
   }, [allTemplates, user, teams]);
 
-  // Template checklists - published templates visible to managers/admins/super admins only (for assignment)
+  // Template checklists - unassigned templates (no users, teams, or frequency set) for managers/admins only
   const templateChecklists = useMemo(() => {
-    const published = allTemplates.filter(t => t.status === 'published');
-    return published.filter(t => !t.recurrence_type || t.recurrence_type === 'once');
+    return allTemplates.filter(t => 
+      t.status === 'published' && 
+      (!t.assigned_to_emails || t.assigned_to_emails.length === 0) &&
+      (!t.assigned_teams || t.assigned_teams.length === 0) &&
+      (!t.recurrence_type || t.recurrence_type === 'once')
+    );
   }, [allTemplates]);
 
   // Recurring checklists - assigned checklists with recurrence !== 'once'
   const recurringChecklists = useMemo(() => {
-    const published = allTemplates.filter(t => t.status === 'published');
-    return published.filter(t => t.recurrence_type && t.recurrence_type !== 'once');
+    return allTemplates.filter(t => 
+      t.status === 'active' && 
+      t.recurrence_type && 
+      t.recurrence_type !== 'once' &&
+      (t.assigned_to_emails?.length > 0 || t.assigned_teams?.length > 0)
+    );
   }, [allTemplates]);
 
   // Draft templates - only visible to creator
