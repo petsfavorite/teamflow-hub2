@@ -289,7 +289,7 @@ export default function Dashboard() {
                     </div>
                   </Link>
                 ))}
-                {canApprove && pendingSOPs.map(sop => (
+                {pendingSOPs.map(sop => (
                   <Link key={sop.id} to={createPageUrl('SOPDetail') + `?id=${sop.id}`}>
                     <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 hover:bg-amber-100 transition-colors">
                       <ShieldAlert className="w-4 h-4 text-amber-600 flex-shrink-0" />
