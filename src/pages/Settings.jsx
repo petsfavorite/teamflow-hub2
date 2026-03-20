@@ -9,7 +9,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Settings as SettingsIcon, Trash2, ChevronLeft, Download, Upload, CheckCircle2, AlertCircle, AlertTriangle, User } from "lucide-react";
+import { Settings as SettingsIcon, Trash2, ChevronLeft, Download, Upload, CheckCircle2, AlertCircle, AlertTriangle, User, Timer } from "lucide-react";
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import * as XLSX from 'xlsx';
