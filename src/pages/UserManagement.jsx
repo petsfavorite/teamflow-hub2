@@ -410,7 +410,7 @@ export default function UserManagement() {
               </div>
             )}
 
-            {(isSuperAdmin || isAdmin || isManager) && teams.length > 0 && (
+            {(isSuperAdmin || isAdmin || isManager || editingUser?.id === user?.id) && teams.length > 0 && (
               <div className="space-y-2">
                 <Label>Teams</Label>
                 <div className="space-y-2 max-h-48 overflow-y-auto">
