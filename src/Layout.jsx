@@ -89,21 +89,24 @@ export default function Layout({ children }) {
                     </div>
                 )}
 
-                {navItems.map((item) => (
-                    <Link
-                        key={item.name}
-                        to={createPageUrl(item.name)}
-                        className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
-                            isActive(item.name)
-                                ? 'text-[#82bb32] bg-[#82bb32]/10'
-                                : 'text-stone-600 hover:text-stone-800 hover:bg-stone-50'
-                        }`}
-                        title={!sidebarOpen ? item.label : ''}
-                    >
-                        <item.icon className="w-5 h-5 flex-shrink-0" />
-                        {sidebarOpen && <span className="font-medium">{item.label}</span>}
-                    </Link>
-                ))}
+                {navItems.map((item) => {
+                    if (item.hiddenRole && user?.role === item.hiddenRole) return null;
+                    return (
+                        <Link
+                            key={item.name}
+                            to={createPageUrl(item.name)}
+                            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
+                                isActive(item.name)
+                                    ? 'text-[#82bb32] bg-[#82bb32]/10'
+                                    : 'text-stone-600 hover:text-stone-800 hover:bg-stone-50'
+                            }`}
+                            title={!sidebarOpen ? item.label : ''}
+                        >
+                            <item.icon className="w-5 h-5 flex-shrink-0" />
+                            {sidebarOpen && <span className="font-medium">{item.label}</span>}
+                        </Link>
+                    );
+                })}
 
                 {/* Pet Import — Floof nav, super_admin only */}
                 {isFloofPage && user?.role === 'super_admin' && (
