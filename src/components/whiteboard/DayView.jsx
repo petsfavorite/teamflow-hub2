@@ -229,9 +229,9 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
                                                 <div className="flex items-center justify-between mb-2">
                                                     <div>
                                                         <p className="text-xs text-gray-500 mb-1">Location</p>
-                                                        <LocationEditor visit={visit} onSaved={(loc) => onUpdateLocation?.(visit, loc)} />
-                                                    </div>
-                                                    <p className={`text-xs ${visit.picture_sent ? 'text-emerald-600' : 'text-gray-400'}`}>
+                                                        <LocationEditor visit={visit} onSaved={(loc) => onUpdateLocation?.(visit.id, loc)} />
+                                                        </div>
+                                                        <p className={`text-xs ${visit.picture_sent ? 'text-emerald-600' : 'text-gray-400'}`}>
                                                         📸 {visit.picture_sent ? 'Sent' : 'Not Sent'}
                                                     </p>
                                                 </div>
@@ -338,7 +338,7 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
                                                                 <div className="p-4 w-[160px]">
                                                                     <div className="rounded-lg">
                                                                         <p className="text-xs text-gray-500 mb-1">Location</p>
-                                                                        <LocationEditor visit={visit} onSaved={(loc) => onUpdateLocation?.(visit, loc)} />
+                                                                        <LocationEditor visit={visit} onSaved={(loc) => onUpdateLocation?.(visit.id, loc)} />
                                                                         <p className={`text-xs mt-2 ${visit.picture_sent ? 'text-emerald-600' : 'text-gray-400'}`}>
                                                                             📸 Photo {visit.picture_sent ? 'Sent' : 'Not Sent'}
                                                                         </p>

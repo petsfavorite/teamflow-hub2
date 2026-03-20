@@ -68,8 +68,9 @@ export default function Whiteboard() {
         onSuccess: () => queryClient.invalidateQueries(['pets'])
     });
 
-    const handleUpdateLocation = async (visitId, location) => {
-        await updateVisitMutation.mutateAsync({ id: visitId, data: { location } });
+    const handleUpdateLocation = (visitId, location) => {
+        // LocationEditor already saved to DB directly; just sync the cache
+        queryClient.invalidateQueries({ queryKey: ['visits'] });
     };
 
     const handleViewVisit = (visit, pet) => {
