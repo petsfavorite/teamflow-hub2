@@ -303,9 +303,10 @@ export default function UserManagement() {
                   await base44.entities.User.update(editingUser.id, updates);
                 }
 
-                if (editName !== editingUser?.full_name) {
-                  updateNameMutation.mutate({ id: editingUser.id, full_name: editName });
-                  return; // mutation closes dialog on success
+                const nameChanged = editFirstName !== (editingUser.first_name || '') || editLastName !== (editingUser.last_name || '');
+                if (nameChanged) {
+                  updateNameMutation.mutate({ id: editingUser.id, first_name: editFirstName, last_name: editLastName });
+                  return;
                 }
                 if (editRole !== (editingUser?.role || 'user') && (isSuperAdmin || isAdmin || (isManager && editingUser?.id !== user?.id && (editingUser?.role === 'user' || !editingUser?.role)))) {
                   updateRoleMutation.mutate({ id: editingUser.id, role: editRole });
