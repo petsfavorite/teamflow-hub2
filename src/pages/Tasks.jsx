@@ -38,7 +38,7 @@ const emptyForm = {
 };
 
 export default function Tasks() {
-  const { user, canManage } = useCurrentUser();
+  const { user, canManage, isSuperAdmin, isAdmin, isManager } = useCurrentUser();
   const queryClient = useQueryClient();
   const [showNew, setShowNew] = useState(false);
   const [form, setForm] = useState(emptyForm);
