@@ -90,10 +90,10 @@ export default function ChecklistEditor() {
     }));
   };
 
-  const updateItem = (index, label) => {
+  const updateItem = (index, field, value) => {
     setForm(prev => ({
       ...prev,
-      items: prev.items.map((item, i) => i === index ? { ...item, label } : item)
+      items: prev.items.map((item, i) => i === index ? { ...item, [field]: value } : item)
     }));
   };
 
