@@ -5,6 +5,7 @@ import { useCurrentUser } from '../components/hooks/useCurrentUser';
 import PageHeader from '../components/shared/PageHeader';
 import StatusBadge from '../components/shared/StatusBadge';
 import EmptyState from '../components/shared/EmptyState';
+import TaskRow from '../components/task/TaskRow';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
