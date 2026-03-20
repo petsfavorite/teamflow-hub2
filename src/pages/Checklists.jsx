@@ -434,9 +434,16 @@ export default function Checklists() {
                       </div>
                       <h3 className="font-semibold text-slate-900 mb-1">{template.title}</h3>
                       {template.description && <p className="text-sm text-slate-500 mb-3">{template.description}</p>}
-                      <div className="flex items-center gap-2 text-xs text-slate-400">
-                        <Clock className="w-3 h-3" />
-                        {template.items?.length || 0} items
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-xs text-slate-400">
+                          <Clock className="w-3 h-3" />
+                          {template.items?.length || 0} items
+                        </div>
+                        {template.due_date && (
+                          <div className="text-xs text-slate-600 font-medium">
+                            Due {template.due_date} at {template.due_time || '21:00'}
+                          </div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
