@@ -70,7 +70,7 @@ export default function BoardingWhiteboardCard({ pet, visit, onViewVisit }) {
                                 <div className="flex items-center gap-2">
                                     <h3 className="font-bold text-base text-stone-800">{pet.name}</h3>
                                     {visit.emergency_alert_active && (
-                                        <AlertCircle className="w-5 h-5 text-red-700 flex-shrink-0" title={`Emergency: Missing ${visit.emergency_alert_type}`} />
+                                        <AlertCircle className="w-5 h-5 text-red-700 flex-shrink-0" title={`Emergency: Missing ${visit.emergency_alert_type?.split(',').join(', ')}`} />
                                     )}
                                 </div>
                                 {pet.special_needs && (
