@@ -222,6 +222,30 @@ export default function UserManagement() {
                 />
               </div>
             )}
+            {/* PIN assignment — superadmin/admin can set any user's PIN; manager can set user-role PINs */}
+            {(isSuperAdmin || isAdmin || (isManager && (editingUser?.role === 'user' || !editingUser?.role))) && (
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1.5">
+                  <Hash className="w-3.5 h-3.5" /> 6-Digit PIN
+                </Label>
+                <Input
+                  value={editPin}
+                  onChange={e => {
+                    const v = e.target.value.replace(/\D/g, '').slice(0, 6);
+                    setEditPin(v);
+                    setPinError(v && v.length < 6 ? 'PIN must be exactly 6 digits' : '');
+                  }}
+                  placeholder="6-digit numeric PIN"
+                  maxLength={6}
+                  inputMode="numeric"
+                  className="font-mono tracking-widest text-center text-lg"
+                />
+                {pinError && <p className="text-xs text-red-500">{pinError}</p>}
+                {editPin.length === 6 && !pinError && <p className="text-xs text-emerald-600">✓ PIN looks good</p>}
+                <p className="text-xs text-slate-400">Leave unchanged to keep existing PIN. Set to empty to remove PIN.</p>
+              </div>
+            )}
+
             {(isSuperAdmin || isAdmin || (isManager && editingUser?.id !== user?.id && (editingUser?.role === 'user' || !editingUser?.role))) && (
               <div className="space-y-2">
                 <Label>Role</Label>
