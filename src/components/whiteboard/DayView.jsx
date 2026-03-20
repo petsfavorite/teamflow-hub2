@@ -13,6 +13,17 @@ import LocationEditor from './LocationEditor';
 
 const OVERDUE_EXEMPT_TYPES = ['Collect Feces', 'Collect Urine', 'Feces Observed', 'Ate', 'Urine Observed'];
 
+const getTaskColor = (task) => {
+    const type = task.type || '';
+    if (type === 'Medication') return 'text-red-600 font-medium';
+    if (type.toLowerCase().includes('play') || type === 'Play Session') return 'text-purple-600 font-medium';
+    if (type.toLowerCase().includes('water')) return 'text-blue-600 font-medium';
+    if (type.toLowerCase().includes('walk')) return 'text-green-600 font-medium';
+    if (type.toLowerCase().includes('feces') || type.toLowerCase().includes('fecal')) return 'text-amber-800 font-medium';
+    if (type.toLowerCase().includes('urine')) return 'text-yellow-600 font-medium';
+    return 'text-gray-600';
+};
+
 export default function DayView({ pets, visits, selectedDate, onDateChange, onViewVisit, onUpdateLocation, onRefresh }) {
 
     const [userTimezone, setUserTimezone] = useState('UTC');
