@@ -157,15 +157,15 @@ export default function Dashboard() {
     return assignedToMe || assignedToMyTeam;
   });
 
-  // "My Checklists" shows all active, unfinished checklists assigned to user (any role) or their teams
+  // "My Checklists" shows all published checklists assigned to user (any role) or their teams
   const myChecklists = checklists.filter(c => {
-    if (c.status !== 'active' && c.status !== 'published') return false;
+    if (c.status !== 'published') return false;
     const assignedToMe = c.assigned_to_emails?.includes(user?.email);
     const assignedToMyTeam = c.assigned_teams?.some(tid => myTeamIds.includes(tid));
     return assignedToMe || assignedToMyTeam;
   });
 
-  // "My Checklists Due Soon" - active checklists with due date within next 7 days
+  // "My Checklists Due Soon" - published checklists assigned to user with due date within next 7 days
   const myChecklistsDueSoon = myChecklists.filter(c => {
     if (!c.due_date) return false;
     const daysUntilDue = differenceInDays(parseISO(c.due_date), new Date());
