@@ -50,6 +50,7 @@ export function PinProvider({ children }) {
 
   // On mount: handle expired session & load settings
   useEffect(() => {
+    if (IS_PREVIEW) return;
     const s = readSessionStorage();
     if (s?.lockedAt && (Date.now() - s.lockedAt) / 60000 >= MAX_LOCK_MINUTES) {
       sessionStorage.removeItem(SESSION_KEY);
