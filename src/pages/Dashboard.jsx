@@ -1,11 +1,12 @@
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { useCurrentUser } from '../components/hooks/useCurrentUser';
 import { Card, CardContent } from "@/components/ui/card";
 import StatusBadge from '../components/shared/StatusBadge';
+import DismissibleOverdueTask from '../components/dashboard/DismissibleOverdueTask';
 import {
   LayoutDashboard, BookOpen, CheckSquare, ClipboardList, Wrench,
   AlertTriangle, MessageSquare, ArrowRight, Bell, ShieldAlert, CalendarCheck, Clock
