@@ -181,6 +181,7 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
                              const needsFecesCollection = hasCollectFeces(visit);
                              const needsUrineCollection = hasCollectUrine(visit);
                              const hasEmergencyAlert = visit.emergency_alert_active;
+                             const hasOverdue = isOverdueAlert(visit);
 
                             return (
                                 <motion.div
@@ -193,7 +194,8 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
                                     <Card className={`hover:shadow-md transition-shadow cursor-pointer ${
                                        hasEmergencyAlert ? 'border-red-500 bg-red-200' :
                                        needsFecesCollection ? 'border-amber-800 bg-amber-100' :
-                                       needsUrineCollection ? 'border-yellow-400 bg-yellow-100' : 'border-gray-200'
+                                       needsUrineCollection ? 'border-yellow-400 bg-yellow-100' :
+                                       hasOverdue ? 'border-purple-500 bg-purple-100' : 'border-gray-200'
                                     }`}
                                     onClick={() => onViewVisit(visit, pet)}>
                                         <CardContent className="p-0">
