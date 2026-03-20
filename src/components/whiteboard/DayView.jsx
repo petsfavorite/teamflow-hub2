@@ -215,16 +215,21 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
                                                                 )}
                                                             </Badge>
                                                             {needsFecesCollection && !hasEmergencyAlert && (
-                                                                 <Badge className="text-xs px-2 py-0 bg-amber-100 text-amber-700 border-0">
-                                                                     Needs Fecal
-                                                                 </Badge>
-                                                             )}
+                                                                <Badge className="text-xs px-2 py-0 bg-amber-100 text-amber-700 border-0">
+                                                                    Need Fecal Sample
+                                                                </Badge>
+                                                            )}
+                                                            {needsUrineCollection && !hasEmergencyAlert && (
+                                                                <Badge className="text-xs px-2 py-0 bg-yellow-200 text-yellow-800 border-0">
+                                                                    Need Urine Sample
+                                                                </Badge>
+                                                            )}
                                                             </div>
                                                             </div>
                                                             </div>
 
                                                             {pet.special_needs && (
-                                                    <p className="text-xs text-amber-600 mb-2">⚠️ {pet.special_needs}</p>
+                                                            <p className="text-xs text-amber-600 mb-2">⚠️ {pet.special_needs}</p>
                                                 )}
                                                 
                                                 <div className="flex items-center justify-between mb-2">
@@ -327,10 +332,15 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
                                                                 )}
                                                             </Badge>
                                                             {needsFecesCollection && !hasEmergencyAlert && (
-                                                                 <Badge className="text-xs px-2 py-0 bg-amber-100 text-amber-700 border-0">
-                                                                     Needs Fecal
-                                                                 </Badge>
-                                                             )}
+                                                                <Badge className="text-xs px-2 py-0 bg-amber-100 text-amber-700 border-0">
+                                                                    Need Fecal Sample
+                                                                </Badge>
+                                                            )}
+                                                            {needsUrineCollection && !hasEmergencyAlert && (
+                                                                <Badge className="text-xs px-2 py-0 bg-yellow-200 text-yellow-800 border-0">
+                                                                    Need Urine Sample
+                                                                </Badge>
+                                                            )}
                                                             </div>
                                                             </div>
                                                             </div>
