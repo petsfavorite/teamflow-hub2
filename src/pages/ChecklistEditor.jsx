@@ -23,9 +23,9 @@ export default function ChecklistEditor() {
   const { isSuperAdmin, isAdmin, canManage } = useCurrentUser();
 
   const [form, setForm] = useState({
-    title: '', description: '', category: '', frequency: 'daily', status: 'active', assigned_to_emails: [], assigned_to_teams: [], items: [],
-    custom_frequency_type: 'days', custom_frequency_value: 1, custom_frequency_days: [], custom_frequency_day_of_month: 1,
-    auto_close_time: '17:00'
+    title: '', description: '', category: '', status: 'active', assigned_to_emails: [], assigned_to_teams: [], items: [],
+    recurrence_type: 'once', recurrence_days_of_week: [], recurrence_day_of_month: 1, recurrence_interval_months: 1,
+    due_date: '', due_time: '21:00'
   });
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [selectedTeams, setSelectedTeams] = useState([]);
