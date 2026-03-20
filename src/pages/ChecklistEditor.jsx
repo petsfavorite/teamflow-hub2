@@ -49,6 +49,11 @@ export default function ChecklistEditor() {
     queryFn: () => base44.entities.Team.list('name', 200),
   });
 
+  const { data: sops = [] } = useQuery({
+    queryKey: ['sops-list'],
+    queryFn: () => base44.entities.SOP.filter({ status: 'published' }, '-updated_date', 200),
+  });
+
   useEffect(() => {
     if (existing) {
       setForm({
