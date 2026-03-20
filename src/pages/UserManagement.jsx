@@ -397,7 +397,28 @@ export default function UserManagement() {
                 </Select>
               </div>
             )}
-          </div>
+
+            {(isSuperAdmin || isAdmin || isManager) && teams.length > 0 && (
+              <div className="space-y-2">
+                <Label>Teams</Label>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {teams.map(team => (
+                    <label key={team.id} className="flex items-center gap-2 cursor-pointer">
+                      <Checkbox
+                        checked={(editingUser?.team_ids || []).includes(team.id)}
+                        onCheckedChange={checked => {
+                          const current = editingUser?.team_ids || [];
+                          const updated = checked ? [...current, team.id] : current.filter(id => id !== team.id);
+                          setEditingUser({ ...editingUser, team_ids: updated });
+                        }}
+                      />
+                      <span className="text-sm text-slate-700">{team.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+            </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingUser(null)}>Cancel</Button>
             <Button
