@@ -443,10 +443,121 @@ export default function Checklists() {
               </Card>
             ))}
           </div>
+
+          {/* Template Checklists - visible only to managers/admins/super admins */}
+          {canManage && (
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900 mb-4">Template Checklists</h2>
+              {templateChecklists.length === 0 ? (
+                <p className="text-slate-500 text-sm">No template checklists</p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {templateChecklists.map(template => (
+                    <Card key={template.id} className="border-0 shadow-sm">
+                      <CardContent className="p-6">
+                        <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center mb-3">
+                          <CheckSquare className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <h3 className="font-semibold text-slate-900 mb-1">{template.title}</h3>
+                        {template.description && <p className="text-sm text-slate-500 mb-3">{template.description}</p>}
+                        <div className="flex items-center gap-2 text-xs text-slate-400 mb-4">
+                          <Clock className="w-3 h-3" />
+                          {template.items?.length || 0} items
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            className="flex-1 bg-blue-600 hover:bg-blue-700"
+                            onClick={() => handleUseClick(template)}
+                          >
+                            Use
+                          </Button>
+                          <Link to={createPageUrl('ChecklistEditor') + `?id=${template.id}`}>
+                            <Button variant="outline" size="sm">Edit</Button>
+                          </Link>
+                          {(isSuperAdmin || isAdmin) && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => {
+                                setTemplateToDelete(template);
+                                setDeleteDialogOpen(true);
+                              }}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Recurring Checklists - visible only to managers/admins/super admins */}
+          {canManage && (
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900 mb-4">Recurring Checklists</h2>
+              {recurringChecklists.length === 0 ? (
+                <p className="text-slate-500 text-sm">No recurring checklists</p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {recurringChecklists.map(template => (
+                    <Card key={template.id} className="border-0 shadow-sm">
+                      <CardContent className="p-6">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
+                            <CheckSquare className="w-5 h-5 text-purple-600" />
+                          </div>
+                          {template.recurrence_type && (
+                            <StatusBadge status={template.recurrence_type} />
+                          )}
+                        </div>
+                        <h3 className="font-semibold text-slate-900 mb-1">{template.title}</h3>
+                        {template.description && <p className="text-sm text-slate-500 mb-3">{template.description}</p>}
+                        <div className="flex items-center gap-2 text-xs text-slate-400 mb-4">
+                          <Clock className="w-3 h-3" />
+                          {template.items?.length || 0} items
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            className="flex-1 bg-purple-600 hover:bg-purple-700"
+                            onClick={() => handleUseClick(template)}
+                          >
+                            Use
+                          </Button>
+                          <Link to={createPageUrl('ChecklistEditor') + `?id=${template.id}`}>
+                            <Button variant="outline" size="sm">Edit</Button>
+                          </Link>
+                          {(isSuperAdmin || isAdmin) && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => {
+                                setTemplateToDelete(template);
+                                setDeleteDialogOpen(true);
+                              }}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
-      {canManage && allTemplates.length > publishedTemplates.length && (
+      {draftTemplates.length > 0 && (
         <div className="mt-8">
           <h2 className="text-lg font-semibold text-slate-900 mb-4">Draft Templates</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
