@@ -55,6 +55,7 @@ export default function Settings() {
       setProfileName(u?.full_name || '');
       setProfileEmail(u?.email || '');
       setProfileTimezone(u?.timezone || 'America/New_York');
+      setSelectedTeamIds(u?.team_ids || []);
     }).catch(() => {});
 
     // Load all users if super_admin
