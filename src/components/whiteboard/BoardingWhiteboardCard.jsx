@@ -9,11 +9,19 @@ import {
 import { motion } from "framer-motion";
 import moment from "moment";
 
+const OVERDUE_EXEMPT_TYPES = ['Collect Feces', 'Collect Urine', 'Feces Observed', 'Ate', 'Urine Observed'];
+
 export default function BoardingWhiteboardCard({ pet, visit, onViewVisit }) {
     const hasMedications = pet.medications && pet.medications.length > 0;
     const isCat = pet.species === 'Cat';
-    const now = moment();
+    const [nowTick, setNowTick] = useState(() => moment());
+    const now = nowTick;
     const checkInTime = moment(visit.check_in_time);
+
+    useEffect(() => {
+        const interval = setInterval(() => setNowTick(moment()), 15 * 60 * 1000);
+        return () => clearInterval(interval);
+    }, []);
 
     // Get tasks that should be shown (only if checked in before the task time)
     const relevantTasks = (visit.scheduled_tasks || []).filter(task => {
