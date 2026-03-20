@@ -31,8 +31,10 @@ function StatCard({ icon: Icon, label, value, color, to }) {
 }
 
 export default function Dashboard() {
-  const { user, canManage, isSuperAdmin, isAdmin } = useCurrentUser();
+  const { user, canManage, isSuperAdmin, isAdmin, isManager } = useCurrentUser();
   const canApprove = isSuperAdmin || isAdmin;
+  const queryClient = useQueryClient();
+  const [dismissedOverdueTasks, setDismissedOverdueTasks] = useState([]);
 
   const { data: sops = [] } = useQuery({
     queryKey: ['sops-dash'],
