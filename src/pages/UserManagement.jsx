@@ -34,6 +34,15 @@ export default function UserManagement() {
     queryFn: () => base44.entities.User.list('full_name', 500),
   });
 
+  const { data: teams = [] } = useQuery({
+    queryKey: ['teams-mgmt'],
+    queryFn: () => base44.entities.Team.list('name', 100),
+  });
+
+  const [showTeamDialog, setShowTeamDialog] = useState(false);
+  const [newTeamName, setNewTeamName] = useState('');
+  const [activeTab, setActiveTab] = useState('users');
+
   const deleteUserMutation = useMutation({
     mutationFn: (id) => base44.entities.User.delete(id),
     onSuccess: () => {
