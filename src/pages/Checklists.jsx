@@ -555,22 +555,24 @@ export default function Checklists() {
             </div>
 
             {/* Recurrence */}
-            <div className="space-y-2">
-              <Label>Frequency</Label>
-              <Select value={useForm.recurrence_type} onValueChange={(value) => setUseForm({ ...useForm, recurrence_type: value })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="once">One Time Only</SelectItem>
-                  <SelectItem value="daily">Daily</SelectItem>
-                  <SelectItem value="weekdays">Weekdays</SelectItem>
-                  <SelectItem value="weekly">Weekly</SelectItem>
-                  <SelectItem value="monthly">Monthly</SelectItem>
-                  <SelectItem value="annually">Annually</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+             <div className="space-y-2">
+               <Label>Frequency</Label>
+               <Select value={useForm.recurrence_type} onValueChange={(value) => setUseForm({ ...useForm, recurrence_type: value })}>
+                 <SelectTrigger>
+                   <SelectValue />
+                 </SelectTrigger>
+                 <SelectContent>
+                   <SelectItem value="once">Once</SelectItem>
+                   <SelectItem value="daily">Daily</SelectItem>
+                   <SelectItem value="weekdays">Weekdays</SelectItem>
+                   <SelectItem value="specific_days">Specific Days</SelectItem>
+                   <SelectItem value="monthly">Monthly</SelectItem>
+                   <SelectItem value="every_x_months">Every X Months</SelectItem>
+                   <SelectItem value="annually">Annually</SelectItem>
+                   <SelectItem value="manual">Manual</SelectItem>
+                 </SelectContent>
+               </Select>
+             </div>
           </div>
 
           <DialogFooter>
