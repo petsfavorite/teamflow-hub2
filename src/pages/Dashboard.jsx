@@ -114,6 +114,8 @@ export default function Dashboard() {
   const incidents = allIncidents.filter(inc => {
     if (inc.status === 'resolved') return false;
     if (inc.is_private && !canApprove) return false;
+    // If assigned, only show to assigned user
+    if (inc.assigned_to && inc.assigned_to !== user?.email) return false;
     return true;
   });
 
