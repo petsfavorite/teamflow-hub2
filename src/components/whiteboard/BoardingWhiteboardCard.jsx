@@ -40,9 +40,21 @@ export default function BoardingWhiteboardCard({ pet, visit, onViewVisit }) {
     // Check if picture needs to be sent
     const needsPicture = pet.daily_picture && !visit.picture_sent;
 
-    const today = moment().format('YYYY-MM-DD');
+    const today = nowTick.format('YYYY-MM-DD');
     const hasPendingFeces = (visit.scheduled_tasks || []).some(t => t.type === 'Collect Feces' && t.date === today && !t.completed);
     const hasPendingUrine = (visit.scheduled_tasks || []).some(t => t.type === 'Collect Urine' && t.date === today && !t.completed);
+
+    const cutoff1930 = nowTick.clone().hour(19).minute(30).second(0);
+    const hasOverdue = (visit.scheduled_tasks || []).some(task => {
+        if (task.completed) return false;
+        if (OVERDUE_EXEMPT_TYPES.includes(task.type)) return false;
+        if (task.date && task.date !== today) return false;
+        if (task.time) {
+            const taskMoment = nowTick.clone().startOf('day').add(moment(task.time, 'h:mm A').diff(moment(task.time, 'h:mm A').clone().startOf('day')));
+            return nowTick.isAfter(taskMoment);
+        }
+        return nowTick.isAfter(cutoff1930);
+    });
 
     const cardColor = visit.emergency_alert_active 
         ? 'border-red-500 bg-red-200' 
@@ -50,6 +62,8 @@ export default function BoardingWhiteboardCard({ pet, visit, onViewVisit }) {
         ? 'border-amber-800 bg-amber-100'
         : hasPendingUrine
         ? 'border-yellow-400 bg-yellow-100'
+        : hasOverdue
+        ? 'border-purple-500 bg-purple-100'
         : 'border-stone-200 bg-stone-50';
 
     return (
