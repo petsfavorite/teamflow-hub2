@@ -45,6 +45,14 @@ export default function Settings() {
         setAllUsers(users);
       }).catch(() => {});
     }
+
+    // Load inactivity timeout setting
+    base44.entities.AppSettings.filter({ key: 'global' }).then(results => {
+      if (results.length > 0) {
+        setAppSettingsId(results[0].id);
+        setInactivityMinutes(results[0].inactivity_timeout_minutes || 5);
+      }
+    }).catch(() => {});
   }, [isSuperAdmin]);
 
   const isSuperAdmin = user?.role === 'super_admin';
