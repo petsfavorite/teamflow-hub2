@@ -119,6 +119,15 @@ export default function Dashboard() {
     return dueDateTime <= oneHourFromNow && dueDateTime > now;
   });
 
+  // For regular users: overdue incomplete tasks (red)
+  const overdueIncompleteTeasks = tasks.filter(t => {
+    if (t.status === 'completed' || t.status === 'cancelled') return false;
+    if (!t.due_date || t.due_date >= today) return false; // Only overdue
+    const assignedToMe = t.assigned_to_emails?.includes(user?.email);
+    const assignedToMyTeam = t.assigned_teams?.some(tid => myTeamIds.includes(tid));
+    return assignedToMe || assignedToMyTeam;
+  });
+
   // For regular users: checklists due in ~1 hour (yellow)
   const urgentChecklists = checklists.filter(c => {
     if (!c.due_date) return false;
