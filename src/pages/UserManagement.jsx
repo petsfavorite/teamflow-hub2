@@ -131,13 +131,33 @@ export default function UserManagement() {
     <div>
       <PageHeader
         title="User Management"
-        description="Manage team members and their roles"
+        description="Manage team members, roles, and teams"
         actions={
           <Button onClick={() => setShowInvite(true)} className="bg-indigo-600 hover:bg-indigo-700 gap-2">
             <UserPlus className="w-4 h-4" /> Invite User
           </Button>
         }
       />
+
+      {/* Tab Navigation */}
+      <div className="flex gap-4 mb-6 border-b border-slate-200">
+        <button
+          onClick={() => setActiveTab('users')}
+          className={`pb-3 px-1 text-sm font-medium transition-colors ${
+            activeTab === 'users' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          Users
+        </button>
+        <button
+          onClick={() => setActiveTab('teams')}
+          className={`pb-3 px-1 text-sm font-medium transition-colors ${
+            activeTab === 'teams' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          Teams
+        </button>
+      </div>
 
       {isLoading ? (
         <div className="space-y-3">{[1, 2, 3].map(i => <Card key={i} className="border-0 shadow-sm animate-pulse"><CardContent className="p-4"><div className="h-14 bg-slate-100 rounded" /></CardContent></Card>)}</div>
