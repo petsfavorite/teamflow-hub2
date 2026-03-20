@@ -498,9 +498,9 @@ export default function Checklists() {
                           <Button
                             size="sm"
                             className="flex-1 bg-blue-600 hover:bg-blue-700"
-                            onClick={() => handleUseClick(template)}
+                            onClick={() => handleAssignClick(template)}
                           >
-                            Use
+                            Assign
                           </Button>
                           <Link to={createPageUrl('ChecklistEditor') + `?id=${template.id}`}>
                             <Button variant="outline" size="sm">Edit</Button>
