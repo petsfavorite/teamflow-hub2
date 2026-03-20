@@ -33,6 +33,7 @@ const FEATURES = [
       { id: 12, label: "Recurring Checklists", desc: "Schedule checklists: Daily, Weekly, Monthly, Custom — assigned to user, role, or location" },
       { id: 13, label: "Checklist Accountability Tracking", desc: "Each item tracks: completed by, timestamp, notes, and optional photo upload" },
       { id: 14, label: "Task Assignments", desc: "Managers assign one-off tasks with: assigned to, due date, priority, notes" },
+      { id: 37, label: "Task Overdue Detection", desc: "Visually flag tasks where due_date < today as overdue — highlight on task list, show badge on Dashboard, and optionally notify assignees" },
     ]
   },
   {
