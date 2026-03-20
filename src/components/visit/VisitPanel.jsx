@@ -165,7 +165,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
 
         // Check if this task resolves the emergency alert
         let updateObj = { ...visit, scheduled_tasks: updatedTasks, care_log: careLog };
-        if (visit.emergency_alert_active && (task.type === 'Need Feces' || task.type === 'Need Urine' || task.type === 'Collect Feces')) {
+        if (visit.emergency_alert_active && (task.type === 'Need Feces' || task.type === 'Need Urine' || task.type === 'Collect Feces' || task.type === 'Collect Urine')) {
             updateObj.emergency_alert_active = false;
             updateObj.emergency_alert_type = null;
             updateObj.emergency_alert_dismissed_until = null;
@@ -177,6 +177,14 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
              updatedTasks[taskIndex].completed_at = timestamp;
              updatedTasks[taskIndex].completed_by = initials;
              onUpdateVisit(updateObj);
+             return;
+         }
+
+        // If this is a "Collect Urine" task, mark it as collected
+         if (task.type === 'Collect Urine') {
+             updatedTasks[taskIndex] = { ...updatedTasks[taskIndex], completed: true, completed_at: timestamp, completed_by: initials };
+             const filteredTasks = updatedTasks.filter(t => t.type !== 'Collect Urine' || t === updatedTasks[taskIndex]);
+             onUpdateVisit({ ...updateObj, scheduled_tasks: filteredTasks });
              return;
          }
 
@@ -649,6 +657,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                          </SelectTrigger>
                                          <SelectContent>
                                              <SelectItem value="Collect Feces">Collect Feces</SelectItem>
+                                         <SelectItem value="Collect Urine">Collect Urine</SelectItem>
                                              <SelectItem value="Bath">Bath</SelectItem>
                                              <SelectItem value="Extra walk">Extra walk</SelectItem>
                                              <SelectItem value="Nail trim">Nail trim</SelectItem>
