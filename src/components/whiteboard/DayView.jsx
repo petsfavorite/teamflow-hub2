@@ -426,19 +426,19 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
                                                         return (
                                                             <div className="space-y-1">
                                                                 {remaining.slice(0, 3).map((task, i) => (
-                                                                    <p key={i} className="text-xs text-gray-600">
+                                                                    <p key={i} className={`text-xs ${getTaskColor(task)}`}>
                                                                         • {task.time ? `${task.time}: ` : ''}{task.type === 'Medication' ? task.medication_name : task.type}
                                                                     </p>
                                                                 ))}
                                                                 {remaining.length > 3 && (
                                                                     <p className="text-xs text-gray-400">+{remaining.length - 3} more</p>
                                                                 )}
-                                                            </div>
-                                                        );
-                                                    })()}
-                                                </div>
+                                                                </div>
+                                                                );
+                                                                })()}
+                                                                </div>
 
-                                                {/* Action */}
+                                                                {/* Action */}
                                                 <div className="p-4 border-l border-gray-100">
                                                     <ChevronRight className="w-5 h-5 text-gray-400" />
                                                 </div>
