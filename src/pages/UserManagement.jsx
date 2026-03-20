@@ -372,8 +372,8 @@ export default function UserManagement() {
                 </div>
               </div>
             )}
-            {/* PIN assignment — superadmin/admin can set any user's PIN; manager can set user-role PINs */}
-            {(isSuperAdmin || isAdmin || (isManager && (editingUser?.role === 'user' || !editingUser?.role))) && (
+            {/* PIN assignment — superadmin/admin can set any user's PIN; manager can set user-role PINs; general_account cannot have PIN */}
+            {editingUser?.role !== 'general_account' && (isSuperAdmin || isAdmin || (isManager && (editingUser?.role === 'user' || !editingUser?.role))) && (
               <div className="space-y-2">
                 <Label className="flex items-center gap-1.5">
                   <Hash className="w-3.5 h-3.5" /> 6-Digit PIN
