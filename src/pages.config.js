@@ -64,7 +64,7 @@ import IncidentReports from './pages/IncidentReports';
 import Maintenance from './pages/Maintenance';
 import MonitorView from './pages/MonitorView';
 import Pets from './pages/Pets';
-import Reports from './pages/Reports';
+
 import SOPAssistant from './pages/SOPAssistant';
 import SOPDetail from './pages/SOPDetail';
 import SOPEditor from './pages/SOPEditor';
@@ -97,7 +97,7 @@ export const PAGES = {
     "Maintenance": Maintenance,
     "MonitorView": MonitorView,
     "Pets": Pets,
-    "Reports": Reports,
+
     "SOPAssistant": SOPAssistant,
     "SOPDetail": SOPDetail,
     "SOPEditor": SOPEditor,

@@ -9,18 +9,16 @@ import {
 } from 'lucide-react';
 import { useCurrentUser } from './components/hooks/useCurrentUser';
 
-const FLOOF_PAGES = ['Whiteboard', 'Pets', 'CheckIn', 'Reports', 'MonitorView'];
+const FLOOF_PAGES = ['Whiteboard', 'Pets', 'CheckIn', 'MonitorView'];
 
 const floofNavItems = [
     { name: 'Whiteboard', icon: LayoutGrid, label: 'Whiteboard' },
     { name: 'Pets', icon: PawPrint, label: 'Pets' },
     { name: 'CheckIn', icon: LogIn, label: 'Check In' },
-    { name: 'Reports', icon: Dog, label: 'Reports' },
 ];
 
 const mainNavItems = [
     { name: 'Dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { name: 'Whiteboard', icon: PawPrint, label: 'Kennel Whiteboard' },
     { name: 'CallDashboard', icon: Phone, label: 'Call Dashboard', requiredRole: 'admin' },
     { name: 'SOPs', icon: BookOpen, label: 'SOP Library' },
     { name: 'Checklists', icon: CheckSquare, label: 'Checklists' },
