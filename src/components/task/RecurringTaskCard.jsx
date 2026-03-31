@@ -9,25 +9,37 @@ const priorityColors = {
   high: 'bg-orange-100 text-orange-700',
 };
 
+function isCompletedToday(task) {
+  if (task.status !== 'completed') return false;
+  const updated = task.updated_date ? new Date(task.updated_date) : null;
+  if (!updated) return false;
+  const today = new Date();
+  return updated.getFullYear() === today.getFullYear() &&
+    updated.getMonth() === today.getMonth() &&
+    updated.getDate() === today.getDate();
+}
+
 function getNextDueDate(task) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+  // If completed today, start searching from tomorrow
+  const from = new Date(today);
+  if (isCompletedToday(task)) from.setDate(from.getDate() + 1);
+
   switch (task.recurrence_type) {
     case 'daily': {
-      // Next occurrence is today if not yet passed, else tomorrow
-      return today;
+      return from;
     }
     case 'weekdays': {
-      const d = new Date(today);
-      // Move forward until we hit Mon–Fri
+      const d = new Date(from);
       while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
       return d;
     }
     case 'specific_days': {
       const days = task.recurrence_days_of_week || [];
       if (!days.length) return null;
-      const d = new Date(today);
+      const d = new Date(from);
       for (let i = 0; i <= 7; i++) {
         if (days.includes(d.getDay())) return d;
         d.setDate(d.getDate() + 1);
@@ -36,22 +48,22 @@ function getNextDueDate(task) {
     }
     case 'monthly': {
       const dom = task.recurrence_day_of_month || 1;
-      const d = new Date(today.getFullYear(), today.getMonth(), dom);
-      if (d < today) d.setMonth(d.getMonth() + 1);
+      const d = new Date(from.getFullYear(), from.getMonth(), dom);
+      if (d < from) d.setMonth(d.getMonth() + 1);
       return d;
     }
     case 'every_x_months': {
       const dom = task.recurrence_day_of_month || 1;
       const interval = task.recurrence_interval_months || 1;
-      const d = new Date(today.getFullYear(), today.getMonth(), dom);
-      while (d < today) d.setMonth(d.getMonth() + interval);
+      const d = new Date(from.getFullYear(), from.getMonth(), dom);
+      while (d < from) d.setMonth(d.getMonth() + interval);
       return d;
     }
     case 'annually': {
       if (!task.due_date) return null;
       const orig = new Date(task.due_date + 'T00:00:00');
-      const d = new Date(today.getFullYear(), orig.getMonth(), orig.getDate());
-      if (d < today) d.setFullYear(d.getFullYear() + 1);
+      const d = new Date(from.getFullYear(), orig.getMonth(), orig.getDate());
+      if (d < from) d.setFullYear(d.getFullYear() + 1);
       return d;
     }
     default:
