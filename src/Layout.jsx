@@ -182,7 +182,7 @@ export default function Layout({ children }) {
             </nav>
 
             {/* Main Content */}
-            <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'md:ml-64' : 'md:ml-20'} ${!isFloofPage ? 'p-6' : ''}`}>
+            <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'md:ml-64' : 'md:ml-20'} ${!isFloofPage ? 'p-6' : ''} pb-8`}>
                 {children}
             </div>
 
@@ -208,6 +208,11 @@ export default function Layout({ children }) {
 
             {/* Add padding at bottom for mobile nav */}
             <div className="md:hidden h-20" />
+
+            {/* Privacy Banner */}
+            <div className="fixed bottom-0 left-0 right-0 z-[100] bg-stone-800 text-stone-200 text-center text-xs py-1.5 px-4" style={{ paddingBottom: 'max(0.375rem, env(safe-area-inset-bottom))' }}>
+              All information in this app is private and proprietary. Viewing and sharing with unauthorized persons or groups is prohibited.
+            </div>
 
             {/* Back to Main App Button — only shown on Floof pages */}
             {isFloofPage && (
