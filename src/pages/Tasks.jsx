@@ -129,36 +129,16 @@ export default function Tasks() {
         <EmptyState icon={ClipboardList} title="No tasks" description={tab === 'mine' ? "No tasks assigned to you" : "No tasks in this view"} />
       ) : (
         <div className="space-y-3">
-          {displayTasks.map(task => {
-            // Determine if this user can edit the due date
-            // Managers can edit due dates for regular users in their teams
-            // Admins can edit anyone's due date except their own
-            // Regular users cannot edit due dates
-            const assignedToMe = task.assigned_to_emails?.includes(user?.email);
-            let canEditDueDate = false;
-            
-            if (isAdmin || isSuperAdmin) {
-              // Admins can edit anyone's tasks except their own individual assignments
-              canEditDueDate = !assignedToMe || task.assigned_to_emails.length > 1;
-            } else if (isManager) {
-              // Managers can edit regular users' tasks in their teams, but not their own
-              const isAssignedToRegularUser = task.assigned_to_names?.some(name => true); // Simplified - would need user roles to verify
-              canEditDueDate = !assignedToMe && task.assigned_teams?.some(tid => 
-                teams.some(t => t.id === tid && t.member_emails?.includes(user?.email))
-              );
-            }
-
-            return (
-              <TaskRow
-                key={task.id}
-                task={task}
-                onStatusChange={setStatus}
-                canEditDueDate={canEditDueDate}
-                user={user}
-                teams={teams}
-              />
-            );
-          })}
+          {displayTasks.map(task => (
+            <TaskRow
+              key={task.id}
+              task={task}
+              onStatusChange={setStatus}
+              canEdit={isAdmin || isSuperAdmin}
+              user={user}
+              teams={teams}
+            />
+          ))}
         </div>
       )}
 
