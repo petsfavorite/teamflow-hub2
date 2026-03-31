@@ -77,11 +77,7 @@ export default function Dashboard() {
     enabled: !!user?.email,
   });
 
-  const { data: allUsers = [] } = useQuery({
-    queryKey: ['all-users-dashboard'],
-    queryFn: () => base44.entities.User.list('full_name', 500),
-    enabled: !!user?.email,
-  });
+
 
   const { data: allIncidents = [] } = useQuery({
     queryKey: ['incidents-dash'],
@@ -496,28 +492,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Team Members */}
-      {myTeamIds.length > 0 && allUsers.length > 0 && (
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-6">
-            <h2 className="font-semibold text-slate-900 mb-4">Team Members</h2>
-            <div className="flex flex-wrap gap-4">
-              {allUsers.filter(u => u.team_ids?.some(tid => myTeamIds.includes(tid))).map(u => (
-                <div key={u.id} className="flex flex-col items-center gap-2">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 flex items-center justify-center text-white font-bold text-sm">
-                    {u.initials || (u.full_name?.charAt(0) || '?')}
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs font-medium text-slate-900 max-w-[60px] truncate">{u.full_name || 'No name'}</p>
-                    <p className="text-xs text-slate-400">{u.role || 'user'}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Quick Actions */}
        <Card className="border-0 shadow-sm">
