@@ -33,6 +33,9 @@ Deno.serve(async (req) => {
 
     await base44.asServiceRole.entities.User.update(userId, nameFields);
 
+    // Compute and update initials
+    await base44.functions.invoke('computeUserInitials', { user_id: userId });
+
     return Response.json({ success: true });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

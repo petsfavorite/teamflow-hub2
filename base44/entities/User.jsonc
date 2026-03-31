@@ -41,6 +41,10 @@
       "type": "boolean",
       "default": false,
       "description": "Whether the user was invited (not self-registered)"
+    },
+    "initials": {
+      "type": "string",
+      "description": "User's initials with version number (e.g., 'JD1', 'JD2')"
     }
   },
   "required": [

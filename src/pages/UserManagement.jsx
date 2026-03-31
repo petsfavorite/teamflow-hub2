@@ -140,20 +140,22 @@ export default function UserManagement() {
       });
 
       // Update user with name, PIN, teams, and invited status after creation
-      setTimeout(async () => {
-        const allUsers = await base44.entities.User.list('email', 500);
-        const newUser = allUsers.find(u => u.email === inviteEmail);
-        if (newUser) {
-          await base44.entities.User.update(newUser.id, {
-            first_name: inviteFirstName,
-            last_name: inviteLastName,
-            full_name: `${inviteFirstName} ${inviteLastName}`.trim(),
-            pin,
-            team_ids: inviteTeamIds,
-            invited: true,
-          });
-        }
-      }, 1000);
+       setTimeout(async () => {
+         const allUsers = await base44.entities.User.list('email', 500);
+         const newUser = allUsers.find(u => u.email === inviteEmail);
+         if (newUser) {
+           await base44.entities.User.update(newUser.id, {
+             first_name: inviteFirstName,
+             last_name: inviteLastName,
+             full_name: `${inviteFirstName} ${inviteLastName}`.trim(),
+             pin,
+             team_ids: inviteTeamIds,
+             invited: true,
+           });
+           // Compute initials with version number
+           await base44.functions.invoke('computeUserInitials', { user_id: newUser.id });
+         }
+       }, 1000);
 
       toast.success(`Invitation sent to ${inviteEmail}`);
       setShowInvite(false);
@@ -235,9 +237,9 @@ export default function UserManagement() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-sm font-bold text-indigo-600">
-                      {u.full_name?.charAt(0) || u.email?.charAt(0) || '?'}
-                    </div>
+                     <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-600">
+                       {u.initials || u.full_name?.charAt(0) || u.email?.charAt(0) || '?'}
+                     </div>
                     <div>
                        <div className="flex items-center gap-2">
                          <p className="font-medium text-slate-900">{u.full_name || 'No name'}</p>
