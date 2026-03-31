@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, Calendar, Circle, PlayCircle, CheckCircle, Edit2, Loader2 } from 'lucide-react';
+import { Users, Calendar, Circle, PlayCircle, CheckCircle, Edit2, Loader2, Search } from 'lucide-react';
 import { toast } from "sonner";
 
 const priorityColors = {
@@ -22,6 +22,7 @@ export default function TaskRow({ task, onStatusChange, canEdit, user, teams = [
   const [editOpen, setEditOpen] = useState(false);
   const [form, setForm] = useState({});
   const [isSaving, setIsSaving] = useState(false);
+  const [userSearch, setUserSearch] = useState('');
   const queryClient = useQueryClient();
 
   const users = allowedUsers;
@@ -125,9 +126,18 @@ export default function TaskRow({ task, onStatusChange, canEdit, user, teams = [
             </div>
             <div className="space-y-2">
               <Label>Assign to Users</Label>
-              <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto p-2 bg-slate-50 rounded-lg border border-slate-200">
-                {users.map(u => (
-                  <label key={u.id} className="flex items-center gap-2 text-sm">
+              <div className="relative mb-1">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                <Input
+                  placeholder="Search users..."
+                  value={userSearch}
+                  onChange={e => setUserSearch(e.target.value)}
+                  className="pl-7 h-8 text-sm"
+                />
+              </div>
+              <div className="flex flex-col gap-1 overflow-y-auto p-2 bg-slate-50 rounded-lg border border-slate-200" style={{ maxHeight: '108px' }}>
+                {users.filter(u => (u.full_name || u.email).toLowerCase().includes(userSearch.toLowerCase())).map(u => (
+                  <label key={u.id} className="flex items-center gap-2 text-sm cursor-pointer">
                     <Checkbox
                       checked={(form.assigned_to_emails || []).includes(u.email)}
                       onCheckedChange={checked => {

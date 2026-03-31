@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CheckSquare, Plus, Trash2, Send, AlertCircle, Loader2, Clock, Search } from 'lucide-react';
+
 import { toast } from "sonner";
 
 export default function Checklists() {
@@ -28,6 +29,7 @@ export default function Checklists() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [templateToDelete, setTemplateToDelete] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [assignUserSearch, setAssignUserSearch] = useState('');
   const [useForm, setUseForm] = useState({
     assigned_to_emails: [],
     assigned_to_names: [],
@@ -660,8 +662,12 @@ export default function Checklists() {
             {/* Assign Users */}
             <div>
               <label className="text-sm font-medium text-slate-900 block mb-2">Assign to Users</label>
-              <div className="max-h-32 overflow-y-auto space-y-2 p-2 bg-slate-50 rounded-lg border border-slate-200">
-                {allUsers.map(u => (
+              <div className="relative mb-1">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                <Input placeholder="Search users..." value={assignUserSearch} onChange={e => setAssignUserSearch(e.target.value)} className="pl-7 h-8 text-sm" />
+              </div>
+              <div className="flex flex-col gap-1 overflow-y-auto p-2 bg-slate-50 rounded-lg border border-slate-200" style={{ maxHeight: '108px' }}>
+                {allUsers.filter(u => (u.full_name || u.email).toLowerCase().includes(assignUserSearch.toLowerCase())).map(u => (
                   <label key={u.id} className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"

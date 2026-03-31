@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ClipboardList, Plus, Calendar, Users, CheckCircle, Loader2, Circle, PlayCircle, RefreshCw } from 'lucide-react';
+import { ClipboardList, Plus, Calendar, Users, CheckCircle, Loader2, Circle, PlayCircle, RefreshCw, Search } from 'lucide-react';
 import RecurringTaskCard from '../components/task/RecurringTaskCard';
 import { toast } from "sonner";
 
@@ -46,6 +46,8 @@ export default function Tasks() {
   const [tab, setTab] = useState('mine');
   const [editTask, setEditTask] = useState(null);
   const [editForm, setEditForm] = useState({});
+  const [newUserSearch, setNewUserSearch] = useState('');
+  const [editUserSearch, setEditUserSearch] = useState('');
 
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ['tasks'],
@@ -284,9 +286,13 @@ export default function Tasks() {
 
             <div className="space-y-2">
               <Label>Assign to Users</Label>
-              <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto p-2 bg-slate-50 rounded-lg border border-slate-200">
-                {assignableUsers.map(u => (
-                  <label key={u.id} className="flex items-center gap-2 text-sm">
+              <div className="relative mb-1">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                <Input placeholder="Search users..." value={newUserSearch} onChange={e => setNewUserSearch(e.target.value)} className="pl-7 h-8 text-sm" />
+              </div>
+              <div className="flex flex-col gap-1 overflow-y-auto p-2 bg-slate-50 rounded-lg border border-slate-200" style={{ maxHeight: '108px' }}>
+                {assignableUsers.filter(u => (u.full_name || u.email).toLowerCase().includes(newUserSearch.toLowerCase())).map(u => (
+                  <label key={u.id} className="flex items-center gap-2 text-sm cursor-pointer">
                     <Checkbox
                       checked={form.assigned_to_emails.includes(u.email)}
                       onCheckedChange={checked => {
@@ -408,9 +414,13 @@ export default function Tasks() {
             )}
             <div className="space-y-2">
               <Label>Assign to Users</Label>
-              <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto p-2 bg-slate-50 rounded-lg border border-slate-200">
-                {assignableUsers.map(u => (
-                  <label key={u.id} className="flex items-center gap-2 text-sm">
+              <div className="relative mb-1">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                <Input placeholder="Search users..." value={editUserSearch} onChange={e => setEditUserSearch(e.target.value)} className="pl-7 h-8 text-sm" />
+              </div>
+              <div className="flex flex-col gap-1 overflow-y-auto p-2 bg-slate-50 rounded-lg border border-slate-200" style={{ maxHeight: '108px' }}>
+                {assignableUsers.filter(u => (u.full_name || u.email).toLowerCase().includes(editUserSearch.toLowerCase())).map(u => (
+                  <label key={u.id} className="flex items-center gap-2 text-sm cursor-pointer">
                     <Checkbox
                       checked={(editForm.assigned_to_emails || []).includes(u.email)}
                       onCheckedChange={checked => {
