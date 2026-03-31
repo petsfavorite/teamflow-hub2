@@ -9,7 +9,7 @@ import StatusBadge from '../components/shared/StatusBadge';
 import DismissibleOverdueTask from '../components/dashboard/DismissibleOverdueTask';
 import {
   LayoutDashboard, BookOpen, CheckSquare, ClipboardList, Wrench,
-  AlertTriangle, MessageSquare, ArrowRight, Bell, ShieldAlert, CalendarCheck, Clock
+  AlertTriangle, MessageSquare, ArrowRight, Bell, ShieldAlert, CalendarCheck, Clock, Award
 } from 'lucide-react';
 import { differenceInDays, parseISO } from 'date-fns';
 
@@ -83,6 +83,15 @@ export default function Dashboard() {
     queryKey: ['incidents-dash'],
     queryFn: () => base44.entities.IncidentReport.list('-created_date', 50),
     enabled: !!user?.email && canManage,
+  });
+
+  const { data: recentAwards = [] } = useQuery({
+    queryKey: ['bonusly-awards'],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('getBonuslyAwards', {});
+      return res.data?.awards || [];
+    },
+    enabled: !!user?.email,
   });
 
   const verificationDueSops = allSOPs.filter(sop => {
@@ -430,6 +439,35 @@ export default function Dashboard() {
            <StatCard icon={CheckSquare} label="Checklists Due Soon" value={myChecklistsDueSoon.length} color="bg-emerald-600" to={createPageUrl('Checklists')} />
          </div>
        </div>
+
+       {/* Recent Bonusly Awards */}
+       {recentAwards.length > 0 && (
+         <Card className="border-0 shadow-sm">
+           <CardContent className="p-6">
+             <div className="flex items-center gap-2 mb-4">
+               <Award className="w-5 h-5 text-amber-600" />
+               <h2 className="font-semibold text-slate-900">Recent Awards</h2>
+             </div>
+             <div className="space-y-3">
+               {recentAwards.map(award => (
+                 <div key={award.id} className="flex items-start gap-3 p-3 rounded-lg bg-amber-50 border border-amber-100">
+                   <Award className="w-4 h-4 text-amber-600 mt-1 flex-shrink-0" />
+                   <div className="flex-1 min-w-0">
+                     <p className="text-sm font-medium text-slate-900">
+                       {award.giver_name} gave {award.receiver_name} a bonus
+                     </p>
+                     <p className="text-xs text-slate-600 mt-1">{award.reason}</p>
+                     <div className="flex items-center justify-between mt-2">
+                       <span className="text-xs text-slate-500">{new Date(award.created_at).toLocaleDateString()}</span>
+                       <span className="text-sm font-bold text-amber-600">+{award.amount} pts</span>
+                     </div>
+                   </div>
+                 </div>
+               ))}
+             </div>
+           </CardContent>
+         </Card>
+       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Active Maintenance Requests */}
