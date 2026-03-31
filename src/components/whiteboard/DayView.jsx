@@ -15,6 +15,7 @@ const OVERDUE_EXEMPT_TYPES = ['Collect Feces', 'Collect Urine', 'Feces Observed'
 
 const getTaskColor = (task) => {
     const type = task.type || '';
+    if (type === 'Schedule Bath') return 'text-orange-600 font-bold';
     if (type === 'Medication') return 'text-red-600 font-medium';
     if (type.toLowerCase().includes('play') || type === 'Play Session') return 'text-purple-600 font-medium';
     if (type.toLowerCase().includes('water')) return 'text-blue-600 font-medium';
@@ -80,17 +81,19 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
         }) || [];
         
         // Filter out completed tasks
-        const remaining = dateTasks.filter(task => !task.completed);
-        
-        // Sort: items without time first, then by time
-        return remaining.sort((a, b) => {
-            if (!a.time && b.time) return -1;
-            if (a.time && !b.time) return 1;
-            if (!a.time && !b.time) return 0;
-            const timeA = moment(a.time, 'h:mm A');
-            const timeB = moment(b.time, 'h:mm A');
-            return timeA.diff(timeB);
-        });
+         const remaining = dateTasks.filter(task => !task.completed);
+
+         // Sort: Schedule Bath first, then items without time, then by time
+         return remaining.sort((a, b) => {
+             if (a.type === 'Schedule Bath' && b.type !== 'Schedule Bath') return -1;
+             if (a.type !== 'Schedule Bath' && b.type === 'Schedule Bath') return 1;
+             if (!a.time && b.time) return -1;
+             if (a.time && !b.time) return 1;
+             if (!a.time && !b.time) return 0;
+             const timeA = moment(a.time, 'h:mm A');
+             const timeB = moment(b.time, 'h:mm A');
+             return timeA.diff(timeB);
+         });
     };
 
     const today2 = nowTick.format('YYYY-MM-DD');
