@@ -1,0 +1,50 @@
+{
+  "name": "User",
+  "type": "object",
+  "properties": {
+    "role": {
+      "type": "string",
+      "enum": [
+        "super_admin",
+        "admin",
+        "manager",
+        "user",
+        "general_account"
+      ],
+      "default": "user",
+      "description": "User role"
+    },
+    "team_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Team IDs this user is assigned to"
+    },
+    "timezone": {
+      "type": "string",
+      "description": "User's timezone"
+    },
+    "first_name": {
+      "type": "string",
+      "description": "User's first name"
+    },
+    "last_name": {
+      "type": "string",
+      "description": "User's last name"
+    },
+    "pin": {
+      "type": "string",
+      "description": "6-digit numeric PIN"
+    },
+    "invited": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the user was invited (not self-registered)"
+    }
+  },
+  "required": [
+    "team_ids",
+    "timezone"
+  ]
+}

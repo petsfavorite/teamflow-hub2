@@ -23,6 +23,10 @@ export default function UserManagement() {
   const [editingUser, setEditingUser] = useState(null);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('user');
+  const [inviteFirstName, setInviteFirstName] = useState('');
+  const [inviteLastName, setInviteLastName] = useState('');
+  const [invitePin, setInvitePin] = useState('');
+  const [inviteTeamIds, setInviteTeamIds] = useState([]);
   const [editRole, setEditRole] = useState('user');
   const [editFirstName, setEditFirstName] = useState('');
   const [editLastName, setEditLastName] = useState('');
@@ -114,20 +118,71 @@ export default function UserManagement() {
   });
 
   const [inviting, setInviting] = useState(false);
+  
+  const generatePin = () => {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  };
+
   const handleInvite = async () => {
     setInviting(true);
     try {
+      const pin = invitePin || generatePin();
+      
+      // Invite user with base44
       await base44.users.inviteUser(inviteEmail, inviteRole === 'admin' ? 'admin' : 'user');
-      // If they're a manager, update their role after invite since invite only supports admin/user
+      
+      // Send custom email with PIN
+      await base44.functions.invoke('sendInviteEmail', {
+        email: inviteEmail,
+        firstName: inviteFirstName,
+        lastName: inviteLastName,
+        pin,
+      });
+
+      // Update user with name, PIN, teams, and invited status after creation
+      setTimeout(async () => {
+        const allUsers = await base44.entities.User.list('email', 500);
+        const newUser = allUsers.find(u => u.email === inviteEmail);
+        if (newUser) {
+          await base44.entities.User.update(newUser.id, {
+            first_name: inviteFirstName,
+            last_name: inviteLastName,
+            full_name: `${inviteFirstName} ${inviteLastName}`.trim(),
+            pin,
+            team_ids: inviteTeamIds,
+            invited: true,
+          });
+        }
+      }, 1000);
+
       toast.success(`Invitation sent to ${inviteEmail}`);
       setShowInvite(false);
       setInviteEmail('');
+      setInviteFirstName('');
+      setInviteLastName('');
+      setInvitePin('');
+      setInviteTeamIds([]);
       setInviteRole('user');
       queryClient.invalidateQueries({ queryKey: ['all-users'] });
     } catch (e) {
       toast.error('Failed to send invitation');
     } finally {
       setInviting(false);
+    }
+  };
+
+  const handleResendInvite = async (u) => {
+    try {
+      const pin = u.pin || generatePin();
+      await base44.functions.invoke('sendInviteEmail', {
+        email: u.email,
+        firstName: u.first_name,
+        lastName: u.last_name,
+        pin,
+      });
+      toast.success(`Invitation resent to ${u.email}`);
+    } catch (e) {
+      toast.error('Failed to resend invitation');
     }
   };
 
@@ -184,7 +239,10 @@ export default function UserManagement() {
                       {u.full_name?.charAt(0) || u.email?.charAt(0) || '?'}
                     </div>
                     <div>
-                       <p className="font-medium text-slate-900">{u.full_name || 'No name'}</p>
+                       <div className="flex items-center gap-2">
+                         <p className="font-medium text-slate-900">{u.full_name || 'No name'}</p>
+                         {u.invited && <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded">Invited</span>}
+                       </div>
                        <p className="text-sm text-slate-400 flex items-center gap-1"><Mail className="w-3 h-3" />{u.email}</p>
                        {u.team_ids?.length > 0 && (
                          <div className="flex flex-wrap gap-1 mt-2">
@@ -202,6 +260,17 @@ export default function UserManagement() {
                   </div>
                   <div className="flex items-center gap-3">
                     <RoleBadge role={u.role || 'user'} />
+                    {u.invited && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleResendInvite(u)}
+                        className="text-sm text-slate-500 hover:text-slate-700"
+                        title="Resend invite email"
+                      >
+                        Resend
+                      </Button>
+                    )}
                     <Button 
                       variant="ghost" 
                       size="sm" 
@@ -314,12 +383,48 @@ export default function UserManagement() {
 
       {/* Invite Dialog */}
       <Dialog open={showInvite} onOpenChange={setShowInvite}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Invite User</DialogTitle></DialogHeader>
           <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>First Name</Label>
+                <Input value={inviteFirstName} onChange={e => setInviteFirstName(e.target.value)} placeholder="John" />
+              </div>
+              <div className="space-y-2">
+                <Label>Last Name</Label>
+                <Input value={inviteLastName} onChange={e => setInviteLastName(e.target.value)} placeholder="Doe" />
+              </div>
+            </div>
             <div className="space-y-2">
               <Label>Email Address</Label>
               <Input value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder="user@company.com" type="email" />
+            </div>
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5">
+                <Hash className="w-3.5 h-3.5" /> 6-Digit PIN
+              </Label>
+              <div className="flex gap-2">
+                <Input
+                  value={invitePin}
+                  onChange={e => {
+                    const v = e.target.value.replace(/\D/g, '').slice(0, 6);
+                    setInvitePin(v);
+                  }}
+                  placeholder="Leave blank to auto-generate"
+                  maxLength={6}
+                  inputMode="numeric"
+                  className="font-mono tracking-widest text-center"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setInvitePin(generatePin())}
+                  className="text-sm"
+                >
+                  Generate
+                </Button>
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Role</Label>
@@ -334,6 +439,27 @@ export default function UserManagement() {
                 </SelectContent>
               </Select>
             </div>
+            {teams.length > 0 && inviteRole !== 'general_account' && (
+              <div className="space-y-2">
+                <Label>Teams (Optional)</Label>
+                <div className="space-y-2 max-h-32 overflow-y-auto">
+                  {teams.map(team => (
+                    <label key={team.id} className="flex items-center gap-2 cursor-pointer">
+                      <Checkbox
+                        checked={inviteTeamIds.includes(team.id)}
+                        onCheckedChange={checked => {
+                          const updated = checked
+                            ? [...inviteTeamIds, team.id]
+                            : inviteTeamIds.filter(id => id !== team.id);
+                          setInviteTeamIds(updated);
+                        }}
+                      />
+                      <span className="text-sm text-slate-700">{team.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowInvite(false)}>Cancel</Button>
