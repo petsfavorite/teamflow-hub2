@@ -169,8 +169,30 @@ export default function Checklists() {
     },
   });
 
+  // Is the template being assigned a "pure template" (no existing assignments)?
+  const isTemplateOnly = (t) => {
+    if (!t) return false;
+    return (!t.assigned_to_emails || t.assigned_to_emails.length === 0) &&
+           (!t.assigned_teams || t.assigned_teams.length === 0) &&
+           (!t.recurrence_type || t.recurrence_type === 'once');
+  };
+
   const assignChecklistMutation = useMutation({
-    mutationFn: (data) => base44.entities.ChecklistTemplate.update(templateToUse.id, data),
+    mutationFn: async (data) => {
+      if (isTemplateOnly(templateToUse)) {
+        // Duplicate the template into a new active record, keep original clean
+        return base44.entities.ChecklistTemplate.create({
+          title: templateToUse.title,
+          description: templateToUse.description,
+          category: templateToUse.category,
+          items: templateToUse.items,
+          ...data,
+        });
+      } else {
+        // Already an assigned/recurring checklist — just update it
+        return base44.entities.ChecklistTemplate.update(templateToUse.id, data);
+      }
+    },
     onSuccess: () => {
       toast.success('Checklist assigned!');
       setUseDialogOpen(false);
