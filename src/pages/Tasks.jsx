@@ -39,7 +39,7 @@ const emptyForm = {
 };
 
 export default function Tasks() {
-  const { user, canManage, isSuperAdmin, isAdmin, isManager } = useCurrentUser();
+  const { user, loading: userLoading, canManage, isSuperAdmin, isAdmin, isManager } = useCurrentUser();
   const queryClient = useQueryClient();
   const [showNew, setShowNew] = useState(false);
   const [form, setForm] = useState(emptyForm);
@@ -91,14 +91,15 @@ export default function Tasks() {
       .flatMap(t => t.member_emails || [])
   );
 
-  // For assignment: admins see all, managers see only their teams + teammates
-  const assignableTeams = (isAdmin || isSuperAdmin)
-    ? teams
-    : teams.filter(t => myTeamIds.has(t.id));
+  // For assignment: admins/super_admins see all; managers see only their teams + teammates
+  // While user is still loading, default to showing all so the dialog isn't empty
+  const assignableTeams = (!userLoading && isManager && !isAdmin && !isSuperAdmin)
+    ? teams.filter(t => myTeamIds.has(t.id))
+    : teams;
 
-  const assignableUsers = (isAdmin || isSuperAdmin)
-    ? users
-    : users.filter(u => managedTeamMemberEmails.has(u.email));
+  const assignableUsers = (!userLoading && isManager && !isAdmin && !isSuperAdmin)
+    ? users.filter(u => managedTeamMemberEmails.has(u.email))
+    : users;
 
   const myTasks = tasks.filter(t => {
     const assignedToMe = t.assigned_to_emails?.includes(user?.email);
