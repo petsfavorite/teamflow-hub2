@@ -167,7 +167,7 @@ function PrintableReport({ report }) {
           {report.notes_log.map((log, i) => (
             <div key={i} style={{ background: '#f9f9f9', border: '1px solid #e5e7eb', borderRadius: '4px', padding: '8px', marginBottom: '6px' }}>
               <p style={{ margin: '0 0 4px' }}>{log.note}</p>
-              <p style={{ margin: 0, fontSize: '9pt', color: '#777' }}>{log.added_by_name} — {log.date}</p>
+              <p style={{ margin: 0, fontSize: '9pt', color: '#777' }}>{log.added_by_name} — {log.date ? new Date(log.date).toLocaleString([], { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}</p>
             </div>
           ))}
         </div>
@@ -646,7 +646,7 @@ export default function IncidentReports() {
                       }
                       const noteEntry = {
                         note: newNote,
-                        date: new Date().toISOString().split('T')[0],
+                        date: new Date().toISOString(),
                         added_by: user.email,
                         added_by_name: user.full_name || user.email,
                         ...(attachmentUrl && { attachment_url: attachmentUrl })
@@ -679,7 +679,7 @@ export default function IncidentReports() {
                       {selected.notes_log.map((log, idx) => (
                         <div key={idx} className="text-xs bg-slate-50 rounded p-2">
                           <p className="text-slate-700">{log.note}</p>
-                          <div className="text-xs text-slate-400 mt-1">{log.added_by_name} • {log.date}</div>
+                          <div className="text-xs text-slate-400 mt-1">{log.added_by_name} • {log.date ? new Date(log.date).toLocaleString([], { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}</div>
                           {log.attachment_url && (
                             <a href={log.attachment_url} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 hover:underline flex items-center gap-1 mt-1.5">
                               <Paperclip className="w-3 h-3" /> View Attachment
