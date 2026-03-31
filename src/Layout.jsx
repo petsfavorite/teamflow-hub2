@@ -207,7 +207,7 @@ export default function Layout({ children }) {
 
             {/* Mobile Sidebar - visible when open */}
             {sidebarOpen && (
-                <nav className="sm:hidden fixed left-0 top-0 h-screen w-64 bg-white border-r border-stone-200 p-3 gap-1 z-[40] overflow-y-auto flex flex-col">
+                <nav className="sm:hidden fixed left-0 top-0 h-screen w-64 bg-white border-r border-stone-200 p-3 gap-1 z-[40] overflow-y-auto flex flex-col pt-4 pb-24">
                     <button
                         onClick={() => setSidebarOpen(false)}
                         className="mb-6 p-2 hover:bg-stone-100 rounded-xl transition-colors flex-shrink-0"
