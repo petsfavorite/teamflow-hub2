@@ -30,8 +30,17 @@ Deno.serve(async (req) => {
     const data = await response.json();
     const bonuses = data.bonuses || [];
 
+    // Filter to only include bonuses from last 30 days
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const recentBonuses = bonuses.filter(bonus => {
+      const bonusDate = new Date(bonus.created_at);
+      return bonusDate >= thirtyDaysAgo;
+    });
+
     // Map fields from response
-    const recognitions = bonuses.map(bonus => ({
+    const recognitions = recentBonuses.map(bonus => ({
       giver: bonus.sender?.short_name || 'Unknown',
       receiver: bonus.receiver?.short_name || 'Unknown',
       message: bonus.reason || '',
