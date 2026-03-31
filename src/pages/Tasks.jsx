@@ -183,7 +183,7 @@ export default function Tasks() {
               key={task.id}
               task={task}
               onStatusChange={setStatus}
-              canEdit={isAdmin || isSuperAdmin}
+              canEdit={canManage}
               user={user}
               teams={teams}
             />
