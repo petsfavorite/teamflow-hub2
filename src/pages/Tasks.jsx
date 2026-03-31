@@ -55,13 +55,11 @@ export default function Tasks() {
   const { data: users = [] } = useQuery({
     queryKey: ['users-list'],
     queryFn: () => base44.entities.User.list('full_name', 200),
-    enabled: canManage,
   });
 
   const { data: teams = [] } = useQuery({
     queryKey: ['teams'],
     queryFn: () => base44.entities.Team.list(),
-    enabled: canManage,
   });
 
   const createMutation = useMutation({
