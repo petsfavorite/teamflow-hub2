@@ -14,8 +14,9 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Bonusly API key not configured' }, { status: 500 });
     }
 
-    // Fetch recent bonuses using token in query param
-    const response = await fetch(`https://bonus.ly/api/v2/bonuses?limit=50&access_token=${encodeURIComponent(apiKey)}`, {
+    // Fetch recent bonuses
+    const response = await fetch(`https://bonus.ly/api/v2/bonuses?limit=50&access_token=${apiKey}`, {
+      method: 'GET',
       headers: {
         'Accept': 'application/json',
       }
@@ -27,7 +28,7 @@ Deno.serve(async (req) => {
     }
 
     const data = await response.json();
-    const awards = data.result?.bonuses || [];
+    const awards = data.bonuses || [];
 
     // Return top 3 awards
     return Response.json({
