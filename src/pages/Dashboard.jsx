@@ -427,12 +427,6 @@ export default function Dashboard() {
          <div className="h-24">
            <StatCard icon={CheckSquare} label="Checklists Due Soon" value={myChecklistsDueSoon.length} color="bg-emerald-600" to={createPageUrl('Checklists')} />
          </div>
-         <div className="h-24">
-           <StatCard icon={BookOpen} label="SOP Library" value={sops.length} color="bg-indigo-600" to={createPageUrl('SOPs')} />
-         </div>
-         <div className="h-24">
-           <StatCard icon={Wrench} label="Open Maintenance" value={openMaintenance.length} color="bg-amber-600" to={createPageUrl('Maintenance')} />
-         </div>
        </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -466,31 +460,61 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Quick Actions */}
+        {/* Open Incidents */}
         <Card className="border-0 shadow-sm">
           <CardContent className="p-6">
-            <h2 className="font-semibold text-slate-900 mb-4">Quick Actions</h2>
-            <div className="grid grid-cols-2 gap-3">
-              <Link to={createPageUrl('SOPAssistant')} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-indigo-50 hover:bg-indigo-100 transition-colors">
-                <MessageSquare className="w-6 h-6 text-indigo-600" />
-                <span className="text-sm font-medium text-indigo-700 text-center">Ask SOP AI</span>
-              </Link>
-              <Link to={createPageUrl('EmergencySOPs')} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-red-50 hover:bg-red-100 transition-colors">
-                <AlertTriangle className="w-6 h-6 text-red-600" />
-                <span className="text-sm font-medium text-red-700 text-center">Emergency SOPs</span>
-              </Link>
-              <Link to={createPageUrl('Maintenance') + '?new=true'} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-amber-50 hover:bg-amber-100 transition-colors">
-                <Wrench className="w-6 h-6 text-amber-600" />
-                <span className="text-sm font-medium text-amber-700 text-center">New Request</span>
-              </Link>
-              <Link to={createPageUrl('IncidentReports')} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-purple-50 hover:bg-purple-100 transition-colors">
-                <AlertTriangle className="w-6 h-6 text-purple-600" />
-                <span className="text-sm font-medium text-purple-700 text-center">Report Incident</span>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-semibold text-slate-900">Open Incidents</h2>
+              <Link to={createPageUrl('IncidentReports')} className="text-sm text-indigo-600 hover:text-indigo-700 flex items-center gap-1">
+                View all <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
+            {incidents.length === 0 ? (
+              <p className="text-sm text-slate-400 py-4 text-center">No open incidents</p>
+            ) : (
+              <div className="space-y-3">
+                {incidents.slice(0, 4).map(inc => (
+                  <div key={inc.id} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-slate-800 truncate">{inc.title}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Clock className="w-3 h-3 text-slate-400" />
+                        <span className="text-xs text-slate-400">{inc.incident_date}</span>
+                      </div>
+                    </div>
+                    <StatusBadge status={inc.status} />
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
+
+      {/* Quick Actions */}
+      <Card className="border-0 shadow-sm">
+        <CardContent className="p-6">
+          <h2 className="font-semibold text-slate-900 mb-4">Quick Actions</h2>
+          <div className="grid grid-cols-2 gap-3">
+            <Link to={createPageUrl('SOPs')} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-indigo-50 hover:bg-indigo-100 transition-colors">
+              <BookOpen className="w-6 h-6 text-indigo-600" />
+              <span className="text-sm font-medium text-indigo-700 text-center">SOP Library</span>
+            </Link>
+            <Link to={createPageUrl('SOPAssistant')} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-blue-50 hover:bg-blue-100 transition-colors">
+              <MessageSquare className="w-6 h-6 text-blue-600" />
+              <span className="text-sm font-medium text-blue-700 text-center">Ask SOP AI</span>
+            </Link>
+            <Link to={createPageUrl('Maintenance') + '?new=true'} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-amber-50 hover:bg-amber-100 transition-colors">
+              <Wrench className="w-6 h-6 text-amber-600" />
+              <span className="text-sm font-medium text-amber-700 text-center">New Request</span>
+            </Link>
+            <Link to={createPageUrl('IncidentReports')} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-purple-50 hover:bg-purple-100 transition-colors">
+              <AlertTriangle className="w-6 h-6 text-purple-600" />
+              <span className="text-sm font-medium text-purple-700 text-center">Report Incident</span>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
