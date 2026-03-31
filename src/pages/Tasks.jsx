@@ -54,7 +54,10 @@ export default function Tasks() {
 
   const { data: users = [] } = useQuery({
     queryKey: ['users-list'],
-    queryFn: () => base44.entities.User.list('full_name', 200),
+    queryFn: async () => {
+      const res = await base44.functions.invoke('listUsers', {});
+      return res.data?.users || [];
+    },
   });
 
   const { data: teams = [] } = useQuery({

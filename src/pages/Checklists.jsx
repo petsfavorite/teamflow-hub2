@@ -18,7 +18,7 @@ import { CheckSquare, Plus, Trash2, Send, AlertCircle, Loader2, Clock, Search } 
 import { toast } from "sonner";
 
 export default function Checklists() {
-  const { user, canManage, isSuperAdmin, isAdmin } = useCurrentUser();
+  const { user, loading: userLoading, canManage, isSuperAdmin, isAdmin, isManager } = useCurrentUser();
   const [activeChecklist, setActiveChecklist] = useState(null);
   const [items, setItems] = useState([]);
   const [notes, setNotes] = useState({});
@@ -56,11 +56,27 @@ export default function Checklists() {
     queryFn: () => base44.entities.Team.list('name', 200),
   });
 
-  const { data: allUsers = [] } = useQuery({
-    queryKey: ['users-all'],
-    queryFn: () => base44.entities.User.list(),
+  const { data: allUsersRaw = [] } = useQuery({
+    queryKey: ['users-list'],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('listUsers', {});
+      return res.data?.users || [];
+    },
     enabled: canManage,
   });
+
+  // Admins/super_admins see all users; managers see only teammates
+  const allUsers = useMemo(() => {
+    if (!userLoading && isManager && !isAdmin && !isSuperAdmin) {
+      const myTeamEmails = new Set(
+        teams
+          .filter(t => t.member_emails?.includes(user?.email))
+          .flatMap(t => t.member_emails || [])
+      );
+      return allUsersRaw.filter(u => myTeamEmails.has(u.email));
+    }
+    return allUsersRaw;
+  }, [allUsersRaw, userLoading, isManager, isAdmin, isSuperAdmin, teams, user]);
 
   const myTeamIds = useMemo(() => {
     return teams
