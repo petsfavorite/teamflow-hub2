@@ -13,7 +13,10 @@ export default function BonuslyRecognitions() {
       setError(null);
       const response = await base44.functions.invoke('getBonuslyAwards', {});
       if (response.data.recognitions && response.data.recognitions.length > 0) {
-        setRecognitions(response.data.recognitions);
+        const sorted = response.data.recognitions
+          .sort((a, b) => new Date(b.time) - new Date(a.time))
+          .slice(0, 4);
+        setRecognitions(sorted);
       } else {
         setRecognitions([]);
       }
