@@ -15,7 +15,7 @@ Deno.serve(async (req) => {
     }
 
     // Fetch recent bonuses using v1 endpoint with Bearer token
-    const response = await fetch('https://bonus.ly/api/v1/bonuses?limit=4', {
+    const response = await fetch('https://bonus.ly/api/v1/bonuses?limit=100&sort=created_at:desc', {
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Accept': 'application/json',
@@ -28,8 +28,13 @@ Deno.serve(async (req) => {
     }
 
     const data = await response.json();
-    console.log('Bonusly API response:', JSON.stringify(data, null, 2));
-    const bonuses = data.bonuses || [];
+    
+    // Handle both possible response structures
+    const bonuses = data.bonuses || data.result || [];
+    
+    if (bonuses.length === 0) {
+      return Response.json({ recognitions: [] });
+    }
 
     // Filter to only include bonuses from last 30 days
     const thirtyDaysAgo = new Date();
