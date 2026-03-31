@@ -14,9 +14,11 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Bonusly API key not configured' }, { status: 500 });
     }
 
-    // Fetch recent bonuses using token auth
-    const response = await fetch(`https://bonus.ly/api/v2/bonuses?limit=50&access_token=${apiKey}`, {
+    // Fetch recent bonuses - Bonusly uses HTTP Basic Auth with token as password
+    const authHeader = 'Basic ' + btoa(`${apiKey}:X`);
+    const response = await fetch('https://bonus.ly/api/v2/bonuses?limit=50', {
       headers: {
+        'Authorization': authHeader,
         'Accept': 'application/json',
       }
     });
