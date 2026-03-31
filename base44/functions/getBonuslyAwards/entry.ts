@@ -14,10 +14,10 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Bonusly API key not configured' }, { status: 500 });
     }
 
-    // Fetch recent bonuses
-    const response = await fetch(`https://bonus.ly/api/v2/bonuses?limit=50&access_token=${apiKey}`, {
-      method: 'GET',
+    // Fetch recent bonuses using v1 endpoint with Bearer token
+    const response = await fetch('https://bonus.ly/api/v1/bonuses?limit=4', {
       headers: {
+        'Authorization': `Bearer ${apiKey}`,
         'Accept': 'application/json',
       }
     });
@@ -28,19 +28,18 @@ Deno.serve(async (req) => {
     }
 
     const data = await response.json();
-    const awards = data.bonuses || [];
+    const bonuses = data.bonuses || [];
 
-    // Return top 3 awards
-    return Response.json({
-      awards: awards.slice(0, 3).map(award => ({
-        id: award.id,
-        giver_name: award.giver?.full_name || 'Unknown',
-        receiver_name: award.receiver?.full_name || 'Unknown',
-        reason: award.reason,
-        amount: award.amount,
-        created_at: award.created_at,
-      }))
-    });
+    // Map fields from response
+    const recognitions = bonuses.map(bonus => ({
+      giver: bonus.sender?.short_name || 'Unknown',
+      receiver: bonus.receiver?.short_name || 'Unknown',
+      message: bonus.reason || '',
+      tags: bonus.hashtags || [],
+      time: bonus.created_at
+    }));
+
+    return Response.json({ recognitions });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
