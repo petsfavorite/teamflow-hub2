@@ -70,9 +70,11 @@ export default function Layout({ children }) {
     return (
         <div className="min-h-screen bg-stone-50 flex flex-col md:flex-row" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
             {/* Sidebar - Desktop fixed, Mobile floating overlay */}
-            <nav className={`hidden sm:flex flex-col bg-white border-r border-stone-200 p-3 md:p-4 gap-1 fixed h-screen transition-all duration-300 z-40 overflow-y-auto ${
+            <nav className={`flex flex-col bg-white border-r border-stone-200 p-3 md:p-4 gap-1 fixed h-screen transition-all duration-300 z-40 overflow-y-auto ${
                 sidebarOpen ? 'w-64' : 'w-20'
-            }`}>
+            } ${
+                sidebarOpen ? 'sm:flex' : 'sm:flex'
+            } hidden sm:flex`}>
                 <button
                     onClick={() => setSidebarOpen(!sidebarOpen)}
                     className="mb-6 p-2 hover:bg-stone-100 rounded-xl transition-colors flex-shrink-0"
@@ -182,14 +184,14 @@ export default function Layout({ children }) {
             </nav>
 
             {/* Main Content */}
-            <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'sm:ml-64 md:ml-64' : 'sm:ml-20 md:ml-20'} ${!isFloofPage ? 'p-4 md:p-6' : ''} pb-8`}>
+            <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'sm:ml-64 md:ml-64' : 'sm:ml-20 md:ml-20'} ${!isFloofPage ? 'p-4 md:p-6' : ''} pt-16 sm:pt-0 pb-8`}>
                 {children}
             </div>
 
             {/* Mobile Floating Hamburger - only on phone, hidden on tablet+ */}
             <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="sm:hidden fixed top-4 left-4 z-[60] bg-white border border-stone-200 rounded-lg p-2 shadow-md hover:shadow-lg transition-all"
+                className="sm:hidden fixed top-4 left-4 z-[50] bg-white border border-stone-200 rounded-lg p-2 shadow-md hover:shadow-lg transition-all"
                 aria-label="Toggle menu"
             >
                 {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -201,6 +203,97 @@ export default function Layout({ children }) {
                     className="sm:hidden fixed inset-0 bg-black/50 z-[35]"
                     onClick={() => setSidebarOpen(false)}
                 />
+            )}
+
+            {/* Mobile Sidebar - visible when open */}
+            {sidebarOpen && (
+                <nav className="sm:hidden fixed left-0 top-0 h-screen w-64 bg-white border-r border-stone-200 p-3 gap-1 z-[40] overflow-y-auto flex flex-col">
+                    <button
+                        onClick={() => setSidebarOpen(false)}
+                        className="mb-6 p-2 hover:bg-stone-100 rounded-xl transition-colors flex-shrink-0"
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
+                    <div className="mb-4">
+                        {isFloofPage ? (
+                            <h1 className="text-2xl font-bold text-stone-800">FLOOF</h1>
+                        ) : (
+                            <h1 className="text-2xl font-bold text-stone-800">Pets Fav Team</h1>
+                        )}
+                    </div>
+
+                    {navItems.map((item) => {
+                        if (item.hiddenRole && user?.role === item.hiddenRole) return null;
+                        return (
+                            <Link
+                                key={item.name}
+                                to={createPageUrl(item.name)}
+                                onClick={() => setSidebarOpen(false)}
+                                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
+                                    isActive(item.name)
+                                        ? 'text-[#82bb32] bg-[#82bb32]/10'
+                                        : 'text-stone-600 hover:text-stone-800 hover:bg-stone-50'
+                                }`}
+                            >
+                                <item.icon className="w-5 h-5 flex-shrink-0" />
+                                <span className="font-medium">{item.label}</span>
+                            </Link>
+                        );
+                    })}
+
+                    {/* Pet Import — Floof nav, super_admin only */}
+                    {isFloofPage && user?.role === 'super_admin' && (
+                        <Link
+                            to={createPageUrl('Settings')}
+                            onClick={() => setSidebarOpen(false)}
+                            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
+                                isActive('Settings')
+                                    ? 'text-[#82bb32] bg-[#82bb32]/10'
+                                    : 'text-stone-600 hover:text-stone-800 hover:bg-stone-50'
+                            }`}
+                        >
+                            <Upload className="w-5 h-5 flex-shrink-0" />
+                            <span className="font-medium">Pet Import</span>
+                        </Link>
+                    )}
+
+                    {/* Administration dropdown — main nav only, privileged roles */}
+                    {!isFloofPage && canSeeAdmin && (
+                        <div className="mt-2">
+                            <button
+                                onClick={() => setAdminOpen(!adminOpen)}
+                                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-colors ${
+                                    isOnAdminPage ? 'text-[#82bb32] bg-[#82bb32]/10' : 'text-stone-600 hover:text-stone-800 hover:bg-stone-50'
+                                }`}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <ShieldCheck className="w-5 h-5 flex-shrink-0" />
+                                    <span className="font-medium">Administration</span>
+                                </div>
+                                {(adminOpen || isOnAdminPage) ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                            </button>
+                            {(adminOpen || isOnAdminPage) && (
+                                <div className="ml-4 mt-1 flex flex-col gap-1 border-l-2 border-stone-100 pl-3">
+                                    {adminNavItems.filter(item => !item.superAdminOnly || user?.role === 'super_admin').map((item) => (
+                                        <Link
+                                            key={item.name}
+                                            to={createPageUrl(item.name)}
+                                            onClick={() => setSidebarOpen(false)}
+                                            className={`flex items-center gap-3 px-3 py-2 rounded-xl transition-colors ${
+                                                isActive(item.name)
+                                                    ? 'text-[#82bb32] bg-[#82bb32]/10'
+                                                    : 'text-stone-600 hover:text-stone-800 hover:bg-stone-50'
+                                            }`}
+                                        >
+                                            <item.icon className="w-4 h-4 flex-shrink-0" />
+                                            <span className="text-sm font-medium">{item.label}</span>
+                                        </Link>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </nav>
             )}
 
             {/* Mobile Bottom Nav */}
