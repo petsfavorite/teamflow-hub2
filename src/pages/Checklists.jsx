@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Link, useNavigate } from 'react-router-dom';
@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckSquare, Plus, Trash2, Send, AlertCircle, Loader2, Clock, Search } from 'lucide-react';
+import { CheckSquare, Plus, Trash2, AlertCircle, Loader2, Clock, Search } from 'lucide-react';
 
 import { toast } from "sonner";
 
@@ -228,6 +228,7 @@ export default function Checklists() {
     
     setActiveChecklist({ ...template, completionId: existingCompletion?.id });
     setCanSubmitWithIncomplete(!template.due_date && !template.due_time);
+    autoSubmitFiredRef.current = false;
   };
 
   const handleAssignClick = (template) => {
@@ -345,6 +346,16 @@ export default function Checklists() {
     });
   };
 
+  // Auto-submit when all items are checked
+  const autoSubmitFiredRef = useRef(false);
+  useEffect(() => {
+    if (!activeChecklist || items.length === 0) return;
+    if (items.every(i => i.checked) && !autoSubmitFiredRef.current && !submitMutation.isPending) {
+      autoSubmitFiredRef.current = true;
+      submitChecklist();
+    }
+  }, [items, activeChecklist]);
+
   if (activeChecklist) {
     const allChecked = items.every(i => i.checked);
     return (
@@ -372,52 +383,50 @@ export default function Checklists() {
             </div>
 
             <div className="mt-6 space-y-3">
-              {!allChecked && !canSubmitWithIncomplete && (
-                <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                  <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-amber-700">All items must be checked before submitting this checklist.</p>
+              {submitMutation.isPending && (
+                <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                  <Loader2 className="w-4 h-4 text-emerald-600 animate-spin" />
+                  <p className="text-sm text-emerald-700">Submitting checklist...</p>
                 </div>
               )}
-              <div className="flex gap-2 justify-end">
-                {canManage && (
-                   <Button
-                     onClick={async () => {
-                       const completion = await base44.entities.ChecklistCompletion.create({
-                         checklist_template_id: activeChecklist.id,
-                         checklist_title: activeChecklist.title,
-                         completed_by: user.email,
-                         completed_by_name: user.full_name,
-                         completed_items: items,
-                         completion_date: new Date().toISOString().split('T')[0],
-                         status: 'edited'
-                       });
-                       await base44.functions.invoke('finalizeChecklistAssignment', {
-                         checklist_template_id: activeChecklist.id,
-                         checklist_completion_id: completion.id
-                       }).catch(() => {});
-                       toast.success('Checklist stopped and moved to history');
-                       setActiveChecklist(null);
-                       setItems([]);
-                       setNotes({});
-                       queryClient.invalidateQueries({ queryKey: ['checklist-templates-published'] });
-                       queryClient.invalidateQueries({ queryKey: ['checklist-completions'] });
-                       queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
-                     }}
-                     variant="outline"
-                     className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
-                   >
-                     Stop
-                   </Button>
-                )}
-                <Button
-                  onClick={submitChecklist}
-                  disabled={(canSubmitWithIncomplete ? false : !allChecked) || submitMutation.isPending}
-                  className="bg-emerald-600 hover:bg-emerald-700 gap-2"
-                >
-                  {submitMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                  Submit Checklist
-                </Button>
-              </div>
+              {!allChecked && (
+                <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-amber-700">Checklist will auto-submit once all items are checked off.</p>
+                </div>
+              )}
+              {canManage && (
+                <div className="flex justify-end">
+                  <Button
+                    onClick={async () => {
+                      const completion = await base44.entities.ChecklistCompletion.create({
+                        checklist_template_id: activeChecklist.id,
+                        checklist_title: activeChecklist.title,
+                        completed_by: user.email,
+                        completed_by_name: user.full_name,
+                        completed_items: items,
+                        completion_date: new Date().toISOString().split('T')[0],
+                        status: 'edited'
+                      });
+                      await base44.functions.invoke('finalizeChecklistAssignment', {
+                        checklist_template_id: activeChecklist.id,
+                        checklist_completion_id: completion.id
+                      }).catch(() => {});
+                      toast.success('Checklist stopped and moved to history');
+                      setActiveChecklist(null);
+                      setItems([]);
+                      setNotes({});
+                      queryClient.invalidateQueries({ queryKey: ['checklist-templates-published'] });
+                      queryClient.invalidateQueries({ queryKey: ['checklist-completions'] });
+                      queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
+                    }}
+                    variant="outline"
+                    className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                  >
+                    Stop
+                  </Button>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
