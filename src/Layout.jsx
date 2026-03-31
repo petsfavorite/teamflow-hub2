@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import {
     Dog, LayoutGrid, Users, LogIn, Settings, Menu, X,
@@ -46,6 +46,7 @@ const ADMIN_ROLES = ['admin', 'manager', 'super_admin'];
 
 export default function Layout({ children }) {
     const location = useLocation();
+    const navigate = useNavigate();
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [adminOpen, setAdminOpen] = useState(false);
     const { user } = useCurrentUser();
@@ -184,7 +185,7 @@ export default function Layout({ children }) {
             </nav>
 
             {/* Main Content */}
-            <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'sm:ml-64 md:ml-64' : 'sm:ml-20 md:ml-20'} ${!isFloofPage ? 'p-4 md:p-6' : ''} pt-16 sm:pt-0 pb-8`}>
+            <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'sm:ml-64 md:ml-64' : 'sm:ml-20 md:ml-20'} ${!isFloofPage ? 'p-4 md:p-6' : ''} pt-16 sm:pt-0 pb-20 sm:pb-8`}>
                 {children}
             </div>
 
@@ -295,6 +296,18 @@ export default function Layout({ children }) {
                     )}
                 </nav>
             )}
+
+            {/* Mobile Back Button */}
+            <button
+                onClick={() => navigate(-1)}
+                className="sm:hidden fixed bottom-20 left-2 bg-white border border-stone-200 text-stone-700 hover:bg-stone-50 rounded-full px-3 py-2 shadow-md hover:shadow-lg transition-all flex items-center gap-2 z-50 text-sm font-medium"
+                style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+            >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                <span>Back</span>
+            </button>
 
             {/* Mobile Bottom Nav */}
             <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 px-2 py-2 z-50" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
