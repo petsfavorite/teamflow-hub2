@@ -96,21 +96,20 @@ export default function Checklists() {
     });
   }, [allTemplates, user, teams]);
 
-  // Template checklists - unassigned templates (no users, teams assigned) for managers/admins only
+  // Template checklists - pure templates: no assignments and not archived
   const templateChecklists = useMemo(() => {
-    return allTemplates.filter(t => 
-      (t.status === 'published' || t.status === 'active' || t.status === 'draft') && 
+    return allTemplates.filter(t =>
+      t.status !== 'archived' &&
       (!t.assigned_to_emails || t.assigned_to_emails.length === 0) &&
       (!t.assigned_teams || t.assigned_teams.length === 0)
     );
   }, [allTemplates]);
 
-  // Recurring checklists - assigned templates with recurrence set (active or published, not archived)
+  // Recurring checklists - assigned records with non-once recurrence (the "master" recurring records)
   const recurringChecklists = useMemo(() => {
     return allTemplates.filter(t => {
-      if (t.status !== 'active' && t.status !== 'published') return false;
+      if (t.status === 'archived') return false;
       if (!t.recurrence_type || t.recurrence_type === 'once' || t.recurrence_type === 'manual') return false;
-      // Must be assigned to someone or some team
       const isAssigned = (t.assigned_to_emails?.length > 0) || (t.assigned_teams?.length > 0);
       return isAssigned;
     });
@@ -165,18 +164,13 @@ export default function Checklists() {
     },
   });
 
-  // Is the template being assigned a "pure template" (no existing assignments)?
-  const isTemplateOnly = (t) => {
-    if (!t) return false;
-    return (!t.assigned_to_emails || t.assigned_to_emails.length === 0) &&
-           (!t.assigned_teams || t.assigned_teams.length === 0) &&
-           (!t.recurrence_type || t.recurrence_type === 'once');
-  };
+  // Track whether the dialog was opened from a pure template (Assign) or an existing assigned record (Edit)
+  const [isAssigningFromTemplate, setIsAssigningFromTemplate] = useState(false);
 
   const assignChecklistMutation = useMutation({
     mutationFn: async (data) => {
-      if (isTemplateOnly(templateToUse)) {
-        // Duplicate the template into a new active record, keep original clean
+      if (isAssigningFromTemplate) {
+        // Always create a new record from the template, keep the template clean
         return base44.entities.ChecklistTemplate.create({
           title: templateToUse.title,
           description: templateToUse.description,
@@ -185,7 +179,7 @@ export default function Checklists() {
           ...data,
         });
       } else {
-        // Already an assigned/recurring checklist — just update it
+        // Editing an existing assigned/recurring record — update in place
         return base44.entities.ChecklistTemplate.update(templateToUse.id, data);
       }
     },
@@ -231,32 +225,48 @@ export default function Checklists() {
     autoSubmitFiredRef.current = false;
   };
 
+  // Called from Template Checklists — always creates a new record
   const handleAssignClick = (template) => {
     setTemplateToUse(template);
+    setIsAssigningFromTemplate(true);
     setUseForm({
-      assigned_to_emails: template.assigned_to_emails || [],
-      assigned_to_names: template.assigned_to_names || [],
-      assigned_teams: template.assigned_teams || [],
-      due_date: template.due_date || '',
-      due_time: template.due_time || '21:00',
-      recurrence_type: template.recurrence_type || 'once',
-      recurrence_days_of_week: template.recurrence_days_of_week || [],
-      recurrence_day_of_month: template.recurrence_day_of_month || undefined,
-      recurrence_interval_months: template.recurrence_interval_months || undefined
+      assigned_to_emails: [],
+      assigned_to_names: [],
+      assigned_teams: [],
+      due_date: '',
+      due_time: '21:00',
+      recurrence_type: 'once',
+      recurrence_days_of_week: [],
+      recurrence_day_of_month: undefined,
+      recurrence_interval_months: undefined
     });
     setUseDialogOpen(true);
   };
 
-  const stopRecurrence = (template) => {
-    base44.entities.ChecklistTemplate.update(template.id, {
-      status: 'archived'
-    }).then(() => {
-      toast.success('Recurring checklist stopped — existing assignments are unchanged');
+  // Called from Actively Recurring Checklists — updates the existing record
+  const handleEditRecurring = (record) => {
+    setTemplateToUse(record);
+    setIsAssigningFromTemplate(false);
+    setUseForm({
+      assigned_to_emails: record.assigned_to_emails || [],
+      assigned_to_names: record.assigned_to_names || [],
+      assigned_teams: record.assigned_teams || [],
+      due_date: record.due_date || '',
+      due_time: record.due_time || '21:00',
+      recurrence_type: record.recurrence_type || 'once',
+      recurrence_days_of_week: record.recurrence_days_of_week || [],
+      recurrence_day_of_month: record.recurrence_day_of_month || undefined,
+      recurrence_interval_months: record.recurrence_interval_months || undefined
+    });
+    setUseDialogOpen(true);
+  };
+
+  const deleteRecurring = (record) => {
+    base44.entities.ChecklistTemplate.delete(record.id).then(() => {
+      toast.success('Recurring checklist removed — active assignments are unchanged');
       queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
     });
   };
-
-  const handleUseClick = handleAssignClick;
 
   const updateItem = async (index, updates) => {
     setItems(prev => {
@@ -546,17 +556,17 @@ export default function Checklists() {
                           <Button
                             size="sm"
                             className="flex-1 bg-purple-600 hover:bg-purple-700"
-                            onClick={() => handleAssignClick(template)}
+                            onClick={() => handleEditRecurring(template)}
                           >
                             Edit
                           </Button>
-                          {canManage && (
+                          {(isSuperAdmin || isAdmin) && (
                             <Button
                               variant="ghost"
                               size="sm"
                               className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                              title="Stop future recurrence"
-                              onClick={() => stopRecurrence(template)}
+                              title="Remove this recurring checklist"
+                              onClick={() => deleteRecurring(template)}
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>
@@ -667,7 +677,7 @@ export default function Checklists() {
       <Dialog open={useDialogOpen} onOpenChange={setUseDialogOpen}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{templateToUse?.assigned_to_emails?.length > 0 || templateToUse?.assigned_teams?.length > 0 ? 'Edit' : 'Assign'} "{templateToUse?.title}"</DialogTitle>
+            <DialogTitle>{isAssigningFromTemplate ? 'Assign' : 'Edit'} "{templateToUse?.title}"</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             {/* Assign Users */}
