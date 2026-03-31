@@ -161,17 +161,17 @@ export default function Tasks() {
         }
       />
 
-      <div className="flex gap-2 mb-6 flex-wrap">
-        {['mine', 'all', 'completed', ...(canManage ? ['recurring'] : [])].map(t => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === t ? 'bg-indigo-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'}`}
-          >
-            {t === 'mine' ? 'My Tasks' : t === 'all' ? 'All Active' : t === 'completed' ? 'Completed' : 'Recurring'}
-          </button>
-        ))}
-      </div>
+      <div className="flex gap-2 mb-6 overflow-x-auto pb-2 -mx-6 px-6 md:mx-0 md:px-0">
+         {['mine', 'all', 'completed', ...(canManage ? ['recurring'] : [])].map(t => (
+           <button
+             key={t}
+             onClick={() => setTab(t)}
+             className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${tab === t ? 'bg-indigo-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'}`}
+           >
+             {t === 'mine' ? 'My Tasks' : t === 'all' ? 'All Active' : t === 'completed' ? 'Completed' : 'Recurring'}
+           </button>
+         ))}
+       </div>
 
       {tab === 'recurring' ? (
         isLoading ? (
@@ -206,7 +206,7 @@ export default function Tasks() {
       )}
 
       <Dialog open={showNew} onOpenChange={setShowNew}>
-        <DialogContent className="max-w-md max-h-[90vh] flex flex-col">
+         <DialogContent className="w-[calc(100%-2rem)] max-w-md max-h-[90vh] flex flex-col">
           <DialogHeader><DialogTitle>Create Task</DialogTitle></DialogHeader>
           <div className="space-y-4 overflow-y-auto flex-1">
             <div className="space-y-2"><Label>Task Title</Label><Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="What needs to be done?" /></div>
@@ -343,8 +343,8 @@ export default function Tasks() {
       </Dialog>
 
       {/* Edit Recurring Task Dialog */}
-      <Dialog open={!!editTask} onOpenChange={(open) => { if (!open) setEditTask(null); }}>
-        <DialogContent className="max-w-md max-h-[90vh] flex flex-col">
+       <Dialog open={!!editTask} onOpenChange={(open) => { if (!open) setEditTask(null); }}>
+         <DialogContent className="w-[calc(100%-2rem)] max-w-md max-h-[90vh] flex flex-col">
           <DialogHeader><DialogTitle>Edit Recurring Task</DialogTitle></DialogHeader>
           <div className="space-y-4 overflow-y-auto flex-1 pr-1">
             <div className="space-y-2"><Label>Task Title</Label><Input value={editForm.title || ''} onChange={e => setEditForm({ ...editForm, title: e.target.value })} /></div>

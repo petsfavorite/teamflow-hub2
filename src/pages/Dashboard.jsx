@@ -16,14 +16,14 @@ import { differenceInDays, parseISO } from 'date-fns';
 
 function StatCard({ icon: Icon, label, value, color, to }) {
   const content = (
-    <Card className="border-0 shadow-sm hover:shadow-md transition-all cursor-pointer">
-      <CardContent className="p-5 flex items-center gap-4">
-        <div className={`w-11 h-11 rounded-xl ${color} flex items-center justify-center flex-shrink-0`}>
-          <Icon className="w-5 h-5 text-white" />
+    <Card className="border-0 shadow-sm hover:shadow-md transition-all cursor-pointer h-full">
+      <CardContent className="p-3 sm:p-4 flex items-center gap-3 h-full">
+        <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl ${color} flex items-center justify-center flex-shrink-0`}>
+          <Icon className="w-4 sm:w-5 h-4 sm:h-5 text-white" />
         </div>
-        <div>
-          <p className="text-2xl font-bold text-slate-900">{value}</p>
-          <p className="text-sm text-slate-500">{label}</p>
+        <div className="min-w-0 flex-1">
+          <p className="text-lg sm:text-2xl font-bold text-slate-900">{value}</p>
+          <p className="text-xs sm:text-sm text-slate-500 truncate">{label}</p>
         </div>
       </CardContent>
     </Card>
@@ -242,18 +242,18 @@ export default function Dashboard() {
   });
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 md:space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+        <h1 className="text-xl md:text-2xl font-bold text-slate-900 tracking-tight">
           Welcome back, {user?.full_name?.split(' ')[0] || 'there'}
         </h1>
-        <p className="text-slate-500 mt-1">Here's what's happening today.</p>
+        <p className="text-sm md:text-base text-slate-500 mt-1">Here's what's happening today.</p>
       </div>
 
       {/* Notifications tile for regular users */}
       {!canManage && (overdueIncompleteTeasks.length > 0 || urgentTasks.length > 0 || urgentChecklists.length > 0 || newTasksToAck.length > 0 || newChecklistsToAck.length > 0) && (
         <Card className="border-0 shadow-sm">
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <div className="flex items-center gap-2 mb-4">
               <Bell className="w-5 h-5 text-slate-600" />
               <h2 className="font-semibold text-slate-900">Notifications</h2>
@@ -330,7 +330,7 @@ export default function Dashboard() {
       {/* Notifications tile for managers/admins */}
       {canManage && (
         <Card className="border-0 shadow-sm">
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <div className="flex items-center gap-2 mb-4">
               <Bell className="w-5 h-5 text-indigo-600" />
               <h2 className="font-semibold text-slate-900">Notifications</h2>
@@ -432,21 +432,21 @@ export default function Dashboard() {
         </Card>
       )}
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-         <div className="h-24">
-           <StatCard icon={ClipboardList} label="Tasks Due Soon" value={myTasksDueSoon.length} color="bg-purple-600" to={createPageUrl('Tasks')} />
-         </div>
-         <div className="h-24">
-           <StatCard icon={CheckSquare} label="Checklists Due Soon" value={myChecklistsDueSoon.length} color="bg-emerald-600" to={createPageUrl('Checklists')} />
-         </div>
-         </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+         <div className="h-20 sm:h-24">
+            <StatCard icon={ClipboardList} label="Tasks Due Soon" value={myTasksDueSoon.length} color="bg-purple-600" to={createPageUrl('Tasks')} />
+          </div>
+          <div className="h-20 sm:h-24">
+            <StatCard icon={CheckSquare} label="Checklists Due Soon" value={myChecklistsDueSoon.length} color="bg-emerald-600" to={createPageUrl('Checklists')} />
+          </div>
+          </div>
 
          <BonuslyRecognitions />
 
-         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         {/* Active Maintenance Requests */}
         <Card className="border-0 shadow-sm">
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-slate-900">Active Maintenance</h2>
               <Link to={createPageUrl('Maintenance')} className="text-sm text-indigo-600 hover:text-indigo-700 flex items-center gap-1">
@@ -476,7 +476,7 @@ export default function Dashboard() {
 
         {/* Open Incidents */}
         <Card className="border-0 shadow-sm">
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-slate-900">Open Incidents</h2>
               <Link to={createPageUrl('IncidentReports')} className="text-sm text-indigo-600 hover:text-indigo-700 flex items-center gap-1">
@@ -506,10 +506,10 @@ export default function Dashboard() {
       </div>
 
       {/* Quick Actions */}
-       <Card className="border-0 shadow-sm">
-         <CardContent className="p-6">
-           <h2 className="font-semibold text-slate-900 mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-2 gap-3">
+      <Card className="border-0 shadow-sm">
+        <CardContent className="p-4 md:p-6">
+          <h2 className="font-semibold text-sm md:text-base text-slate-900 mb-4">Quick Actions</h2>
+         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
             <Link to={createPageUrl('SOPs')} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-indigo-50 hover:bg-indigo-100 transition-colors">
               <BookOpen className="w-6 h-6 text-indigo-600" />
               <span className="text-sm font-medium text-indigo-700 text-center">SOP Library</span>

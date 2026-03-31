@@ -68,9 +68,9 @@ export default function Layout({ children }) {
     const isOnAdminPage = adminNavItems.some(i => isActive(i.name));
 
     return (
-        <div className="min-h-screen bg-stone-50 flex" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        <div className="min-h-screen bg-stone-50 flex flex-col md:flex-row" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
             {/* Desktop Sidebar */}
-            <nav className={`hidden md:flex flex-col bg-white border-r border-stone-200 p-4 gap-1 fixed h-screen transition-all duration-300 z-40 overflow-y-auto ${
+            <nav className={`hidden md:flex flex-col bg-white border-r border-stone-200 p-3 md:p-4 gap-1 fixed h-screen transition-all duration-300 z-40 overflow-y-auto ${
                 sidebarOpen ? 'w-64' : 'w-20'
             }`}>
                 <button
@@ -182,7 +182,7 @@ export default function Layout({ children }) {
             </nav>
 
             {/* Main Content */}
-            <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'md:ml-64' : 'md:ml-20'} ${!isFloofPage ? 'p-6' : ''} pb-8`}>
+            <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'md:ml-64' : 'md:ml-20'} ${!isFloofPage ? 'p-4 md:p-6' : ''} pb-8`}>
                 {children}
             </div>
 
@@ -218,10 +218,10 @@ export default function Layout({ children }) {
             {isFloofPage && (
                 <Link
                     to={createPageUrl('Dashboard')}
-                    className="fixed bottom-24 left-4 md:bottom-6 md:left-6 bg-stone-700 hover:bg-stone-800 text-white rounded-full px-4 py-3 shadow-lg transition-all flex items-center gap-2 z-50 text-sm font-medium"
+                    className="fixed bottom-20 sm:bottom-24 left-2 sm:left-4 md:bottom-6 md:left-6 bg-stone-700 hover:bg-stone-800 text-white rounded-full px-3 sm:px-4 py-2 sm:py-3 shadow-lg transition-all flex items-center gap-1 sm:gap-2 z-50 text-xs sm:text-sm font-medium"
                 >
-                    <X className="w-4 h-4" />
-                    <span>Exit Kennel</span>
+                    <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    <span className="hidden sm:inline">Exit Kennel</span>
                 </Link>
             )}
         </div>

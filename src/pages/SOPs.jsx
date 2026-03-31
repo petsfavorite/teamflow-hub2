@@ -71,32 +71,32 @@ export default function SOPs() {
         }
       />
 
-      <div className="flex flex-col sm:flex-row gap-3 mb-6">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <Input
-            placeholder="Search SOPs..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-          <SelectTrigger className="w-full sm:w-48">
-            <SelectValue placeholder="All Categories" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
-            {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-          </SelectContent>
-        </Select>
-      </div>
+      <div className="flex flex-col sm:flex-row gap-2 md:gap-3 mb-6">
+         <div className="relative flex-1">
+           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+           <Input
+             placeholder="Search SOPs..."
+             value={search}
+             onChange={(e) => setSearch(e.target.value)}
+             className="pl-10 text-sm"
+           />
+         </div>
+         <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+           <SelectTrigger className="w-full sm:w-48 text-sm">
+             <SelectValue placeholder="All Categories" />
+           </SelectTrigger>
+           <SelectContent>
+             <SelectItem value="all">All Categories</SelectItem>
+             {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+           </SelectContent>
+         </Select>
+       </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3].map(i => (
-            <Card key={i} className="border-0 shadow-sm animate-pulse">
-              <CardContent className="p-6">
+         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+           {[1, 2, 3].map(i => (
+             <Card key={i} className="border-0 shadow-sm animate-pulse">
+               <CardContent className="p-4 md:p-6">
                 <div className="h-5 bg-slate-200 rounded w-3/4 mb-3" />
                 <div className="h-4 bg-slate-100 rounded w-full mb-2" />
                 <div className="h-4 bg-slate-100 rounded w-2/3" />
@@ -111,12 +111,12 @@ export default function SOPs() {
           description={search ? "Try adjusting your search terms" : "No SOPs have been published yet"}
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map(sop => (
-            <div key={sop.id} className="relative group">
-              <Link to={createPageUrl('SOPDetail') + `?id=${sop.id}`}>
-                <Card className="border-0 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 h-full cursor-pointer">
-                  <CardContent className="p-6">
+         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+           {filtered.map(sop => (
+             <div key={sop.id} className="relative group">
+               <Link to={createPageUrl('SOPDetail') + `?id=${sop.id}`}>
+                 <Card className="border-0 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 h-full cursor-pointer">
+                   <CardContent className="p-4 md:p-6">
                     <div className="flex items-start justify-between mb-3">
                       {sop.status !== 'published' && <StatusBadge status={sop.status} />}
                       {sop.version && <span className="text-xs text-slate-400">v{sop.version}</span>}
