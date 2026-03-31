@@ -132,67 +132,55 @@ export default function BoardingWhiteboardCard({ pet, visit, onViewVisit }) {
                         </div>
 
                         {/* Middle: Timeline Tasks */}
-                         <div className="flex-1 p-4">
-                             <div className="space-y-3">
-                                 {/* Not Done/Observed Section */}
-                                 {(() => {
-                                     const uncompleted = (visit.scheduled_tasks || []).filter(t => !t.completed && t.date === today);
-                                     if (uncompleted.length === 0) return null;
-                                     return (
-                                         <div className="bg-stone-100 rounded-lg p-2">
-                                             <p className="text-xs font-semibold text-stone-700 mb-1">Not Done/Observed:</p>
-                                             <p className="text-xs text-stone-600">{uncompleted.map(t => t.type === 'Medication' ? t.medication_name : t.type).join(', ')}</p>
-                                         </div>
-                                     );
-                                 })()}
+                        <div className="flex-1 p-4">
+                            <div className="flex items-center gap-3 flex-wrap">
+                                {sortedTasks.map((task, idx) => {
+                                    const taskTime = moment(task.time, 'h:mm A');
+                                    const isOverdue = !task.completed && now.isAfter(taskTime);
+                                    const isCompleted = task.completed;
 
-                                 <div className="flex items-center gap-3 flex-wrap">
-                                     {sortedTasks.map((task, idx) => {
-                                         const taskTime = moment(task.time, 'h:mm A');
-                                         const isOverdue = !task.completed && now.isAfter(taskTime);
-                                         const isCompleted = task.completed;
+                                    return (
+                                        <div 
+                                            key={idx}
+                                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all ${
+                                                isCompleted 
+                                                    ? 'bg-emerald-50 border-emerald-200' 
+                                                    : isOverdue 
+                                                    ? 'bg-rose-100 border-rose-300' 
+                                                    : 'bg-stone-50 border-stone-200'
+                                            }`}
+                                        >
+                                            {isCompleted ? (
+                                                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                            ) : (
+                                                <div className={`w-3 h-3 rounded-full border-2 ${
+                                                    isOverdue ? 'border-rose-500 bg-rose-200' : 'border-stone-400'
+                                                }`} />
+                                            )}
+                                            <span className={`text-xs font-medium ${
+                                                isCompleted 
+                                                    ? 'text-emerald-700' 
+                                                    : isOverdue 
+                                                    ? 'text-rose-700' 
+                                                    : 'text-stone-700'
+                                            }`}>
+                                                {task.time} {task.type === 'Medication' ? task.medication_name : task.type}
+                                            </span>
+                                        </div>
+                                    );
+                                })}
 
-                                         return (
-                                             <div 
-                                                 key={idx}
-                                                 className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all ${
-                                                     isCompleted 
-                                                         ? 'bg-emerald-50 border-emerald-200' 
-                                                         : isOverdue 
-                                                         ? 'bg-rose-100 border-rose-300' 
-                                                         : 'bg-stone-50 border-stone-200'
-                                                 }`}
-                                             >
-                                                 {isCompleted ? (
-                                                     <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                                 ) : (
-                                                     <div className={`w-3 h-3 rounded-full border-2 ${
-                                                         isOverdue ? 'border-rose-500 bg-rose-200' : 'border-stone-400'
-                                                     }`} />
-                                                 )}
-                                                 <span className={`text-xs font-medium ${
-                                                     isCompleted 
-                                                         ? 'text-emerald-700' 
-                                                         : isOverdue 
-                                                         ? 'text-rose-700' 
-                                                         : 'text-stone-700'
-                                                 }`}>
-                                                     {task.time} {task.type === 'Medication' ? task.medication_name : task.type}
-                                                 </span>
-                                             </div>
-                                         );
-                                     })}
 
-                                     {/* Daily Picture */}
-                                     {needsPicture && (
-                                         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border bg-blue-50 border-blue-200">
-                                             <Camera className="w-3 h-3 text-blue-600" />
-                                             <span className="text-xs font-medium text-blue-700">Picture</span>
-                                         </div>
-                                     )}
-                                 </div>
-                             </div>
-                         </div>
+
+                                {/* Daily Picture */}
+                                {needsPicture && (
+                                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border bg-blue-50 border-blue-200">
+                                        <Camera className="w-3 h-3 text-blue-600" />
+                                        <span className="text-xs font-medium text-blue-700">Picture</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
 
                         {/* Right: Play Sessions Count */}
                          <div className="flex items-center gap-3 p-4 border-l border-stone-200 min-w-[180px]">
