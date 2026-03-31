@@ -96,24 +96,24 @@ export default function Checklists() {
     });
   }, [allTemplates, user, teams]);
 
-  // Template checklists - unassigned templates (no users, teams, or frequency set) for managers/admins only
+  // Template checklists - unassigned templates (no users, teams assigned) for managers/admins only
   const templateChecklists = useMemo(() => {
     return allTemplates.filter(t => 
       (t.status === 'published' || t.status === 'active' || t.status === 'draft') && 
       (!t.assigned_to_emails || t.assigned_to_emails.length === 0) &&
-      (!t.assigned_teams || t.assigned_teams.length === 0) &&
-      (!t.recurrence_type || t.recurrence_type === 'once')
+      (!t.assigned_teams || t.assigned_teams.length === 0)
     );
   }, [allTemplates]);
 
-  // Recurring checklists - published master templates with recurrence set (not archived)
+  // Recurring checklists - assigned templates with recurrence set (active or published, not archived)
   const recurringChecklists = useMemo(() => {
-    return allTemplates.filter(t => 
-      t.status === 'published' && 
-      t.recurrence_type && 
-      t.recurrence_type !== 'once' &&
-      t.recurrence_type !== 'manual'
-    );
+    return allTemplates.filter(t => {
+      if (t.status !== 'active' && t.status !== 'published') return false;
+      if (!t.recurrence_type || t.recurrence_type === 'once' || t.recurrence_type === 'manual') return false;
+      // Must be assigned to someone or some team
+      const isAssigned = (t.assigned_to_emails?.length > 0) || (t.assigned_teams?.length > 0);
+      return isAssigned;
+    });
   }, [allTemplates]);
 
   const recurrenceLabel = (t) => {
