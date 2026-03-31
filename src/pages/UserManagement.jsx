@@ -44,9 +44,17 @@ export default function UserManagement() {
   const [activeTab, setActiveTab] = useState('users');
 
   const deleteUserMutation = useMutation({
-    mutationFn: (id) => base44.entities.User.delete(id),
+    mutationFn: async (u) => {
+      // Reassign open items before deleting
+      await base44.functions.invoke('reassignOnDelete', {
+        deleted_user_email: u.email,
+        deleted_user_role: u.role || 'user',
+        team_ids: u.team_ids || [],
+      });
+      return base44.entities.User.delete(u.id);
+    },
     onSuccess: () => {
-      toast.success('User deleted');
+      toast.success('User deleted and items reassigned');
       queryClient.invalidateQueries({ queryKey: ['all-users'] });
     },
   });
@@ -232,7 +240,7 @@ export default function UserManagement() {
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction
-                              onClick={() => deleteUserMutation.mutate(u.id)}
+                              onClick={() => deleteUserMutation.mutate(u)}
                               className="bg-red-600 hover:bg-red-700"
                             >
                               Delete
