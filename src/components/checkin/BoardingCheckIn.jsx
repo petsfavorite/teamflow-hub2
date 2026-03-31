@@ -186,18 +186,46 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
 
     // Add CBD Chews as AM and PM medications if selected
     if (addCBDChews) {
-        // AM - 9 AM
-        if (checkInHour < 9 || (checkInHour === 9 && checkInMinute === 0)) {
-            tasks.push({ type: 'Medication', time: '9:00 AM', date: checkInDate, is_template: true, completed: false, completed_at: null, medication_name: 'CBD Chews', recurrence_type: 'days', recurrence_interval: 1 });
-        } else {
-            tasks.push({ type: 'Medication', time: '9:00 AM', date: moment(checkInDate).add(1, 'day').format('YYYY-MM-DD'), is_template: true, completed: false, completed_at: null, medication_name: 'CBD Chews', recurrence_type: 'days', recurrence_interval: 1 });
+        // AM - 9 AM (only if breakfast happens that day)
+        const cbdAmStartDate = checkInHour < 9 || (checkInHour === 9 && checkInMinute === 0)
+            ? checkInDate
+            : moment(checkInDate).add(1, 'day').format('YYYY-MM-DD');
+
+        let currentDate = moment(cbdAmStartDate);
+        while (currentDate.format('YYYY-MM-DD') <= checkoutDate) {
+            tasks.push({
+                type: 'Medication',
+                time: '9:00 AM',
+                date: currentDate.format('YYYY-MM-DD'),
+                is_template: true,
+                completed: false,
+                completed_at: null,
+                medication_name: 'CBD Chews',
+                recurrence_type: 'days',
+                recurrence_interval: 1
+            });
+            currentDate.add(1, 'day');
         }
 
         // PM - 6 PM
-        if (checkInHour < 18 || (checkInHour === 18 && checkInMinute === 0)) {
-            tasks.push({ type: 'Medication', time: '6:00 PM', date: checkInDate, is_template: true, completed: false, completed_at: null, medication_name: 'CBD Chews', recurrence_type: 'days', recurrence_interval: 1 });
-        } else {
-            tasks.push({ type: 'Medication', time: '6:00 PM', date: moment(checkInDate).add(1, 'day').format('YYYY-MM-DD'), is_template: true, completed: false, completed_at: null, medication_name: 'CBD Chews', recurrence_type: 'days', recurrence_interval: 1 });
+        const cbdPmStartDate = checkInHour < 18 || (checkInHour === 18 && checkInMinute === 0)
+            ? checkInDate
+            : moment(checkInDate).add(1, 'day').format('YYYY-MM-DD');
+
+        currentDate = moment(cbdPmStartDate);
+        while (currentDate.format('YYYY-MM-DD') <= checkoutDate) {
+            tasks.push({
+                type: 'Medication',
+                time: '6:00 PM',
+                date: currentDate.format('YYYY-MM-DD'),
+                is_template: true,
+                completed: false,
+                completed_at: null,
+                medication_name: 'CBD Chews',
+                recurrence_type: 'days',
+                recurrence_interval: 1
+            });
+            currentDate.add(1, 'day');
         }
     }
         
