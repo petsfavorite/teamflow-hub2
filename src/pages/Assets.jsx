@@ -268,10 +268,7 @@ export default function Assets() {
                   )}
                   {selectedAsset.task_ids?.length > 0 && (
                     <div className="text-xs text-slate-600">
-                      <div className="flex items-center justify-between mb-1.5">
-                        <p className="font-medium">Attached Tasks:</p>
-                        <button onClick={() => setCreatingTaskForAsset(true)} className="text-indigo-600 hover:text-indigo-700 font-semibold">+</button>
-                      </div>
+                      <p className="font-medium mb-1.5">Attached Tasks:</p>
                       <div className="space-y-1">
                         {selectedAsset.task_ids.map(taskId => {
                           const task = allTasks.find(t => t.id === taskId);
@@ -283,11 +280,6 @@ export default function Assets() {
                         })}
                       </div>
                     </div>
-                  )}
-                  {!selectedAsset.task_ids?.length && (
-                    <button onClick={() => setCreatingTaskForAsset(true)} className="text-xs text-indigo-600 hover:text-indigo-700 font-medium px-3 py-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 w-fit">
-                      <Plus className="w-3 h-3 inline mr-1" /> Create Task
-                    </button>
                   )}
                 </div>
               )}
@@ -354,40 +346,16 @@ export default function Assets() {
                   </Button>
                 </div>
 
-                {/* Add Task Section */}
-                <div className="space-y-2 border-t pt-4">
-                  <p className="text-sm font-medium text-slate-900">Attach Tasks</p>
-                  <Input
-                    placeholder="Search tasks..."
-                    value={taskSearch}
-                    onChange={(e) => setTaskSearch(e.target.value)}
-                    className="text-xs"
-                  />
-                  <div className="border rounded-lg p-2 bg-slate-50 max-h-40 overflow-y-auto space-y-1">
-                    {allTasks
-                      .filter(t => 
-                        !selectedAsset.task_ids?.includes(t.id) &&
-                        t.title.toLowerCase().includes(taskSearch.toLowerCase())
-                      )
-                      .map(task => (
-                        <button
-                          key={task.id}
-                          type="button"
-                          onClick={async () => {
-                            const updated = {
-                              task_ids: [...(selectedAsset.task_ids || []), task.id]
-                            };
-                            await base44.entities.Asset.update(selectedAsset.id, updated);
-                            queryClient.invalidateQueries({ queryKey: ['assets'] });
-                            setTaskSearch('');
-                            toast.success('Task attached');
-                          }}
-                          className="w-full text-left text-xs px-2 py-1 rounded hover:bg-indigo-100 transition-colors"
-                        >
-                          {task.title}
-                        </button>
-                      ))}
-                  </div>
+                {/* Create Task Section */}
+                <div className="border-t pt-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCreatingTaskForAsset(true)}
+                    className="gap-2 text-indigo-600 border-indigo-200 hover:bg-indigo-50"
+                  >
+                    <Plus className="w-4 h-4" /> Create Task for this Asset
+                  </Button>
                 </div>
 
                 {/* Notes Log Display */}
@@ -581,38 +549,7 @@ export default function Assets() {
               </div>
             </div>
             <div className="space-y-2"><Label>Manual URL</Label><Input value={form.manual_url} onChange={e => setForm({ ...form, manual_url: e.target.value })} placeholder="https://..." /></div>
-            <div className="space-y-2">
-              <Label>Attached Tasks</Label>
-              <div className="border rounded-lg p-3 space-y-2 bg-slate-50 max-h-40 overflow-y-auto">
-                {allTasks.filter(t => !form.task_ids?.includes(t.id)).length === 0 && form.task_ids?.length === 0 ? (
-                  <p className="text-xs text-slate-400">No tasks available</p>
-                ) : (
-                  allTasks.filter(t => !form.task_ids?.includes(t.id)).map(task => (
-                    <button
-                      key={task.id}
-                      type="button"
-                      onClick={() => setForm({ ...form, task_ids: [...(form.task_ids || []), task.id] })}
-                      className="w-full text-left text-xs px-2 py-1 rounded hover:bg-indigo-100 transition-colors"
-                    >
-                      {task.title}
-                    </button>
-                  ))
-                )}
-              </div>
-              {form.task_ids?.length > 0 && (
-                <div className="space-y-1">
-                  {form.task_ids.map(taskId => {
-                    const task = allTasks.find(t => t.id === taskId);
-                    return task ? (
-                      <div key={taskId} className="flex items-center justify-between text-xs bg-indigo-50 px-2 py-1.5 rounded">
-                        <span>{task.title}</span>
-                        <button type="button" onClick={() => setForm({ ...form, task_ids: form.task_ids.filter(id => id !== taskId) })} className="text-indigo-600 hover:text-indigo-800">×</button>
-                      </div>
-                    ) : null;
-                  })}
-                </div>
-              )}
-            </div>
+
 
             <div className="space-y-2"><Label>Notes</Label><Textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={2} /></div>
           </div>
