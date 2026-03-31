@@ -52,9 +52,6 @@ Deno.serve(async (req) => {
 
     // Map fields from response
     const recognitions = recentBonuses.map(bonus => {
-      // Extract giver name - try multiple fields
-      const giverName = bonus.sender?.short_name || bonus.sender?.name || bonus.giver_name || 'Unknown';
-      
       // Clean message: remove URLs and markdown images
       let cleanMessage = bonus.reason || '';
       cleanMessage = cleanMessage.replace(/!\[.*?\]\(.*?\)/g, ''); // Remove markdown images
@@ -62,7 +59,7 @@ Deno.serve(async (req) => {
       cleanMessage = cleanMessage.trim();
       
       return {
-        giver: giverName,
+        giver: bonus.giver?.short_name || 'Unknown',
         receiver: bonus.receiver?.short_name || 'Unknown',
         message: cleanMessage,
         tags: bonus.hashtags || [],
