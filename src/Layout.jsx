@@ -69,8 +69,8 @@ export default function Layout({ children }) {
 
     return (
         <div className="min-h-screen bg-stone-50 flex flex-col md:flex-row" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-            {/* Desktop Sidebar */}
-            <nav className={`hidden md:flex flex-col bg-white border-r border-stone-200 p-3 md:p-4 gap-1 fixed h-screen transition-all duration-300 z-40 overflow-y-auto ${
+            {/* Sidebar - Desktop fixed, Mobile floating overlay */}
+            <nav className={`hidden sm:flex flex-col bg-white border-r border-stone-200 p-3 md:p-4 gap-1 fixed h-screen transition-all duration-300 z-40 overflow-y-auto ${
                 sidebarOpen ? 'w-64' : 'w-20'
             }`}>
                 <button
@@ -182,9 +182,26 @@ export default function Layout({ children }) {
             </nav>
 
             {/* Main Content */}
-            <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'md:ml-64' : 'md:ml-20'} ${!isFloofPage ? 'p-4 md:p-6' : ''} pb-8`}>
+            <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'sm:ml-64 md:ml-64' : 'sm:ml-20 md:ml-20'} ${!isFloofPage ? 'p-4 md:p-6' : ''} pb-8`}>
                 {children}
             </div>
+
+            {/* Mobile Floating Hamburger - only on phone, hidden on tablet+ */}
+            <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="sm:hidden fixed top-4 left-4 z-[60] bg-white border border-stone-200 rounded-lg p-2 shadow-md hover:shadow-lg transition-all"
+                aria-label="Toggle menu"
+            >
+                {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+
+            {/* Mobile Sidebar Overlay - appears above content */}
+            {sidebarOpen && (
+                <div
+                    className="sm:hidden fixed inset-0 bg-black/50 z-[35]"
+                    onClick={() => setSidebarOpen(false)}
+                />
+            )}
 
             {/* Mobile Bottom Nav */}
             <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 px-2 py-2 z-50" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
