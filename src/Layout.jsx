@@ -297,17 +297,19 @@ export default function Layout({ children }) {
                 </nav>
             )}
 
-            {/* Mobile Back Button */}
-            <button
-                onClick={() => navigate(-1)}
-                className="sm:hidden fixed bottom-20 left-2 bg-white border border-stone-200 text-stone-700 hover:bg-stone-50 rounded-full px-3 py-2 shadow-md hover:shadow-lg transition-all flex items-center gap-2 z-50 text-sm font-medium"
-                style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-            >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-                <span>Back</span>
-            </button>
+            {/* Mobile Back Button — hidden on Dashboard */}
+            {!isActive('Dashboard') && (
+                <button
+                    onClick={() => navigate(-1)}
+                    className="sm:hidden fixed bottom-20 left-2 bg-white border border-stone-200 text-stone-700 hover:bg-stone-50 rounded-full px-3 py-2 shadow-md hover:shadow-lg transition-all flex items-center gap-2 z-50 text-sm font-medium"
+                    style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+                >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                    <span>Back</span>
+                </button>
+            )}
 
             {/* Mobile Bottom Nav */}
             <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 px-2 py-2 z-50" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
