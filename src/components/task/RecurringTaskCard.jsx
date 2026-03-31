@@ -9,6 +9,61 @@ const priorityColors = {
   high: 'bg-orange-100 text-orange-700',
 };
 
+function getNextDueDate(task) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  switch (task.recurrence_type) {
+    case 'daily': {
+      // Next occurrence is today if not yet passed, else tomorrow
+      return today;
+    }
+    case 'weekdays': {
+      const d = new Date(today);
+      // Move forward until we hit Mon–Fri
+      while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
+      return d;
+    }
+    case 'specific_days': {
+      const days = task.recurrence_days_of_week || [];
+      if (!days.length) return null;
+      const d = new Date(today);
+      for (let i = 0; i <= 7; i++) {
+        if (days.includes(d.getDay())) return d;
+        d.setDate(d.getDate() + 1);
+      }
+      return null;
+    }
+    case 'monthly': {
+      const dom = task.recurrence_day_of_month || 1;
+      const d = new Date(today.getFullYear(), today.getMonth(), dom);
+      if (d < today) d.setMonth(d.getMonth() + 1);
+      return d;
+    }
+    case 'every_x_months': {
+      const dom = task.recurrence_day_of_month || 1;
+      const interval = task.recurrence_interval_months || 1;
+      const d = new Date(today.getFullYear(), today.getMonth(), dom);
+      while (d < today) d.setMonth(d.getMonth() + interval);
+      return d;
+    }
+    case 'annually': {
+      if (!task.due_date) return null;
+      const orig = new Date(task.due_date + 'T00:00:00');
+      const d = new Date(today.getFullYear(), orig.getMonth(), orig.getDate());
+      if (d < today) d.setFullYear(d.getFullYear() + 1);
+      return d;
+    }
+    default:
+      return task.due_date ? new Date(task.due_date + 'T00:00:00') : null;
+  }
+}
+
+function formatDate(date) {
+  if (!date) return null;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
 function recurrenceLabel(task) {
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   switch (task.recurrence_type) {
@@ -57,12 +112,15 @@ export default function RecurringTaskCard({ task, onEdit }) {
                   {[...(task.assigned_to_names || []), ...(task.assigned_teams || [])].join(', ')}
                 </span>
               )}
-              {task.due_date && (
-                <span className="flex items-center gap-1">
-                  <Calendar className="w-3 h-3" />
-                  Next due {task.due_date}
-                </span>
-              )}
+              {(() => {
+                const next = getNextDueDate(task);
+                return next ? (
+                  <span className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    Next due {formatDate(next)}
+                  </span>
+                ) : null;
+              })()}
             </div>
           </div>
         </div>
