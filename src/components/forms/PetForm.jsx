@@ -350,6 +350,7 @@ export default function PetForm({ pet, onSave, onCancel, onDelete, isLoading }) 
                                         <SelectItem value="Just Breakfast">Just Breakfast (9 AM)</SelectItem>
                                         <SelectItem value="Just Dinner">Just Dinner (6 PM)</SelectItem>
                                         <SelectItem value="Two Meals">Two Meals (9 AM & 6 PM)</SelectItem>
+                                        <SelectItem value="Three Meals">Three Meals (9 AM, 12 PM & 6 PM)</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
