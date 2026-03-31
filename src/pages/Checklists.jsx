@@ -142,10 +142,6 @@ export default function Checklists() {
   const submitMutation = useMutation({
     mutationFn: async (data) => {
       const completion = await base44.entities.ChecklistCompletion.create(data);
-      const template = allTemplates.find(t => t.id === data.checklist_template_id);
-      if (template && template.status === 'published') {
-        await base44.entities.ChecklistTemplate.update(template.id, { status: 'closed' });
-      }
       return completion;
     },
     onSuccess: () => {

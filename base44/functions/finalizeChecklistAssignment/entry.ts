@@ -17,13 +17,21 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Completion or template not found' }, { status: 404 });
     }
 
-    // Remove assignments from template
-    const updatedTemplate = await base44.asServiceRole.entities.ChecklistTemplate.update(checklist_template_id, {
-      assigned_to_emails: [],
-      assigned_to_names: [],
-      assigned_teams: [],
-      status: 'closed'
-    });
+    // Only close/clear one-time active instances — never touch published recurring master templates
+    // A published template with recurrence_type != 'once' is a master template; leave it alone.
+    const isRecurringMaster = template.status === 'published' &&
+      template.recurrence_type &&
+      template.recurrence_type !== 'once' &&
+      template.recurrence_type !== 'manual';
+
+    if (!isRecurringMaster) {
+      await base44.asServiceRole.entities.ChecklistTemplate.update(checklist_template_id, {
+        assigned_to_emails: [],
+        assigned_to_names: [],
+        assigned_teams: [],
+        status: 'closed'
+      });
+    }
 
     // Find incomplete items
     const incompleteItems = completion.completed_items?.filter(item => !item.checked) || [];
