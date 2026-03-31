@@ -19,6 +19,7 @@ const floofNavItems = [
 
 const mainNavItems = [
     { name: 'Dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { name: 'Whiteboard', icon: LayoutGrid, label: 'Kennel' },
     { name: 'CallDashboard', icon: Phone, label: 'Call Dashboard', requiredRole: 'admin' },
     { name: 'SOPs', icon: BookOpen, label: 'SOP Library' },
     { name: 'Checklists', icon: CheckSquare, label: 'Checklists' },
