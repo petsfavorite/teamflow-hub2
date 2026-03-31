@@ -88,15 +88,31 @@ export default function Checklists() {
     );
   }, [allTemplates]);
 
-  // Recurring checklists - assigned checklists with recurrence !== 'once'
+  // Recurring checklists - templates with recurrence set (active or published)
   const recurringChecklists = useMemo(() => {
     return allTemplates.filter(t => 
-      t.status === 'active' && 
+      (t.status === 'active' || t.status === 'published') && 
       t.recurrence_type && 
       t.recurrence_type !== 'once' &&
-      (t.assigned_to_emails?.length > 0 || t.assigned_teams?.length > 0)
+      t.recurrence_type !== 'manual'
     );
   }, [allTemplates]);
+
+  const recurrenceLabel = (t) => {
+    switch (t.recurrence_type) {
+      case 'daily': return 'Repeats daily';
+      case 'weekdays': return 'Repeats weekdays';
+      case 'specific_days': {
+        const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+        const days = (t.recurrence_days_of_week || []).map(d => dayNames[d]).join(', ');
+        return `Repeats on ${days || '—'}`;
+      }
+      case 'monthly': return `Repeats monthly on day ${t.recurrence_day_of_month || '—'}`;
+      case 'every_x_months': return `Repeats every ${t.recurrence_interval_months || '?'} months`;
+      case 'annually': return 'Repeats annually';
+      default: return t.recurrence_type;
+    }
+  };
 
   // Draft templates - only visible to creator
   const draftTemplates = useMemo(() => {
@@ -480,6 +496,8 @@ export default function Checklists() {
                           )}
                         </div>
                         <h3 className="font-semibold text-slate-900 mb-1">{template.title}</h3>
+                        <p className="text-xs font-medium text-purple-600 mb-1">{recurrenceLabel(template)}</p>
+                        {template.due_time && <p className="text-xs text-slate-400 mb-2">Due by {template.due_time}</p>}
                         {template.description && <p className="text-sm text-slate-500 mb-3">{template.description}</p>}
                         <div className="flex items-center gap-2 text-xs text-slate-400 mb-4">
                           <Clock className="w-3 h-3" />
