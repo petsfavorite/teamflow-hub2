@@ -223,17 +223,23 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
 
     // Add "Probiotic Added to Meal" for each feeding if selected
     if (addProbiotic) {
+        const mealTimes = {
+            'Breakfast': { hour: 9, minute: 0, time: '9:00 AM' },
+            'Lunch': { hour: 12, minute: 0, time: '12:00 PM' },
+            'Dinner': { hour: 18, minute: 0, time: '6:00 PM' }
+        };
+
         const addProbioticTask = (type) => {
-            const mealTimes = {
-                'Breakfast': '9:00 AM',
-                'Lunch': '12:00 PM',
-                'Dinner': '6:00 PM'
-            };
-            let currentDate = moment(checkInDate);
+            const mealInfo = mealTimes[type];
+            const startDate = feedingCheckInHour < mealInfo.hour || (feedingCheckInHour === mealInfo.hour && feedingCheckInMinute < mealInfo.minute) 
+                ? checkInDate 
+                : moment(checkInDate).add(1, 'day').format('YYYY-MM-DD');
+
+            let currentDate = moment(startDate);
             while (currentDate.format('YYYY-MM-DD') <= checkoutDate) {
                 tasks.push({
                     type: 'Probiotic Added to Meal',
-                    time: mealTimes[type] || '',
+                    time: mealInfo.time,
                     date: currentDate.format('YYYY-MM-DD'),
                     is_template: true,
                     completed: false,
@@ -258,13 +264,13 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
         }
     }
 
-    // Add "Give Feeding Enrichment Toy" once daily if selected
+    // Add "Give Feeding Enrichment Toy" once daily if selected (6 PM)
     if (addFeedingEnrichment) {
         let currentDate = moment(checkInDate);
         while (currentDate.format('YYYY-MM-DD') <= checkoutDate) {
             tasks.push({
                 type: 'Give Feeding Enrichment Toy',
-                time: '10:00 AM',
+                time: '6:00 PM',
                 date: currentDate.format('YYYY-MM-DD'),
                 is_template: true,
                 completed: false,
@@ -495,7 +501,7 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
                                 {pet.medications?.length > 0 && <li>• Medications as scheduled</li>}
                                 {addCBDChews && <li>• CBD Chews (9 AM & 6 PM daily)</li>}
                                 {addProbiotic && <li>• Probiotic added to each meal</li>}
-                                {addFeedingEnrichment && <li>• Give Feeding Enrichment Toy (10 AM daily)</li>}
+                                {addFeedingEnrichment && <li>• Give Feeding Enrichment Toy (6 PM daily)</li>}
                             </ul>
                         )}
                     </div>
