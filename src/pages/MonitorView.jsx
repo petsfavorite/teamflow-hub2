@@ -123,7 +123,7 @@ export default function MonitorView() {
                                  key={visit.id}
                                  className={`rounded-lg p-3 transition-all ${
                                      hasEmergencyAlert ? 'bg-red-400 border-2 border-red-600' :
-                                     needsFecesCollection ? 'bg-amber-200 border-2 border-amber-900' :
+                                     needsFecesCollection ? 'bg-stone-300 border-2 border-stone-700' :
                                      needsUrineCollection ? 'bg-yellow-200 border-2 border-yellow-600' :
                                      hasOverdue ? 'bg-purple-200 border-2 border-purple-600' :
                                      'bg-white border-2 border-stone-300'
