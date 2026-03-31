@@ -20,6 +20,7 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
      const [addCBDChews, setAddCBDChews] = useState(false);
      const [addProbiotic, setAddProbiotic] = useState(false);
      const [addFeedingEnrichment, setAddFeedingEnrichment] = useState(false);
+     const [addBath, setAddBath] = useState(false);
      const [visitMedications, setVisitMedications] = useState(
          pet.medications?.length > 0 ? pet.medications.map(m => ({ ...m })) : []
      );
@@ -303,6 +304,18 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
             currentDate.add(1, 'day');
         }
     }
+
+    // Add "Schedule Bath" on first day if selected
+    if (addBath) {
+        tasks.push({
+            type: 'Schedule Bath',
+            time: '',
+            date: checkInDate,
+            is_template: true,
+            completed: false,
+            completed_at: null
+        });
+    }
         
     // Add 4 Play Session tasks per weekday if play camp is selected
     if (addPlayCamp && pet.species === 'Dog') {
@@ -445,7 +458,17 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
                                  Add Feeding Enrichment Toy
                              </Label>
                          </div>
-                     </div>
+                         <div className="flex items-center space-x-2">
+                             <Checkbox 
+                                 id="bath" 
+                                 checked={addBath}
+                                 onCheckedChange={setAddBath}
+                             />
+                             <Label htmlFor="bath" className="cursor-pointer">
+                                 Add Bath
+                             </Label>
+                         </div>
+                         </div>
 
                     {/* Medications for this visit */}
                     <div className="pt-4 border-t border-stone-100 space-y-3">
@@ -526,6 +549,7 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
                                 {addCBDChews && <li>• CBD Chews (9 AM & 6 PM daily)</li>}
                                 {addProbiotic && <li>• Probiotic added to each meal</li>}
                                 {addFeedingEnrichment && <li>• Give Feeding Enrichment Toy (6 PM daily)</li>}
+                                {addBath && <li>• Schedule Bath</li>}
                             </ul>
                         )}
                     </div>

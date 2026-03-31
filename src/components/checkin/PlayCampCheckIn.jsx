@@ -10,6 +10,7 @@ import { Sparkles } from "lucide-react";
 export default function PlayCampCheckIn({ pet, onConfirm, onCancel }) {
     const [duration, setDuration] = useState('full_day');
     const [needFecal, setNeedFecal] = useState(false);
+    const [addBath, setAddBath] = useState(false);
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -30,22 +31,34 @@ export default function PlayCampCheckIn({ pet, onConfirm, onCancel }) {
         }));
 
         // Add "Collect Feces" task if requested
-        if (needFecal) {
-            tasks.push({ 
-                type: 'Collect Feces', 
-                time: '', 
-                date: today,
-                is_template: false, 
-                completed: false, 
-                completed_at: null
-            });
-        }
-        
-        onConfirm({
-            visit_type: 'play_camp',
-            play_camp_duration: duration,
-            scheduled_tasks: tasks
-        });
+         if (needFecal) {
+             tasks.push({ 
+                 type: 'Collect Feces', 
+                 time: '', 
+                 date: today,
+                 is_template: false, 
+                 completed: false, 
+                 completed_at: null
+             });
+         }
+
+         // Add "Schedule Bath" task if requested
+         if (addBath) {
+             tasks.push({
+                 type: 'Schedule Bath',
+                 time: '',
+                 date: today,
+                 is_template: false,
+                 completed: false,
+                 completed_at: null
+             });
+         }
+
+         onConfirm({
+             visit_type: 'play_camp',
+             play_camp_duration: duration,
+             scheduled_tasks: tasks
+         });
     };
 
     return (
@@ -68,18 +81,28 @@ export default function PlayCampCheckIn({ pet, onConfirm, onCancel }) {
                         </Select>
                     </div>
 
-                    <div className="pt-4 border-t border-stone-100">
-                        <div className="flex items-center space-x-2">
-                            <Checkbox 
-                                id="needfecal" 
-                                checked={needFecal}
-                                onCheckedChange={setNeedFecal}
-                            />
-                            <Label htmlFor="needfecal" className="cursor-pointer">
-                                Need Fecal?
-                            </Label>
-                        </div>
-                    </div>
+                    <div className="pt-4 border-t border-stone-100 space-y-2">
+                         <div className="flex items-center space-x-2">
+                             <Checkbox 
+                                 id="needfecal" 
+                                 checked={needFecal}
+                                 onCheckedChange={setNeedFecal}
+                             />
+                             <Label htmlFor="needfecal" className="cursor-pointer">
+                                 Need Fecal?
+                             </Label>
+                         </div>
+                         <div className="flex items-center space-x-2">
+                             <Checkbox 
+                                 id="bath" 
+                                 checked={addBath}
+                                 onCheckedChange={setAddBath}
+                             />
+                             <Label htmlFor="bath" className="cursor-pointer">
+                                 Add Bath
+                             </Label>
+                         </div>
+                     </div>
 
                     <div className="bg-emerald-50 rounded-xl p-4 text-sm text-emerald-700">
                         <p className="font-medium mb-2">Play Camp Includes:</p>
