@@ -5,16 +5,17 @@ import {
     Dog, LayoutGrid, Users, LogIn, Settings, Menu, X,
     LayoutDashboard, BookOpen, CheckSquare, ClipboardList, Wrench,
     AlertTriangle, BarChart2, MessageSquare, Link as LinkIcon, Package, PawPrint,
-    ChevronDown, ChevronRight, ShieldCheck, History, Upload, Phone, FileSpreadsheet
+    ChevronDown, ChevronRight, ShieldCheck, History, Upload, Phone, FileSpreadsheet, FileText
 } from 'lucide-react';
 import { useCurrentUser } from './components/hooks/useCurrentUser';
 
-const FLOOF_PAGES = ['Whiteboard', 'Pets', 'CheckIn', 'MonitorView'];
+const FLOOF_PAGES = ['Whiteboard', 'Pets', 'CheckIn', 'MonitorView', 'Reports'];
 
 const floofNavItems = [
     { name: 'Whiteboard', icon: LayoutGrid, label: 'Whiteboard' },
     { name: 'Pets', icon: PawPrint, label: 'Pets' },
     { name: 'CheckIn', icon: LogIn, label: 'Check In' },
+    { name: 'Reports', icon: FileText, label: 'Reports' },
 ];
 
 const mainNavItems = [
