@@ -1,0 +1,89 @@
+{
+  "name": "RecurringChecklist",
+  "type": "object",
+  "properties": {
+    "template_title": {
+      "type": "string",
+      "description": "Title of the checklist (copied from template at creation time)"
+    },
+    "template_description": {
+      "type": "string"
+    },
+    "template_category": {
+      "type": "string"
+    },
+    "template_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "order": {
+            "type": "number"
+          },
+          "sop_id": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Checklist items copied from template at assignment time"
+    },
+    "assigned_to_emails": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "assigned_to_names": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "assigned_teams": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "due_time": {
+      "type": "string",
+      "description": "Time in HH:MM format"
+    },
+    "recurrence_type": {
+      "type": "string",
+      "enum": [
+        "daily",
+        "weekdays",
+        "specific_days",
+        "monthly",
+        "every_x_months",
+        "annually",
+        "manual"
+      ]
+    },
+    "recurrence_days_of_week": {
+      "type": "array",
+      "items": {
+        "type": "integer"
+      }
+    },
+    "recurrence_day_of_month": {
+      "type": "integer"
+    },
+    "recurrence_interval_months": {
+      "type": "integer"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "When false, no new instances will be spawned"
+    }
+  },
+  "required": [
+    "template_title",
+    "recurrence_type"
+  ]
+}

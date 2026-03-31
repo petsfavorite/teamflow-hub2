@@ -5,21 +5,20 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
     const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
 
-    // Get all PUBLISHED recurring master templates (status: 'published', recurrence_type != 'once' and != 'manual')
-    const masterTemplates = await base44.asServiceRole.entities.ChecklistTemplate.filter({
-      status: 'published',
-      recurrence_type: { $nin: ['once', 'manual', null] }
+    // Get all active recurring checklist schedules
+    const recurringSchedules = await base44.asServiceRole.entities.RecurringChecklist.filter({
+      is_active: true
     });
 
     let created = 0;
     let skipped = 0;
 
-    for (const template of masterTemplates) {
+    for (const schedule of recurringSchedules) {
       const shouldCreate = shouldCreateToday(
-        template.recurrence_type,
-        template.recurrence_days_of_week,
-        template.recurrence_day_of_month,
-        template.recurrence_interval_months
+        schedule.recurrence_type,
+        schedule.recurrence_days_of_week,
+        schedule.recurrence_day_of_month,
+        schedule.recurrence_interval_months
       );
 
       if (!shouldCreate) {
@@ -27,9 +26,9 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // DEDUPLICATION: Check if an active instance for tomorrow already exists
+      // DEDUPLICATION: Check if an active instance for tomorrow already exists with this title
       const existing = await base44.asServiceRole.entities.ChecklistTemplate.filter({
-        title: template.title,
+        title: schedule.template_title,
         due_date: tomorrow,
         status: 'active'
       });
@@ -39,21 +38,21 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Create the daily instance for tomorrow
+      // Create the daily instance as an active ChecklistTemplate record (appears in "My Checklists")
       await base44.asServiceRole.entities.ChecklistTemplate.create({
-        title: template.title,
-        description: template.description,
-        category: template.category,
-        items: template.items,
-        assigned_to_emails: template.assigned_to_emails,
-        assigned_to_names: template.assigned_to_names,
-        assigned_teams: template.assigned_teams,
+        title: schedule.template_title,
+        description: schedule.template_description,
+        category: schedule.template_category,
+        items: schedule.template_items,
+        assigned_to_emails: schedule.assigned_to_emails,
+        assigned_to_names: schedule.assigned_to_names,
+        assigned_teams: schedule.assigned_teams,
         due_date: tomorrow,
-        due_time: template.due_time || '21:00',
-        recurrence_type: template.recurrence_type,
-        recurrence_days_of_week: template.recurrence_days_of_week,
-        recurrence_day_of_month: template.recurrence_day_of_month,
-        recurrence_interval_months: template.recurrence_interval_months,
+        due_time: schedule.due_time || '21:00',
+        recurrence_type: schedule.recurrence_type,
+        recurrence_days_of_week: schedule.recurrence_days_of_week,
+        recurrence_day_of_month: schedule.recurrence_day_of_month,
+        recurrence_interval_months: schedule.recurrence_interval_months,
         status: 'active',
         is_visible: false
       });

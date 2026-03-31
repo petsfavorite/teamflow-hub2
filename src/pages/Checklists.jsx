@@ -48,6 +48,12 @@ export default function Checklists() {
     queryFn: () => base44.entities.ChecklistTemplate.list('title', 200),
   });
 
+  const { data: recurringSchedules = [], isLoading: isLoadingRecurring } = useQuery({
+    queryKey: ['recurring-checklists'],
+    queryFn: () => base44.entities.RecurringChecklist.list('template_title', 200),
+    enabled: canManage,
+  });
+
   const { data: checklists = [] } = useQuery({
     queryKey: ['checklist-completions'],
     queryFn: () => base44.entities.ChecklistCompletion.list(),
@@ -105,29 +111,24 @@ export default function Checklists() {
     );
   }, [allTemplates]);
 
-  // Recurring checklists - assigned records with non-once recurrence (the "master" recurring records)
+  // Recurring checklists - from the dedicated RecurringChecklist entity (completely separate from My Checklists)
   const recurringChecklists = useMemo(() => {
-    return allTemplates.filter(t => {
-      if (t.status === 'archived') return false;
-      if (!t.recurrence_type || t.recurrence_type === 'once' || t.recurrence_type === 'manual') return false;
-      const isAssigned = (t.assigned_to_emails?.length > 0) || (t.assigned_teams?.length > 0);
-      return isAssigned;
-    });
-  }, [allTemplates]);
+    return recurringSchedules.filter(r => r.is_active !== false);
+  }, [recurringSchedules]);
 
-  const recurrenceLabel = (t) => {
-    switch (t.recurrence_type) {
+  const recurrenceLabel = (r) => {
+    switch (r.recurrence_type) {
       case 'daily': return 'Repeats daily';
       case 'weekdays': return 'Repeats weekdays';
       case 'specific_days': {
         const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-        const days = (t.recurrence_days_of_week || []).map(d => dayNames[d]).join(', ');
+        const days = (r.recurrence_days_of_week || []).map(d => dayNames[d]).join(', ');
         return `Repeats on ${days || '—'}`;
       }
-      case 'monthly': return `Repeats monthly on day ${t.recurrence_day_of_month || '—'}`;
-      case 'every_x_months': return `Repeats every ${t.recurrence_interval_months || '?'} months`;
+      case 'monthly': return `Repeats monthly on day ${r.recurrence_day_of_month || '—'}`;
+      case 'every_x_months': return `Repeats every ${r.recurrence_interval_months || '?'} months`;
       case 'annually': return 'Repeats annually';
-      default: return t.recurrence_type;
+      default: return r.recurrence_type;
     }
   };
 
@@ -136,7 +137,7 @@ export default function Checklists() {
     return allTemplates.filter(t => (t.status === 'draft' || t.status === 'pending_approval') && t.created_by === user?.email);
   }, [allTemplates, user]);
 
-  const isLoading = isLoadingTemplates;
+  const isLoading = isLoadingTemplates || isLoadingRecurring;
 
   const submitMutation = useMutation({
     mutationFn: async (data) => {
@@ -170,21 +171,60 @@ export default function Checklists() {
   const assignChecklistMutation = useMutation({
     mutationFn: async (data) => {
       if (isAssigningFromTemplate) {
-        // Always create a new record from the template, keep the template clean
-        return base44.entities.ChecklistTemplate.create({
+        // 1. Always create a new active ChecklistTemplate instance (appears in "My Checklists")
+        //    only if frequency is 'once' or the user wants an immediate instance
+        await base44.entities.ChecklistTemplate.create({
           title: templateToUse.title,
           description: templateToUse.description,
           category: templateToUse.category,
           items: templateToUse.items,
-          ...data,
+          assigned_to_emails: data.assigned_to_emails,
+          assigned_to_names: data.assigned_to_names,
+          assigned_teams: data.assigned_teams,
+          due_date: data.due_date,
+          due_time: data.due_time || '21:00',
+          recurrence_type: data.recurrence_type,
+          recurrence_days_of_week: data.recurrence_days_of_week,
+          recurrence_day_of_month: data.recurrence_day_of_month,
+          recurrence_interval_months: data.recurrence_interval_months,
+          status: 'active',
         });
+
+        // 2. If recurring, also create a RecurringChecklist schedule record (completely separate)
+        if (data.recurrence_type && data.recurrence_type !== 'once' && data.recurrence_type !== 'manual') {
+          await base44.entities.RecurringChecklist.create({
+            template_title: templateToUse.title,
+            template_description: templateToUse.description,
+            template_category: templateToUse.category,
+            template_items: templateToUse.items,
+            assigned_to_emails: data.assigned_to_emails,
+            assigned_to_names: data.assigned_to_names,
+            assigned_teams: data.assigned_teams,
+            due_time: data.due_time || '21:00',
+            recurrence_type: data.recurrence_type,
+            recurrence_days_of_week: data.recurrence_days_of_week,
+            recurrence_day_of_month: data.recurrence_day_of_month,
+            recurrence_interval_months: data.recurrence_interval_months,
+            is_active: true,
+          });
+        }
       } else {
-        // Editing an existing assigned/recurring record — update in place
-        return base44.entities.ChecklistTemplate.update(templateToUse.id, data);
+        // Editing an existing RecurringChecklist schedule — only updates the schedule, never touches active instances
+        await base44.entities.RecurringChecklist.update(templateToUse.id, {
+          assigned_to_emails: data.assigned_to_emails,
+          assigned_to_names: data.assigned_to_names,
+          assigned_teams: data.assigned_teams,
+          due_time: data.due_time || '21:00',
+          recurrence_type: data.recurrence_type,
+          recurrence_days_of_week: data.recurrence_days_of_week,
+          recurrence_day_of_month: data.recurrence_day_of_month,
+          recurrence_interval_months: data.recurrence_interval_months,
+          is_active: true,
+        });
       }
     },
     onSuccess: () => {
-      toast.success('Checklist assigned!');
+      toast.success(isAssigningFromTemplate ? 'Checklist assigned!' : 'Recurring schedule updated!');
       setUseDialogOpen(false);
       setTemplateToUse(null);
       setUseForm({
@@ -196,7 +236,7 @@ export default function Checklists() {
         recurrence_type: 'once'
       });
       queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
-      queryClient.invalidateQueries({ queryKey: ['checklist-templates-published'] });
+      queryClient.invalidateQueries({ queryKey: ['recurring-checklists'] });
     },
   });
 
@@ -243,7 +283,7 @@ export default function Checklists() {
     setUseDialogOpen(true);
   };
 
-  // Called from Actively Recurring Checklists — updates the existing record
+  // Called from Actively Recurring Checklists — updates the RecurringChecklist schedule only
   const handleEditRecurring = (record) => {
     setTemplateToUse(record);
     setIsAssigningFromTemplate(false);
@@ -251,9 +291,9 @@ export default function Checklists() {
       assigned_to_emails: record.assigned_to_emails || [],
       assigned_to_names: record.assigned_to_names || [],
       assigned_teams: record.assigned_teams || [],
-      due_date: record.due_date || '',
+      due_date: '',
       due_time: record.due_time || '21:00',
-      recurrence_type: record.recurrence_type || 'once',
+      recurrence_type: record.recurrence_type || 'daily',
       recurrence_days_of_week: record.recurrence_days_of_week || [],
       recurrence_day_of_month: record.recurrence_day_of_month || undefined,
       recurrence_interval_months: record.recurrence_interval_months || undefined
@@ -262,9 +302,9 @@ export default function Checklists() {
   };
 
   const deleteRecurring = (record) => {
-    base44.entities.ChecklistTemplate.delete(record.id).then(() => {
-      toast.success('Recurring checklist removed — active assignments are unchanged');
-      queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
+    base44.entities.RecurringChecklist.delete(record.id).then(() => {
+      toast.success('Recurring schedule removed — existing assigned checklists are unchanged');
+      queryClient.invalidateQueries({ queryKey: ['recurring-checklists'] });
     });
   };
 
@@ -529,34 +569,34 @@ export default function Checklists() {
           {canManage && (
             <div>
               <h2 className="text-lg font-semibold text-slate-900 mb-4">Actively Recurring Checklists</h2>
-              {recurringChecklists.filter(t => t.title.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 ? (
+              {recurringChecklists.filter(r => r.template_title.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 ? (
                 <p className="text-slate-500 text-sm">No recurring checklists</p>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {recurringChecklists.filter(t => t.title.toLowerCase().includes(searchTerm.toLowerCase())).map(template => (
-                    <Card key={template.id} className="border-0 shadow-sm">
+                  {recurringChecklists.filter(r => r.template_title.toLowerCase().includes(searchTerm.toLowerCase())).map(schedule => (
+                    <Card key={schedule.id} className="border-0 shadow-sm">
                       <CardContent className="p-6">
                         <div className="flex items-start justify-between mb-3">
                           <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
                             <CheckSquare className="w-5 h-5 text-purple-600" />
                           </div>
-                          {template.recurrence_type && (
-                            <StatusBadge status={template.recurrence_type} />
+                          {schedule.recurrence_type && (
+                            <StatusBadge status={schedule.recurrence_type} />
                           )}
                         </div>
-                        <h3 className="font-semibold text-slate-900 mb-1">{template.title}</h3>
-                        <p className="text-xs font-medium text-purple-600 mb-1">{recurrenceLabel(template)}</p>
-                        {template.due_time && <p className="text-xs text-slate-400 mb-2">Due by {template.due_time}</p>}
-                        {template.description && <p className="text-sm text-slate-500 mb-3">{template.description}</p>}
+                        <h3 className="font-semibold text-slate-900 mb-1">{schedule.template_title}</h3>
+                        <p className="text-xs font-medium text-purple-600 mb-1">{recurrenceLabel(schedule)}</p>
+                        {schedule.due_time && <p className="text-xs text-slate-400 mb-2">Due by {schedule.due_time}</p>}
+                        {schedule.template_description && <p className="text-sm text-slate-500 mb-3">{schedule.template_description}</p>}
                         <div className="flex items-center gap-2 text-xs text-slate-400 mb-4">
                           <Clock className="w-3 h-3" />
-                          {template.items?.length || 0} items
+                          {schedule.template_items?.length || 0} items
                         </div>
                         <div className="flex gap-2">
                           <Button
                             size="sm"
                             className="flex-1 bg-purple-600 hover:bg-purple-700"
-                            onClick={() => handleEditRecurring(template)}
+                            onClick={() => handleEditRecurring(schedule)}
                           >
                             Edit
                           </Button>
@@ -565,8 +605,8 @@ export default function Checklists() {
                               variant="ghost"
                               size="sm"
                               className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                              title="Remove this recurring checklist"
-                              onClick={() => deleteRecurring(template)}
+                              title="Remove this recurring schedule"
+                              onClick={() => deleteRecurring(schedule)}
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>
@@ -677,7 +717,7 @@ export default function Checklists() {
       <Dialog open={useDialogOpen} onOpenChange={setUseDialogOpen}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{isAssigningFromTemplate ? 'Assign' : 'Edit'} "{templateToUse?.title}"</DialogTitle>
+            <DialogTitle>{isAssigningFromTemplate ? 'Assign' : 'Edit'} "{isAssigningFromTemplate ? templateToUse?.title : templateToUse?.template_title}"</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             {/* Assign Users */}
