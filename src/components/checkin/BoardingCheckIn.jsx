@@ -200,9 +200,7 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
                 is_template: true,
                 completed: false,
                 completed_at: null,
-                medication_name: 'CBD Chews',
-                recurrence_type: 'days',
-                recurrence_interval: 1
+                medication_name: 'CBD Chews'
             });
             currentDate.add(1, 'day');
         }
@@ -221,9 +219,7 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
                 is_template: true,
                 completed: false,
                 completed_at: null,
-                medication_name: 'CBD Chews',
-                recurrence_type: 'days',
-                recurrence_interval: 1
+                medication_name: 'CBD Chews'
             });
             currentDate.add(1, 'day');
         }
