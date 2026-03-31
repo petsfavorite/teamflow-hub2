@@ -35,6 +35,11 @@ Deno.serve(async (req) => {
     if (bonuses.length === 0) {
       return Response.json({ recognitions: [] });
     }
+    
+    // Debug: log first bonus structure to see available fields
+    if (bonuses.length > 0) {
+      console.log('Sample bonus:', JSON.stringify(bonuses[0], null, 2));
+    }
 
     // Filter to only include bonuses from last 30 days
     const thirtyDaysAgo = new Date();
@@ -46,13 +51,24 @@ Deno.serve(async (req) => {
     });
 
     // Map fields from response
-    const recognitions = recentBonuses.map(bonus => ({
-      giver: bonus.sender?.short_name || 'Unknown',
-      receiver: bonus.receiver?.short_name || 'Unknown',
-      message: bonus.reason || '',
-      tags: bonus.hashtags || [],
-      time: bonus.created_at
-    }));
+    const recognitions = recentBonuses.map(bonus => {
+      // Extract giver name - try multiple fields
+      const giverName = bonus.sender?.short_name || bonus.sender?.name || bonus.giver_name || 'Unknown';
+      
+      // Clean message: remove URLs and markdown images
+      let cleanMessage = bonus.reason || '';
+      cleanMessage = cleanMessage.replace(/!\[.*?\]\(.*?\)/g, ''); // Remove markdown images
+      cleanMessage = cleanMessage.replace(/https?:\/\/[^\s]+/g, ''); // Remove URLs
+      cleanMessage = cleanMessage.trim();
+      
+      return {
+        giver: giverName,
+        receiver: bonus.receiver?.short_name || 'Unknown',
+        message: cleanMessage,
+        tags: bonus.hashtags || [],
+        time: bonus.created_at
+      };
+    });
 
     return Response.json({ recognitions });
   } catch (error) {
