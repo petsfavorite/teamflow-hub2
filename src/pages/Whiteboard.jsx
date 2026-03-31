@@ -145,12 +145,6 @@ export default function Whiteboard() {
                             <span className="sm:hidden">Monitor</span>
                         </Button>
                     </Link>
-                    <Link to={createPageUrl('Reports')}>
-                        <Button variant="outline" className="rounded-xl border-stone-200">
-                            <FileText className="w-4 h-4 md:mr-2" />
-                            <span className="hidden md:inline">Reports</span>
-                        </Button>
-                    </Link>
                     <Link to={createPageUrl('Pets')}>
                         <Button variant="outline" className="rounded-xl border-stone-200 hidden sm:inline-flex">
                             All Pets
