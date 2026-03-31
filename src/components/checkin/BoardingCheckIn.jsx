@@ -17,6 +17,9 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
      const [whatWasBrought, setWhatWasBrought] = useState('');
      const [needFecal, setNeedFecal] = useState(false);
      const [needUrine, setNeedUrine] = useState(false);
+     const [addCBDChews, setAddCBDChews] = useState(false);
+     const [addProbiotic, setAddProbiotic] = useState(false);
+     const [addFeedingEnrichment, setAddFeedingEnrichment] = useState(false);
      const [visitMedications, setVisitMedications] = useState(
          pet.medications?.length > 0 ? pet.medications.map(m => ({ ...m })) : []
      );
@@ -180,6 +183,23 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
             }
         }
     });
+
+    // Add CBD Chews as AM and PM medications if selected
+    if (addCBDChews) {
+        // AM - 9 AM
+        if (checkInHour < 9 || (checkInHour === 9 && checkInMinute === 0)) {
+            tasks.push({ type: 'Medication', time: '9:00 AM', date: checkInDate, is_template: true, completed: false, completed_at: null, medication_name: 'CBD Chews', recurrence_type: 'days', recurrence_interval: 1 });
+        } else {
+            tasks.push({ type: 'Medication', time: '9:00 AM', date: moment(checkInDate).add(1, 'day').format('YYYY-MM-DD'), is_template: true, completed: false, completed_at: null, medication_name: 'CBD Chews', recurrence_type: 'days', recurrence_interval: 1 });
+        }
+
+        // PM - 6 PM
+        if (checkInHour < 18 || (checkInHour === 18 && checkInMinute === 0)) {
+            tasks.push({ type: 'Medication', time: '6:00 PM', date: checkInDate, is_template: true, completed: false, completed_at: null, medication_name: 'CBD Chews', recurrence_type: 'days', recurrence_interval: 1 });
+        } else {
+            tasks.push({ type: 'Medication', time: '6:00 PM', date: moment(checkInDate).add(1, 'day').format('YYYY-MM-DD'), is_template: true, completed: false, completed_at: null, medication_name: 'CBD Chews', recurrence_type: 'days', recurrence_interval: 1 });
+        }
+    }
         
     // Add "Collect Feces" if requested
     if (needFecal) {
@@ -197,6 +217,59 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
         let currentDate = moment(checkInDate);
         while (currentDate.format('YYYY-MM-DD') <= checkoutDate) {
             tasks.push({ type: 'Collect Urine', time: '', date: currentDate.format('YYYY-MM-DD'), is_template: false, completed: false, completed_at: null, collected: false });
+            currentDate.add(1, 'day');
+        }
+    }
+
+    // Add "Probiotic Added to Meal" for each feeding if selected
+    if (addProbiotic) {
+        const addProbioticTask = (type) => {
+            const mealTimes = {
+                'Breakfast': '9:00 AM',
+                'Lunch': '12:00 PM',
+                'Dinner': '6:00 PM'
+            };
+            let currentDate = moment(checkInDate);
+            while (currentDate.format('YYYY-MM-DD') <= checkoutDate) {
+                tasks.push({
+                    type: 'Probiotic Added to Meal',
+                    time: mealTimes[type] || '',
+                    date: currentDate.format('YYYY-MM-DD'),
+                    is_template: true,
+                    completed: false,
+                    completed_at: null,
+                    notes: type
+                });
+                currentDate.add(1, 'day');
+            }
+        };
+
+        if (feedingFrequency === 'Just Breakfast') {
+            addProbioticTask('Breakfast');
+        } else if (feedingFrequency === 'Just Dinner') {
+            addProbioticTask('Dinner');
+        } else if (feedingFrequency === 'Two Meals') {
+            addProbioticTask('Breakfast');
+            addProbioticTask('Dinner');
+        } else if (feedingFrequency === 'Three Meals') {
+            addProbioticTask('Breakfast');
+            addProbioticTask('Lunch');
+            addProbioticTask('Dinner');
+        }
+    }
+
+    // Add "Give Feeding Enrichment Toy" once daily if selected
+    if (addFeedingEnrichment) {
+        let currentDate = moment(checkInDate);
+        while (currentDate.format('YYYY-MM-DD') <= checkoutDate) {
+            tasks.push({
+                type: 'Give Feeding Enrichment Toy',
+                time: '10:00 AM',
+                date: currentDate.format('YYYY-MM-DD'),
+                is_template: true,
+                completed: false,
+                completed_at: null
+            });
             currentDate.add(1, 'day');
         }
     }
@@ -301,7 +374,7 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
                         </div>
                     </div>
 
-                    <div className="pt-4 border-t border-stone-100">
+                    <div className="pt-4 border-t border-stone-100 space-y-2">
                          <div className="flex items-center space-x-2">
                              <Checkbox 
                                  id="playcamp" 
@@ -310,6 +383,36 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
                              />
                              <Label htmlFor="playcamp" className="cursor-pointer">
                                  Add Day Camp
+                             </Label>
+                         </div>
+                         <div className="flex items-center space-x-2">
+                             <Checkbox 
+                                 id="cbdchews" 
+                                 checked={addCBDChews}
+                                 onCheckedChange={setAddCBDChews}
+                             />
+                             <Label htmlFor="cbdchews" className="cursor-pointer">
+                                 Add CBD Chews
+                             </Label>
+                         </div>
+                         <div className="flex items-center space-x-2">
+                             <Checkbox 
+                                 id="probiotic" 
+                                 checked={addProbiotic}
+                                 onCheckedChange={setAddProbiotic}
+                             />
+                             <Label htmlFor="probiotic" className="cursor-pointer">
+                                 Add Probiotic
+                             </Label>
+                         </div>
+                         <div className="flex items-center space-x-2">
+                             <Checkbox 
+                                 id="feedingenrichment" 
+                                 checked={addFeedingEnrichment}
+                                 onCheckedChange={setAddFeedingEnrichment}
+                             />
+                             <Label htmlFor="feedingenrichment" className="cursor-pointer">
+                                 Add Feeding Enrichment Toy
                              </Label>
                          </div>
                      </div>
@@ -390,6 +493,9 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
                                 )}
                                 <li>• Feeding: {feedingFrequency === 'Just Breakfast' && 'Breakfast at 9 AM'} {feedingFrequency === 'Just Dinner' && 'Dinner at 6 PM'} {feedingFrequency === 'Two Meals' && 'Breakfast at 9 AM & Dinner at 6 PM'} {feedingFrequency === 'Three Meals' && 'Breakfast at 9 AM, Lunch at 12 PM & Dinner at 6 PM'}</li>
                                 {pet.medications?.length > 0 && <li>• Medications as scheduled</li>}
+                                {addCBDChews && <li>• CBD Chews (9 AM & 6 PM daily)</li>}
+                                {addProbiotic && <li>• Probiotic added to each meal</li>}
+                                {addFeedingEnrichment && <li>• Give Feeding Enrichment Toy (10 AM daily)</li>}
                             </ul>
                         )}
                     </div>
