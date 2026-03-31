@@ -29,17 +29,47 @@ export default function MonitorView() {
 
 
 
+    const today = moment().format('YYYY-MM-DD');
+    const nowTick = moment();
+
     // Check if pet has uncollected "Collect Feces" task
     const hasCollectFeces = (visit) => {
-        const today = moment().format('YYYY-MM-DD');
-        const tasks = visit.scheduled_tasks?.filter(task => {
-            if (task.completed) return false;
-            if (task.date && task.date !== today) return false;
-            if (!task.is_template && task.date !== today) return false;
-            return true;
-        }) || [];
-        
-        return tasks.some(task => task.type === 'Collect Feces' && !task.collected);
+         const tasks = visit.scheduled_tasks?.filter(task => {
+             if (task.completed) return false;
+             if (task.date && task.date !== today) return false;
+             if (!task.is_template && task.date !== today) return false;
+             return true;
+         }) || [];
+
+         return tasks.some(task => task.type === 'Collect Feces' && !task.collected);
+    };
+
+    // Check if pet has uncollected "Collect Urine" task
+    const hasCollectUrine = (visit) => {
+         const tasks = visit.scheduled_tasks?.filter(task => {
+             if (task.completed) return false;
+             if (task.date && task.date !== today) return false;
+             if (!task.is_template && task.date !== today) return false;
+             return true;
+         }) || [];
+
+         return tasks.some(task => task.type === 'Collect Urine' && !task.collected);
+    };
+
+    // Check for overdue tasks (same logic as DayView)
+    const OVERDUE_EXEMPT_TYPES = ['Collect Feces', 'Collect Urine', 'Feces Observed', 'Ate', 'Urine Observed'];
+    const isOverdueAlert = (visit) => {
+         const cutoff = nowTick.clone().hour(19).minute(30).second(0);
+         return (visit.scheduled_tasks || []).some(task => {
+             if (task.completed) return false;
+             if (OVERDUE_EXEMPT_TYPES.includes(task.type)) return false;
+             if (task.date && task.date !== today) return false;
+             if (task.time) {
+                 const taskMoment = nowTick.clone().startOf('day').add(moment(task.time, 'h:mm A').diff(moment(task.time, 'h:mm A').clone().startOf('day')));
+                 return nowTick.isAfter(taskMoment);
+             }
+             return nowTick.isAfter(cutoff);
+         });
     };
 
 
@@ -82,18 +112,22 @@ export default function MonitorView() {
             ) : (
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-2">
                     {petsWithVisits.map(({ pet, visit }) => {
-                         const isCat = pet.species === 'Cat';
-                         const needsFecesCollection = hasCollectFeces(visit);
-                         const hasEmergencyAlert = visit.emergency_alert_active;
+                          const isCat = pet.species === 'Cat';
+                          const needsFecesCollection = hasCollectFeces(visit);
+                          const needsUrineCollection = hasCollectUrine(visit);
+                          const hasEmergencyAlert = visit.emergency_alert_active;
+                          const hasOverdue = isOverdueAlert(visit);
 
-                        return (
-                            <div 
-                                key={visit.id}
-                                className={`rounded-lg p-3 transition-all ${
-                                    hasEmergencyAlert ? 'bg-red-400 border-2 border-red-600' :
-                                    needsFecesCollection ? 'bg-stone-300 border-2 border-amber-900' : 
-                                    'bg-white border-2 border-stone-300'
-                                }`}
+                         return (
+                             <div 
+                                 key={visit.id}
+                                 className={`rounded-lg p-3 transition-all ${
+                                     hasEmergencyAlert ? 'bg-red-400 border-2 border-red-600' :
+                                     needsFecesCollection ? 'bg-amber-200 border-2 border-amber-900' :
+                                     needsUrineCollection ? 'bg-yellow-200 border-2 border-yellow-600' :
+                                     hasOverdue ? 'bg-purple-200 border-2 border-purple-600' :
+                                     'bg-white border-2 border-stone-300'
+                                 }`}
                             >
                                 {/* Name with emoji */}
                                 <div className="mb-2">
