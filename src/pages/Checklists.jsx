@@ -106,10 +106,10 @@ export default function Checklists() {
     );
   }, [allTemplates]);
 
-  // Recurring checklists - templates with recurrence set (active or published)
+  // Recurring checklists - published master templates with recurrence set (not archived)
   const recurringChecklists = useMemo(() => {
     return allTemplates.filter(t => 
-      (t.status === 'active' || t.status === 'published') && 
+      t.status === 'published' && 
       t.recurrence_type && 
       t.recurrence_type !== 'once' &&
       t.recurrence_type !== 'manual'
@@ -246,17 +246,11 @@ export default function Checklists() {
     setUseDialogOpen(true);
   };
 
-  const removeRecurrence = (template) => {
+  const stopRecurrence = (template) => {
     base44.entities.ChecklistTemplate.update(template.id, {
-      assigned_to_emails: [],
-      assigned_to_names: [],
-      assigned_teams: [],
-      due_date: '',
-      due_time: '21:00',
-      recurrence_type: 'once',
-      status: 'active'
+      status: 'archived'
     }).then(() => {
-      toast.success('Checklist returned to templates');
+      toast.success('Recurring checklist stopped — existing assignments are unchanged');
       queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
     });
   };
@@ -547,23 +541,13 @@ export default function Checklists() {
                           >
                             Edit
                           </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
-                            onClick={() => removeRecurrence(template)}
-                          >
-                            Remove
-                          </Button>
-                          {(isSuperAdmin || isAdmin) && (
+                          {canManage && (
                             <Button
                               variant="ghost"
                               size="sm"
                               className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                              onClick={() => {
-                                setTemplateToDelete(template);
-                                setDeleteDialogOpen(true);
-                              }}
+                              title="Stop future recurrence"
+                              onClick={() => stopRecurrence(template)}
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>
