@@ -11,7 +11,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Users, Calendar, Circle, PlayCircle, CheckCircle, Edit2, Loader2 } from 'lucide-react';
 import { toast } from "sonner";
-import { useQuery } from '@tanstack/react-query';
 
 const priorityColors = {
   low: 'bg-slate-100 text-slate-600',
@@ -19,17 +18,13 @@ const priorityColors = {
   high: 'bg-orange-100 text-orange-700',
 };
 
-export default function TaskRow({ task, onStatusChange, canEdit, user, teams = [] }) {
+export default function TaskRow({ task, onStatusChange, canEdit, user, teams = [], allowedUsers = [] }) {
   const [editOpen, setEditOpen] = useState(false);
   const [form, setForm] = useState({});
   const [isSaving, setIsSaving] = useState(false);
   const queryClient = useQueryClient();
 
-  const { data: users = [] } = useQuery({
-    queryKey: ['users-list'],
-    queryFn: () => base44.entities.User.list('full_name', 200),
-    enabled: editOpen,
-  });
+  const users = allowedUsers;
 
   const openEdit = () => {
     setForm({

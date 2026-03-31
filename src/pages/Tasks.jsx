@@ -93,6 +93,15 @@ export default function Tasks() {
       .flatMap(t => t.member_emails || [])
   );
 
+  // For assignment: admins see all, managers see only their teams + teammates
+  const assignableTeams = (isAdmin || isSuperAdmin)
+    ? teams
+    : teams.filter(t => myTeamIds.has(t.id));
+
+  const assignableUsers = (isAdmin || isSuperAdmin)
+    ? users
+    : users.filter(u => managedTeamMemberEmails.has(u.email));
+
   const myTasks = tasks.filter(t => {
     const assignedToMe = t.assigned_to_emails?.includes(user?.email);
     const inMyTeam = t.assigned_teams?.some(teamId => myTeamIds.has(teamId));
@@ -185,7 +194,8 @@ export default function Tasks() {
               onStatusChange={setStatus}
               canEdit={canManage}
               user={user}
-              teams={teams}
+              teams={assignableTeams}
+              allowedUsers={assignableUsers}
             />
           ))}
         </div>
@@ -273,7 +283,7 @@ export default function Tasks() {
             <div className="space-y-2">
               <Label>Assign to Users</Label>
               <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto p-2 bg-slate-50 rounded-lg border border-slate-200">
-                {users.map(u => (
+                {assignableUsers.map(u => (
                   <label key={u.id} className="flex items-center gap-2 text-sm">
                     <Checkbox
                       checked={form.assigned_to_emails.includes(u.email)}
@@ -296,7 +306,7 @@ export default function Tasks() {
             <div className="space-y-2">
               <Label>Assign to Teams</Label>
               <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto p-2 bg-slate-50 rounded-lg border border-slate-200">
-                {teams.map(t => (
+                {assignableTeams.map(t => (
                   <label key={t.id} className="flex items-center gap-2 text-sm">
                     <Checkbox
                       checked={form.assigned_teams.includes(t.id)}
@@ -397,7 +407,7 @@ export default function Tasks() {
             <div className="space-y-2">
               <Label>Assign to Users</Label>
               <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto p-2 bg-slate-50 rounded-lg border border-slate-200">
-                {users.map(u => (
+                {assignableUsers.map(u => (
                   <label key={u.id} className="flex items-center gap-2 text-sm">
                     <Checkbox
                       checked={(editForm.assigned_to_emails || []).includes(u.email)}
@@ -415,7 +425,7 @@ export default function Tasks() {
             <div className="space-y-2">
               <Label>Assign to Teams</Label>
               <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto p-2 bg-slate-50 rounded-lg border border-slate-200">
-                {teams.map(t => (
+                {assignableTeams.map(t => (
                   <label key={t.id} className="flex items-center gap-2 text-sm">
                     <Checkbox
                       checked={(editForm.assigned_teams || []).includes(t.id)}
