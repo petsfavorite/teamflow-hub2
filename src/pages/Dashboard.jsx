@@ -89,7 +89,7 @@ export default function Dashboard() {
     queryKey: ['bonusly-awards'],
     queryFn: async () => {
       const res = await base44.functions.invoke('getBonuslyAwards', {});
-      return res.data?.awards || [];
+      return res.data?.recognitions || [];
     },
     enabled: !!user?.email,
   });
