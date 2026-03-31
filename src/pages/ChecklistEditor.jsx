@@ -20,7 +20,8 @@ export default function ChecklistEditor() {
   const id = params.get('id');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { isSuperAdmin, isAdmin, canManage } = useCurrentUser();
+  const { user, isSuperAdmin, isAdmin, isManager, canManage } = useCurrentUser();
+  const canDirectSave = isSuperAdmin || isAdmin;
 
   const [form, setForm] = useState({
     title: '', description: '', category: '', status: 'active', assigned_to_emails: [], assigned_to_teams: [], items: [],
@@ -77,9 +78,14 @@ export default function ChecklistEditor() {
       if (id) return base44.entities.ChecklistTemplate.update(id, data);
       return base44.entities.ChecklistTemplate.create(data);
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['checklist-templates'] });
-      toast.success(id ? 'Checklist updated' : 'Checklist created');
+      queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
+      if (variables._isPendingApproval) {
+        toast.success('Edit submitted for admin approval');
+      } else {
+        toast.success(id ? 'Checklist updated' : 'Checklist created');
+      }
       navigate(createPageUrl('Checklists'));
     },
   });
@@ -106,15 +112,32 @@ export default function ChecklistEditor() {
   };
 
   const handleSave = () => {
-    if (id && !form.due_date) {
-      alert('Due date is required');
+    if (!form.title?.trim()) {
+      alert('Title is required');
       return;
     }
+
+    // Managers submitting edits to existing templates go through approval
+    if (id && isManager && !canDirectSave) {
+      const pendingData = {
+        pending_items: form.items,
+        pending_description: form.description,
+        pending_change_summary: form.pending_change_summary || '',
+        pending_submitted_by: user?.email,
+        pending_submitted_by_name: user?.full_name,
+        status: 'pending_approval',
+        _isPendingApproval: true,
+      };
+      saveMutation.mutate(pendingData);
+      return;
+    }
+
+    // Admins/super admins save directly
     const data = {
       title: form.title,
       description: form.description,
       category: form.category,
-      status: form.status,
+      status: form.status || 'active',
       items: form.items
     };
     if (id) {
@@ -131,10 +154,10 @@ export default function ChecklistEditor() {
     saveMutation.mutate(data);
   };
 
-  if (!id && !isAdmin && !isSuperAdmin) {
+  if (!id && !canDirectSave) {
     return (
       <div className="text-center py-20">
-        <p className="text-slate-500">Only admins can create checklists</p>
+        <p className="text-slate-500">Only admins can create new checklists</p>
         <Link to={createPageUrl('Checklists')}><Button variant="ghost" className="mt-4">Back</Button></Link>
       </div>
     );
@@ -155,7 +178,77 @@ export default function ChecklistEditor() {
         <Button variant="ghost" className="gap-2 text-slate-600 mb-4"><ArrowLeft className="w-4 h-4" /> Back</Button>
       </Link>
 
-      <PageHeader title={id ? 'Edit Checklist' : 'New Checklist'} />
+      <PageHeader
+        title={id ? 'Edit Checklist' : 'New Checklist'}
+        description={id && isManager && !canDirectSave ? 'Your changes will be submitted for admin approval before going live.' : undefined}
+        actions={canDirectSave && existing?.status === 'pending_approval' && existing?.pending_items && (
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="text-green-700 border-green-300 hover:bg-green-50"
+              onClick={() => {
+                base44.entities.ChecklistTemplate.update(id, {
+                  items: existing.pending_items,
+                  description: existing.pending_description || existing.description,
+                  pending_items: null,
+                  pending_description: null,
+                  pending_change_summary: null,
+                  pending_submitted_by: null,
+                  pending_submitted_by_name: null,
+                  status: 'active',
+                }).then(() => {
+                  queryClient.invalidateQueries({ queryKey: ['checklist-edit', id] });
+                  queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
+                  queryClient.invalidateQueries({ queryKey: ['pending-checklist-edits-dash'] });
+                  toast.success('Changes approved and applied');
+                  navigate(createPageUrl('Checklists'));
+                });
+              }}
+            >
+              ✓ Approve Changes
+            </Button>
+            <Button
+              variant="outline"
+              className="text-red-600 border-red-300 hover:bg-red-50"
+              onClick={() => {
+                base44.entities.ChecklistTemplate.update(id, {
+                  pending_items: null,
+                  pending_description: null,
+                  pending_change_summary: null,
+                  pending_submitted_by: null,
+                  pending_submitted_by_name: null,
+                  status: 'active',
+                }).then(() => {
+                  queryClient.invalidateQueries({ queryKey: ['checklist-edit', id] });
+                  queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
+                  queryClient.invalidateQueries({ queryKey: ['pending-checklist-edits-dash'] });
+                  toast.success('Edit request rejected');
+                  navigate(createPageUrl('Checklists'));
+                });
+              }}
+            >
+              ✗ Reject
+            </Button>
+          </div>
+        )}
+      />
+
+      {canDirectSave && existing?.status === 'pending_approval' && existing?.pending_items && (
+        <Card className="border-2 border-indigo-300 shadow-sm mb-4">
+          <CardContent className="p-4 space-y-2">
+            <p className="text-sm font-semibold text-indigo-800">📋 Pending Edit Request</p>
+            {existing.pending_submitted_by_name && <p className="text-xs text-indigo-700">Submitted by <strong>{existing.pending_submitted_by_name}</strong></p>}
+            {existing.pending_change_summary && <p className="text-xs text-indigo-700">Summary: {existing.pending_change_summary}</p>}
+            <p className="text-xs text-slate-500">Proposed items ({existing.pending_items?.length}):</p>
+            <ul className="text-xs text-slate-700 space-y-0.5 pl-3">
+              {existing.pending_items?.map((item, i) => <li key={i}>• {item.label}</li>)}
+            </ul>
+            {existing.pending_description && existing.pending_description !== existing.description && (
+              <p className="text-xs text-slate-700">Proposed description: <em>{existing.pending_description}</em></p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="border-0 shadow-sm">
         <CardContent className="p-6 space-y-6">
@@ -358,11 +451,25 @@ export default function ChecklistEditor() {
             )}
           </div>
 
+          {id && isManager && !canDirectSave && (
+            <div className="space-y-2 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <Label className="text-amber-800">Summary of Changes <span className="text-red-500">*</span></Label>
+              <Textarea
+                value={form.pending_change_summary || ''}
+                onChange={e => setForm({ ...form, pending_change_summary: e.target.value })}
+                placeholder="Briefly describe what you changed and why..."
+                rows={2}
+                className="bg-white"
+              />
+              <p className="text-xs text-amber-700">This will be reviewed by an admin before your changes go live.</p>
+            </div>
+          )}
+
           <div className="flex justify-end gap-3 pt-4">
             <Link to={createPageUrl('Checklists')}><Button variant="outline">Cancel</Button></Link>
             <Button onClick={handleSave} disabled={saveMutation.isPending} className="bg-indigo-600 hover:bg-indigo-700 gap-2">
               {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              {id ? 'Update' : 'Create'} Checklist
+              {id && isManager && !canDirectSave ? 'Submit for Approval' : (id ? 'Update' : 'Create') + ' Checklist'}
             </Button>
           </div>
         </CardContent>

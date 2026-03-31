@@ -53,6 +53,12 @@ export default function Dashboard() {
     enabled: !!user?.email,
   });
 
+  const { data: pendingChecklistEdits = [] } = useQuery({
+    queryKey: ['pending-checklist-edits-dash'],
+    queryFn: () => base44.entities.ChecklistTemplate.filter({ status: 'pending_approval' }),
+    enabled: !!user?.email && canApprove,
+  });
+
   const { data: maintenanceRequests = [] } = useQuery({
     queryKey: ['maintenance-dash'],
     queryFn: () => base44.entities.MaintenanceRequest.list('-created_date', 20),
@@ -316,13 +322,13 @@ export default function Dashboard() {
             <div className="flex items-center gap-2 mb-4">
               <Bell className="w-5 h-5 text-indigo-600" />
               <h2 className="font-semibold text-slate-900">Notifications</h2>
-              {(pendingSOPs.length + verificationDueSops.length + incidents.length + openMaintenance.length + managersSeenOverdueTasks.length) > 0 && (
+              {(pendingSOPs.length + verificationDueSops.length + incidents.length + openMaintenance.length + managersSeenOverdueTasks.length + (canApprove ? pendingChecklistEdits.length : 0)) > 0 && (
                 <span className="ml-auto bg-amber-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                  {pendingSOPs.length + verificationDueSops.length + incidents.length + openMaintenance.length + managersSeenOverdueTasks.length}
+                  {pendingSOPs.length + verificationDueSops.length + incidents.length + openMaintenance.length + managersSeenOverdueTasks.length + (canApprove ? pendingChecklistEdits.length : 0)}
                 </span>
               )}
             </div>
-            {pendingSOPs.length === 0 && verificationDueSops.length === 0 && incidents.length === 0 && openMaintenance.length === 0 && managersSeenOverdueTasks.length === 0 ? (
+            {pendingSOPs.length === 0 && verificationDueSops.length === 0 && incidents.length === 0 && openMaintenance.length === 0 && managersSeenOverdueTasks.length === 0 && pendingChecklistEdits.length === 0 ? (
               <p className="text-sm text-slate-400 py-2 text-center">No pending notifications</p>
             ) : (
               <div className="space-y-2">
@@ -371,6 +377,20 @@ export default function Dashboard() {
                         )}
                       </div>
                       <ArrowRight className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
+                    </div>
+                  </Link>
+                ))}
+                {canApprove && pendingChecklistEdits.map(checklist => (
+                  <Link key={checklist.id} to={createPageUrl('ChecklistEditor') + `?id=${checklist.id}`}>
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-indigo-50 hover:bg-indigo-100 transition-colors">
+                      <CheckSquare className="w-4 h-4 text-indigo-600 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-indigo-900 truncate">Pending Checklist Edit: {checklist.title}</p>
+                        {checklist.pending_submitted_by_name && (
+                          <p className="text-xs text-indigo-700">Submitted by {checklist.pending_submitted_by_name}{checklist.pending_change_summary ? ` · ${checklist.pending_change_summary}` : ''}</p>
+                        )}
+                      </div>
+                      <ArrowRight className="w-3.5 h-3.5 text-indigo-600 flex-shrink-0" />
                     </div>
                   </Link>
                 ))}
