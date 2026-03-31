@@ -14,17 +14,16 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Bonusly API key not configured' }, { status: 500 });
     }
 
-    // Fetch recent bonuses, sorted by newest first
-    const response = await fetch('https://bonus.ly/api/v2/bonuses?limit=50&sort_by=date&sort_order=desc', {
+    // Fetch recent bonuses using token auth
+    const response = await fetch(`https://bonus.ly/api/v2/bonuses?limit=50&access_token=${apiKey}`, {
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
         'Accept': 'application/json',
       }
     });
 
     if (!response.ok) {
       const error = await response.text();
-      return Response.json({ error: `Bonusly API error: ${response.status}` }, { status: 500 });
+      return Response.json({ error: `Bonusly API error: ${response.status} - ${error}` }, { status: 500 });
     }
 
     const data = await response.json();
