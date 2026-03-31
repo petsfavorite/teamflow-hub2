@@ -48,7 +48,7 @@ The user is asking: "${input}"
 Based on the SOPs available:
 1. Identify which SOP(s) are most relevant to the user's question
 2. Provide a clear, helpful response explaining which SOP to follow
-3. Reference specific SOPs by their exact title
+3. When referencing an SOP title, format it as a markdown link using the SOP's ID like this: [SOP Title](/SOPDetail?id=SOP_ID)
 4. If multiple SOPs are relevant, list them in order of relevance
 5. If no SOP matches, say so and suggest what they might look for
 
@@ -118,7 +118,18 @@ Be conversational, helpful, and concise. Format your response in markdown.`,
                     <p className="text-sm">{msg.content}</p>
                   ) : (
                     <div className="prose prose-sm prose-slate max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
-                      <ReactMarkdown>{msg.content}</ReactMarkdown>
+                      <ReactMarkdown
+                        components={{
+                          a: ({ href, children }) => (
+                            <Link
+                              to={href}
+                              className="text-indigo-600 font-medium underline hover:text-indigo-800"
+                            >
+                              {children}
+                            </Link>
+                          ),
+                        }}
+                      >{msg.content}</ReactMarkdown>
                     </div>
                   )}
                 </div>
