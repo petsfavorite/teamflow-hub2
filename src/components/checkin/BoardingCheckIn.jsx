@@ -316,6 +316,17 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
             completed_at: null
         });
     }
+
+    // Add "Enter All Charges" task on day before checkout at 6 PM
+    const chargesDueDate = moment(checkoutDate).subtract(1, 'day').format('YYYY-MM-DD');
+    tasks.push({
+        type: 'Enter All Charges',
+        time: '6:00 PM',
+        date: chargesDueDate,
+        is_template: true,
+        completed: false,
+        completed_at: null
+    });
         
     // Add 4 Play Session tasks per weekday if play camp is selected
     if (addPlayCamp && pet.species === 'Dog') {
