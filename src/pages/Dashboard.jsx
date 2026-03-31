@@ -7,6 +7,7 @@ import { useCurrentUser } from '../components/hooks/useCurrentUser';
 import { Card, CardContent } from "@/components/ui/card";
 import StatusBadge from '../components/shared/StatusBadge';
 import DismissibleOverdueTask from '../components/dashboard/DismissibleOverdueTask';
+import BonuslyRecognitions from '../components/dashboard/BonuslyRecognitions';
 import {
   LayoutDashboard, BookOpen, CheckSquare, ClipboardList, Wrench,
   AlertTriangle, MessageSquare, ArrowRight, Bell, ShieldAlert, CalendarCheck, Clock, Award
@@ -438,32 +439,11 @@ export default function Dashboard() {
          <div className="h-24">
            <StatCard icon={CheckSquare} label="Checklists Due Soon" value={myChecklistsDueSoon.length} color="bg-emerald-600" to={createPageUrl('Checklists')} />
          </div>
-       </div>
+         </div>
 
-       {/* Recent Bonusly Awards */}
-       {recentAwards.length > 0 && (
-         <Card className="border-0 shadow-sm hover:shadow-md transition-all">
-           <CardContent className="p-5">
-             <div className="flex items-center gap-3">
-               <div className="w-11 h-11 rounded-xl bg-amber-600 flex items-center justify-center flex-shrink-0">
-                 <Award className="w-5 h-5 text-white" />
-               </div>
-               <div className="flex-1">
-                 <p className="text-sm text-slate-500">Recent Awards</p>
-                 <div className="space-y-1">
-                   {recentAwards.slice(0, 1).map(award => (
-                     <p key={award.id} className="text-sm font-medium text-slate-800 truncate">
-                       {award.giver_name} → {award.receiver_name}
-                     </p>
-                   ))}
-                 </div>
-               </div>
-             </div>
-           </CardContent>
-         </Card>
-       )}
+         <BonuslyRecognitions />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Active Maintenance Requests */}
         <Card className="border-0 shadow-sm">
           <CardContent className="p-6">
@@ -524,35 +504,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
-
-      {/* All Recent Awards Detail */}
-      {recentAwards.length > 0 && (
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-6">
-            <h2 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
-              <Award className="w-5 h-5 text-amber-600" />
-              All Recent Awards
-            </h2>
-            <div className="space-y-3">
-              {recentAwards.map(award => (
-                <div key={award.id} className="flex items-start gap-3 p-3 rounded-lg bg-amber-50 border border-amber-100">
-                  <Award className="w-4 h-4 text-amber-600 mt-1 flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-900">
-                      {award.giver_name} gave {award.receiver_name} a bonus
-                    </p>
-                    <p className="text-xs text-slate-600 mt-1">{award.reason}</p>
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="text-xs text-slate-500">{new Date(award.created_at).toLocaleDateString()}</span>
-                      <span className="text-sm font-bold text-amber-600">+{award.amount} pts</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Quick Actions */}
        <Card className="border-0 shadow-sm">
