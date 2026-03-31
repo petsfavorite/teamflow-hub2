@@ -28,6 +28,7 @@ Deno.serve(async (req) => {
     }
 
     const data = await response.json();
+    console.log('Bonusly API response:', JSON.stringify(data, null, 2));
     const bonuses = data.bonuses || [];
 
     // Filter to only include bonuses from last 30 days
