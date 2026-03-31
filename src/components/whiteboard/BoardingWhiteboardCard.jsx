@@ -134,6 +134,18 @@ export default function BoardingWhiteboardCard({ pet, visit, onViewVisit }) {
                         {/* Middle: Timeline Tasks */}
                          <div className="flex-1 p-4">
                              <div className="space-y-3">
+                                 {/* Not Done/Observed Section */}
+                                 {(() => {
+                                     const uncompleted = (visit.scheduled_tasks || []).filter(t => !t.completed && t.date === today);
+                                     if (uncompleted.length === 0) return null;
+                                     return (
+                                         <div className="bg-stone-100 rounded-lg p-2">
+                                             <p className="text-xs font-semibold text-stone-700 mb-1">Not Done/Observed:</p>
+                                             <p className="text-xs text-stone-600">{uncompleted.map(t => t.type === 'Medication' ? t.medication_name : t.type).join(', ')}</p>
+                                         </div>
+                                     );
+                                 })()}
+
                                  <div className="flex items-center gap-3 flex-wrap">
                                      {sortedTasks.map((task, idx) => {
                                          const taskTime = moment(task.time, 'h:mm A');
@@ -179,18 +191,6 @@ export default function BoardingWhiteboardCard({ pet, visit, onViewVisit }) {
                                          </div>
                                      )}
                                  </div>
-
-                                 {/* Not Done/Observed Section */}
-                                 {(() => {
-                                     const uncompleted = (visit.scheduled_tasks || []).filter(t => !t.completed && t.date === today);
-                                     if (uncompleted.length === 0) return null;
-                                     return (
-                                         <div className="bg-stone-100 rounded-lg p-2">
-                                             <p className="text-xs font-semibold text-stone-700 mb-1">Not Done/Observed:</p>
-                                             <p className="text-xs text-stone-600">{uncompleted.map(t => t.type === 'Medication' ? t.medication_name : t.type).join(', ')}</p>
-                                         </div>
-                                     );
-                                 })()}
                              </div>
                          </div>
 
