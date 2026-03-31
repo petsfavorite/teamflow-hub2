@@ -62,22 +62,10 @@ Deno.serve(async (req) => {
             }
         }
 
-        // Delete all reports after successful sync
-        if (uploadedCount > 0) {
-            for (const report of reports) {
-                try {
-                    await base44.asServiceRole.entities.Report.delete(report.id);
-                } catch (err) {
-                    errors.push(`Failed to delete report record for ${report.pet_name}`);
-                }
-            }
-        }
-
         return Response.json({
             success: true,
             uploadedCount,
             totalReports: reports.length,
-            deletedReports: uploadedCount,
             errors: errors.length > 0 ? errors : null
         });
     } catch (error) {
