@@ -185,7 +185,7 @@ export default function Layout({ children }) {
             </nav>
 
             {/* Main Content */}
-            <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'sm:ml-64 md:ml-64' : 'sm:ml-20 md:ml-20'} ${!isFloofPage ? 'p-4 md:p-6' : ''} pt-16 sm:pt-0 pb-20 sm:pb-8`}>
+            <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'sm:ml-64 md:ml-64' : 'sm:ml-20 md:ml-20'} ${!isFloofPage ? 'p-4 md:p-6' : ''} pt-16 sm:pt-0 pb-8`}>
                 {children}
             </div>
 
@@ -311,28 +311,7 @@ export default function Layout({ children }) {
                 </button>
             )}
 
-            {/* Mobile Bottom Nav */}
-            <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 px-2 py-2 z-50" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-                <div className="flex justify-around items-center overflow-x-auto">
-                    {navItems.slice(0, 5).map((item) => (
-                        <Link
-                            key={item.name}
-                            to={createPageUrl(item.name)}
-                            className={`flex flex-col items-center gap-1 px-2 py-2 rounded-xl transition-colors flex-shrink-0 ${
-                                isActive(item.name)
-                                    ? 'text-[#82bb32] bg-[#82bb32]/10'
-                                    : 'text-stone-500 hover:text-stone-700'
-                            }`}
-                        >
-                            <item.icon className="w-5 h-5" />
-                            <span className="text-xs font-medium">{item.label}</span>
-                        </Link>
-                    ))}
-                </div>
-            </nav>
 
-            {/* Add padding at bottom for mobile nav */}
-            <div className="md:hidden h-20" />
 
             {/* Privacy Banner */}
             <div className="fixed bottom-0 left-0 right-0 z-[100] bg-stone-800 text-stone-200 text-center text-xs py-1.5 px-4" style={{ paddingBottom: 'max(0.375rem, env(safe-area-inset-bottom))' }}>
