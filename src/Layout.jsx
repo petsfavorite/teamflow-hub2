@@ -185,7 +185,7 @@ export default function Layout({ children }) {
             </nav>
 
             {/* Main Content */}
-            <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'sm:ml-64 md:ml-64' : 'sm:ml-20 md:ml-20'} ${!isFloofPage ? 'p-4 md:p-6' : ''} pt-16 sm:pt-0 pb-8`}>
+            <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'sm:ml-64 md:ml-64' : 'sm:ml-20 md:ml-20'} ${!isFloofPage ? 'p-4 md:p-6' : ''} pt-16 sm:pt-0 pb-32 sm:pb-8`}>
                 {children}
             </div>
 
