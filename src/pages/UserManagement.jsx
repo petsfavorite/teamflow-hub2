@@ -238,44 +238,22 @@ export default function UserManagement() {
                {users.map(u => (
             <Card key={u.id} className="border-0 shadow-sm">
               <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                     <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-600">
-                       {u.initials || u.full_name?.charAt(0) || u.email?.charAt(0) || '?'}
-                     </div>
-                    <div>
-                       <div className="flex items-center gap-2">
-                         <p className="font-medium text-slate-900">{u.full_name || 'No name'}</p>
-                         {u.invited && <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded">Invited</span>}
-                       </div>
-                       <p className="text-sm text-slate-400 flex items-center gap-1"><Mail className="w-3 h-3" />{u.email}</p>
-                       {u.team_ids?.length > 0 && (
-                         <div className="flex flex-wrap gap-1 mt-2">
-                           {u.team_ids.map(teamId => {
-                             const team = teams.find(t => t.id === teamId);
-                             return team ? (
-                               <span key={teamId} className="text-xs bg-slate-100 text-slate-700 px-2 py-1 rounded">
-                                 {team.name}
-                               </span>
-                             ) : null;
-                           })}
-                         </div>
-                       )}
-                     </div>
+                {/* Top row: avatar + name/email + action buttons */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-600 flex-shrink-0">
+                      {u.initials || u.full_name?.charAt(0) || u.email?.charAt(0) || '?'}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-medium text-slate-900 truncate">{u.full_name || 'No name'}</p>
+                        {u.invited && <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded flex-shrink-0">Invited</span>}
+                      </div>
+                      <p className="text-xs text-slate-400 truncate">{u.email}</p>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <RoleBadge role={u.role || 'user'} />
-                    {u.invited && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleResendInvite(u)}
-                        className="text-sm text-slate-500 hover:text-slate-700"
-                        title="Resend invite email"
-                      >
-                        Resend
-                      </Button>
-                    )}
+                  {/* Action buttons */}
+                  <div className="flex items-center gap-1 flex-shrink-0">
                     <Button 
                       variant="ghost" 
                       size="sm" 
@@ -324,6 +302,32 @@ export default function UserManagement() {
                       </AlertDialog>
                     )}
                   </div>
+                </div>
+                {/* Bottom row: role badge + teams + resend */}
+                <div className="mt-2 flex items-center flex-wrap gap-2 pl-13">
+                  <RoleBadge role={u.role || 'user'} />
+                  {u.invited && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleResendInvite(u)}
+                      className="text-xs text-slate-500 hover:text-slate-700 h-6 px-2"
+                    >
+                      Resend invite
+                    </Button>
+                  )}
+                  {u.team_ids?.length > 0 && teams.length > 0 && (
+                    <>
+                      {u.team_ids.map(teamId => {
+                        const team = teams.find(t => t.id === teamId);
+                        return team ? (
+                          <span key={teamId} className="text-xs bg-slate-100 text-slate-700 px-2 py-0.5 rounded">
+                            {team.name}
+                          </span>
+                        ) : null;
+                      })}
+                    </>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -388,7 +392,7 @@ export default function UserManagement() {
 
       {/* Invite Dialog */}
       <Dialog open={showInvite} onOpenChange={setShowInvite}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-h-[90vh] overflow-y-auto w-full max-w-lg mx-4 sm:mx-auto">
           <DialogHeader><DialogTitle>Invite User</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
@@ -487,8 +491,8 @@ export default function UserManagement() {
         }
         setEditingUser(null);
       }}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Edit User — {editingUser?.email}</DialogTitle></DialogHeader>
+        <DialogContent className="max-h-[90vh] overflow-y-auto w-full max-w-lg mx-4 sm:mx-auto">
+          <DialogHeader><DialogTitle className="text-sm break-all">Edit User — {editingUser?.email}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             {/* Name editing: admin can rename user/manager, super_admin can also rename admin */}
             {(isSuperAdmin || (isAdmin && !['admin', 'super_admin'].includes(editingUser?.role))) && (
