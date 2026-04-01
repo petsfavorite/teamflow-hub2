@@ -70,7 +70,7 @@ Return a JSON object with these exact keys:
 - purpose (string): 1-3 sentences on why this SOP exists
 - when_it_applies (string): conditions/situations when this SOP applies
 - required_tools (string): tools, materials or equipment needed (one per line)
-- instructions (string): full step-by-step HTML instructions using <ol><li> for numbered steps and <strong> for section headers. Be detailed.
+- instructions (string): full step-by-step HTML instructions. Use <strong> for bold section headers, followed by a <br><br> blank line before the content of each section. Use <ol><li> for numbered steps, <ul><li> for bullet lists where appropriate, and <table> with <thead>/<tbody> for tabular data. Add a <br><br> between each major section to create visual spacing. Be detailed and thorough.
 - warnings (string): safety warnings or cautions (plain text)
 - responsible_role (string): who is responsible e.g. "All Staff", "Kennel Staff", "Shift Lead"
 - summary (string): one sentence summary for search
