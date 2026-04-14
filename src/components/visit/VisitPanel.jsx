@@ -59,7 +59,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
     const isBoarding = visit.visit_type === 'boarding';
 
     const today = moment().format('YYYY-MM-DD');
-    // Tasks are locked for editing after 9 PM on their own day
+    // Task completion (marking done) is locked after 9 PM on the same day
     const isAfter9PM = moment().isAfter(moment('9:00 PM', 'h:mm A'));
 
     const isCat = pet.species === 'Cat';
@@ -583,16 +583,14 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                                     )}
                                                 </div>
                                                 <div className="flex items-center gap-2 ml-2">
-                                                    {!isLocked && (
-                                                        <Button 
-                                                            size="sm" 
-                                                            variant="ghost"
-                                                            onClick={() => handleEditTask(actualIdx)}
-                                                            className="rounded-xl h-7 text-xs text-stone-600 hover:bg-stone-100"
-                                                        >
-                                                            Edit
-                                                        </Button>
-                                                    )}
+                                                    <Button 
+                                                        size="sm" 
+                                                        variant="ghost"
+                                                        onClick={() => handleEditTask(actualIdx)}
+                                                        className="rounded-xl h-7 text-xs text-stone-600 hover:bg-stone-100"
+                                                    >
+                                                        Edit
+                                                    </Button>
                                                     {taskIsToday && !isLocked && (
                                                         <Button 
                                                             size="sm" 
