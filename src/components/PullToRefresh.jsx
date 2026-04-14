@@ -47,7 +47,7 @@ export default function PullToRefresh({ onRefresh, children }) {
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      className="overflow-y-auto overscroll-none"
+      className="overscroll-none min-h-full"
       style={{
         WebkitOverscrollBehavior: 'none',
         overscrollBehavior: 'none'
