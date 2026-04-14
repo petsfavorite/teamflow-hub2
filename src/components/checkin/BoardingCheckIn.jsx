@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, Plus, Trash2, RefreshCw } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import moment from 'moment';
 
 export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
@@ -24,10 +23,7 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
      const [visitMedications, setVisitMedications] = useState(
          pet.medications?.length > 0 ? pet.medications.map(m => ({ ...m })) : []
      );
-     const [generatedTasks, setGeneratedTasks] = useState([]);
-     const [loadingTasks, setLoadingTasks] = useState(false);
-
-    const addMedication = () => {
+     const addMedication = () => {
         setVisitMedications(prev => [...prev, { name: '', dosage: '', frequency: '', instructions: '' }]);
     };
     const updateMedication = (index, field, value) => {
@@ -41,27 +37,7 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
         setVisitMedications(prev => prev.filter((_, i) => i !== index));
     };
 
-    // Generate tasks when component mounts
-     useEffect(() => {
-         const generateTasks = async () => {
-             setLoadingTasks(true);
-             const checkInDate = moment().format('YYYY-MM-DD');
-             const checkInTime = new Date().toISOString();
-             try {
-                 const response = await base44.functions.invoke('generateBoardingTasks', {
-                     species: pet.species,
-                     checkInDate: checkInDate,
-                     checkInTime: checkInTime
-                 });
-                 setGeneratedTasks(response.data.tasks || []);
-             } catch (error) {
-                 console.error('Error generating tasks:', error);
-                 setGeneratedTasks([]);
-             }
-             setLoadingTasks(false);
-         };
-         generateTasks();
-     }, [pet.species]);
+
 
     const handleSubmit = (e) => {
     e.preventDefault();
@@ -71,26 +47,34 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
         return;
     }
 
-    // Start with auto-generated core tasks (walks, etc. already included)
-    // Spread generated tasks across all days from check-in to checkout
+    // Build core daily tasks locally (no API call needed)
     const checkInDate = moment().format('YYYY-MM-DD');
-    const checkOutMoment = moment(checkoutDate);
     let tasks = [];
-    
-    // Expand generated tasks to each day
-    // Each task starts on its designated date and repeats daily through checkout
+
+    // Dog core tasks
+    const dogCoreTasks = [
+        { type: 'First Walk', time: '7:30 AM' },
+        { type: 'After Breakfast Walk', time: '11:00 AM' },
+        { type: 'Afternoon Walk', time: '3:00 PM' },
+        { type: 'Before Bed Walk', time: '8:00 PM' },
+        { type: 'Refresh Water', time: '' },
+        { type: 'Feces Observed', time: '' },
+    ];
+    // Cat core tasks
+    const catCoreTasks = [
+        { type: 'Check Litterbox', time: '9:00 AM' },
+        { type: 'Check Litterbox', time: '7:30 PM' },
+        { type: 'Clean Beds and Kennel', time: '' },
+        { type: 'Refresh Water', time: '' },
+        { type: 'Urine Observed', time: '' },
+        { type: 'Feces Observed', time: '' },
+    ];
+    const coreTasks = pet.species === 'Cat' ? catCoreTasks : dogCoreTasks;
+
     let currentDate = moment(checkInDate);
     while (currentDate.format('YYYY-MM-DD') <= checkoutDate) {
-        generatedTasks.forEach(task => {
-            const taskStartDate = moment(task.date);
-            // Only add task if we're on or after its start date
-            if (currentDate.isSameOrAfter(taskStartDate)) {
-                tasks.push({
-                    ...task,
-                    date: currentDate.format('YYYY-MM-DD'),
-                    is_template: true
-                });
-            }
+        coreTasks.forEach(task => {
+            tasks.push({ ...task, date: currentDate.format('YYYY-MM-DD'), is_template: true, completed: false, completed_at: null });
         });
         currentDate.add(1, 'day');
     }
@@ -528,41 +512,34 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
 
                     <div className="bg-blue-50 rounded-xl p-4 text-sm text-blue-700">
                         <p className="font-medium mb-1">Automatic Daily Schedule (repeat daily):</p>
-                        {loadingTasks ? (
-                            <div className="flex items-center gap-2 text-xs">
-                                <RefreshCw className="w-3 h-3 animate-spin" />
-                                Loading tasks...
-                            </div>
-                        ) : (
-                            <ul className="space-y-1 text-xs">
-                                {pet.species === 'Dog' && (
-                                    <>
-                                        <li>• First Walk due by 7:30 AM</li>
-                                        <li>• After breakfast Walk due by 11:00 AM</li>
-                                        <li>• Afternoon Walk due by 3:00 PM</li>
-                                        <li>• Before bed Walk due by 8:00 PM</li>
-                                        <li>• Refresh Water (daily, no set time)</li>
-                                        <li>• Feces Observed (daily, no set time)</li>
-                                    </>
-                                )}
-                                {pet.species === 'Cat' && (
-                                    <>
-                                        <li>• Check Litterbox due by 9:00 AM</li>
-                                        <li>• Check Litterbox due by 7:30 PM</li>
-                                        <li>• Clean Beds and Kennel (daily, no set time)</li>
-                                        <li>• Refresh Water (daily, no set time)</li>
-                                        <li>• Urine Observed (daily, no set time)</li>
-                                        <li>• Feces Observed (daily, no set time)</li>
-                                    </>
-                                )}
-                                <li>• Feeding: {feedingFrequency === 'Just Breakfast' && 'Breakfast at 9 AM'} {feedingFrequency === 'Just Dinner' && 'Dinner at 6 PM'} {feedingFrequency === 'Two Meals' && 'Breakfast at 9 AM & Dinner at 6 PM'} {feedingFrequency === 'Three Meals' && 'Breakfast at 9 AM, Lunch at 12 PM & Dinner at 6 PM'}</li>
-                                {pet.medications?.length > 0 && <li>• Medications as scheduled</li>}
-                                {addCBDChews && <li>• CBD Chews (9 AM & 6 PM daily)</li>}
-                                {addProbiotic && <li>• Probiotic added to each meal</li>}
-                                {addFeedingEnrichment && <li>• Give Feeding Enrichment Toy (6 PM daily)</li>}
-                                {addBath && <li>• Schedule Bath</li>}
-                            </ul>
-                        )}
+                        <ul className="space-y-1 text-xs">
+                            {pet.species === 'Dog' && (
+                                <>
+                                    <li>• First Walk due by 7:30 AM</li>
+                                    <li>• After Breakfast Walk due by 11:00 AM</li>
+                                    <li>• Afternoon Walk due by 3:00 PM</li>
+                                    <li>• Before Bed Walk due by 8:00 PM</li>
+                                    <li>• Refresh Water (daily, no set time)</li>
+                                    <li>• Feces Observed (daily, no set time)</li>
+                                </>
+                            )}
+                            {pet.species === 'Cat' && (
+                                <>
+                                    <li>• Check Litterbox due by 9:00 AM</li>
+                                    <li>• Check Litterbox due by 7:30 PM</li>
+                                    <li>• Clean Beds and Kennel (daily, no set time)</li>
+                                    <li>• Refresh Water (daily, no set time)</li>
+                                    <li>• Urine Observed (daily, no set time)</li>
+                                    <li>• Feces Observed (daily, no set time)</li>
+                                </>
+                            )}
+                            <li>• Feeding: {feedingFrequency === 'Just Breakfast' && 'Breakfast at 9 AM'} {feedingFrequency === 'Just Dinner' && 'Dinner at 6 PM'} {feedingFrequency === 'Two Meals' && 'Breakfast at 9 AM & Dinner at 6 PM'} {feedingFrequency === 'Three Meals' && 'Breakfast at 9 AM, Lunch at 12 PM & Dinner at 6 PM'}</li>
+                            {pet.medications?.length > 0 && <li>• Medications as scheduled</li>}
+                            {addCBDChews && <li>• CBD Chews (9 AM & 6 PM daily)</li>}
+                            {addProbiotic && <li>• Probiotic added to each meal</li>}
+                            {addFeedingEnrichment && <li>• Give Feeding Enrichment Toy (6 PM daily)</li>}
+                            {addBath && <li>• Schedule Bath</li>}
+                        </ul>
                     </div>
                     </CardContent>
                     </Card>
