@@ -201,9 +201,11 @@ export default function UserManagement() {
         title="User Management"
         description="Manage team members, roles, and teams"
         actions={
-          <Button onClick={() => setShowInvite(true)} className="bg-indigo-600 hover:bg-indigo-700 gap-2">
-            <UserPlus className="w-4 h-4" /> Invite User
-          </Button>
+          (isAdmin || isSuperAdmin) && (
+            <Button onClick={() => setShowInvite(true)} className="bg-indigo-600 hover:bg-indigo-700 gap-2">
+              <UserPlus className="w-4 h-4" /> Invite User
+            </Button>
+          )
         }
       />
 
@@ -246,7 +248,9 @@ export default function UserManagement() {
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-medium text-slate-900 truncate">{u.full_name || 'No name'}</p>
+                        <p className="font-medium text-slate-900 truncate">
+                          {(u.first_name || u.last_name) ? `${u.first_name || ''} ${u.last_name || ''}`.trim() : (u.full_name || 'No name set')}
+                        </p>
                         {u.invited && <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded flex-shrink-0">Invited</span>}
                       </div>
                       <p className="text-xs text-slate-400 truncate">{u.email}</p>
@@ -267,8 +271,8 @@ export default function UserManagement() {
                       }}
                       className={(() => {
                         if (u.id === user?.id) return 'invisible';
-                        if (isSuperAdmin) return '';
-                        if (isAdmin && u.role !== 'super_admin') return '';
+                        if (isSuperAdmin && u.role !== 'super_admin') return '';
+                        if (isAdmin && !['admin', 'super_admin'].includes(u.role)) return '';
                         if (isManager && (u.role === 'user' || !u.role)) return '';
                         return 'invisible';
                       })()}
@@ -441,9 +445,8 @@ export default function UserManagement() {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="user">User</SelectItem>
-                  <SelectItem value="general_account">General Account</SelectItem>
-                  {(isSuperAdmin || isAdmin) && <SelectItem value="manager">Manager</SelectItem>}
-                  {(isSuperAdmin || isAdmin) && <SelectItem value="admin">Admin</SelectItem>}
+                  <SelectItem value="manager">Manager</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
                   {isSuperAdmin && <SelectItem value="super_admin">Super Admin</SelectItem>}
                 </SelectContent>
               </Select>
@@ -494,8 +497,8 @@ export default function UserManagement() {
         <DialogContent className="max-h-[90vh] overflow-y-auto w-full max-w-lg mx-4 sm:mx-auto">
           <DialogHeader><DialogTitle className="text-sm break-all">Edit User — {editingUser?.email}</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            {/* Name editing: admin can rename user/manager, super_admin can also rename admin */}
-            {(isSuperAdmin || (isAdmin && !['admin', 'super_admin'].includes(editingUser?.role))) && (
+            {/* Name editing: managers+ can edit name */}
+            {(isSuperAdmin || isAdmin || isManager) && (
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label>First Name</Label>
@@ -515,8 +518,8 @@ export default function UserManagement() {
                 </div>
               </div>
             )}
-            {/* PIN assignment — superadmin/admin can set any user's PIN; manager can set user-role PINs; general_account cannot have PIN */}
-            {editingUser?.role !== 'general_account' && (isSuperAdmin || isAdmin || (isManager && (editingUser?.role === 'user' || !editingUser?.role))) && (
+            {/* PIN assignment — managers+ can set PIN */}
+            {editingUser?.role !== 'general_account' && (isSuperAdmin || isAdmin || isManager) && (
               <div className="space-y-2">
                 <Label className="flex items-center gap-1.5">
                   <Hash className="w-3.5 h-3.5" /> 6-Digit PIN
@@ -539,23 +542,23 @@ export default function UserManagement() {
               </div>
             )}
 
-            {(isSuperAdmin || isAdmin || (isManager && editingUser?.id !== user?.id && (editingUser?.role === 'user' || !editingUser?.role))) && (
+            {/* Role: only admins+ can change roles */}
+            {(isSuperAdmin || isAdmin) && (
               <div className="space-y-2">
                 <Label>Role</Label>
                 <Select value={editRole} onValueChange={setEditRole}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="user">User</SelectItem>
-                    <SelectItem value="general_account">General Account</SelectItem>
-                    {(isSuperAdmin || isAdmin) && <SelectItem value="manager">Manager</SelectItem>}
-                    {(isSuperAdmin || isAdmin) && <SelectItem value="admin">Admin</SelectItem>}
+                    <SelectItem value="manager">Manager</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
                     {isSuperAdmin && <SelectItem value="super_admin">Super Admin</SelectItem>}
                   </SelectContent>
                 </Select>
               </div>
             )}
 
-            {editingUser?.role !== 'general_account' && (isSuperAdmin || isAdmin || isManager || editingUser?.id === user?.id) && teams.length > 0 && (
+            {(isSuperAdmin || isAdmin || isManager) && teams.length > 0 && (
               <div className="space-y-2">
                 <Label>Teams</Label>
                 <div className="space-y-2 max-h-48 overflow-y-auto">
@@ -585,41 +588,41 @@ export default function UserManagement() {
                   return;
                 }
 
-                const updates = {};
-                // Save PIN if changed (including clearing it)
-                const currentPin = editingUser?.pin || '';
-                if (editPin !== currentPin) {
-                  updates.pin = editPin || null;
-                }
+                const promises = [];
 
-                if (Object.keys(updates).length > 0) {
-                  await base44.entities.User.update(editingUser.id, updates);
-                }
-
+                // Save name if changed
                 const nameChanged = editFirstName !== (editingUser.first_name || '') || editLastName !== (editingUser.last_name || '');
                 if (nameChanged) {
-                  updateNameMutation.mutate({ id: editingUser.id, first_name: editFirstName, last_name: editLastName });
-                  return;
+                  promises.push(base44.functions.invoke('updateUserName', { userId: editingUser.id, first_name: editFirstName, last_name: editLastName, full_name: `${editFirstName} ${editLastName}`.trim() }));
                 }
-                if (editRole !== (editingUser?.role || 'user') && (isSuperAdmin || isAdmin || (isManager && editingUser?.id !== user?.id && (editingUser?.role === 'user' || !editingUser?.role)))) {
-                   updateRoleMutation.mutate({ id: editingUser.id, role: editRole });
-                   return;
-                 }
 
-                 // Get original user from the users list to compare teams
-                 const originalUser = users.find(u => u.id === editingUser.id);
-                 const teamsChanged = JSON.stringify(originalUser?.team_ids || []) !== JSON.stringify(editingUser?.team_ids || []);
-                 if (teamsChanged) {
-                   updateTeamsMutation.mutate({ id: editingUser.id, team_ids: editingUser?.team_ids || [] });
-                   return;
-                 }
-                 if (Object.keys(updates).length > 0) {
-                   toast.success('User updated');
-                   queryClient.invalidateQueries({ queryKey: ['all-users'] });
-                   setEditingUser(null);
-                 }
+                // Save role if changed (admins+ only)
+                const roleChanged = editRole !== (editingUser?.role || 'user');
+                if (roleChanged && (isSuperAdmin || isAdmin)) {
+                  promises.push(base44.entities.User.update(editingUser.id, { role: editRole }));
+                }
+
+                // Save PIN if changed
+                const currentPin = editingUser?.pin || '';
+                if (editPin !== currentPin) {
+                  promises.push(base44.entities.User.update(editingUser.id, { pin: editPin || null }));
+                }
+
+                // Save teams if changed
+                const originalUser = users.find(u => u.id === editingUser.id);
+                const teamsChanged = JSON.stringify(originalUser?.team_ids || []) !== JSON.stringify(editingUser?.team_ids || []);
+                if (teamsChanged) {
+                  promises.push(base44.entities.User.update(editingUser.id, { team_ids: editingUser?.team_ids || [] }));
+                }
+
+                if (promises.length > 0) {
+                  await Promise.all(promises);
+                  queryClient.invalidateQueries({ queryKey: ['all-users'] });
+                  toast.success('User updated');
+                }
+                setEditingUser(null);
               }}
-              disabled={updateNameMutation.isPending || updateRoleMutation.isPending || updateTeamsMutation.isPending || !!pinError}
+              disabled={!!pinError}
               className="bg-indigo-600 hover:bg-indigo-700 gap-2"
               >
               {(updateNameMutation.isPending || updateRoleMutation.isPending || updateTeamsMutation.isPending) && <Loader2 className="w-4 h-4 animate-spin" />} Save Changes
