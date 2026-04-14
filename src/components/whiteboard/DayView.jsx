@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Dog, Cat, ChevronRight, ChevronLeft, Calendar, Sparkles, Home, Star, RefreshCw } from "lucide-react";
+import { Dog, Cat, ChevronRight, ChevronLeft, Calendar, Sparkles, Home, Star, RefreshCw, Filter } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import moment from "moment";
 import 'moment-timezone';
@@ -29,6 +29,7 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
 
     const [userTimezone, setUserTimezone] = useState('UTC');
     const [nowTick, setNowTick] = useState(() => moment());
+    const [activeFilter, setActiveFilter] = useState('all');
 
     useEffect(() => {
         const fetchUserTimezone = async () => {
@@ -118,10 +119,47 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
 
 
 
-    const petsWithVisits = todayVisits.map(visit => {
+    const hasTaskDueWithinHour = (visit) => {
+        if (selectedDate !== today2) return false;
+        const inOneHour = nowTick.clone().add(1, 'hour');
+        return (visit.scheduled_tasks || []).some(task => {
+            if (task.completed) return false;
+            if (!task.time) return false;
+            if (task.date && task.date !== today2) return false;
+            const taskMoment = nowTick.clone().startOf('day').add(
+                moment(task.time, 'h:mm A').diff(moment(task.time, 'h:mm A').clone().startOf('day'))
+            );
+            return taskMoment.isAfter(nowTick) && taskMoment.isBefore(inOneHour);
+        });
+    };
+
+    const hasPlaySessionsLeft = (visit) => {
+        return (visit.scheduled_tasks || []).some(t =>
+            t.type === 'Play Session' && t.date === selectedDate && !t.completed
+        );
+    };
+
+    const allPetsWithVisits = todayVisits.map(visit => {
         const pet = pets.find(p => p.id === visit.pet_id);
         return { pet, visit };
     }).filter(item => item.pet).sort((a, b) => a.pet.name.localeCompare(b.pet.name));
+
+    const petsWithVisits = allPetsWithVisits.filter(({ visit }) => {
+        if (activeFilter === 'all') return true;
+        if (activeFilter === 'boarding') return visit.visit_type === 'boarding';
+        if (activeFilter === 'play_camp') return visit.visit_type === 'play_camp';
+        if (activeFilter === 'play_sessions') return hasPlaySessionsLeft(visit);
+        if (activeFilter === 'due_soon') return hasTaskDueWithinHour(visit);
+        return true;
+    });
+
+    const filterCounts = {
+        all: allPetsWithVisits.length,
+        boarding: allPetsWithVisits.filter(({ visit }) => visit.visit_type === 'boarding').length,
+        play_camp: allPetsWithVisits.filter(({ visit }) => visit.visit_type === 'play_camp').length,
+        play_sessions: allPetsWithVisits.filter(({ visit }) => hasPlaySessionsLeft(visit)).length,
+        due_soon: allPetsWithVisits.filter(({ visit }) => hasTaskDueWithinHour(visit)).length,
+    };
 
 
 
@@ -177,6 +215,35 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
                 </Button>
             </div>
 
+            {/* Filter Bar */}
+            <div className="flex items-center gap-2 flex-wrap">
+                <Filter className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                {[
+                    { key: 'all', label: 'All' },
+                    { key: 'boarding', label: '🏠 Boarding' },
+                    { key: 'play_camp', label: '✨ Play Camp' },
+                    { key: 'play_sessions', label: '🎾 Play Sessions Left' },
+                    { key: 'due_soon', label: '⏰ Due in 1hr' },
+                ].map(({ key, label }) => (
+                    <button
+                        key={key}
+                        onClick={() => setActiveFilter(key)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${
+                            activeFilter === key
+                                ? 'bg-[#82bb32] text-white border-[#82bb32]'
+                                : 'bg-white text-gray-600 border-gray-200 hover:border-[#82bb32]/40 hover:text-[#82bb32]'
+                        }`}
+                    >
+                        {label}
+                        <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-xs ${
+                            activeFilter === key ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'
+                        }`}>
+                            {filterCounts[key]}
+                        </span>
+                    </button>
+                ))}
+            </div>
+
             {/* Pets List */}
             {petsWithVisits.length === 0 ? (
                 <Card className="border-gray-100">
@@ -184,7 +251,7 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
                         <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                             <Dog className="w-8 h-8 text-gray-400" />
                         </div>
-                        <p className="text-gray-500">No pets checked in for this day</p>
+                        <p className="text-gray-500">{activeFilter === 'all' ? 'No pets checked in for this day' : 'No pets match this filter'}</p>
                     </CardContent>
                 </Card>
             ) : (
