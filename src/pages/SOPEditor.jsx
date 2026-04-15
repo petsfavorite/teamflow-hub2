@@ -112,7 +112,8 @@ export default function SOPEditor() {
     mutationFn: async (data) => {
       const tags = tagsInput.split(',').map(t => t.trim()).filter(Boolean);
 
-      if (isManagerOnly && id) {
+      const isPublished = existing?.status === 'published';
+      if (isManagerOnly && id && isPublished) {
         return base44.entities.SOP.update(id, {
           pending_content: data.instructions || data.content,
           pending_summary: data.summary,
@@ -465,7 +466,7 @@ export default function SOPEditor() {
         </CardContent>
       </Card>
 
-      {isManagerOnly && id && (
+      {isManagerOnly && id && existing?.status === 'published' && (
         <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800 mb-8">
           <strong>Note:</strong> Your edits will be submitted for admin approval before going live.
         </div>
@@ -479,7 +480,7 @@ export default function SOPEditor() {
           className="bg-indigo-600 hover:bg-indigo-700 gap-2"
         >
           {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-          {isManagerOnly && id ? 'Submit for Approval' : id ? 'Update SOP' : 'Create SOP'}
+          {isManagerOnly && id && existing?.status === 'published' ? 'Submit for Approval' : id ? 'Update SOP' : 'Create SOP'}
         </Button>
       </div>
     </div>
