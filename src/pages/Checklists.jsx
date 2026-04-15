@@ -533,8 +533,8 @@ export default function Checklists() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {myChecklists.filter(t => t.title.toLowerCase().includes(searchTerm.toLowerCase())).map(template => (
-                  <Card 
-                    key={template.id} 
+                  <Card
+                    key={template.id}
                     className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
                     onClick={() => startChecklist(template)}
                   >
@@ -543,9 +543,7 @@ export default function Checklists() {
                         <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
                           <CheckSquare className="w-5 h-5 text-emerald-600" />
                         </div>
-                        {template.due_date && (
-                          <StatusBadge status={template.recurrence_type} />
-                        )}
+                        {template.due_date && <StatusBadge status={template.recurrence_type} />}
                       </div>
                       <h3 className="font-semibold text-slate-900 mb-2">{template.title}</h3>
                       {template.due_date && (
@@ -565,7 +563,7 @@ export default function Checklists() {
             )}
           </div>
 
-          {/* Recurring Checklists - visible only to managers/admins/super admins */}
+          {/* Actively Recurring Checklists - managers and above */}
           {canManage && (
             <div>
               <h2 className="text-lg font-semibold text-slate-900 mb-4">Actively Recurring Checklists</h2>
@@ -580,9 +578,7 @@ export default function Checklists() {
                           <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
                             <CheckSquare className="w-5 h-5 text-purple-600" />
                           </div>
-                          {schedule.recurrence_type && (
-                            <StatusBadge status={schedule.recurrence_type} />
-                          )}
+                          {schedule.recurrence_type && <StatusBadge status={schedule.recurrence_type} />}
                         </div>
                         <h3 className="font-semibold text-slate-900 mb-1">{schedule.template_title}</h3>
                         <p className="text-xs font-medium text-purple-600 mb-1">{recurrenceLabel(schedule)}</p>
@@ -617,12 +613,12 @@ export default function Checklists() {
                   ))}
                 </div>
               )}
-              </div>
-              )}
+            </div>
+          )}
 
-              {/* Template Checklists - visible only to managers/admins/super admins */}
-              {canManage && (
-              <div>
+          {/* Template Checklists - managers and above */}
+          {canManage && (
+            <div>
               <h2 className="text-lg font-semibold text-slate-900 mb-4">Template Checklists</h2>
               {templateChecklists.filter(t => t.title.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 ? (
                 <p className="text-slate-500 text-sm">No template checklists</p>
@@ -670,46 +666,47 @@ export default function Checklists() {
                   ))}
                 </div>
               )}
-              </div>
-              )}
-              </div>
-              )}
+            </div>
+          )}
 
-              {draftTemplates.length > 0 && (
-        <div className="mt-8">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">My Draft Templates</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {draftTemplates.map(t => (
-              <Card key={t.id} className="border-0 shadow-sm">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-sm text-slate-800">{t.title}</p>
-                      <p className="text-xs text-slate-400">{t.items?.length} items · {t.status}</p>
-                    </div>
-                    <div className="flex gap-1">
-                      <Link to={createPageUrl('ChecklistEditor') + `?id=${t.id}`}>
-                        <Button variant="ghost" size="sm" className="text-slate-600 hover:text-slate-700 hover:bg-slate-50">Edit</Button>
-                      </Link>
-                      {(isSuperAdmin || isAdmin) && (
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          onClick={() => {
-                            setTemplateToDelete(t);
-                            setDeleteDialogOpen(true);
-                          }}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          {/* My Draft Templates - managers and above */}
+          {canManage && draftTemplates.length > 0 && (
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900 mb-4">My Draft Templates</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {draftTemplates.map(t => (
+                  <Card key={t.id} className="border-0 shadow-sm">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-sm text-slate-800">{t.title}</p>
+                          <p className="text-xs text-slate-400">{t.items?.length} items · {t.status}</p>
+                        </div>
+                        <div className="flex gap-1">
+                          <Link to={createPageUrl('ChecklistEditor') + `?id=${t.id}`}>
+                            <Button variant="ghost" size="sm" className="text-slate-600 hover:text-slate-700 hover:bg-slate-50">Edit</Button>
+                          </Link>
+                          {(isSuperAdmin || isAdmin) && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => {
+                                setTemplateToDelete(t);
+                                setDeleteDialogOpen(true);
+                              }}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
