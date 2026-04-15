@@ -71,9 +71,32 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
     ];
     const coreTasks = pet.species === 'Cat' ? catCoreTasks : dogCoreTasks;
 
+    const nowHour = moment().hour();
+    const nowMinute = moment().minute();
+
+    // Parse "H:MM AM/PM" → {hour, minute} in 24h
+    const parseTime = (timeStr) => {
+        if (!timeStr) return null;
+        const parts = timeStr.match(/(\d+):(\d+)\s(AM|PM)/);
+        if (!parts) return null;
+        let h = parseInt(parts[1]);
+        const m = parseInt(parts[2]);
+        if (parts[3] === 'PM' && h !== 12) h += 12;
+        if (parts[3] === 'AM' && h === 12) h = 0;
+        return { hour: h, minute: m };
+    };
+
     let currentDate = moment(checkInDate);
     while (currentDate.format('YYYY-MM-DD') <= checkoutDate) {
+        const isCheckInDay = currentDate.format('YYYY-MM-DD') === checkInDate;
         coreTasks.forEach(task => {
+            // On check-in day, skip timed tasks whose time has already passed
+            if (isCheckInDay && task.time) {
+                const t = parseTime(task.time);
+                if (t && (nowHour > t.hour || (nowHour === t.hour && nowMinute >= t.minute))) {
+                    return; // skip — time has passed
+                }
+            }
             tasks.push({ ...task, date: currentDate.format('YYYY-MM-DD'), is_template: true, completed: false, completed_at: null });
         });
         currentDate.add(1, 'day');
@@ -275,7 +298,10 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
 
     // Add "Give Feeding Enrichment Toy" once daily if selected (6 PM)
     if (addFeedingEnrichment) {
-        let currentDate = moment(checkInDate);
+        const enrichStartDate = (checkInHour < 18 || (checkInHour === 18 && checkInMinute === 0))
+            ? checkInDate
+            : moment(checkInDate).add(1, 'day').format('YYYY-MM-DD');
+        let currentDate = moment(enrichStartDate);
         while (currentDate.format('YYYY-MM-DD') <= checkoutDate) {
             tasks.push({
                 type: 'Give Feeding Enrichment Toy',
