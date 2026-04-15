@@ -132,7 +132,7 @@ export default function CheckIn() {
                     </Button>
                     <div>
                         <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Select Check-In Type</h1>
-                        <p className="text-sm text-slate-500">for {selectedPet.name}</p>
+                        <p className="text-sm text-slate-500">for {selectedPet.name}{selectedPet.owner_name?.trim().split(/\s+/).length > 1 ? ` (${selectedPet.owner_name.trim().split(/\s+/).pop()})` : ''}</p>
                     </div>
                 </div>
                 <div className="max-w-2xl">
@@ -159,7 +159,7 @@ export default function CheckIn() {
                         <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
                             {checkInType === 'boarding' ? 'Boarding' : 'Play Camp'} Details
                         </h1>
-                        <p className="text-sm text-slate-500">for {selectedPet.name}</p>
+                        <p className="text-sm text-slate-500">for {selectedPet.name}{selectedPet.owner_name?.trim().split(/\s+/).length > 1 ? ` (${selectedPet.owner_name.trim().split(/\s+/).pop()})` : ''}</p>
                     </div>
                 </div>
                 <div className="max-w-2xl">
@@ -271,7 +271,7 @@ export default function CheckIn() {
                         </div>
                     </div>
                 ) : (
-                    <div className="space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                         <AnimatePresence>
                             {filteredPets.map((pet) => (
                                 <motion.div

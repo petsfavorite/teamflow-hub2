@@ -5,6 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Dog, Cat, Phone, Pill, Clock, MapPin, Archive } from "lucide-react";
 import { motion } from "framer-motion";
 
+// Returns "PetName (LastName)" or just "PetName" if no owner last name
+const petDisplayName = (pet) => {
+    if (!pet.owner_name) return pet.name;
+    const parts = pet.owner_name.trim().split(/\s+/);
+    if (parts.length < 2) return pet.name;
+    return `${pet.name} (${parts[parts.length - 1]})`;
+};
+
 export default function PetCard({ pet, visit, onCheckIn, onCheckOut, onViewDetails, onArchive, compact = false }) {
     const hasMedications = pet.medications && pet.medications.length > 0;
     const isCat = pet.species === 'Cat';
@@ -40,7 +48,7 @@ export default function PetCard({ pet, visit, onCheckIn, onCheckOut, onViewDetai
                      )}
                  </div>
                  <div className="flex-1 min-w-0">
-                     <h3 className="font-semibold text-stone-800 truncate">{pet.name}</h3>
+                     <h3 className="font-semibold text-stone-800 truncate">{petDisplayName(pet)}</h3>
                      <p className="text-xs text-stone-500 truncate">{pet.owner_name}</p>
                      <p className="text-sm text-stone-500 truncate">{pet.breed}</p>
                  </div>
@@ -105,7 +113,7 @@ export default function PetCard({ pet, visit, onCheckIn, onCheckOut, onViewDetai
                     <div className="p-5 pt-3">
                         <div className="flex items-start justify-between mb-3">
                             <div>
-                                <h3 className="text-lg font-semibold text-stone-800">{pet.name}</h3>
+                                <h3 className="text-lg font-semibold text-stone-800">{petDisplayName(pet)}</h3>
                                 <p className="text-sm text-stone-500">{pet.species} • {pet.breed}</p>
                             </div>
                             <Badge variant="outline" className="text-xs bg-stone-50 border-stone-200">

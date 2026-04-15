@@ -7,6 +7,12 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 
+const ownerLastName = (pet) => {
+    if (!pet.owner_name) return '';
+    const parts = pet.owner_name.trim().split(/\s+/);
+    return parts.length > 1 ? ` (${parts[parts.length - 1]})` : '';
+};
+
 export default function PlayCampWhiteboardCard({ pet, visit, onViewVisit }) {
     const isCat = pet.species === 'Cat';
     
@@ -49,7 +55,7 @@ export default function PlayCampWhiteboardCard({ pet, visit, onViewVisit }) {
                             </div>
                             <div className="flex-1">
                                 <div className="flex items-center gap-2">
-                                    <h3 className="font-bold text-base text-stone-800">{pet.name}</h3>
+                                    <h3 className="font-bold text-base text-stone-800">{pet.name}{ownerLastName(pet)}</h3>
                                     {visit.emergency_alert_active && (
                                         <AlertCircle className="w-5 h-5 text-red-700 flex-shrink-0" title={`Emergency: Missing ${visit.emergency_alert_type}`} />
                                     )}
