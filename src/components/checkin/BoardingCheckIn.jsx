@@ -142,14 +142,14 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
     if (feedingFrequency === 'Just Breakfast') {
         addFeedingTasksDaily('Breakfast', 9, 0);
     } else if (feedingFrequency === 'Just Dinner') {
-        addFeedingTasksDaily('Dinner', 18, 0);
+        addFeedingTasksDaily('Dinner', 17, 30);
     } else if (feedingFrequency === 'Two Meals') {
         addFeedingTasksDaily('Breakfast', 9, 0);
-        addFeedingTasksDaily('Dinner', 18, 0);
+        addFeedingTasksDaily('Dinner', 17, 30);
     } else if (feedingFrequency === 'Three Meals') {
         addFeedingTasksDaily('Breakfast', 9, 0);
         addFeedingTasksDaily('Lunch', 12, 0);
-        addFeedingTasksDaily('Dinner', 18, 0);
+        addFeedingTasksDaily('Dinner', 17, 30);
     }
     
     // Add daily "Ate" check task
@@ -258,7 +258,7 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
         const mealTimes = {
             'Breakfast': { hour: 9, minute: 0, time: '9:00 AM' },
             'Lunch': { hour: 12, minute: 0, time: '12:00 PM' },
-            'Dinner': { hour: 18, minute: 0, time: '6:00 PM' }
+            'Dinner': { hour: 17, minute: 30, time: '5:30 PM' }
         };
 
         const addProbioticTask = (type) => {
@@ -298,14 +298,14 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
 
     // Add "Give Feeding Enrichment Toy" once daily if selected (6 PM)
     if (addFeedingEnrichment) {
-        const enrichStartDate = (checkInHour < 18 || (checkInHour === 18 && checkInMinute === 0))
+        const enrichStartDate = (checkInHour < 17 || (checkInHour === 17 && checkInMinute < 30))
             ? checkInDate
             : moment(checkInDate).add(1, 'day').format('YYYY-MM-DD');
         let currentDate = moment(enrichStartDate);
         while (currentDate.format('YYYY-MM-DD') <= checkoutDate) {
             tasks.push({
                 type: 'Give Feeding Enrichment Toy',
-                time: '6:00 PM',
+                time: '5:30 PM',
                 date: currentDate.format('YYYY-MM-DD'),
                 is_template: true,
                 completed: false,
@@ -398,9 +398,9 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="Just Breakfast">Just Breakfast (9 AM)</SelectItem>
-                                <SelectItem value="Just Dinner">Just Dinner (6 PM)</SelectItem>
-                                <SelectItem value="Two Meals">Two Meals (9 AM & 6 PM)</SelectItem>
-                                <SelectItem value="Three Meals">Three Meals (9 AM, 12 PM & 6 PM)</SelectItem>
+                                <SelectItem value="Just Dinner">Just Dinner (5:30 PM)</SelectItem>
+                                <SelectItem value="Two Meals">Two Meals (9 AM & 5:30 PM)</SelectItem>
+                                <SelectItem value="Three Meals">Three Meals (9 AM, 12 PM & 5:30 PM)</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -559,11 +559,11 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
                                     <li>• Feces Observed (daily, no set time)</li>
                                 </>
                             )}
-                            <li>• Feeding: {feedingFrequency === 'Just Breakfast' && 'Breakfast at 9 AM'} {feedingFrequency === 'Just Dinner' && 'Dinner at 6 PM'} {feedingFrequency === 'Two Meals' && 'Breakfast at 9 AM & Dinner at 6 PM'} {feedingFrequency === 'Three Meals' && 'Breakfast at 9 AM, Lunch at 12 PM & Dinner at 6 PM'}</li>
+                            <li>• Feeding: {feedingFrequency === 'Just Breakfast' && 'Breakfast at 9 AM'} {feedingFrequency === 'Just Dinner' && 'Dinner at 5:30 PM'} {feedingFrequency === 'Two Meals' && 'Breakfast at 9 AM & Dinner at 5:30 PM'} {feedingFrequency === 'Three Meals' && 'Breakfast at 9 AM, Lunch at 12 PM & Dinner at 5:30 PM'}</li>
                             {pet.medications?.length > 0 && <li>• Medications as scheduled</li>}
                             {addCBDChews && <li>• CBD Chews (9 AM & 6 PM daily)</li>}
                             {addProbiotic && <li>• Probiotic added to each meal</li>}
-                            {addFeedingEnrichment && <li>• Give Feeding Enrichment Toy (6 PM daily)</li>}
+                            {addFeedingEnrichment && <li>• Give Feeding Enrichment Toy (5:30 PM daily)</li>}
                             {addBath && <li>• Schedule Bath</li>}
                         </ul>
                     </div>
