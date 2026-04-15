@@ -12,7 +12,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import ReactQuill from 'react-quill';
-import { ArrowLeft, Save, Loader2, History, Users, User, Video, AlertTriangle, UserCheck, CheckCircle2, CalendarCheck, X, Plus, Tag } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, History, Users, User, Video, AlertTriangle, UserCheck, CheckCircle2, CalendarCheck, X, Plus, Tag, Trash2 } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import SOPAIImporter from '../components/sop/SOPAIImporter';
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
@@ -42,6 +43,16 @@ export default function SOPEditor() {
   const [tagsInput, setTagsInput] = useState('');
   const [changeSummary, setChangeSummary] = useState('');
   const [editInstructions, setEditInstructions] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+
+  const deleteMutation = useMutation({
+    mutationFn: () => base44.entities.SOP.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sops-all'] });
+      queryClient.invalidateQueries({ queryKey: ['sops'] });
+      navigate(createPageUrl('SOPs'));
+    },
+  });
 
   const { data: teams = [] } = useQuery({
     queryKey: ['teams'],
@@ -473,6 +484,15 @@ export default function SOPEditor() {
       )}
 
       <div className="flex justify-end gap-3 pb-8">
+        {id && (isAdmin || isSuperAdmin) && existing?.status !== 'published' && (
+          <Button
+            variant="outline"
+            onClick={() => setDeleteConfirm(true)}
+            className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 gap-2 mr-auto"
+          >
+            <Trash2 className="w-4 h-4" /> Delete SOP
+          </Button>
+        )}
         <Link to={createPageUrl('SOPs')}><Button variant="outline">Cancel</Button></Link>
         <Button
           onClick={() => saveMutation.mutate(form)}
@@ -483,6 +503,27 @@ export default function SOPEditor() {
           {isManagerOnly && id && existing?.status === 'published' ? 'Submit for Approval' : id ? 'Update SOP' : 'Create SOP'}
         </Button>
       </div>
+
+      <AlertDialog open={deleteConfirm} onOpenChange={setDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete SOP?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{existing?.title}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex justify-end gap-3">
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteMutation.mutate()}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deleteMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Delete
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
