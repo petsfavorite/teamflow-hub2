@@ -56,6 +56,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
     const [editingTaskIdx, setEditingTaskIdx] = useState(null);
 
     const [recurrenceType, setRecurrenceType] = useState('none');
+    const [customTaskType, setCustomTaskType] = useState('');
     const isBoarding = visit.visit_type === 'boarding';
 
     const today = moment().format('YYYY-MM-DD');
@@ -321,7 +322,8 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
     };
     
     const handleAddTask = () => {
-         if (!newTaskType) return;
+         const effectiveTaskType = newTaskType === 'Other' ? customTaskType.trim() : newTaskType;
+         if (!effectiveTaskType) return;
 
          // Expand recurring tasks into individual dated instances
          const stayStart = moment(newTaskDate);
@@ -353,7 +355,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
          }
 
          const newInstances = dates.map(date => ({
-             type: newTaskType,
+             type: effectiveTaskType,
              time: newTaskTime,
              date,
              is_template: false,
@@ -374,6 +376,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
          }
 
          setNewTaskType('');
+         setCustomTaskType('');
          setNewTaskTime('');
          setNewTaskNotes('');
          setNewTaskDate(viewDate);
@@ -395,12 +398,13 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
      const handleCancelEdit = () => {
          setEditingTaskIdx(null);
          setNewTaskType('');
+         setCustomTaskType('');
          setNewTaskTime('');
          setNewTaskNotes('');
          setNewTaskDate(viewDate);
          setRecurrenceType('none');
          setAddingTask(false);
-     };
+         };
 
     return (
         <>
@@ -666,7 +670,8 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                     {newTaskType === 'Other' && (
                                        <Input
                                              placeholder="Enter custom task type"
-                                             onChange={(e) => setNewTaskType(e.target.value)}
+                                             value={customTaskType}
+                                             onChange={(e) => setCustomTaskType(e.target.value)}
                                              className="rounded-xl"
                                          />
                                       )}
@@ -711,7 +716,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                           <Button 
                                               size="sm" 
                                               onClick={handleAddTask}
-                                              disabled={!newTaskType}
+                                              disabled={!newTaskType || (newTaskType === 'Other' && !customTaskType.trim())}
                                               className="flex-1 rounded-xl bg-[#82bb32] hover:bg-[#82bb32]/90"
                                           >
                                               {editingTaskIdx !== null ? 'Save Changes' : 'Add'}
