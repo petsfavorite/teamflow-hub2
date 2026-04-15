@@ -30,6 +30,7 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
     const [userTimezone, setUserTimezone] = useState('UTC');
     const [nowTick, setNowTick] = useState(() => moment());
     const [activeFilter, setActiveFilter] = useState('all');
+    const [searchQuery, setSearchQuery] = useState('');
 
     useEffect(() => {
         const fetchUserTimezone = async () => {
@@ -144,14 +145,27 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
         return { pet, visit };
     }).filter(item => item.pet).sort((a, b) => a.pet.name.localeCompare(b.pet.name));
 
-    const petsWithVisits = allPetsWithVisits.filter(({ visit }) => {
-        if (activeFilter === 'all') return true;
-        if (activeFilter === 'boarding') return visit.visit_type === 'boarding';
-        if (activeFilter === 'play_camp') return visit.visit_type === 'play_camp';
-        if (activeFilter === 'play_sessions') return hasPlaySessionsLeft(visit);
-        if (activeFilter === 'due_soon') return hasTaskDueWithinHour(visit);
+    const searchLower = searchQuery.toLowerCase().trim();
+    const petsWithVisits = allPetsWithVisits.filter(({ pet, visit }) => {
+        if (activeFilter !== 'all') {
+            if (activeFilter === 'boarding' && visit.visit_type !== 'boarding') return false;
+            if (activeFilter === 'play_camp' && visit.visit_type !== 'play_camp') return false;
+            if (activeFilter === 'play_sessions' && !hasPlaySessionsLeft(visit)) return false;
+            if (activeFilter === 'due_soon' && !hasTaskDueWithinHour(visit)) return false;
+        }
+        if (searchLower) {
+            const petName = (pet.name || '').toLowerCase();
+            const ownerName = (pet.owner_name || '').toLowerCase();
+            return petName.includes(searchLower) || ownerName.includes(searchLower);
+        }
         return true;
     });
+
+    // Helper: get owner last name
+    const getOwnerLastName = (pet) => {
+        const parts = (pet.owner_name || '').trim().split(' ');
+        return parts.length > 1 ? parts[parts.length - 1] : '';
+    };
 
     const filterCounts = {
         all: allPetsWithVisits.length,
@@ -215,6 +229,26 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
                 </Button>
             </div>
 
+            {/* Search Bar */}
+            <div className="relative">
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+                </svg>
+                <Input
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    placeholder="Search by pet name or owner name..."
+                    className="pl-9 bg-white border-gray-200 rounded-xl"
+                />
+                {searchQuery && (
+                    <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                )}
+            </div>
+
             {/* Filter Bar */}
             <div className="flex items-center gap-2 flex-wrap">
                 <Filter className="w-4 h-4 text-gray-400 flex-shrink-0" />
@@ -251,7 +285,7 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
                         <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                             <Dog className="w-8 h-8 text-gray-400" />
                         </div>
-                        <p className="text-gray-500">{activeFilter === 'all' ? 'No pets checked in for this day' : 'No pets match this filter'}</p>
+                        <p className="text-gray-500">{searchLower ? `No pets match "${searchQuery}"` : activeFilter === 'all' ? 'No pets checked in for this day' : 'No pets match this filter'}</p>
                     </CardContent>
                 </Card>
             ) : (
@@ -299,8 +333,11 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
                                                         </div>
                                                     )}
                                                     <div className="flex-1">
-                                                        <div className="flex items-center gap-1">
+                                                        <div className="flex items-center gap-1 flex-wrap">
                                                             <h3 className="font-bold text-lg text-gray-800">{pet.name}</h3>
+                                                            {getOwnerLastName(pet) && (
+                                                                <span className="text-sm text-gray-500 font-medium">{getOwnerLastName(pet)}</span>
+                                                            )}
                                                             {(pet.social_media === 'Not Approved for Social Media' || 
                                                               pet.social_media === 'No Record of Social Media Consent') && (
                                                                 <Star className="w-4 h-4 fill-black text-black" />
@@ -413,8 +450,11 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
                                                         </div>
                                                     )}
                                                     <div className="flex-1">
-                                                        <div className="flex items-center gap-1">
+                                                        <div className="flex items-center gap-1 flex-wrap">
                                                             <h3 className="font-bold text-base text-gray-800">{pet.name}</h3>
+                                                            {getOwnerLastName(pet) && (
+                                                                <span className="text-sm text-gray-500 font-medium">{getOwnerLastName(pet)}</span>
+                                                            )}
                                                             {(pet.social_media === 'Not Approved for Social Media' || 
                                                               pet.social_media === 'No Record of Social Media Consent') && (
                                                                 <Star className="w-4 h-4 fill-black text-black" />
