@@ -152,8 +152,12 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
         addFeedingTasksDaily('Dinner', 17, 30);
     }
     
-    // Add daily "Ate" check task
-    tasks.push({ type: 'Ate', time: '', date: checkInDate, is_template: true, completed: false, completed_at: null, recurrence_type: 'days', recurrence_interval: 1 });
+    // Add daily "Ate" task for every day of the stay
+    let ateDate = moment(checkInDate);
+    while (ateDate.format('YYYY-MM-DD') <= checkoutDate) {
+        tasks.push({ type: 'Ate', time: '', date: ateDate.format('YYYY-MM-DD'), is_template: true, completed: false, completed_at: null });
+        ateDate.add(1, 'day');
+    }
         
     // Medications (automatically added for boarding based on frequency)
     const checkInMoment = moment();
@@ -547,9 +551,10 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
                                     <li>• Before Bed Walk due by 8:00 PM</li>
                                     <li>• Refresh Water (daily, no set time)</li>
                                     <li>• Feces Observed (daily, no set time)</li>
-                                </>
-                            )}
-                            {pet.species === 'Cat' && (
+                                    <li>• Ate (daily, no set time)</li>
+                                    </>
+                                    )}
+                                    {pet.species === 'Cat' && (
                                 <>
                                     <li>• Check Litterbox due by 9:00 AM</li>
                                     <li>• Check Litterbox due by 7:30 PM</li>
@@ -557,8 +562,9 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
                                     <li>• Refresh Water (daily, no set time)</li>
                                     <li>• Urine Observed (daily, no set time)</li>
                                     <li>• Feces Observed (daily, no set time)</li>
-                                </>
-                            )}
+                                    <li>• Ate (daily, no set time)</li>
+                                    </>
+                                    )}
                             <li>• Feeding: {feedingFrequency === 'Just Breakfast' && 'Breakfast at 9 AM'} {feedingFrequency === 'Just Dinner' && 'Dinner at 5:30 PM'} {feedingFrequency === 'Two Meals' && 'Breakfast at 9 AM & Dinner at 5:30 PM'} {feedingFrequency === 'Three Meals' && 'Breakfast at 9 AM, Lunch at 12 PM & Dinner at 5:30 PM'}</li>
                             {pet.medications?.length > 0 && <li>• Medications as scheduled</li>}
                             {addCBDChews && <li>• CBD Chews (9 AM & 6 PM daily)</li>}
