@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
 
       const missingItems = [];
       if (!hasObservedFeces) missingItems.push('feces');
-      if (!hasObservedUrine) missingItems.push('urine');
+      if (!hasObservedUrine && species === 'Cat') missingItems.push('urine');
       if (!hasObservedAte) missingItems.push('ate');
 
       if (missingItems.length > 0) {
