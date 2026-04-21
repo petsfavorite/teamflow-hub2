@@ -47,9 +47,9 @@ export default function UserManagement() {
   });
 
   const { data: pendingInvites = [] } = useQuery({
-    queryKey: ['pending-invites'],
+    queryKey: ['pending-invites', isSuperAdmin, isAdmin],
     queryFn: () => base44.entities.PendingInvite.list('-created_date', 100),
-    enabled: isAdmin || isSuperAdmin,
+    enabled: !!(isAdmin || isSuperAdmin),
   });
 
   const [showTeamDialog, setShowTeamDialog] = useState(false);
