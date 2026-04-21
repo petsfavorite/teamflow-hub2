@@ -572,7 +572,8 @@ export default function UserManagement() {
           // Auto-save name if changed when closing
           const nameChanged = editFirstName !== (editingUser.first_name || '') || editLastName !== (editingUser.last_name || '');
           if (nameChanged && (editFirstName.trim() || editLastName.trim())) {
-            updateNameMutation.mutate({ id: editingUser.id, first_name: editFirstName, last_name: editLastName });
+            await base44.functions.invoke('updateUserProfile', { userId: editingUser.id, first_name: editFirstName, last_name: editLastName });
+            queryClient.invalidateQueries({ queryKey: ['all-users'] });
             return;
           }
         }
@@ -672,35 +673,37 @@ export default function UserManagement() {
                   return;
                 }
 
-                const promises = [];
+                const payload = { userId: editingUser.id };
+                let hasChanges = false;
 
-                // Save name if changed
                 const nameChanged = editFirstName !== (editingUser.first_name || '') || editLastName !== (editingUser.last_name || '');
                 if (nameChanged) {
-                  promises.push(base44.functions.invoke('updateUserName', { userId: editingUser.id, first_name: editFirstName, last_name: editLastName, full_name: `${editFirstName} ${editLastName}`.trim() }));
+                  payload.first_name = editFirstName;
+                  payload.last_name = editLastName;
+                  hasChanges = true;
                 }
 
-                // Save role if changed (admins+ only)
                 const roleChanged = editRole !== (editingUser?.role || 'user');
                 if (roleChanged && (isSuperAdmin || isAdmin)) {
-                  promises.push(base44.entities.User.update(editingUser.id, { role: editRole }));
+                  payload.role = editRole;
+                  hasChanges = true;
                 }
 
-                // Save PIN if changed
                 const currentPin = editingUser?.pin || '';
                 if (editPin !== currentPin) {
-                  promises.push(base44.entities.User.update(editingUser.id, { pin: editPin || null }));
+                  payload.pin = editPin || '';
+                  hasChanges = true;
                 }
 
-                // Save teams if changed
                 const originalUser = users.find(u => u.id === editingUser.id);
                 const teamsChanged = JSON.stringify(originalUser?.team_ids || []) !== JSON.stringify(editingUser?.team_ids || []);
                 if (teamsChanged) {
-                  promises.push(base44.entities.User.update(editingUser.id, { team_ids: editingUser?.team_ids || [] }));
+                  payload.team_ids = editingUser?.team_ids || [];
+                  hasChanges = true;
                 }
 
-                if (promises.length > 0) {
-                  await Promise.all(promises);
+                if (hasChanges) {
+                  await base44.functions.invoke('updateUserProfile', payload);
                   queryClient.invalidateQueries({ queryKey: ['all-users'] });
                   toast.success('User updated');
                 }
