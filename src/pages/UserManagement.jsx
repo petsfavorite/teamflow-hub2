@@ -136,9 +136,14 @@ export default function UserManagement() {
     setInviting(true);
     try {
       const pin = invitePin || generatePin();
-      
-      // Invite user with base44
-      await base44.users.inviteUser(inviteEmail, inviteRole === 'admin' ? 'admin' : 'user');
+      const platformRole = ['admin', 'super_admin'].includes(inviteRole) ? 'admin' : 'user';
+
+      // Try platform invite — don't block if it fails (user may already exist)
+      try {
+        await base44.users.inviteUser(inviteEmail, platformRole);
+      } catch (platformErr) {
+        console.warn('Platform invite warning (may already exist):', platformErr?.message);
+      }
       
       // Send custom email with PIN
       await base44.functions.invoke('sendInviteEmail', {
@@ -172,7 +177,8 @@ export default function UserManagement() {
       queryClient.invalidateQueries({ queryKey: ['all-users'] });
       queryClient.invalidateQueries({ queryKey: ['pending-invites'] });
     } catch (e) {
-      toast.error('Failed to send invitation');
+      console.error('Invite error:', e);
+      toast.error(`Failed to send invitation: ${e?.message || 'Unknown error'}`);
     } finally {
       setInviting(false);
     }
