@@ -31,6 +31,7 @@ Welcome aboard!`;
       to: email,
       subject,
       body,
+      from_name: "Pet's Favorite Hub",
     });
 
     return Response.json({ success: true });
