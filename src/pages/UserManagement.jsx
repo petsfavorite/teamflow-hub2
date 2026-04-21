@@ -145,13 +145,17 @@ export default function UserManagement() {
         console.warn('Platform invite warning (may already exist):', platformErr?.message);
       }
       
-      // Send custom email with PIN
-      await base44.functions.invoke('sendInviteEmail', {
-        email: inviteEmail,
-        firstName: inviteFirstName,
-        lastName: inviteLastName,
-        pin,
-      });
+      // Send custom email with PIN — may fail if user not yet in system, that's OK
+      try {
+        await base44.functions.invoke('sendInviteEmail', {
+          email: inviteEmail,
+          firstName: inviteFirstName,
+          lastName: inviteLastName,
+          pin,
+        });
+      } catch (emailErr) {
+        console.warn('Email send warning (user may not be in system yet):', emailErr?.message);
+      }
 
       // Create a PendingInvite record so it shows immediately in the list
       await base44.entities.PendingInvite.create({
