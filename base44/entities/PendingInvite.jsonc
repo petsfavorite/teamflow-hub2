@@ -1,0 +1,49 @@
+{
+  "name": "PendingInvite",
+  "type": "object",
+  "properties": {
+    "email": {
+      "type": "string",
+      "description": "Email address of the invited user"
+    },
+    "first_name": {
+      "type": "string"
+    },
+    "last_name": {
+      "type": "string"
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "user",
+        "manager",
+        "admin",
+        "super_admin"
+      ],
+      "default": "user"
+    },
+    "pin": {
+      "type": "string"
+    },
+    "team_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "invited_by": {
+      "type": "string",
+      "description": "Email of the admin who sent the invite"
+    },
+    "invited_by_name": {
+      "type": "string"
+    },
+    "last_sent_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "email"
+  ]
+}

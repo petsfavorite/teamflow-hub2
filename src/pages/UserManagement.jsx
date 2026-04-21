@@ -11,7 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Users, UserPlus, Pencil, Loader2, Mail, Trash2, Hash, Plus } from 'lucide-react';
+import { Users, UserPlus, Pencil, Loader2, Mail, Trash2, Hash, Plus, Clock, RotateCcw } from 'lucide-react';
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
@@ -44,6 +44,12 @@ export default function UserManagement() {
   const { data: teams = [] } = useQuery({
     queryKey: ['teams-mgmt'],
     queryFn: () => base44.entities.Team.list('name', 100),
+  });
+
+  const { data: pendingInvites = [] } = useQuery({
+    queryKey: ['pending-invites'],
+    queryFn: () => base44.entities.PendingInvite.list('-created_date', 100),
+    enabled: isAdmin || isSuperAdmin,
   });
 
   const [showTeamDialog, setShowTeamDialog] = useState(false);
@@ -142,23 +148,18 @@ export default function UserManagement() {
         pin,
       });
 
-      // Update user with name, PIN, teams, and invited status after creation
-       setTimeout(async () => {
-         const allUsers = await base44.entities.User.list('email', 500);
-         const newUser = allUsers.find(u => u.email === inviteEmail);
-         if (newUser) {
-           await base44.entities.User.update(newUser.id, {
-             first_name: inviteFirstName,
-             last_name: inviteLastName,
-             full_name: `${inviteFirstName} ${inviteLastName}`.trim(),
-             pin,
-             team_ids: inviteTeamIds,
-             invited: true,
-           });
-           // Compute initials with version number
-           await base44.functions.invoke('computeUserInitials', { user_id: newUser.id });
-         }
-       }, 1000);
+      // Create a PendingInvite record so it shows immediately in the list
+      await base44.entities.PendingInvite.create({
+        email: inviteEmail,
+        first_name: inviteFirstName,
+        last_name: inviteLastName,
+        role: inviteRole,
+        pin,
+        team_ids: inviteTeamIds,
+        invited_by: user?.email,
+        invited_by_name: user?.full_name,
+        last_sent_at: new Date().toISOString(),
+      });
 
       toast.success(`Invitation sent to ${inviteEmail}`);
       setShowInvite(false);
@@ -169,6 +170,7 @@ export default function UserManagement() {
       setInviteTeamIds([]);
       setInviteRole('user');
       queryClient.invalidateQueries({ queryKey: ['all-users'] });
+      queryClient.invalidateQueries({ queryKey: ['pending-invites'] });
     } catch (e) {
       toast.error('Failed to send invitation');
     } finally {
@@ -176,18 +178,30 @@ export default function UserManagement() {
     }
   };
 
-  const handleResendInvite = async (u) => {
+  const handleResendInvite = async (invite) => {
     try {
-      const pin = u.pin || generatePin();
+      const pin = invite.pin || generatePin();
       await base44.functions.invoke('sendInviteEmail', {
-        email: u.email,
-        firstName: u.first_name,
-        lastName: u.last_name,
+        email: invite.email,
+        firstName: invite.first_name,
+        lastName: invite.last_name,
         pin,
       });
-      toast.success(`Invitation resent to ${u.email}`);
+      await base44.entities.PendingInvite.update(invite.id, { last_sent_at: new Date().toISOString(), pin });
+      toast.success(`Invitation resent to ${invite.email}`);
+      queryClient.invalidateQueries({ queryKey: ['pending-invites'] });
     } catch (e) {
       toast.error('Failed to resend invitation');
+    }
+  };
+
+  const handleDeleteInvite = async (invite) => {
+    try {
+      await base44.entities.PendingInvite.delete(invite.id);
+      toast.success(`Invite for ${invite.email} deleted`);
+      queryClient.invalidateQueries({ queryKey: ['pending-invites'] });
+    } catch (e) {
+      toast.error('Failed to delete invite');
     }
   };
 
@@ -231,6 +245,77 @@ export default function UserManagement() {
 
       {activeTab === 'users' && (
         <>
+          {/* Pending Invites */}
+          {(isAdmin || isSuperAdmin) && pendingInvites.length > 0 && (
+            <div className="space-y-3 mb-4">
+              <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Pending Invites</h3>
+              {pendingInvites.map(invite => (
+                <Card key={invite.id} className="border-0 shadow-sm border-l-4 border-l-amber-400">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                          <Clock className="w-5 h-5 text-amber-500" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="font-medium text-slate-900 truncate">
+                              {(invite.first_name || invite.last_name) ? `${invite.first_name || ''} ${invite.last_name || ''}`.trim() : invite.email}
+                            </p>
+                            <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded flex-shrink-0">Pending User</span>
+                          </div>
+                          <p className="text-xs text-slate-400 truncate">{invite.email}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleResendInvite(invite)}
+                          className="text-xs text-slate-500 hover:text-indigo-600 gap-1"
+                          title="Resend Invite"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">Resend</span>
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="sm" title="Delete Invite">
+                              <Trash2 className="w-4 h-4 text-red-400" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Invite</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete the invite for {invite.email}? They will no longer be able to accept it.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDeleteInvite(invite)} className="bg-red-600 hover:bg-red-700">
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </div>
+                    <div className="mt-2 pl-13">
+                      <span className="text-xs text-slate-400 capitalize">{invite.role}</span>
+                      {invite.last_sent_at && (
+                        <span className="text-xs text-slate-400 ml-2">· Sent {new Date(invite.last_sent_at).toLocaleDateString()}</span>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {(isAdmin || isSuperAdmin) && pendingInvites.length > 0 && (
+            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Active Users</h3>
+          )}
           {isLoading ? (
             <div className="space-y-3">{[1, 2, 3].map(i => <Card key={i} className="border-0 shadow-sm animate-pulse"><CardContent className="p-4"><div className="h-14 bg-slate-100 rounded" /></CardContent></Card>)}</div>
           ) : users.length === 0 ? (
@@ -251,7 +336,6 @@ export default function UserManagement() {
                         <p className="font-medium text-slate-900 truncate">
                           {(u.first_name || u.last_name) ? `${u.first_name || ''} ${u.last_name || ''}`.trim() : (u.full_name || 'No name set')}
                         </p>
-                        {u.invited && <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded flex-shrink-0">Invited</span>}
                       </div>
                       <p className="text-xs text-slate-400 truncate">{u.email}</p>
                     </div>
@@ -307,19 +391,9 @@ export default function UserManagement() {
                     )}
                   </div>
                 </div>
-                {/* Bottom row: role badge + teams + resend */}
+                {/* Bottom row: role badge + teams */}
                 <div className="mt-2 flex items-center flex-wrap gap-2 pl-13">
                   <RoleBadge role={u.role || 'user'} />
-                  {u.invited && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleResendInvite(u)}
-                      className="text-xs text-slate-500 hover:text-slate-700 h-6 px-2"
-                    >
-                      Resend invite
-                    </Button>
-                  )}
                   {u.team_ids?.length > 0 && teams.length > 0 && (
                     <>
                       {u.team_ids.map(teamId => {
