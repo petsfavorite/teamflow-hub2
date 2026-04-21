@@ -36,6 +36,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
 
             await onUpdateVisit({
                 ...visit,
+                emergency_alert_active: false,
                 emergency_alert_dismissed_until: dismissUntil.toISOString()
             });
         } finally {
