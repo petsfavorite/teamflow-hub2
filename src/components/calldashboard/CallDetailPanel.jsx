@@ -74,7 +74,10 @@ export default function CallDetailPanel({ call, open, onClose, onUpdate, isAdmin
                   <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value={null}>— None —</SelectItem>
-                    {users.map(u => <SelectItem key={u.id} value={u.full_name}>{u.full_name}</SelectItem>)}
+                    {users.map(u => {
+                      const displayName = [u.first_name, u.last_name].filter(Boolean).join(" ") || u.full_name;
+                      return <SelectItem key={u.id} value={u.full_name}>{displayName}</SelectItem>;
+                    })}
                   </SelectContent>
                 </Select>
               ) : (
