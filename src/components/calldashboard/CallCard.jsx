@@ -4,7 +4,7 @@ import CallerTypeBadge from "./CallerTypeBadge";
 import BookingStatus from "./BookingStatus";
 import { cn } from "@/lib/utils";
 
-export default function CallCard({ call, onClick }) {
+export default function CallCard({ call, onClick, nameMap = {} }) {
   const date = new Date(call.call_date);
   const timeStr = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
   const dateStr = date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -33,7 +33,7 @@ export default function CallCard({ call, onClick }) {
               {call.team_member && (
                 <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 rounded-lg">
                   <User className="w-3 h-3 text-slate-400" />
-                  <span className="text-xs font-medium text-slate-600">{call.team_member}</span>
+                  <span className="text-xs font-medium text-slate-600">{nameMap[call.team_member] || call.team_member}</span>
                 </div>
               )}
             </div>

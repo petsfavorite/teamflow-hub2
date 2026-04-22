@@ -32,6 +32,17 @@ export default function CallDashboard() {
 
   const staffList = useMemo(() => users.map(u => u.full_name).filter(Boolean).sort(), [users]);
 
+  // Map full_name → "First Last" display name
+  const nameMap = useMemo(() => {
+    const map = {};
+    users.forEach(u => {
+      if (u.full_name) {
+        map[u.full_name] = [u.first_name, u.last_name].filter(Boolean).join(" ") || u.full_name;
+      }
+    });
+    return map;
+  }, [users]);
+
   const { start: dateStart, end: dateEnd } = useMemo(
     () => getDateRange(datePreset, customStart, customEnd),
     [datePreset, customStart, customEnd]
@@ -104,7 +115,7 @@ export default function CallDashboard() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
           <CallerTypeChart calls={filteredCalls} />
-          <StaffLeaderboard calls={filteredCalls} users={users} />
+          <StaffLeaderboard calls={filteredCalls} users={users} nameMap={nameMap} />
         </div>
 
         <div className="space-y-3">
@@ -120,7 +131,7 @@ export default function CallDashboard() {
               <p className="text-sm text-slate-500">No calls match your filters</p>
             </div>
           ) : (
-            <div className="space-y-2">{filteredCalls.map(call => <CallCard key={call.id} call={call} onClick={setSelectedCall} />)}</div>
+            <div className="space-y-2">{filteredCalls.map(call => <CallCard key={call.id} call={call} onClick={setSelectedCall} nameMap={nameMap} />)}</div>
           )}
         </div>
       </div>

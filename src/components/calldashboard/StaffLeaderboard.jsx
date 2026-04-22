@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export default function StaffLeaderboard({ calls, users = [] }) {
+export default function StaffLeaderboard({ calls, users = [], nameMap = {} }) {
   const userNameSet = new Set(users.map(u => u.full_name).filter(Boolean));
   const staffStats = {};
 
@@ -47,7 +47,7 @@ export default function StaffLeaderboard({ calls, users = [] }) {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold", i === 0 ? "bg-blue-100 text-blue-700" : i === 1 ? "bg-slate-100 text-slate-600" : "bg-slate-50 text-slate-400")}>{i + 1}</div>
-                <span className="text-sm font-medium text-slate-800">{staff.name}</span>
+                <span className="text-sm font-medium text-slate-800">{nameMap[staff.name] || staff.name}</span>
               </div>
               <span className="text-xs text-slate-500">{staff.answered} inbound answered</span>
             </div>
