@@ -9,6 +9,8 @@ import CallerTypeBadge from "./CallerTypeBadge";
 import { base44 } from "@/api/base44Client";
 import { cn } from "@/lib/utils";
 
+const CLIENT_CARE_EMAILS = ['drcaroline@petsfavoritevet.com', 'jen@petsfavoritevet.com', 'rebecca@petsfavoritevet.com'];
+
 export default function CallDetailPanel({ call, open, onClose, onUpdate, isAdmin, users = [] }) {
   const [pendingChanges, setPendingChanges] = useState({});
   const [status, setStatus] = useState(call?.status || "pending_review");
@@ -74,10 +76,27 @@ export default function CallDetailPanel({ call, open, onClose, onUpdate, isAdmin
                   <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value={null}>— None —</SelectItem>
-                    {users.map(u => {
-                      const displayName = [u.first_name, u.last_name].filter(Boolean).join(" ") || u.full_name;
-                      return <SelectItem key={u.id} value={u.full_name}>{displayName}</SelectItem>;
-                    })}
+                    {[...users]
+                      .sort((a, b) => {
+                        const aCC = CLIENT_CARE_EMAILS.includes(a.email);
+                        const bCC = CLIENT_CARE_EMAILS.includes(b.email);
+                        if (aCC && !bCC) return -1;
+                        if (!aCC && bCC) return 1;
+                        const aName = [a.first_name, a.last_name].filter(Boolean).join(" ") || a.full_name || "";
+                        const bName = [b.first_name, b.last_name].filter(Boolean).join(" ") || b.full_name || "";
+                        return aName.localeCompare(bName);
+                      })
+                      .map((u, i, arr) => {
+                        const displayName = [u.first_name, u.last_name].filter(Boolean).join(" ") || u.full_name;
+                        const isLastCC = CLIENT_CARE_EMAILS.includes(u.email) && (i === arr.length - 1 || !CLIENT_CARE_EMAILS.includes(arr[i + 1].email));
+                        return (
+                          <>
+                            <SelectItem key={u.id} value={u.full_name}>{displayName}</SelectItem>
+                            {isLastCC && <div key="divider" className="my-1 border-t border-slate-200" />}
+                          </>
+                        );
+                      })
+                    }
                   </SelectContent>
                 </Select>
               ) : (
