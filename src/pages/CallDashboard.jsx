@@ -22,7 +22,18 @@ export default function CallDashboard() {
 
   const { data: calls = [], isLoading, refetch } = useQuery({
     queryKey: ["callRecords"],
-    queryFn: () => base44.entities.CallRecord.list("-call_date", 200),
+    queryFn: async () => {
+      const pageSize = 500;
+      let allCalls = [];
+      let skip = 0;
+      while (true) {
+        const page = await base44.entities.CallRecord.list("-call_date", pageSize, skip);
+        allCalls = allCalls.concat(page);
+        if (page.length < pageSize) break;
+        skip += pageSize;
+      }
+      return allCalls;
+    },
   });
 
   const { data: users = [] } = useQuery({
