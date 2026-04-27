@@ -34,9 +34,20 @@ Deno.serve(async (req) => {
       const species = pet[0].species;
 
       // Check care log for actual observed feces/urine in last 48 hours
+      // Care log entries store time as "h:mm A" string and date as "YYYY-MM-DD"
+      // Fall back to completed_iso on scheduled_tasks if care log timestamps are missing
       const recentCareLog = (visit.care_log || []).filter(log => {
-        const logTime = new Date(log.time);
-        return logTime > fortyEightHoursAgo;
+        // Try ISO timestamp first (some entries may have it)
+        if (log.timestamp) {
+          return new Date(log.timestamp) > fortyEightHoursAgo;
+        }
+        // Use date field (YYYY-MM-DD) if available
+        if (log.date) {
+          const logDate = new Date(log.date + 'T23:59:59');
+          return logDate > fortyEightHoursAgo;
+        }
+        // If only time string (no date), assume it's from today
+        return true;
       });
 
       // Only count logged activities (not auto-removed tasks at 11:59 PM)
@@ -50,10 +61,26 @@ Deno.serve(async (req) => {
         log.activity && log.activity.toLowerCase().includes('ate') && log.staff
       );
 
+      // Also check completed scheduled tasks (they have completed_iso timestamps)
+      const recentCompletedTasks = (visit.scheduled_tasks || []).filter(task => {
+        if (!task.completed || !task.completed_iso) return false;
+        return new Date(task.completed_iso) > fortyEightHoursAgo;
+      });
+
+      const hasCompletedFeces = recentCompletedTasks.some(t =>
+        t.type && (t.type.toLowerCase().includes('feces') || t.type.toLowerCase().includes('fecal'))
+      );
+      const hasCompletedUrine = recentCompletedTasks.some(t =>
+        t.type && t.type.toLowerCase().includes('urine')
+      );
+      const hasCompletedAte = recentCompletedTasks.some(t =>
+        t.type && (t.type.toLowerCase().includes('ate') || t.type.toLowerCase().includes('meal') || t.type.toLowerCase().includes('food'))
+      );
+
       const missingItems = [];
-      if (!hasObservedFeces) missingItems.push('feces');
-      if (!hasObservedUrine && species === 'Cat') missingItems.push('urine');
-      if (!hasObservedAte) missingItems.push('ate');
+      if (!hasObservedFeces && !hasCompletedFeces) missingItems.push('feces');
+      if (!hasObservedUrine && !hasCompletedUrine && species === 'Cat') missingItems.push('urine');
+      if (!hasObservedAte && !hasCompletedAte) missingItems.push('ate');
 
       if (missingItems.length > 0) {
         shouldTriggerAlert = true;
