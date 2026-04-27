@@ -311,7 +311,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
 
 
 
-    const pictureSentDates = visit.picture_sent_dates || (visit.picture_sent ? [visit.check_in_date] : []);
+    const pictureSentDates = visit.picture_sent_dates || [];
     const isPictureSentToday = pictureSentDates.includes(viewDate);
 
     const handleSendPicture = () => {
@@ -588,6 +588,13 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                                         {!task.is_template && <span className="text-xs ml-1">(custom)</span>}
                                                         {recurrenceLabel && <span className="text-xs text-stone-500 ml-1">{recurrenceLabel}</span>}
                                                     </p>
+                                                    {task.type === 'Medication' && (() => {
+                                                        const med = visit.visit_medications?.find(m => m.name === task.medication_name);
+                                                        const parts = [med?.dosage, med?.instructions].filter(Boolean);
+                                                        return parts.length > 0 ? (
+                                                            <p className="text-xs text-purple-700 font-medium">{parts.join(' — ')}</p>
+                                                        ) : null;
+                                                    })()}
                                                     {task.notes && (
                                                         <p className="text-xs text-stone-500">{task.notes}</p>
                                                     )}
