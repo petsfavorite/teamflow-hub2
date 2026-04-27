@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { usePinContext } from '@/lib/PinContext';
 import { base44 } from '@/api/base44Client';
 import { Lock, Delete, LogOut } from 'lucide-react';
@@ -12,6 +12,8 @@ export default function PinLockScreen() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [minutesLeft, setMinutesLeft] = useState(MAX_LOCK_MINUTES);
+  const pinRef = useRef('');
+  const submittingRef = useRef(false);
 
   useEffect(() => {
     if (!isLocked || !lockedAt) return;
@@ -24,40 +26,47 @@ export default function PinLockScreen() {
     return () => clearInterval(id);
   }, [isLocked, lockedAt]);
 
-  // Auto-submit when 6 digits entered
-  useEffect(() => {
-    if (pin.length === 6 && !loading) {
-      handleValidate(pin);
-    }
-  }, [pin]);
-
   const handleValidate = async (p) => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setLoading(true);
     setError('');
     try {
       const res = await base44.functions.invoke('validatePin', { pin: p });
       if (res.data?.valid) {
         unlock(res.data.user);
+        pinRef.current = '';
         setPin('');
       } else {
         setError('Incorrect PIN. Please try again.');
+        pinRef.current = '';
         setPin('');
       }
     } catch {
       setError('Could not validate PIN. Please try again.');
+      pinRef.current = '';
       setPin('');
     } finally {
       setLoading(false);
+      submittingRef.current = false;
     }
   };
 
   const pressKey = (key) => {
-    if (loading) return;
+    if (loading || submittingRef.current) return;
     if (key === 'del') {
-      setPin(p => p.slice(0, -1));
+      const next = pinRef.current.slice(0, -1);
+      pinRef.current = next;
+      setPin(next);
       setError('');
-    } else if (pin.length < 6) {
-      setPin(p => p + key);
+    } else {
+      if (pinRef.current.length >= 6) return;
+      const next = pinRef.current + key;
+      pinRef.current = next;
+      setPin(next);
+      if (next.length === 6) {
+        handleValidate(next);
+      }
     }
   };
 
@@ -132,7 +141,7 @@ export default function PinLockScreen() {
               <button
                 key={i}
                 onClick={() => pressKey(key)}
-                disabled={loading || pin.length >= 6}
+                disabled={loading}
                 className="h-16 rounded-2xl bg-stone-800 border border-stone-700 text-white text-xl font-semibold hover:bg-stone-700 active:scale-95 transition-all disabled:opacity-40"
               >
                 {key}
