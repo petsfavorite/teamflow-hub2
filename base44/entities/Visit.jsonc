@@ -1,0 +1,233 @@
+{
+  "name": "Visit",
+  "type": "object",
+  "properties": {
+    "pet_id": {
+      "type": "string"
+    },
+    "pet_name": {
+      "type": "string"
+    },
+    "visit_type": {
+      "type": "string",
+      "enum": [
+        "boarding",
+        "play_camp"
+      ]
+    },
+    "check_in_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "check_in_time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "check_out_time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "scheduled_checkout_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "location": {
+      "type": "string",
+      "description": "Max 10 chars"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "checked_in",
+        "checked_out"
+      ],
+      "default": "checked_in"
+    },
+    "feeding_frequency": {
+      "type": "string",
+      "enum": [
+        "Just Breakfast",
+        "Just Dinner",
+        "Two Meals",
+        "Three Meals"
+      ]
+    },
+    "play_camp_duration": {
+      "type": "string",
+      "enum": [
+        "half_day",
+        "full_day"
+      ]
+    },
+    "what_was_brought": {
+      "type": "string",
+      "description": "Items brought during boarding"
+    },
+    "visit_medications": {
+      "type": "array",
+      "description": "Medications for this specific visit",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "dosage": {
+            "type": "string"
+          },
+          "frequency": {
+            "type": "string"
+          },
+          "instructions": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "scheduled_tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "time": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "description": "YYYY-MM-DD \u2014 explicit date this task belongs to"
+          },
+          "is_template": {
+            "type": "boolean"
+          },
+          "is_daily_observation": {
+            "type": "boolean"
+          },
+          "completed": {
+            "type": "boolean"
+          },
+          "completed_at": {
+            "type": "string"
+          },
+          "completed_by": {
+            "type": "string"
+          },
+          "completed_date": {
+            "type": "string"
+          },
+          "completed_iso": {
+            "type": "string"
+          },
+          "medication_name": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "recurrence_type": {
+            "type": "string",
+            "enum": [
+              "none",
+              "daily",
+              "every_other_day",
+              "every_3_days"
+            ],
+            "default": "none",
+            "description": "How often the task repeats during the stay. Recurring tasks are expanded into individual dated instances at creation time."
+          }
+        }
+      }
+    },
+    "play_sessions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "session_number": {
+            "type": "number"
+          },
+          "completed": {
+            "type": "boolean"
+          },
+          "completed_at": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "care_log": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "time": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string"
+          },
+          "activity": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "staff": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "picture_sent": {
+      "type": "boolean",
+      "default": false
+    },
+    "picture_sent_dates": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of YYYY-MM-DD dates on which a picture was sent to the owner"
+    },
+    "fecal_collected": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether fecal sample has been collected during this visit"
+    },
+    "pdf_url": {
+      "type": "string",
+      "description": "Checkout report PDF stored for 90 days"
+    },
+    "pdf_expiry": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When PDF expires (90 days from checkout)"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "emergency_alert_active": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether an emergency alert is currently active for this pet"
+    },
+    "emergency_alert_dismissed_until": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO timestamp until which the emergency alert is dismissed (24 hour window)"
+    },
+    "emergency_alert_type": {
+      "type": "string",
+      "description": "Type of alert: 'feces', 'urine', or 'both'"
+    }
+  },
+  "required": [
+    "pet_id",
+    "pet_name",
+    "check_in_time",
+    "check_in_date",
+    "visit_type"
+  ]
+}

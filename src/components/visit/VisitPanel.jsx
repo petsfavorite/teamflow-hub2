@@ -311,15 +311,25 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
 
 
 
+    const pictureSentDates = visit.picture_sent_dates || (visit.picture_sent ? [visit.check_in_date] : []);
+    const isPictureSentToday = pictureSentDates.includes(viewDate);
+
     const handleSendPicture = () => {
         const initials = currentUser?.full_name?.split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase() || '?';
         const careLog = [...(visit.care_log || []), {
             time: moment().format('h:mm A'),
+            date: viewDate,
             activity: 'Daily Picture',
             notes: 'Picture sent to owner',
             staff: initials
         }];
-        onUpdateVisit({ ...visit, picture_sent: true, care_log: careLog });
+        const newDates = [...pictureSentDates, viewDate];
+        onUpdateVisit({ ...visit, picture_sent_dates: newDates, picture_sent: true, care_log: careLog });
+    };
+
+    const handleUndoSendPicture = () => {
+        const newDates = pictureSentDates.filter(d => d !== viewDate);
+        onUpdateVisit({ ...visit, picture_sent_dates: newDates, picture_sent: newDates.length > 0 });
     };
     
     const handleAddTask = () => {
@@ -739,7 +749,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                              </CardTitle>
                          </CardHeader>
                          <CardContent>
-                             {visit.picture_sent ? (
+                             {isPictureSentToday ? (
                                  <div className="flex items-center justify-between gap-3">
                                      <div className="flex items-center gap-2 text-emerald-600 bg-emerald-50 p-2 rounded-lg flex-1">
                                          <CheckCircle2 className="w-4 h-4" />
@@ -748,7 +758,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                      <Button 
                                          size="sm" 
                                          variant="outline"
-                                         onClick={() => onUpdateVisit({ ...visit, picture_sent: false })}
+                                         onClick={handleUndoSendPicture}
                                          className="rounded-xl h-8 text-xs text-stone-600 hover:bg-stone-100"
                                      >
                                          Undo
