@@ -20,11 +20,38 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
      const [addProbiotic, setAddProbiotic] = useState(false);
      const [addFeedingEnrichment, setAddFeedingEnrichment] = useState(false);
      const [addBath, setAddBath] = useState(false);
-     const [visitMedications, setVisitMedications] = useState(
-         pet.medications?.length > 0 ? pet.medications.map(m => ({ ...m })) : []
-     );
-     const addMedication = () => {
-        setVisitMedications(prev => [...prev, { name: '', dosage: '', frequency: '', instructions: '' }]);
+    const [visitMedications, setVisitMedications] = useState(
+        pet.medications?.length > 0 ? pet.medications.map(m => ({
+            ...m,
+            meal_times: [
+                { meal: 'Breakfast', time: '9:00 AM', enabled: true },
+                { meal: 'Lunch', time: '12:00 PM', enabled: false },
+                { meal: 'Dinner', time: '5:30 PM', enabled: true },
+            ]
+        })) : []
+    );
+    const defaultMedTimes = () => {
+        const times = [];
+        if (feedingFrequency === 'Just Breakfast' || feedingFrequency === 'Two Meals' || feedingFrequency === 'Three Meals') {
+            times.push({ meal: 'Breakfast', time: '9:00 AM', enabled: true });
+        }
+        if (feedingFrequency === 'Three Meals') {
+            times.push({ meal: 'Lunch', time: '12:00 PM', enabled: true });
+        }
+        if (feedingFrequency === 'Just Dinner' || feedingFrequency === 'Two Meals' || feedingFrequency === 'Three Meals') {
+            times.push({ meal: 'Dinner', time: '5:30 PM', enabled: true });
+        }
+        // Always include all three, disable the ones not in feeding plan
+        const allMeals = [
+            { meal: 'Breakfast', time: '9:00 AM', enabled: times.some(t => t.meal === 'Breakfast') },
+            { meal: 'Lunch', time: '12:00 PM', enabled: times.some(t => t.meal === 'Lunch') },
+            { meal: 'Dinner', time: '5:30 PM', enabled: times.some(t => t.meal === 'Dinner') },
+        ];
+        return allMeals;
+    };
+
+    const addMedication = () => {
+        setVisitMedications(prev => [...prev, { name: '', dosage: '', meal_times: defaultMedTimes(), instructions: '' }]);
     };
     const updateMedication = (index, field, value) => {
         setVisitMedications(prev => {
@@ -159,47 +186,39 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
         ateDate.add(1, 'day');
     }
         
-    // Medications (automatically added for boarding based on frequency)
-    const checkInMoment = moment();
-    const checkInHour = checkInMoment.hour();
-    const checkInMinute = checkInMoment.minute();
+    // Medications - expand daily tasks for each enabled meal time
+    const medCheckInHour = moment().hour();
+    const medCheckInMinute = moment().minute();
 
     visitMedications.forEach(med => {
-        if (med.frequency === 'Once Daily in AM') {
-            // 9 AM
-            if (checkInHour < 9 || (checkInHour === 9 && checkInMinute === 0)) {
-                tasks.push({ type: 'Medication', time: '9:00 AM', date: checkInDate, is_template: true, completed: false, completed_at: null, medication_name: med.name, recurrence_type: 'days', recurrence_interval: 1 });
-            } else {
-                tasks.push({ type: 'Medication', time: '9:00 AM', date: moment(checkInDate).add(1, 'day').format('YYYY-MM-DD'), is_template: true, completed: false, completed_at: null, medication_name: med.name, recurrence_type: 'days', recurrence_interval: 1 });
+        const mealTimes = med.meal_times || [];
+        mealTimes.filter(mt => mt.enabled && mt.time).forEach(mt => {
+            const parsed = parseTime(mt.time);
+            if (!parsed) return;
+            const startDate = (medCheckInHour < parsed.hour || (medCheckInHour === parsed.hour && medCheckInMinute < parsed.minute))
+                ? checkInDate
+                : moment(checkInDate).add(1, 'day').format('YYYY-MM-DD');
+            let d = moment(startDate);
+            while (d.format('YYYY-MM-DD') <= checkoutDate) {
+                tasks.push({
+                    type: 'Medication',
+                    time: mt.time,
+                    date: d.format('YYYY-MM-DD'),
+                    is_template: true,
+                    completed: false,
+                    completed_at: null,
+                    medication_name: med.name,
+                    notes: `With ${mt.meal}`
+                });
+                d.add(1, 'day');
             }
-        } else if (med.frequency === 'Once Daily in PM') {
-            // 6 PM
-            if (checkInHour < 18 || (checkInHour === 18 && checkInMinute === 0)) {
-                tasks.push({ type: 'Medication', time: '6:00 PM', date: checkInDate, is_template: true, completed: false, completed_at: null, medication_name: med.name, recurrence_type: 'days', recurrence_interval: 1 });
-            } else {
-                tasks.push({ type: 'Medication', time: '6:00 PM', date: moment(checkInDate).add(1, 'day').format('YYYY-MM-DD'), is_template: true, completed: false, completed_at: null, medication_name: med.name, recurrence_type: 'days', recurrence_interval: 1 });
-            }
-        } else if (med.frequency === 'Twice Daily') {
-            // 9 AM
-            if (checkInHour < 9 || (checkInHour === 9 && checkInMinute === 0)) {
-                tasks.push({ type: 'Medication', time: '9:00 AM', date: checkInDate, is_template: true, completed: false, completed_at: null, medication_name: med.name, recurrence_type: 'days', recurrence_interval: 1 });
-            } else {
-                tasks.push({ type: 'Medication', time: '9:00 AM', date: moment(checkInDate).add(1, 'day').format('YYYY-MM-DD'), is_template: true, completed: false, completed_at: null, medication_name: med.name, recurrence_type: 'days', recurrence_interval: 1 });
-            }
-
-            // 6 PM
-            if (checkInHour < 18 || (checkInHour === 18 && checkInMinute === 0)) {
-                tasks.push({ type: 'Medication', time: '6:00 PM', date: checkInDate, is_template: true, completed: false, completed_at: null, medication_name: med.name, recurrence_type: 'days', recurrence_interval: 1 });
-            } else {
-                tasks.push({ type: 'Medication', time: '6:00 PM', date: moment(checkInDate).add(1, 'day').format('YYYY-MM-DD'), is_template: true, completed: false, completed_at: null, medication_name: med.name, recurrence_type: 'days', recurrence_interval: 1 });
-            }
-        }
+        });
     });
 
     // Add CBD Chews as AM and PM medications if selected
     if (addCBDChews) {
         // AM - 9 AM (only if breakfast happens that day)
-        const cbdAmStartDate = checkInHour < 9 || (checkInHour === 9 && checkInMinute === 0)
+        const cbdAmStartDate = nowHour < 9 || (nowHour === 9 && nowMinute === 0)
             ? checkInDate
             : moment(checkInDate).add(1, 'day').format('YYYY-MM-DD');
 
@@ -218,7 +237,7 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
         }
 
         // PM - 6 PM
-        const cbdPmStartDate = checkInHour < 18 || (checkInHour === 18 && checkInMinute === 0)
+        const cbdPmStartDate = nowHour < 18 || (nowHour === 18 && nowMinute === 0)
             ? checkInDate
             : moment(checkInDate).add(1, 'day').format('YYYY-MM-DD');
 
@@ -302,7 +321,7 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
 
     // Add "Give Feeding Enrichment Toy" once daily if selected (6 PM)
     if (addFeedingEnrichment) {
-        const enrichStartDate = (checkInHour < 17 || (checkInHour === 17 && checkInMinute < 30))
+        const enrichStartDate = (nowHour < 17 || (nowHour === 17 && nowMinute < 30))
             ? checkInDate
             : moment(checkInDate).add(1, 'day').format('YYYY-MM-DD');
         let currentDate = moment(enrichStartDate);
@@ -524,17 +543,32 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
                                     <Input placeholder="Name" value={med.name} onChange={(e) => updateMedication(index, 'name', e.target.value)} className="rounded-xl bg-white text-sm h-8" />
                                     <Input placeholder="Dosage" value={med.dosage} onChange={(e) => updateMedication(index, 'dosage', e.target.value)} className="rounded-xl bg-white text-sm h-8" />
                                 </div>
-                                <Select value={med.frequency} onValueChange={(v) => updateMedication(index, 'frequency', v)}>
-                                    <SelectTrigger className="rounded-xl bg-white h-8 text-sm">
-                                        <SelectValue placeholder="Frequency" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="Once Daily in AM">Once Daily in AM (9 AM)</SelectItem>
-                                        <SelectItem value="Once Daily in PM">Once Daily in PM (6 PM)</SelectItem>
-                                        <SelectItem value="Twice Daily">Twice Daily (9 AM & 6 PM)</SelectItem>
-                                        <SelectItem value="Custom">Custom</SelectItem>
-                                    </SelectContent>
-                                </Select>
+                                <div className="space-y-1">
+                                    <p className="text-xs text-purple-700 font-medium">Give with meal (edit time if needed):</p>
+                                    {(med.meal_times || []).map((mt, mi) => (
+                                        <div key={mi} className="flex items-center gap-2">
+                                            <Checkbox
+                                                checked={mt.enabled}
+                                                onCheckedChange={(v) => {
+                                                    const updated = [...visitMedications];
+                                                    updated[index].meal_times[mi].enabled = !!v;
+                                                    setVisitMedications(updated);
+                                                }}
+                                            />
+                                            <span className="text-xs text-purple-800 w-16">{mt.meal}</span>
+                                            <Input
+                                                value={mt.time}
+                                                onChange={(e) => {
+                                                    const updated = [...visitMedications];
+                                                    updated[index].meal_times[mi].time = e.target.value;
+                                                    setVisitMedications(updated);
+                                                }}
+                                                className="rounded-xl bg-white text-xs h-7 w-28"
+                                                placeholder="e.g. 9:00 AM"
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
                                 <Input placeholder="Instructions (optional)" value={med.instructions} onChange={(e) => updateMedication(index, 'instructions', e.target.value)} className="rounded-xl bg-white text-sm h-8" />
                             </div>
                         ))}
