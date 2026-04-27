@@ -82,7 +82,7 @@ export default function Pets() {
     };
 
     const handleCheckOut = (pet) => {
-        navigate(createPageUrl('Dashboard'));
+        queryClient.invalidateQueries(['pets']);
     };
 
     const handleArchivePet = async (petId) => {
