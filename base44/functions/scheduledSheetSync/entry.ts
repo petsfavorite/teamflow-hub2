@@ -96,22 +96,23 @@ Deno.serve(async (req) => {
       return obj;
     });
 
-    // Full sync: delete all existing records, then re-import everything from sheet
     const [userList, allExistingRecords] = await Promise.all([
       base44.asServiceRole.entities.User.list(),
       base44.asServiceRole.entities.CallRecord.list("-created_date", 5000),
     ]);
 
-    // Delete all existing CallRecords in small batches to avoid rate limits
-    const toDelete = allExistingRecords || [];
-    for (let i = 0; i < toDelete.length; i += 10) {
-      const batch = toDelete.slice(i, i + 10);
-      await Promise.all(batch.map(r => base44.asServiceRole.entities.CallRecord.delete(r.id)));
-    }
+    const existingIds = new Set(
+      (allExistingRecords || []).map(r => r.zoom_meeting_id).filter(Boolean)
+    );
+
+    const newRows = records.filter(row => {
+      const zoom_meeting_id = `sheet_row_${row.__rowIndex}`;
+      return !existingIds.has(zoom_meeting_id);
+    });
 
     const MAX_PER_RUN = 15;
-    const rowsToProcess = records.slice(0, MAX_PER_RUN);
-    const remaining = records.length - rowsToProcess.length;
+    const rowsToProcess = newRows.slice(0, MAX_PER_RUN);
+    const remaining = newRows.length - rowsToProcess.length;
 
     let imported = 0;
     let skipped = 0;
