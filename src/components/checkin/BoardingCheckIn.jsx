@@ -20,14 +20,22 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
      const [addProbiotic, setAddProbiotic] = useState(false);
      const [addFeedingEnrichment, setAddFeedingEnrichment] = useState(false);
      const [addBath, setAddBath] = useState(false);
+    const inferMealTimesFromFrequency = (freq) => {
+        const f = (freq || '').toLowerCase();
+        const isAmOnly = f.includes('once') && f.includes('am') || f === 'once daily am' || f === 'once daily in the am' || (f.includes('once') && !f.includes('pm') && !f.includes('twice') && !f.includes('two') && !f.includes('dinner'));
+        const isPmOnly = f.includes('once') && f.includes('pm') || f === 'once daily pm' || f === 'once daily in the pm' || (f.includes('once') && f.includes('dinner'));
+        const isTwice = f.includes('twice') || f.includes('two') || f.includes('bid') || (f.includes('am') && f.includes('pm'));
+        return [
+            { meal: 'Breakfast', time: '9:00 AM', enabled: !isPmOnly },
+            { meal: 'Lunch', time: '12:00 PM', enabled: false },
+            { meal: 'Dinner', time: '5:30 PM', enabled: isPmOnly || isTwice },
+        ];
+    };
+
     const [visitMedications, setVisitMedications] = useState(
         pet.medications?.length > 0 ? pet.medications.map(m => ({
             ...m,
-            meal_times: [
-                { meal: 'Breakfast', time: '9:00 AM', enabled: true },
-                { meal: 'Lunch', time: '12:00 PM', enabled: false },
-                { meal: 'Dinner', time: '5:30 PM', enabled: true },
-            ]
+            meal_times: inferMealTimesFromFrequency(m.frequency)
         })) : []
     );
     const defaultMedTimes = () => {
