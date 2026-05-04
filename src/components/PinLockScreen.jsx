@@ -70,6 +70,20 @@ export default function PinLockScreen() {
     }
   };
 
+  // Allow keyboard input
+  useEffect(() => {
+    if (!isLocked) return;
+    const handleKeyDown = (e) => {
+      if (e.key >= '0' && e.key <= '9') {
+        pressKey(e.key);
+      } else if (e.key === 'Backspace') {
+        pressKey('del');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isLocked, loading]);
+
   const handleFullLogout = () => {
     sessionStorage.removeItem('pin_session');
     base44.auth.logout(window.location.href);
