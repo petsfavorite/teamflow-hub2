@@ -10,7 +10,7 @@ import DismissibleOverdueTask from '../components/dashboard/DismissibleOverdueTa
 import BonuslyRecognitions from '../components/dashboard/BonuslyRecognitions';
 import {
   LayoutDashboard, BookOpen, CheckSquare, ClipboardList, Wrench,
-  AlertTriangle, MessageSquare, ArrowRight, Bell, ShieldAlert, CalendarCheck, Clock, Award
+  AlertTriangle, MessageSquare, ArrowRight, Bell, ShieldAlert, CalendarCheck, Clock, Award, FileCheck
 } from 'lucide-react';
 import { differenceInDays, parseISO } from 'date-fns';
 
@@ -93,6 +93,23 @@ export default function Dashboard() {
       return res.data?.recognitions || [];
     },
     enabled: !!user?.email,
+  });
+
+  // SOPs requiring acknowledgement that this user hasn't acknowledged yet
+  const { data: pendingAckSops = [] } = useQuery({
+    queryKey: ['sops-pending-ack-dash', user?.email],
+    enabled: !!user?.email,
+    queryFn: async () => {
+      const allPublished = await base44.entities.SOP.filter({ status: 'published' }, '-updated_date', 200);
+      const requiresAck = allPublished.filter(sop =>
+        sop.requires_acknowledgement &&
+        sop.acknowledgement_assigned_emails?.includes(user.email)
+      );
+      if (requiresAck.length === 0) return [];
+      const acks = await base44.entities.SOPAcknowledgement.filter({ user_email: user.email });
+      const ackedSopIds = new Set(acks.map(a => a.sop_id));
+      return requiresAck.filter(sop => !ackedSopIds.has(sop.id));
+    },
   });
 
   const verificationDueSops = allSOPs.filter(sop => {
@@ -251,7 +268,7 @@ export default function Dashboard() {
       </div>
 
       {/* Notifications tile for regular users */}
-      {!canManage && (overdueIncompleteTeasks.length > 0 || urgentTasks.length > 0 || urgentChecklists.length > 0 || newTasksToAck.length > 0 || newChecklistsToAck.length > 0) && (
+      {!canManage && (overdueIncompleteTeasks.length > 0 || urgentTasks.length > 0 || urgentChecklists.length > 0 || newTasksToAck.length > 0 || newChecklistsToAck.length > 0 || pendingAckSops.length > 0) && (
         <Card className="border-0 shadow-sm">
           <CardContent className="p-4 md:p-6">
             <div className="flex items-center gap-2 mb-4">
@@ -297,6 +314,19 @@ export default function Dashboard() {
                   </div>
                 </Link>
               ))}
+              {/* Amber: SOPs requiring acknowledgement */}
+              {pendingAckSops.map(sop => (
+                <Link key={sop.id} to={createPageUrl('SOPDetail') + `?id=${sop.id}`}>
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 hover:bg-amber-100 transition-colors border border-amber-200">
+                    <FileCheck className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-amber-900 truncate">📋 Read & acknowledge: {sop.title}</p>
+                      <p className="text-xs text-amber-700">Tap to read the SOP, then click "I've Read This"</p>
+                    </div>
+                    <ArrowRight className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
+                  </div>
+                </Link>
+              ))}
               {/* White: New items to acknowledge */}
               {newTasksToAck.map(task => (
                 <Link key={task.id} to={createPageUrl('Tasks')}>
@@ -334,16 +364,29 @@ export default function Dashboard() {
             <div className="flex items-center gap-2 mb-4">
               <Bell className="w-5 h-5 text-indigo-600" />
               <h2 className="font-semibold text-slate-900">Notifications</h2>
-              {(pendingSOPs.length + verificationDueSops.length + incidents.length + openMaintenance.length + managersSeenOverdueTasks.length + (canApprove ? pendingChecklistEdits.length : 0)) > 0 && (
+              {(pendingAckSops.length + pendingSOPs.length + verificationDueSops.length + incidents.length + openMaintenance.length + managersSeenOverdueTasks.length + (canApprove ? pendingChecklistEdits.length : 0)) > 0 && (
                 <span className="ml-auto bg-amber-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                  {pendingSOPs.length + verificationDueSops.length + incidents.length + openMaintenance.length + managersSeenOverdueTasks.length + (canApprove ? pendingChecklistEdits.length : 0)}
+                  {pendingAckSops.length + pendingSOPs.length + verificationDueSops.length + incidents.length + openMaintenance.length + managersSeenOverdueTasks.length + (canApprove ? pendingChecklistEdits.length : 0)}
                 </span>
               )}
             </div>
-            {pendingSOPs.length === 0 && verificationDueSops.length === 0 && incidents.length === 0 && openMaintenance.length === 0 && managersSeenOverdueTasks.length === 0 && pendingChecklistEdits.length === 0 ? (
+            {pendingAckSops.length === 0 && pendingSOPs.length === 0 && verificationDueSops.length === 0 && incidents.length === 0 && openMaintenance.length === 0 && managersSeenOverdueTasks.length === 0 && pendingChecklistEdits.length === 0 ? (
               <p className="text-sm text-slate-400 py-2 text-center">No pending notifications</p>
             ) : (
               <div className="space-y-2">
+                {/* Amber: SOPs requiring acknowledgement (managers must read too) */}
+                {pendingAckSops.map(sop => (
+                  <Link key={sop.id} to={createPageUrl('SOPDetail') + `?id=${sop.id}`}>
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 hover:bg-amber-100 transition-colors border border-amber-200">
+                      <FileCheck className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-amber-900 truncate">📋 Read & acknowledge: {sop.title}</p>
+                        <p className="text-xs text-amber-700">Tap to read the SOP, then click "I've Read This"</p>
+                      </div>
+                      <ArrowRight className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
+                    </div>
+                  </Link>
+                ))}
                 {/* Team members' overdue tasks - dismissible for managers */}
                 {managersSeenOverdueTasks.map(task => (
                   <DismissibleOverdueTask
