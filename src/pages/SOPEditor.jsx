@@ -42,7 +42,6 @@ export default function SOPEditor() {
   const [form, setForm] = useState(defaultForm);
   const [tagsInput, setTagsInput] = useState('');
   const [changeSummary, setChangeSummary] = useState('');
-  const [editInstructions, setEditInstructions] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   const deleteMutation = useMutation({
@@ -334,28 +333,28 @@ export default function SOPEditor() {
           </div>
 
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label>Step-by-Step Instructions *</Label>
-              <button
-                type="button"
-                onClick={() => setEditInstructions(!editInstructions)}
-                className="text-xs text-indigo-600 hover:text-indigo-700 font-medium"
-              >
-                {editInstructions ? 'Rich Editor' : 'Edit as Text'}
-              </button>
-            </div>
-            {editInstructions ? (
-              <Textarea
+            <Label>Step-by-Step Instructions *</Label>
+            <div className="min-h-[300px] border border-slate-200 rounded-lg overflow-hidden">
+              <ReactQuill
                 value={form.instructions}
-                onChange={e => set('instructions', e.target.value)}
-                placeholder="Enter step-by-step instructions..."
-                rows={10}
+                onChange={v => set('instructions', v)}
+                className="bg-white"
+                theme="snow"
+                modules={{
+                  toolbar: [
+                    [{ header: [1, 2, 3, false] }],
+                    ['bold', 'italic', 'underline'],
+                    [{ list: 'ordered' }, { list: 'bullet' }],
+                    [{ indent: '-1' }, { indent: '+1' }],
+                    ['blockquote', 'code-block'],
+                    ['link'],
+                    ['clean'],
+                  ],
+                }}
+                formats={['header', 'bold', 'italic', 'underline', 'list', 'bullet', 'indent', 'blockquote', 'code-block', 'link']}
+                style={{ minHeight: '280px' }}
               />
-            ) : (
-              <div className="min-h-[300px]">
-                <ReactQuill value={form.instructions} onChange={v => set('instructions', v)} className="bg-white rounded-lg" theme="snow" />
-              </div>
-            )}
+            </div>
           </div>
 
           <div className="space-y-2">
