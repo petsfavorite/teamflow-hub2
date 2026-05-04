@@ -122,7 +122,7 @@ Deno.serve(async (req) => {
       return !existingIds.has(zoom_meeting_id);
     });
 
-    const MAX_PER_RUN = 15;
+    const MAX_PER_RUN = 40;
     const rowsToProcess = newRows.slice(0, MAX_PER_RUN);
     const remaining = newRows.length - rowsToProcess.length;
 
