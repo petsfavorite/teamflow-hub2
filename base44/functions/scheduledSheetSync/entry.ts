@@ -102,10 +102,12 @@ Deno.serve(async (req) => {
       base44.asServiceRole.entities.CallRecord.list("-created_date", 5000),
     ]);
 
-    // Delete all existing CallRecords
-    await Promise.all(
-      (allExistingRecords || []).map(r => base44.asServiceRole.entities.CallRecord.delete(r.id))
-    );
+    // Delete all existing CallRecords in small batches to avoid rate limits
+    const toDelete = allExistingRecords || [];
+    for (let i = 0; i < toDelete.length; i += 10) {
+      const batch = toDelete.slice(i, i + 10);
+      await Promise.all(batch.map(r => base44.asServiceRole.entities.CallRecord.delete(r.id)));
+    }
 
     const MAX_PER_RUN = 15;
     const rowsToProcess = records.slice(0, MAX_PER_RUN);
