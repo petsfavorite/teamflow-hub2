@@ -42,7 +42,8 @@ export default function Assets() {
   const [taskSearch, setTaskSearch] = useState('');
   const [expandedNotesLog, setExpandedNotesLog] = useState(false);
   const [creatingTaskForAsset, setCreatingTaskForAsset] = useState(false);
-  const [newTaskForm, setNewTaskForm] = useState({ title: '', description: '', assigned_to_emails: [], assigned_to_names: [], assigned_teams: [] });
+  const emptyTaskForm = { title: '', description: '', assigned_to_emails: [], assigned_to_names: [], assigned_teams: [], due_date: '', priority: 'medium', recurrence_type: 'once', recurrence_days_of_week: [] };
+  const [newTaskForm, setNewTaskForm] = useState(emptyTaskForm);
 
   useEffect(() => {
     base44.auth.me().then(u => setUser(u)).catch(() => setUser(null));
@@ -91,7 +92,7 @@ export default function Assets() {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['assets'] });
       setCreatingTaskForAsset(false);
-      setNewTaskForm({ title: '', description: '', assigned_to_emails: [], assigned_to_names: [], assigned_teams: [] });
+      setNewTaskForm(emptyTaskForm);
     },
   });
 
@@ -417,6 +418,58 @@ export default function Assets() {
           <div className="space-y-4">
             <div className="space-y-2"><Label>Task Title</Label><Input value={newTaskForm.title} onChange={e => setNewTaskForm({ ...newTaskForm, title: e.target.value })} placeholder="What needs to be done?" /></div>
             <div className="space-y-2"><Label>Description</Label><Textarea value={newTaskForm.description} onChange={e => setNewTaskForm({ ...newTaskForm, description: e.target.value })} rows={2} /></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Due Date</Label>
+                <Input type="date" value={newTaskForm.due_date} onChange={e => setNewTaskForm({ ...newTaskForm, due_date: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Priority</Label>
+                <Select value={newTaskForm.priority} onValueChange={v => setNewTaskForm({ ...newTaskForm, priority: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Recurrence</Label>
+              <Select value={newTaskForm.recurrence_type} onValueChange={v => setNewTaskForm({ ...newTaskForm, recurrence_type: v, recurrence_days_of_week: [] })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="once">One-time</SelectItem>
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="weekdays">Weekdays</SelectItem>
+                  <SelectItem value="specific_days">Specific Days</SelectItem>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                  <SelectItem value="annually">Annually</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {newTaskForm.recurrence_type === 'specific_days' && (
+              <div className="space-y-2">
+                <Label>Days of Week</Label>
+                <div className="flex flex-wrap gap-2">
+                  {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((day, i) => (
+                    <label key={i} className="flex items-center gap-1 text-sm cursor-pointer">
+                      <Checkbox
+                        checked={(newTaskForm.recurrence_days_of_week || []).includes(i)}
+                        onCheckedChange={checked => {
+                          const days = checked
+                            ? [...(newTaskForm.recurrence_days_of_week || []), i]
+                            : (newTaskForm.recurrence_days_of_week || []).filter(d => d !== i);
+                          setNewTaskForm({ ...newTaskForm, recurrence_days_of_week: days });
+                        }}
+                      />
+                      {day}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Assign to Users</Label>
               <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto p-2 bg-slate-50 rounded-lg border border-slate-200">
@@ -465,11 +518,13 @@ export default function Assets() {
             <Button variant="outline" onClick={() => setCreatingTaskForAsset(false)}>Cancel</Button>
             <Button onClick={() => {
               if (newTaskForm.title && selectedAsset && ((newTaskForm.assigned_to_emails?.length > 0) || (newTaskForm.assigned_teams?.length > 0))) {
-                createTaskMutation.mutate({
+                const taskData = {
                   ...newTaskForm,
                   created_by_name: user?.full_name,
-                  asset_id: selectedAsset.id
-                });
+                  asset_id: selectedAsset.id,
+                };
+                if (!taskData.due_date) delete taskData.due_date;
+                createTaskMutation.mutate(taskData);
               } else {
                 toast.error('Please fill in title and assign to at least one user or team');
               }
