@@ -224,44 +224,46 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
         });
     });
 
-    // Add CBD Chews as AM and PM medications if selected
+    // Add CBD Chews at meal times if selected
     if (addCBDChews) {
-        // AM - 9 AM (only if breakfast happens that day)
-        const cbdAmStartDate = nowHour < 9 || (nowHour === 9 && nowMinute === 0)
-            ? checkInDate
-            : moment(checkInDate).add(1, 'day').format('YYYY-MM-DD');
+        const mealTimes = {
+            'Breakfast': { hour: 9, minute: 0, time: '9:00 AM' },
+            'Lunch': { hour: 12, minute: 0, time: '12:00 PM' },
+            'Dinner': { hour: 17, minute: 30, time: '5:30 PM' }
+        };
 
-        let currentDate = moment(cbdAmStartDate);
-        while (currentDate.format('YYYY-MM-DD') <= checkoutDate) {
-            tasks.push({
-                type: 'Medication',
-                time: '9:00 AM',
-                date: currentDate.format('YYYY-MM-DD'),
-                is_template: true,
-                completed: false,
-                completed_at: null,
-                medication_name: 'CBD Chews'
-            });
-            currentDate.add(1, 'day');
-        }
+        const addCBDTask = (mealName) => {
+            const mealInfo = mealTimes[mealName];
+            const startDate = (feedingCheckInHour < mealInfo.hour || (feedingCheckInHour === mealInfo.hour && feedingCheckInMinute < mealInfo.minute))
+                ? checkInDate
+                : moment(checkInDate).add(1, 'day').format('YYYY-MM-DD');
+            let d = moment(startDate);
+            while (d.format('YYYY-MM-DD') <= checkoutDate) {
+                tasks.push({
+                    type: 'Medication',
+                    time: mealInfo.time,
+                    date: d.format('YYYY-MM-DD'),
+                    is_template: true,
+                    completed: false,
+                    completed_at: null,
+                    medication_name: 'CBD Chews',
+                    notes: `With ${mealName}`
+                });
+                d.add(1, 'day');
+            }
+        };
 
-        // PM - 6 PM
-        const cbdPmStartDate = nowHour < 18 || (nowHour === 18 && nowMinute === 0)
-            ? checkInDate
-            : moment(checkInDate).add(1, 'day').format('YYYY-MM-DD');
-
-        currentDate = moment(cbdPmStartDate);
-        while (currentDate.format('YYYY-MM-DD') <= checkoutDate) {
-            tasks.push({
-                type: 'Medication',
-                time: '6:00 PM',
-                date: currentDate.format('YYYY-MM-DD'),
-                is_template: true,
-                completed: false,
-                completed_at: null,
-                medication_name: 'CBD Chews'
-            });
-            currentDate.add(1, 'day');
+        if (feedingFrequency === 'Just Breakfast') {
+            addCBDTask('Breakfast');
+        } else if (feedingFrequency === 'Just Dinner') {
+            addCBDTask('Dinner');
+        } else if (feedingFrequency === 'Two Meals') {
+            addCBDTask('Breakfast');
+            addCBDTask('Dinner');
+        } else if (feedingFrequency === 'Three Meals') {
+            addCBDTask('Breakfast');
+            addCBDTask('Lunch');
+            addCBDTask('Dinner');
         }
     }
         
@@ -328,16 +330,16 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
         }
     }
 
-    // Add "Give Feeding Enrichment Toy" once daily if selected (6 PM)
+    // Add "Give Feeding Enrichment Toy" once daily if selected (3 PM)
     if (addFeedingEnrichment) {
-        const enrichStartDate = (nowHour < 17 || (nowHour === 17 && nowMinute < 30))
+        const enrichStartDate = (nowHour < 15)
             ? checkInDate
             : moment(checkInDate).add(1, 'day').format('YYYY-MM-DD');
         let currentDate = moment(enrichStartDate);
         while (currentDate.format('YYYY-MM-DD') <= checkoutDate) {
             tasks.push({
                 type: 'Give Feeding Enrichment Toy',
-                time: '5:30 PM',
+                time: '3:00 PM',
                 date: currentDate.format('YYYY-MM-DD'),
                 is_template: true,
                 completed: false,
@@ -610,9 +612,9 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
                                     )}
                             <li>• Feeding: {feedingFrequency === 'Just Breakfast' && 'Breakfast at 9 AM'} {feedingFrequency === 'Just Dinner' && 'Dinner at 5:30 PM'} {feedingFrequency === 'Two Meals' && 'Breakfast at 9 AM & Dinner at 5:30 PM'} {feedingFrequency === 'Three Meals' && 'Breakfast at 9 AM, Lunch at 12 PM & Dinner at 5:30 PM'}</li>
                             {pet.medications?.length > 0 && <li>• Medications as scheduled</li>}
-                            {addCBDChews && <li>• CBD Chews (9 AM & 6 PM daily)</li>}
+                            {addCBDChews && <li>• CBD Chews (with each meal)</li>}
                             {addProbiotic && <li>• Probiotic added to each meal</li>}
-                            {addFeedingEnrichment && <li>• Give Feeding Enrichment Toy (5:30 PM daily)</li>}
+                            {addFeedingEnrichment && <li>• Give Feeding Enrichment Toy (3:00 PM daily)</li>}
                             {addBath && <li>• Schedule Bath</li>}
                         </ul>
                     </div>
