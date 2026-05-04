@@ -12,14 +12,39 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { BookOpen, Plus, Search, Tag, Clock, Trash2 } from 'lucide-react';
+import { BookOpen, Plus, Search, Tag, Clock, Trash2, AlertCircle } from 'lucide-react';
 
 export default function SOPs() {
-  const { isAdmin, isSuperAdmin, canManage, isManager } = useCurrentUser();
+  const { user, isAdmin, isSuperAdmin, canManage, isManager } = useCurrentUser();
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const queryClient = useQueryClient();
+
+  // Fetch SOPs that require acknowledgement and the user hasn't acknowledged yet
+  const { data: pendingAckSops = [] } = useQuery({
+    queryKey: ['sops-pending-ack', user?.email],
+    enabled: !!user?.email,
+    queryFn: async () => {
+      // Get all published SOPs that require acknowledgement assigned to this user
+      const allPublished = await base44.entities.SOP.filter({ status: 'published' }, '-updated_date', 200);
+      const requiresAck = allPublished.filter(sop =>
+        sop.requires_acknowledgement &&
+        (
+          sop.acknowledgement_assigned_emails?.includes(user.email) ||
+          // Also check team membership — we just surface any SOP assigned to the user directly
+          false
+        )
+      );
+      if (requiresAck.length === 0) return [];
+
+      // Fetch this user's existing acknowledgements
+      const acks = await base44.entities.SOPAcknowledgement.filter({ user_email: user.email });
+      const ackedSopIds = new Set(acks.map(a => a.sop_id));
+
+      return requiresAck.filter(sop => !ackedSopIds.has(sop.id));
+    },
+  });
 
   const { data: sops = [], isLoading } = useQuery({
     queryKey: ['sops-all'],
@@ -91,6 +116,41 @@ export default function SOPs() {
            </SelectContent>
          </Select>
        </div>
+
+      {pendingAckSops.length > 0 && (
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <AlertCircle className="w-5 h-5 text-amber-500" />
+            <h2 className="font-semibold text-amber-700">Requires Your Acknowledgement ({pendingAckSops.length})</h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+            {pendingAckSops.map(sop => (
+              <Link key={sop.id} to={createPageUrl('SOPDetail') + `?id=${sop.id}`}>
+                <Card className="border-2 border-amber-400 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 cursor-pointer bg-amber-50">
+                  <CardContent className="p-4 md:p-6">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xs font-semibold bg-amber-400 text-amber-900 px-2 py-0.5 rounded-full">Needs Acknowledgement</span>
+                    </div>
+                    <h3 className="font-semibold text-slate-900 mb-2 line-clamp-2">{sop.title}</h3>
+                    {sop.summary && <p className="text-sm text-slate-500 line-clamp-2 mb-3">{sop.summary}</p>}
+                    <div className="flex items-center justify-between mt-auto pt-3 border-t border-amber-200">
+                      <div className="flex items-center gap-1.5">
+                        <Tag className="w-3 h-3 text-slate-400" />
+                        <span className="text-xs text-slate-400">{sop.category}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="w-3 h-3 text-slate-400" />
+                        <span className="text-xs text-slate-400">{new Date(sop.updated_date).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+          <div className="border-t border-slate-200 mt-6 mb-2" />
+        </div>
+      )}
 
       {isLoading ? (
          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
