@@ -772,8 +772,8 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
 
 
 
-                    {/* Daily Picture — only show for today */}
-                     {viewDate === today && (
+                    {/* Daily Picture — only show for today, only if pet wants pictures */}
+                     {viewDate === today && pet.daily_picture && (
                      <Card className="border-0 shadow-sm rounded-2xl">
                          <CardHeader className="pb-2">
                              <CardTitle className="text-sm flex items-center gap-2">

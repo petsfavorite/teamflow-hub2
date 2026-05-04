@@ -110,16 +110,16 @@ export default function PlayCampWhiteboardCard({ pet, visit, onViewVisit }) {
                                 ))}
 
                                 {/* Daily Picture */}
-                                {needsPicture && !isPictureSentToday && pictureTakenToday && (
+                                {pet.daily_picture && !isPictureSentToday && pictureTakenToday && (
                                     <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border bg-sky-50 border-sky-200">
                                         <Camera className="w-3 h-3 text-sky-600" />
-                                        <span className="text-xs font-medium text-sky-700">Picture Taken - {pictureTakenToday.initials}</span>
+                                        <span className="text-xs font-medium text-sky-700">Photo Taken - {pictureTakenToday.initials}</span>
                                     </div>
                                 )}
-                                {needsPicture && !isPictureSentToday && !pictureTakenToday && (
+                                {pet.daily_picture && !isPictureSentToday && !pictureTakenToday && (
                                     <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border bg-blue-50 border-blue-200">
                                         <Camera className="w-3 h-3 text-blue-600" />
-                                        <span className="text-xs font-medium text-blue-700">Picture</span>
+                                        <span className="text-xs font-medium text-blue-700">Photo Not Taken</span>
                                     </div>
                                 )}
                             </div>
