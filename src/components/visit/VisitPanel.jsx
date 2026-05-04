@@ -772,7 +772,8 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
 
 
 
-                    {/* Daily Picture */}
+                    {/* Daily Picture — only show for today */}
+                     {viewDate === today && (
                      <Card className="border-0 shadow-sm rounded-2xl">
                          <CardHeader className="pb-2">
                              <CardTitle className="text-sm flex items-center gap-2">
@@ -823,6 +824,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                              )}
                          </CardContent>
                      </Card>
+                     )}
 
                     {/* Ate Meal Notes */}
                     {(() => {
