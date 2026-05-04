@@ -8,18 +8,26 @@ Deno.serve(async (req) => {
     return Response.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const cutoffDate = '2026-04-28'; // Remove this date and everything after
+  const cutoffDate = '2026-05-05'; // Remove May 5th and everything after
 
   const visits = await base44.asServiceRole.entities.Visit.filter({ status: 'checked_in' });
 
   let updated = 0;
   for (const visit of visits) {
-    const dates = visit.picture_sent_dates || [];
-    const filtered = dates.filter(d => d < cutoffDate);
-    if (filtered.length !== dates.length) {
+    const sentDates = visit.picture_sent_dates || [];
+    const filteredSent = sentDates.filter(d => d < cutoffDate);
+
+    const takenDates = visit.picture_taken_dates || [];
+    const filteredTaken = takenDates.filter(d => d?.date < cutoffDate);
+
+    const sentChanged = filteredSent.length !== sentDates.length;
+    const takenChanged = filteredTaken.length !== takenDates.length;
+
+    if (sentChanged || takenChanged) {
       await base44.asServiceRole.entities.Visit.update(visit.id, {
-        picture_sent_dates: filtered,
-        picture_sent: filtered.length > 0
+        picture_sent_dates: filteredSent,
+        picture_sent: filteredSent.length > 0,
+        picture_taken_dates: filteredTaken,
       });
       updated++;
     }

@@ -54,12 +54,12 @@ export default function BoardingWhiteboardCard({ pet, visit, onViewVisit }) {
         return timeA.diff(timeB);
     });
 
+    const today = nowTick.format('YYYY-MM-DD');
+
     // Check if picture needs to be sent
     const needsPicture = pet.daily_picture && !visit.picture_sent;
     const pictureTakenToday = (visit.picture_taken_dates || []).find(p => p.date === today);
     const isPictureSentToday = (visit.picture_sent_dates || []).includes(today);
-
-    const today = nowTick.format('YYYY-MM-DD');
     const hasPendingFeces = (visit.scheduled_tasks || []).some(t => t.type === 'Collect Feces' && t.date === today && !t.completed);
     const hasPendingUrine = (visit.scheduled_tasks || []).some(t => t.type === 'Collect Urine' && t.date === today && !t.completed);
 
