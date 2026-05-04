@@ -13,7 +13,7 @@ import DashboardFilters from "@/components/calldashboard/DashboardFilters";
 export default function CallDashboard() {
   const [selectedCall, setSelectedCall] = useState(null);
   const [filters, setFilters] = useState({ search: "", callerType: "all", bookingStatus: "all", teamMember: "all", status: "all" });
-  const [datePreset, setDatePreset] = useState("last30");
+  const [datePreset, setDatePreset] = useState("all");
   const [customStart, setCustomStart] = useState(null);
   const [customEnd, setCustomEnd] = useState(null);
 

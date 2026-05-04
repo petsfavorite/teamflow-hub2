@@ -7,6 +7,7 @@ import { format, startOfDay, endOfDay, subDays, startOfToday, endOfToday } from 
 import { cn } from "@/lib/utils";
 
 const PRESETS = [
+  { label: "All time", value: "all" },
   { label: "Today", value: "today" },
   { label: "Yesterday", value: "yesterday" },
   { label: "Last 7 days", value: "last7" },
