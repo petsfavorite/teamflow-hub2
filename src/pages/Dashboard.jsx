@@ -101,10 +101,12 @@ export default function Dashboard() {
     enabled: !!user?.email,
     queryFn: async () => {
       const allPublished = await base44.entities.SOP.filter({ status: 'published' }, '-updated_date', 200);
-      const requiresAck = allPublished.filter(sop =>
-        sop.requires_acknowledgement &&
-        sop.acknowledgement_assigned_emails?.includes(user.email)
-      );
+      const requiresAck = allPublished.filter(sop => {
+        if (!sop.requires_acknowledgement) return false;
+        const assignedByEmail = sop.acknowledgement_assigned_emails?.includes(user.email);
+        const assignedByTeam = sop.acknowledgement_assigned_teams?.some(tid => myTeamIds.includes(tid));
+        return assignedByEmail || assignedByTeam;
+      });
       if (requiresAck.length === 0) return [];
       const acks = await base44.entities.SOPAcknowledgement.filter({ user_email: user.email });
       // Build a map of sop_id -> highest acknowledged version
