@@ -42,16 +42,28 @@ Return ONLY valid JSON, no markdown.`;
 
 function fuzzyMatchUser(detectedName, userList) {
   if (!detectedName || !userList.length) return detectedName;
-  const lower = detectedName.toLowerCase();
+  const lower = detectedName.toLowerCase().trim();
+
+  // 1. Exact match on full_name
   const exact = userList.find(u => u.full_name.toLowerCase() === lower);
   if (exact) return exact.full_name;
-  const partial = userList.find(u => {
-    const uLower = u.full_name.toLowerCase();
-    const firstName = uLower.split(" ")[0];
-    return uLower.includes(lower) || lower.includes(firstName);
+
+  // 2. First-name-only match (e.g. "Jen" → "Jennifer Smith")
+  const firstNameMatch = userList.find(u => {
+    const firstName = u.full_name.toLowerCase().split(" ")[0];
+    return firstName === lower;
   });
-  if (partial) return partial.full_name;
-  return detectedName;
+  if (firstNameMatch) return firstNameMatch.full_name;
+
+  // 3. Detected name is contained in full_name or vice versa
+  const containsMatch = userList.find(u => {
+    const uLower = u.full_name.toLowerCase();
+    return uLower.includes(lower) || lower.includes(uLower);
+  });
+  if (containsMatch) return containsMatch.full_name;
+
+  // No match — return null so we don't store a partial/wrong name
+  return null;
 }
 
 function extractRecordingUrl(rawLink) {
@@ -133,7 +145,8 @@ Deno.serve(async (req) => {
         const analysis = await analyzeTranscript(transcript, callerInfo, userList);
 
         if (analysis.team_member && userList.length) {
-          analysis.team_member = fuzzyMatchUser(analysis.team_member, userList);
+          const matched = fuzzyMatchUser(analysis.team_member, userList);
+          analysis.team_member = matched || null;
         }
 
         const recordingUrl = extractRecordingUrl(rawLink);
