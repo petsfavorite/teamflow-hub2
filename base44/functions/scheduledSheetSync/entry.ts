@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
     const { accessToken } = await base44.asServiceRole.connectors.getConnection("googlesheets");
 
     const spreadsheetId = Deno.env.get("GOOGLE_SHEET_ID") || "YOUR_GOOGLE_SHEET_ID_HERE";
-    const range = "Sheet1!A1:Z2000";
+    const range = "Sheet1!A1:Z5000";
 
     const res = await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}`,
