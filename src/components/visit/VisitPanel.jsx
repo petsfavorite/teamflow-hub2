@@ -315,6 +315,21 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
 
     const pictureSentDates = visit.picture_sent_dates || [];
     const isPictureSentToday = pictureSentDates.includes(viewDate);
+    const pictureTakenDates = visit.picture_taken_dates || [];
+    const pictureTakenToday = pictureTakenDates.find(p => p.date === viewDate);
+
+    const handleTakePicture = () => {
+        const initials = currentUser?.full_name?.split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase() || '?';
+        const careLog = [...(visit.care_log || []), {
+            time: moment().format('h:mm A'),
+            date: viewDate,
+            activity: 'Picture Taken',
+            notes: '',
+            staff: initials
+        }];
+        const newTaken = [...pictureTakenDates.filter(p => p.date !== viewDate), { date: viewDate, initials }];
+        onUpdateVisit({ ...visit, picture_taken_dates: newTaken, care_log: careLog });
+    };
 
     const handleSendPicture = () => {
         const initials = currentUser?.full_name?.split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase() || '?';
@@ -765,12 +780,28 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                  Daily Picture
                              </CardTitle>
                          </CardHeader>
-                         <CardContent>
+                         <CardContent className="space-y-2">
+                             {/* Picture Taken row */}
+                             {pictureTakenToday ? (
+                                 <div className="flex items-center gap-2 text-sky-700 bg-sky-50 p-2 rounded-lg">
+                                     <CheckCircle2 className="w-4 h-4" />
+                                     <span className="text-sm font-medium">Picture Taken — {pictureTakenToday.initials}</span>
+                                 </div>
+                             ) : (
+                                 <Button
+                                     size="sm"
+                                     onClick={handleTakePicture}
+                                     className="w-full rounded-xl bg-sky-500 hover:bg-sky-600 h-8 text-xs"
+                                 >
+                                     Picture Taken
+                                 </Button>
+                             )}
+                             {/* Photo Sent row */}
                              {isPictureSentToday ? (
                                  <div className="flex items-center justify-between gap-3">
                                      <div className="flex items-center gap-2 text-emerald-600 bg-emerald-50 p-2 rounded-lg flex-1">
                                          <CheckCircle2 className="w-4 h-4" />
-                                         <span className="text-sm font-medium">Picture sent to {pet.owner_name}</span>
+                                         <span className="text-sm font-medium">Photo Sent to {pet.owner_name}</span>
                                      </div>
                                      <Button 
                                          size="sm" 

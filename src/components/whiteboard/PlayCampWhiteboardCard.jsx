@@ -32,6 +32,8 @@ export default function PlayCampWhiteboardCard({ pet, visit, onViewVisit }) {
     const today = new Date().toISOString().split('T')[0];
     const playSessions = (visit.scheduled_tasks || []).filter(t => t.type === 'Play Session' && t.date === today);
     const needsPicture = pet.daily_picture && !visit.picture_sent;
+    const pictureTakenToday = (visit.picture_taken_dates || []).find(p => p.date === today);
+    const isPictureSentToday = (visit.picture_sent_dates || []).includes(today);
 
     return (
         <motion.div
@@ -108,7 +110,13 @@ export default function PlayCampWhiteboardCard({ pet, visit, onViewVisit }) {
                                 ))}
 
                                 {/* Daily Picture */}
-                                {needsPicture && (
+                                {needsPicture && !isPictureSentToday && pictureTakenToday && (
+                                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border bg-sky-50 border-sky-200">
+                                        <Camera className="w-3 h-3 text-sky-600" />
+                                        <span className="text-xs font-medium text-sky-700">Picture Taken - {pictureTakenToday.initials}</span>
+                                    </div>
+                                )}
+                                {needsPicture && !isPictureSentToday && !pictureTakenToday && (
                                     <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border bg-blue-50 border-blue-200">
                                         <Camera className="w-3 h-3 text-blue-600" />
                                         <span className="text-xs font-medium text-blue-700">Picture</span>

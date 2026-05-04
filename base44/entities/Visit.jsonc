@@ -191,6 +191,21 @@
       },
       "description": "List of YYYY-MM-DD dates on which a picture was sent to the owner"
     },
+    "picture_taken_dates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "initials": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "List of dates on which a picture was taken, with staff initials"
+    },
     "fecal_collected": {
       "type": "boolean",
       "default": false,
