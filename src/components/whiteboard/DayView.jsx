@@ -140,6 +140,13 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
         );
     };
 
+    const needsPhoto = (pet, visit) => {
+        if (!pet.daily_picture) return false;
+        const todayStr = today2;
+        const sentToday = (visit.picture_sent_dates || []).includes(todayStr);
+        return !sentToday;
+    };
+
     const allPetsWithVisits = todayVisits.map(visit => {
         const pet = pets.find(p => p.id === visit.pet_id);
         return { pet, visit };
@@ -152,6 +159,7 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
             if (activeFilter === 'play_camp' && visit.visit_type !== 'play_camp') return false;
             if (activeFilter === 'play_sessions' && !hasPlaySessionsLeft(visit)) return false;
             if (activeFilter === 'due_soon' && !hasTaskDueWithinHour(visit)) return false;
+            if (activeFilter === 'photos_needed' && !needsPhoto(pet, visit)) return false;
         }
         if (searchLower) {
             const petName = (pet.name || '').toLowerCase();
@@ -173,6 +181,7 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
         play_camp: allPetsWithVisits.filter(({ visit }) => visit.visit_type === 'play_camp').length,
         play_sessions: allPetsWithVisits.filter(({ visit }) => hasPlaySessionsLeft(visit)).length,
         due_soon: allPetsWithVisits.filter(({ visit }) => hasTaskDueWithinHour(visit)).length,
+        photos_needed: allPetsWithVisits.filter(({ pet, visit }) => needsPhoto(pet, visit)).length,
     };
 
 
@@ -258,6 +267,7 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
                     { key: 'play_camp', label: '✨ Play Camp' },
                     { key: 'play_sessions', label: '🎾 Play Sessions Left' },
                     { key: 'due_soon', label: '⏰ Due in 1hr' },
+                    { key: 'photos_needed', label: '📸 Photos Needed' },
                 ].map(({ key, label }) => (
                     <button
                         key={key}
