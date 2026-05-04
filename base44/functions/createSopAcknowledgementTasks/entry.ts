@@ -5,8 +5,8 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
     const sop = body.data;
-    if (!sop) return Response.json({ skipped: 'no sop data' });
 
+    if (!sop) return Response.json({ skipped: 'no sop data' });
     if (!sop.requires_acknowledgement || sop.status !== 'published') {
       return Response.json({ skipped: 'not applicable' });
     }
@@ -33,12 +33,13 @@ Deno.serve(async (req) => {
       }
     }
     if (targetEmails.size === 0) {
-      allUsers.forEach(u => targetEmails.add(u.email));
+      allUsers.forEach(u => { if (u.email) targetEmails.add(u.email); });
     }
 
     const userMap = {};
-    allUsers.forEach(u => { userMap[u.email] = u.full_name || u.email; });
+    allUsers.forEach(u => { if (u.email) userMap[u.email] = u.full_name || u.email; });
 
+    // Remove existing pending ack tasks for this SOP
     const existingTasks = await base44.asServiceRole.entities.Task.filter({ sop_id: sopId, status: 'pending' });
     for (const t of existingTasks) {
       await base44.asServiceRole.entities.Task.delete(t.id);
@@ -62,7 +63,7 @@ Deno.serve(async (req) => {
       await base44.asServiceRole.entities.Task.bulkCreate(tasks);
     }
 
-    return Response.json({ created: tasks.length });
+    return Response.json({ created: tasks.length, sop_id: sopId });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
