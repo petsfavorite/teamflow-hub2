@@ -55,6 +55,8 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
     const [newTaskDate, setNewTaskDate] = useState(viewDate);
     const [showPrelimReport, setShowPrelimReport] = useState(false);
     const [editingTaskIdx, setEditingTaskIdx] = useState(null);
+    const [confirmUndoTaskIdx, setConfirmUndoTaskIdx] = useState(null);
+    const [confirmUndoLogIdx, setConfirmUndoLogIdx] = useState(null);
 
     const [recurrenceType, setRecurrenceType] = useState('none');
     const [customTaskType, setCustomTaskType] = useState('');
@@ -614,20 +616,28 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                                         Edit
                                                     </Button>
                                                     {taskIsToday && !isLocked && (
-                                                        <Button 
-                                                            size="sm" 
-                                                            onClick={() => handleCompleteTask(actualIdx)}
-                                                            variant={task.completed ? "outline" : "default"}
-                                                            className={`rounded-xl h-7 text-xs ${
-                                                                task.completed
-                                                                    ? 'border-emerald-300 text-emerald-700 hover:bg-emerald-50'
-                                                                    : isOverdue 
-                                                                    ? 'bg-rose-500 hover:bg-rose-600' 
-                                                                    : 'bg-stone-700 hover:bg-stone-800'
-                                                            }`}
-                                                        >
-                                                            {task.completed ? 'Undo' : 'Complete'}
-                                                        </Button>
+                                                       task.completed && confirmUndoTaskIdx === actualIdx ? (
+                                                           <div className="flex items-center gap-1">
+                                                               <span className="text-xs text-stone-500">Sure?</span>
+                                                               <Button size="sm" onClick={() => { handleCompleteTask(actualIdx); setConfirmUndoTaskIdx(null); }} className="rounded-xl h-7 text-xs bg-rose-500 hover:bg-rose-600">Yes</Button>
+                                                               <Button size="sm" variant="outline" onClick={() => setConfirmUndoTaskIdx(null)} className="rounded-xl h-7 text-xs">No</Button>
+                                                           </div>
+                                                       ) : (
+                                                           <Button 
+                                                               size="sm" 
+                                                               onClick={() => task.completed ? setConfirmUndoTaskIdx(actualIdx) : handleCompleteTask(actualIdx)}
+                                                               variant={task.completed ? "outline" : "default"}
+                                                               className={`rounded-xl h-7 text-xs ${
+                                                                   task.completed
+                                                                       ? 'border-emerald-300 text-emerald-700 hover:bg-emerald-50'
+                                                                       : isOverdue 
+                                                                       ? 'bg-rose-500 hover:bg-rose-600' 
+                                                                       : 'bg-stone-700 hover:bg-stone-800'
+                                                               }`}
+                                                           >
+                                                               {task.completed ? 'Undo' : 'Complete'}
+                                                           </Button>
+                                                       )
                                                     )}
                                                     {taskIsToday && isLocked && (
                                                         <span className="text-xs text-stone-400 italic">Locked</span>
@@ -869,15 +879,23 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                                      {log.staff && (
                                                          <span className="text-stone-500 text-xs font-semibold bg-stone-100 px-2 py-1 rounded">{log.staff}</span>
                                                      )}
-                                                     <Button
-                                                         size="sm"
-                                                         variant="ghost"
-                                                         onClick={() => handleUndoActivityLog(actualIdx)}
-                                                         disabled={isSaving}
-                                                         className="rounded-xl h-6 text-xs text-stone-400 hover:text-stone-600 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
-                                                     >
-                                                         Undo
-                                                     </Button>
+                                                     {confirmUndoLogIdx === actualIdx ? (
+                                                         <div className="flex items-center gap-1">
+                                                             <span className="text-xs text-stone-500">Sure?</span>
+                                                             <Button size="sm" onClick={() => { handleUndoActivityLog(actualIdx); setConfirmUndoLogIdx(null); }} disabled={isSaving} className="rounded-xl h-6 text-xs bg-rose-500 hover:bg-rose-600 text-white">Yes</Button>
+                                                             <Button size="sm" variant="outline" onClick={() => setConfirmUndoLogIdx(null)} className="rounded-xl h-6 text-xs">No</Button>
+                                                         </div>
+                                                     ) : (
+                                                         <Button
+                                                             size="sm"
+                                                             variant="ghost"
+                                                             onClick={() => setConfirmUndoLogIdx(actualIdx)}
+                                                             disabled={isSaving}
+                                                             className="rounded-xl h-6 text-xs text-stone-400 hover:text-stone-600 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                                                         >
+                                                             Undo
+                                                         </Button>
+                                                     )}
                                                  </div>
                                              </div>
                                         );
