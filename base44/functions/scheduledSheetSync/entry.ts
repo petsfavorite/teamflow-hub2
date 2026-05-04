@@ -96,22 +96,20 @@ Deno.serve(async (req) => {
       return obj;
     });
 
+    // Full sync: delete all existing records, then re-import everything from sheet
     const [userList, allExistingRecords] = await Promise.all([
       base44.asServiceRole.entities.User.list(),
-      base44.asServiceRole.entities.CallRecord.list("-created_date", 2000),
+      base44.asServiceRole.entities.CallRecord.list("-created_date", 5000),
     ]);
 
-    const existingIds = new Set(
-      (allExistingRecords || []).map(r => r.zoom_meeting_id).filter(Boolean)
+    // Delete all existing CallRecords
+    await Promise.all(
+      (allExistingRecords || []).map(r => base44.asServiceRole.entities.CallRecord.delete(r.id))
     );
 
-    const newRows = records.filter(row => {
-      const zoom_meeting_id = `sheet_row_${row.__rowIndex}`;
-      return !existingIds.has(zoom_meeting_id);
-    });
-
     const MAX_PER_RUN = 15;
-    const rowsToProcess = newRows.slice(0, MAX_PER_RUN);
+    const rowsToProcess = records.slice(0, MAX_PER_RUN);
+    const remaining = records.length - rowsToProcess.length;
 
     let imported = 0;
     let skipped = 0;
@@ -154,7 +152,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    return Response.json({ imported, skipped, remaining: newRows.length - rowsToProcess.length, errors: errors.slice(0, 5) });
+    return Response.json({ imported, skipped, remaining, errors: errors.slice(0, 5) });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
