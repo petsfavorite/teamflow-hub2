@@ -413,7 +413,7 @@ export default function Assets() {
           </Dialog>
 
           <Dialog open={creatingTaskForAsset} onOpenChange={setCreatingTaskForAsset}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Create Task for {selectedAsset?.name}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2"><Label>Task Title</Label><Input value={newTaskForm.title} onChange={e => setNewTaskForm({ ...newTaskForm, title: e.target.value })} placeholder="What needs to be done?" /></div>
