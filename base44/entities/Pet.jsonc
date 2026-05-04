@@ -1,0 +1,116 @@
+{
+  "name": "Pet",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Pet's name"
+    },
+    "species": {
+      "type": "string",
+      "enum": [
+        "Dog",
+        "Cat"
+      ],
+      "default": "Dog"
+    },
+    "breed": {
+      "type": "string"
+    },
+    "color": {
+      "type": "string"
+    },
+    "gender": {
+      "type": "string",
+      "enum": [
+        "Male",
+        "Neutered Male",
+        "Female",
+        "Spayed Female"
+      ]
+    },
+    "birthday": {
+      "type": "string",
+      "format": "date",
+      "description": "Pet's date of birth"
+    },
+    "group_play": {
+      "type": "string",
+      "enum": [
+        "Approved",
+        "Not Approved",
+        "Not Tested"
+      ],
+      "default": "Not Tested"
+    },
+    "social_media": {
+      "type": "string",
+      "enum": [
+        "Approved for Social Media",
+        "Not Approved for Social Media",
+        "No Record of Social Media Consent"
+      ],
+      "default": "No Record of Social Media Consent"
+    },
+    "photo_url": {
+      "type": "string"
+    },
+    "owner_name": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "feeding_instructions": {
+      "type": "string"
+    },
+    "medication_notes": {
+      "type": "string",
+      "description": "General medication notes for the pet's profile"
+    },
+    "medications": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "dosage": {
+            "type": "string"
+          },
+          "frequency": {
+            "type": "string"
+          },
+          "instructions": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "special_needs": {
+      "type": "string"
+    },
+    "daily_picture": {
+      "type": "boolean",
+      "default": false
+    },
+    "is_checked_in": {
+      "type": "boolean",
+      "default": false
+    },
+    "is_archived": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the pet is archived"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "name",
+    "species",
+    "owner_name"
+  ]
+}

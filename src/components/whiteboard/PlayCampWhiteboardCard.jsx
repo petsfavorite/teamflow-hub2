@@ -7,6 +7,19 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 
+const getPetAge = (birthday) => {
+    if (!birthday) return null;
+    const birth = new Date(birthday);
+    const now = new Date();
+    const years = now.getFullYear() - birth.getFullYear();
+    const months = now.getMonth() - birth.getMonth() + (years * 12);
+    const totalYears = Math.floor(months / 12);
+    const remMonths = months % 12;
+    if (totalYears === 0) return `${remMonths}mo`;
+    if (remMonths === 0) return `${totalYears}yr`;
+    return `${totalYears}yr ${remMonths}mo`;
+};
+
 const ownerLastName = (pet) => {
     if (!pet.owner_name) return '';
     const parts = pet.owner_name.trim().split(/\s+/);
@@ -63,7 +76,10 @@ export default function PlayCampWhiteboardCard({ pet, visit, onViewVisit }) {
                                 {pet.special_needs && (
                                     <p className="text-xs text-amber-600 mb-1">⚠️ {pet.special_needs}</p>
                                 )}
-                                <p className="text-xs text-stone-500">{visit.location || 'Lobby'}</p>
+                                <p className="text-xs text-stone-500">
+                                    {visit.location || 'Lobby'}
+                                    {pet.birthday && <span className="ml-2 text-stone-400">· {getPetAge(pet.birthday)}</span>}
+                                </p>
                                 <Badge className="bg-emerald-100 text-emerald-700 border-0 text-xs px-2 py-0 mt-1">
                                     Play Camp
                                 </Badge>

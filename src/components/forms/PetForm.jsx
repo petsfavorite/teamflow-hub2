@@ -244,7 +244,16 @@ export default function PetForm({ pet, onSave, onCancel, onDelete, isLoading }) 
                                     </Select>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>Group Play</Label>
+                                    <Label>Birthday</Label>
+                                    <Input
+                                        type="date"
+                                        value={formData.birthday || ''}
+                                        onChange={(e) => handleChange('birthday', e.target.value)}
+                                        className="rounded-xl"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                     <Label>Group Play</Label>
                                     <Select value={formData.group_play} onValueChange={(v) => handleChange('group_play', v)}>
                                         <SelectTrigger className="rounded-xl">
                                             <SelectValue />

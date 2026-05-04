@@ -4,8 +4,19 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { 
     Dog, Cat, Utensils, Pill, Camera, CheckCircle2, 
-    AlertCircle, ChevronRight, Sparkles
+    AlertCircle, ChevronRight, Sparkles, Cake
 } from "lucide-react";
+
+const getPetAge = (birthday) => {
+    if (!birthday) return null;
+    const birth = moment(birthday);
+    const now = moment();
+    const years = now.diff(birth, 'years');
+    const months = now.diff(birth.clone().add(years, 'years'), 'months');
+    if (years === 0) return `${months}mo`;
+    if (months === 0) return `${years}yr`;
+    return `${years}yr ${months}mo`;
+};
 import { motion } from "framer-motion";
 import moment from "moment";
 
@@ -112,7 +123,10 @@ export default function BoardingWhiteboardCard({ pet, visit, onViewVisit }) {
                                 {pet.special_needs && (
                                     <p className="text-xs text-amber-600 mb-1">⚠️ {pet.special_needs}</p>
                                 )}
-                                <p className="text-xs text-stone-500">{visit.location || 'Lobby'}</p>
+                                <p className="text-xs text-stone-500">
+                                    {visit.location || 'Lobby'}
+                                    {pet.birthday && <span className="ml-2 text-stone-400">· {getPetAge(pet.birthday)}</span>}
+                                </p>
                                 <div className="flex items-center gap-1 mt-1">
                                     <Badge className="bg-blue-100 text-blue-700 border-0 text-xs px-2 py-0">
                                         Boarding
