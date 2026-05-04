@@ -22,9 +22,10 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
      const [addBath, setAddBath] = useState(false);
     const inferMealTimesFromFrequency = (freq) => {
         const f = (freq || '').toLowerCase();
-        const isAmOnly = f.includes('once') && f.includes('am') || f === 'once daily am' || f === 'once daily in the am' || (f.includes('once') && !f.includes('pm') && !f.includes('twice') && !f.includes('two') && !f.includes('dinner'));
-        const isPmOnly = f.includes('once') && f.includes('pm') || f === 'once daily pm' || f === 'once daily in the pm' || (f.includes('once') && f.includes('dinner'));
-        const isTwice = f.includes('twice') || f.includes('two') || f.includes('bid') || (f.includes('am') && f.includes('pm'));
+        const isTwice = f.includes('twice') || f.includes('bid') || (f.includes('am') && f.includes('pm'));
+        const isPmOnly = !isTwice && (f.includes('pm') || f.includes('dinner') || f.includes('evening'));
+        const isAmOnly = !isTwice && !isPmOnly && (f.includes('am') || f.includes('morning') || f.includes('breakfast'));
+        // Default (unknown frequency): breakfast only
         return [
             { meal: 'Breakfast', time: '9:00 AM', enabled: !isPmOnly },
             { meal: 'Lunch', time: '12:00 PM', enabled: false },
