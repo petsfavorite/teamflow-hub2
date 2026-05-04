@@ -901,7 +901,10 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                         const actualIdx = visit.care_log.length - 1 - i;
                                         return (
                                             <div key={i} className="flex gap-3 text-sm items-start group">
-                                                 <span className="text-stone-400 text-xs w-16 shrink-0">{log.time}</span>
+                                                 <div className="flex flex-col shrink-0 w-16">
+                                                     {log.date && <span className="text-stone-400 text-xs">{moment(log.date).format('MMM D')}</span>}
+                                                     <span className="text-stone-400 text-xs">{log.time}</span>
+                                                 </div>
                                                  <div className="flex-1">
                                                      <span className="font-medium text-stone-700">{log.activity}</span>
                                                      {log.notes && (
