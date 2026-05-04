@@ -107,8 +107,19 @@ export default function Dashboard() {
       );
       if (requiresAck.length === 0) return [];
       const acks = await base44.entities.SOPAcknowledgement.filter({ user_email: user.email });
-      const ackedSopIds = new Set(acks.map(a => a.sop_id));
-      return requiresAck.filter(sop => !ackedSopIds.has(sop.id));
+      // Build a map of sop_id -> highest acknowledged version
+      const ackedVersionMap = {};
+      acks.forEach(a => {
+        if (!ackedVersionMap[a.sop_id] || a.version_number > ackedVersionMap[a.sop_id]) {
+          ackedVersionMap[a.sop_id] = a.version_number;
+        }
+      });
+      // Show if never acknowledged OR if the current version is newer than what was acknowledged
+      return requiresAck.filter(sop => {
+        const ackedVersion = ackedVersionMap[sop.id];
+        if (!ackedVersion) return true; // never acknowledged
+        return (sop.version || 1) > ackedVersion; // updated since last ack
+      });
     },
   });
 
