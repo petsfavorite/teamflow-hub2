@@ -377,13 +377,18 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
                                                 )}
                                                 
                                                 <div className="flex items-center justify-between mb-2">
-                                                    <div>
-                                                        <p className="text-xs text-gray-500 mb-1">Location</p>
-                                                        <LocationEditor visit={visit} onSaved={(loc) => onUpdateLocation?.(visit.id, loc)} />
-                                                        </div>
-                                                        <p className={`text-xs ${visit.picture_sent ? 'text-emerald-600' : 'text-gray-400'}`}>
-                                                        📸 {visit.picture_sent ? 'Sent' : 'Not Sent'}
-                                                    </p>
+                                                   <div>
+                                                       <p className="text-xs text-gray-500 mb-1">Location</p>
+                                                       <LocationEditor visit={visit} onSaved={(loc) => onUpdateLocation?.(visit.id, loc)} />
+                                                   </div>
+                                                   {pet.daily_picture && (() => {
+                                                       const todayStr = nowTick.format('YYYY-MM-DD');
+                                                       const takenToday = (visit.picture_taken_dates || []).find(p => p.date === todayStr);
+                                                       const sentToday = (visit.picture_sent_dates || []).includes(todayStr);
+                                                       if (sentToday) return <p className="text-xs text-emerald-600">📸 Photo Sent</p>;
+                                                       if (takenToday) return <p className="text-xs text-sky-600">📸 Photo Taken - {takenToday.initials}</p>;
+                                                       return <p className="text-xs text-gray-400">📸 Photo Not Taken</p>;
+                                                   })()}
                                                 </div>
                                                 
                                                 {(() => {
@@ -497,9 +502,14 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
                                                                     <div className="rounded-lg">
                                                                         <p className="text-xs text-gray-500 mb-1">Location</p>
                                                                         <LocationEditor visit={visit} onSaved={(loc) => onUpdateLocation?.(visit.id, loc)} />
-                                                                        <p className={`text-xs mt-2 ${visit.picture_sent ? 'text-emerald-600' : 'text-gray-400'}`}>
-                                                                            📸 Photo {visit.picture_sent ? 'Sent' : 'Not Sent'}
-                                                                        </p>
+                                                                        {pet.daily_picture && (() => {
+                                                                            const todayStr = nowTick.format('YYYY-MM-DD');
+                                                                            const takenToday = (visit.picture_taken_dates || []).find(p => p.date === todayStr);
+                                                                            const sentToday = (visit.picture_sent_dates || []).includes(todayStr);
+                                                                            if (sentToday) return <p className="text-xs mt-2 text-emerald-600">📸 Photo Sent</p>;
+                                                                            if (takenToday) return <p className="text-xs mt-2 text-sky-600">📸 Photo Taken - {takenToday.initials}</p>;
+                                                                            return <p className="text-xs mt-2 text-gray-400">📸 Photo Not Taken</p>;
+                                                                        })()}
                                                                     </div>
                                                                 </div>
 
