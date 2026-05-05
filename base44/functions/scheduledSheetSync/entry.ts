@@ -82,8 +82,9 @@ Deno.serve(async (req) => {
 
     const spreadsheetId = Deno.env.get("GOOGLE_SHEET_ID");
 
-    // Fetch only the first 500 rows to limit memory usage
-    const range = "Sheet1!A1:Z500";
+    // Fetch up to 2000 rows; only metadata columns (A:D) to keep payload small,
+    // then fetch full data only for new rows
+    const range = "Sheet1!A1:Z2000";
 
     const [sheetRes, userList, allExistingRecords] = await Promise.all([
       fetch(
@@ -91,7 +92,7 @@ Deno.serve(async (req) => {
         { headers: { Authorization: `Bearer ${accessToken}` } }
       ),
       base44.asServiceRole.entities.User.list(),
-      base44.asServiceRole.entities.CallRecord.list("-created_date", 1000),
+      base44.asServiceRole.entities.CallRecord.list("-created_date", 2000),
     ]);
 
     if (!sheetRes.ok) {
