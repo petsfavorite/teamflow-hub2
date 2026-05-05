@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 import OpenAI from 'npm:openai';
 
 async function analyzeTranscript(transcript, callerInfo, userList) {
@@ -44,25 +44,21 @@ function fuzzyMatchUser(detectedName, userList) {
   if (!detectedName || !userList.length) return detectedName;
   const lower = detectedName.toLowerCase().trim();
 
-  // 1. Exact match on full_name
   const exact = userList.find(u => u.full_name.toLowerCase() === lower);
   if (exact) return exact.full_name;
 
-  // 2. First-name-only match (e.g. "Jen" → "Jennifer Smith")
   const firstNameMatch = userList.find(u => {
     const firstName = u.full_name.toLowerCase().split(" ")[0];
     return firstName === lower;
   });
   if (firstNameMatch) return firstNameMatch.full_name;
 
-  // 3. Detected name is contained in full_name or vice versa
   const containsMatch = userList.find(u => {
     const uLower = u.full_name.toLowerCase();
     return uLower.includes(lower) || lower.includes(uLower);
   });
   if (containsMatch) return containsMatch.full_name;
 
-  // No match — return null so we don't store a partial/wrong name
   return null;
 }
 
@@ -84,20 +80,26 @@ Deno.serve(async (req) => {
 
     const { accessToken } = await base44.asServiceRole.connectors.getConnection("googlesheets");
 
-    const spreadsheetId = Deno.env.get("GOOGLE_SHEET_ID") || "YOUR_GOOGLE_SHEET_ID_HERE";
-    const range = "Sheet1!A1:Z5000";
+    const spreadsheetId = Deno.env.get("GOOGLE_SHEET_ID");
 
-    const res = await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}`,
-      { headers: { Authorization: `Bearer ${accessToken}` } }
-    );
+    // Fetch only the first 500 rows to limit memory usage
+    const range = "Sheet1!A1:Z500";
 
-    if (!res.ok) {
-      const err = await res.text();
-      return Response.json({ error: err }, { status: res.status });
+    const [sheetRes, userList, allExistingRecords] = await Promise.all([
+      fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      ),
+      base44.asServiceRole.entities.User.list(),
+      base44.asServiceRole.entities.CallRecord.list("-created_date", 1000),
+    ]);
+
+    if (!sheetRes.ok) {
+      const err = await sheetRes.text();
+      return Response.json({ error: err }, { status: sheetRes.status });
     }
 
-    const data = await res.json();
+    const data = await sheetRes.json();
     const rows = data.values || [];
     if (rows.length < 2) return Response.json({ imported: 0, skipped: 0, remaining: 0 });
 
@@ -108,21 +110,14 @@ Deno.serve(async (req) => {
       return obj;
     });
 
-    const [userList, allExistingRecords] = await Promise.all([
-      base44.asServiceRole.entities.User.list(),
-      base44.asServiceRole.entities.CallRecord.list("-created_date", 5000),
-    ]);
-
     const existingIds = new Set(
       (allExistingRecords || []).map(r => r.zoom_meeting_id).filter(Boolean)
     );
 
-    const newRows = records.filter(row => {
-      const zoom_meeting_id = `sheet_row_${row.__rowIndex}`;
-      return !existingIds.has(zoom_meeting_id);
-    });
+    const newRows = records.filter(row => !existingIds.has(`sheet_row_${row.__rowIndex}`));
 
-    const MAX_PER_RUN = 40;
+    // Process in small batches to avoid timeouts
+    const MAX_PER_RUN = 15;
     const rowsToProcess = newRows.slice(0, MAX_PER_RUN);
     const remaining = newRows.length - rowsToProcess.length;
 
@@ -130,42 +125,47 @@ Deno.serve(async (req) => {
     let skipped = 0;
     const errors = [];
 
-    for (const row of rowsToProcess) {
-      try {
-        const callDate = row["Date/Time"] || row["Call Date"];
-        const transcript = row["Transcript"] || "";
-        const rawLink = row["Link to Recording"] || "";
-        const directionRaw = (row["Inbound/Outbound"] || "").toLowerCase();
-        const call_direction = directionRaw.includes("out") ? "outbound" : "inbound";
+    // Process in parallel groups of 5 to stay within memory/time limits
+    const CONCURRENCY = 5;
+    for (let i = 0; i < rowsToProcess.length; i += CONCURRENCY) {
+      const batch = rowsToProcess.slice(i, i + CONCURRENCY);
+      await Promise.all(batch.map(async (row) => {
+        try {
+          const callDate = row["Date/Time"] || row["Call Date"];
+          const transcript = row["Transcript"] || "";
+          const rawLink = row["Link to Recording"] || "";
+          const directionRaw = (row["Inbound/Outbound"] || "").toLowerCase();
+          const call_direction = directionRaw.includes("out") ? "outbound" : "inbound";
 
-        if (!callDate) { skipped++; continue; }
+          if (!callDate) { skipped++; return; }
 
-        const zoom_meeting_id = `sheet_row_${row.__rowIndex}`;
-        const callerInfo = { call_date: callDate, call_direction };
-        const analysis = await analyzeTranscript(transcript, callerInfo, userList);
+          const zoom_meeting_id = `sheet_row_${row.__rowIndex}`;
+          const callerInfo = { call_date: callDate, call_direction };
+          const analysis = await analyzeTranscript(transcript, callerInfo, userList);
 
-        if (analysis.team_member && userList.length) {
-          const matched = fuzzyMatchUser(analysis.team_member, userList);
-          analysis.team_member = matched || null;
+          if (analysis.team_member && userList.length) {
+            const matched = fuzzyMatchUser(analysis.team_member, userList);
+            analysis.team_member = matched || null;
+          }
+
+          const recordingUrl = extractRecordingUrl(rawLink);
+
+          await base44.asServiceRole.entities.CallRecord.create({
+            zoom_meeting_id,
+            call_date: new Date(callDate).toISOString(),
+            call_direction,
+            transcript: transcript || null,
+            recording_url: recordingUrl,
+            status: "pending_review",
+            was_booked: analysis.booking_outcome === "appt_booked",
+            ...analysis,
+          });
+          imported++;
+        } catch (err) {
+          errors.push(err.message);
+          skipped++;
         }
-
-        const recordingUrl = extractRecordingUrl(rawLink);
-
-        await base44.asServiceRole.entities.CallRecord.create({
-          zoom_meeting_id,
-          call_date: new Date(callDate).toISOString(),
-          call_direction,
-          transcript: transcript || null,
-          recording_url: recordingUrl,
-          status: "pending_review",
-          was_booked: analysis.booking_outcome === "appt_booked",
-          ...analysis,
-        });
-        imported++;
-      } catch (err) {
-        errors.push(err.message);
-        skipped++;
-      }
+      }));
     }
 
     return Response.json({ imported, skipped, remaining, errors: errors.slice(0, 5) });
