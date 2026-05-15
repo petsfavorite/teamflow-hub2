@@ -57,6 +57,8 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
     const [editingTaskIdx, setEditingTaskIdx] = useState(null);
     const [confirmUndoTaskIdx, setConfirmUndoTaskIdx] = useState(null);
     const [confirmUndoLogIdx, setConfirmUndoLogIdx] = useState(null);
+    const [cancelTaskIdx, setCancelTaskIdx] = useState(null);
+    const [cancelTaskNote, setCancelTaskNote] = useState('');
 
     const [recurrenceType, setRecurrenceType] = useState('none');
     const [customTaskType, setCustomTaskType] = useState('');
@@ -453,6 +455,39 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
          setAddingTask(false);
          };
 
+    const handleCancelTask = (taskIndex) => {
+        if (!cancelTaskNote.trim()) return;
+        const task = visit.scheduled_tasks[taskIndex];
+        const initials = currentUser?.full_name?.split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase() || '?';
+        const timestamp = moment().format('h:mm A');
+        const taskLabel = task.type === 'Medication' ? task.medication_name : task.type;
+
+        // Log cancellation to care log
+        const careLog = [...(visit.care_log || []), {
+            time: timestamp,
+            date: today,
+            activity: `${taskLabel} — Not Done`,
+            notes: cancelTaskNote.trim(),
+            staff: initials
+        }];
+
+        // Mark task as cancelled by removing it from scheduled_tasks (day-specific) or flagging it
+        const updatedTasks = [...visit.scheduled_tasks];
+        updatedTasks[taskIndex] = {
+            ...updatedTasks[taskIndex],
+            completed: true,
+            cancelled: true,
+            completed_at: timestamp,
+            completed_by: initials,
+            completed_date: today,
+            cancel_note: cancelTaskNote.trim()
+        };
+
+        onUpdateVisit({ ...visit, scheduled_tasks: updatedTasks, care_log: careLog });
+        setCancelTaskIdx(null);
+        setCancelTaskNote('');
+    };
+
     return (
         <>
         <PreliminaryReportDialog
@@ -602,28 +637,32 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                         const recurrenceLabel = '';
                                         
                                         return (
+                                            <React.Fragment key={idx}>
                                             <div 
-                                                key={idx}
-                                                className={`flex items-center justify-between p-2 rounded-xl border ${
-                                                    task.is_as_needed
-                                                        ? 'bg-purple-50 border-purple-200'
-                                                        : task.completed 
-                                                        ? 'bg-emerald-50 border-emerald-200' 
-                                                        : isOverdue 
-                                                        ? 'bg-rose-50 border-rose-200' 
-                                                        : 'bg-white border-stone-200'
-                                                }`}
+                                               className={`flex items-center justify-between p-2 rounded-xl border ${
+                                                   task.is_as_needed
+                                                       ? 'bg-purple-50 border-purple-200'
+                                                       : task.cancelled
+                                                       ? 'bg-stone-50 border-stone-200 opacity-60'
+                                                       : task.completed 
+                                                       ? 'bg-emerald-50 border-emerald-200' 
+                                                       : isOverdue 
+                                                       ? 'bg-rose-50 border-rose-200' 
+                                                       : 'bg-white border-stone-200'
+                                               }`}
                                             >
                                                 <div className="flex-1">
                                                     <p className={`text-sm font-medium ${
-                                                        task.is_as_needed
-                                                            ? 'text-purple-700'
-                                                            : task.completed 
-                                                            ? 'text-emerald-700' 
-                                                            : isOverdue 
-                                                            ? 'text-rose-700' 
-                                                            : 'text-stone-700'
-                                                    }`}>
+                                                         task.is_as_needed
+                                                             ? 'text-purple-700'
+                                                             : task.cancelled
+                                                             ? 'line-through text-stone-400'
+                                                             : task.completed 
+                                                             ? 'text-emerald-700' 
+                                                             : isOverdue 
+                                                             ? 'text-rose-700' 
+                                                             : 'text-stone-700'
+                                                     }`}>
                                                         {task.time ? `${task.time} - ` : ''}{task.type === 'Medication' ? task.medication_name : task.type}
                                                         {task.is_as_needed && <span className="text-xs ml-1 text-purple-500">(as needed)</span>}
                                                         {!task.is_as_needed && !task.is_template && <span className="text-xs ml-1">(custom)</span>}
@@ -639,21 +678,26 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                                     {task.notes && (
                                                         <p className="text-xs text-stone-500">{task.notes}</p>
                                                     )}
-                                                    {task.completed && (
+                                                    {task.completed && !task.cancelled && (
                                                         <p className="text-xs text-emerald-600">
                                                             Done at {task.completed_at} by {task.completed_by || '?'}
                                                         </p>
                                                     )}
+                                                    {task.cancelled && (
+                                                        <p className="text-xs text-stone-400">Not done — {task.cancel_note}</p>
+                                                    )}
                                                 </div>
                                                 <div className="flex items-center gap-2 ml-2">
-                                                    <Button 
-                                                        size="sm" 
-                                                        variant="ghost"
-                                                        onClick={() => handleEditTask(actualIdx)}
-                                                        className="rounded-xl h-7 text-xs text-stone-600 hover:bg-stone-100"
-                                                    >
-                                                        Edit
-                                                    </Button>
+                                                    {!task.cancelled && (
+                                                        <Button 
+                                                            size="sm" 
+                                                            variant="ghost"
+                                                            onClick={() => handleEditTask(actualIdx)}
+                                                            className="rounded-xl h-7 text-xs text-stone-600 hover:bg-stone-100"
+                                                        >
+                                                            Edit
+                                                        </Button>
+                                                    )}
                                                     {task.is_as_needed && taskIsToday && (
                                                         <Button
                                                             size="sm"
@@ -663,7 +707,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                                             Give
                                                         </Button>
                                                     )}
-                                                    {!task.is_as_needed && taskIsToday && !isLocked && (
+                                                    {!task.is_as_needed && !task.cancelled && taskIsToday && !isLocked && (
                                                        task.completed && confirmUndoTaskIdx === actualIdx ? (
                                                            <div className="flex items-center gap-1">
                                                                <span className="text-xs text-stone-500">Sure?</span>
@@ -671,6 +715,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                                                <Button size="sm" variant="outline" onClick={() => setConfirmUndoTaskIdx(null)} className="rounded-xl h-7 text-xs">No</Button>
                                                            </div>
                                                        ) : (
+                                                           <>
                                                            <Button 
                                                                size="sm" 
                                                                onClick={() => task.completed ? setConfirmUndoTaskIdx(actualIdx) : handleCompleteTask(actualIdx)}
@@ -685,20 +730,53 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                                            >
                                                                {task.completed ? 'Undo' : 'Complete'}
                                                            </Button>
+                                                           {!task.completed && (
+                                                               <Button
+                                                                   size="sm"
+                                                                   variant="ghost"
+                                                                   onClick={() => { setCancelTaskIdx(actualIdx); setCancelTaskNote(''); }}
+                                                                   className="rounded-xl h-7 text-xs text-stone-400 hover:text-rose-600 hover:bg-rose-50"
+                                                               >
+                                                                   Cancel
+                                                               </Button>
+                                                           )}
+                                                           </>
                                                        )
                                                     )}
-                                                    {!task.is_as_needed && taskIsToday && isLocked && (
+                                                    {!task.is_as_needed && !task.cancelled && taskIsToday && isLocked && (
                                                         <span className="text-xs text-stone-400 italic">Locked</span>
                                                     )}
                                                 </div>
                                             </div>
-                                        );
-                                    })}
-                            </CardContent>
-                        </Card>
-                    )}
-                    
-                    {/* Add Custom Task */}
+                                            {cancelTaskIdx === actualIdx && (
+                                                <div className="mt-1 p-2 bg-rose-50 border border-rose-200 rounded-xl space-y-2">
+                                                    <p className="text-xs font-medium text-rose-700">Why is this task not being done?</p>
+                                                    <Textarea
+                                                        autoFocus
+                                                        placeholder="Enter reason..."
+                                                        value={cancelTaskNote}
+                                                        onChange={(e) => setCancelTaskNote(e.target.value)}
+                                                        className="rounded-xl text-xs"
+                                                        rows={2}
+                                                    />
+                                                    <div className="flex gap-2">
+                                                        <Button size="sm" variant="outline" onClick={() => { setCancelTaskIdx(null); setCancelTaskNote(''); }} className="flex-1 rounded-xl h-7 text-xs">
+                                                            Back
+                                                        </Button>
+                                                        <Button size="sm" onClick={() => handleCancelTask(actualIdx)} disabled={!cancelTaskNote.trim()} className="flex-1 rounded-xl h-7 text-xs bg-rose-500 hover:bg-rose-600">
+                                                            Confirm
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            </React.Fragment>
+                                            );
+                                            })}
+                                            </CardContent>
+                                            </Card>
+                                            )}
+
+                                            {/* Add Custom Task */}
                     <Card className="border-0 shadow-sm rounded-2xl border-2 border-dashed border-[#82bb32]/40">
                         <CardHeader className="pb-2">
                             <CardTitle className="text-sm flex items-center gap-2">
