@@ -200,6 +200,26 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
     const medCheckInMinute = moment().minute();
 
     visitMedications.forEach(med => {
+        // "As Needed" medications: add one persistent task per day (no time, never auto-completes)
+        if (med.frequency === 'As Needed') {
+            let d = moment(checkInDate);
+            while (d.format('YYYY-MM-DD') <= checkoutDate) {
+                tasks.push({
+                    type: 'Medication',
+                    time: '',
+                    date: d.format('YYYY-MM-DD'),
+                    is_template: true,
+                    is_as_needed: true,
+                    completed: false,
+                    completed_at: null,
+                    medication_name: med.name,
+                    notes: med.instructions || 'As Needed'
+                });
+                d.add(1, 'day');
+            }
+            return;
+        }
+
         const mealTimes = med.meal_times || [];
         mealTimes.filter(mt => mt.enabled && mt.time).forEach(mt => {
             const parsed = parseTime(mt.time);
@@ -554,6 +574,10 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
                                     <Input placeholder="Name" value={med.name} onChange={(e) => updateMedication(index, 'name', e.target.value)} className="rounded-xl bg-white text-sm h-8" />
                                     <Input placeholder="Dosage" value={med.dosage} onChange={(e) => updateMedication(index, 'dosage', e.target.value)} className="rounded-xl bg-white text-sm h-8" />
                                 </div>
+                                {med.frequency === 'As Needed' && (
+                                    <p className="text-xs text-purple-600 italic">This medication will appear daily as an as-needed task. Staff can log each administration.</p>
+                                )}
+                                {med.frequency !== 'As Needed' && (
                                 <div className="space-y-1">
                                     <p className="text-xs text-purple-700 font-medium">Give with meal (edit time if needed):</p>
                                     {(med.meal_times || []).map((mt, mi) => (
@@ -580,9 +604,15 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
                                         </div>
                                     ))}
                                 </div>
-                                <Input placeholder="Instructions (optional)" value={med.instructions} onChange={(e) => updateMedication(index, 'instructions', e.target.value)} className="rounded-xl bg-white text-sm h-8" />
-                            </div>
-                        ))}
+                                )}
+                                <Input
+                                    placeholder={med.frequency === 'As Needed' ? "When/why to give this medication (required)" : "Instructions (optional)"}
+                                    value={med.instructions}
+                                    onChange={(e) => updateMedication(index, 'instructions', e.target.value)}
+                                    className="rounded-xl bg-white text-sm h-8"
+                                />
+                                </div>
+                                ))}
                     </div>
 
                     <div className="bg-blue-50 rounded-xl p-4 text-sm text-blue-700">

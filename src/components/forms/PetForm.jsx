@@ -456,17 +456,22 @@ export default function PetForm({ pet, onSave, onCancel, onDelete, isLoading }) 
                                                <SelectItem value="Once Daily in AM">Once Daily in AM (9 AM)</SelectItem>
                                                <SelectItem value="Once Daily in PM">Once Daily in PM (6 PM)</SelectItem>
                                                <SelectItem value="Twice Daily">Twice Daily (9 AM & 6 PM)</SelectItem>
+                                               <SelectItem value="As Needed">As Needed</SelectItem>
                                                <SelectItem value="Custom">Custom (add to special instructions)</SelectItem>
                                            </SelectContent>
                                         </Select>
-                                    </div>
-                                    <Textarea
-                                        placeholder="Special instructions for this medication..."
+                                        </div>
+                                        <Textarea
+                                        placeholder={med.frequency === 'As Needed' ? "When to give this medication (required for As Needed)..." : "Special instructions for this medication..."}
                                         value={med.instructions}
                                         onChange={(e) => updateMedication(index, 'instructions', e.target.value)}
-                                        className="rounded-xl bg-white"
+                                        className={`rounded-xl bg-white ${med.frequency === 'As Needed' && !med.instructions?.trim() ? 'border-amber-400' : ''}`}
                                         rows={2}
-                                    />
+                                        required={med.frequency === 'As Needed'}
+                                        />
+                                        {med.frequency === 'As Needed' && !med.instructions?.trim() && (
+                                        <p className="text-xs text-amber-600">Instructions are required for As Needed medications.</p>
+                                        )}
                                 </div>
                             ))}
 

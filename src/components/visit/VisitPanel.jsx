@@ -72,6 +72,11 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
     // Get tasks for the current viewing date
      const getTasksForDate = (date) => {
          let tasks = visit.scheduled_tasks?.filter(task => {
+             // "As Needed" tasks always show on their date (never completed, just logged)
+             if (task.is_as_needed) {
+                 return task.date === date;
+             }
+
              // For completed tasks, only show if completed on this date (so Undo is accessible)
              if (task.completed) {
                  return task.completed_date === date;
@@ -127,6 +132,24 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
         const task = visit.scheduled_tasks[taskIndex];
         const today = moment().format('YYYY-MM-DD');
 
+        // Derive initials from current user's name
+        const name = currentUser?.full_name || '';
+        const initials = name.split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase() || '?';
+        const timestamp = moment().format('h:mm A');
+
+        // "As Needed" tasks: just log the administration, never mark as completed
+        if (task.is_as_needed) {
+            const careLog = [...(visit.care_log || []), {
+                time: timestamp,
+                date: today,
+                activity: task.medication_name ? `${task.medication_name} (As Needed)` : 'Medication (As Needed)',
+                notes: task.notes || '',
+                staff: initials
+            }];
+            onUpdateVisit({ ...visit, care_log: careLog });
+            return;
+        }
+
         // If already completed today, toggle it back to incomplete
         if (task.completed) {
             const updatedTasks = [...visit.scheduled_tasks];
@@ -142,10 +165,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
             return;
         }
 
-        // Derive initials from current user's name
-        const name = currentUser?.full_name || '';
-        const initials = name.split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase() || '?';
-        const timestamp = moment().format('h:mm A');
+
 
         const updatedTasks = [...visit.scheduled_tasks];
         updatedTasks[taskIndex] = {
@@ -585,7 +605,9 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                             <div 
                                                 key={idx}
                                                 className={`flex items-center justify-between p-2 rounded-xl border ${
-                                                    task.completed 
+                                                    task.is_as_needed
+                                                        ? 'bg-purple-50 border-purple-200'
+                                                        : task.completed 
                                                         ? 'bg-emerald-50 border-emerald-200' 
                                                         : isOverdue 
                                                         ? 'bg-rose-50 border-rose-200' 
@@ -594,14 +616,17 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                             >
                                                 <div className="flex-1">
                                                     <p className={`text-sm font-medium ${
-                                                        task.completed 
+                                                        task.is_as_needed
+                                                            ? 'text-purple-700'
+                                                            : task.completed 
                                                             ? 'text-emerald-700' 
                                                             : isOverdue 
                                                             ? 'text-rose-700' 
                                                             : 'text-stone-700'
                                                     }`}>
                                                         {task.time ? `${task.time} - ` : ''}{task.type === 'Medication' ? task.medication_name : task.type}
-                                                        {!task.is_template && <span className="text-xs ml-1">(custom)</span>}
+                                                        {task.is_as_needed && <span className="text-xs ml-1 text-purple-500">(as needed)</span>}
+                                                        {!task.is_as_needed && !task.is_template && <span className="text-xs ml-1">(custom)</span>}
                                                         {recurrenceLabel && <span className="text-xs text-stone-500 ml-1">{recurrenceLabel}</span>}
                                                     </p>
                                                     {task.type === 'Medication' && (() => {
@@ -629,7 +654,16 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                                     >
                                                         Edit
                                                     </Button>
-                                                    {taskIsToday && !isLocked && (
+                                                    {task.is_as_needed && taskIsToday && (
+                                                        <Button
+                                                            size="sm"
+                                                            onClick={() => handleCompleteTask(actualIdx)}
+                                                            className="rounded-xl h-7 text-xs bg-purple-600 hover:bg-purple-700"
+                                                        >
+                                                            Give
+                                                        </Button>
+                                                    )}
+                                                    {!task.is_as_needed && taskIsToday && !isLocked && (
                                                        task.completed && confirmUndoTaskIdx === actualIdx ? (
                                                            <div className="flex items-center gap-1">
                                                                <span className="text-xs text-stone-500">Sure?</span>
@@ -653,7 +687,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                                            </Button>
                                                        )
                                                     )}
-                                                    {taskIsToday && isLocked && (
+                                                    {!task.is_as_needed && taskIsToday && isLocked && (
                                                         <span className="text-xs text-stone-400 italic">Locked</span>
                                                     )}
                                                 </div>
