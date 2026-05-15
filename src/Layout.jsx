@@ -5,9 +5,11 @@ import {
     Dog, LayoutGrid, Users, LogIn, Settings, Menu, X,
     LayoutDashboard, BookOpen, CheckSquare, ClipboardList, Wrench,
     AlertTriangle, BarChart2, MessageSquare, Link as LinkIcon, Package, PawPrint,
-    ChevronDown, ChevronRight, ShieldCheck, History, Upload, Phone, FileSpreadsheet, FileText
+    ChevronDown, ChevronRight, ShieldCheck, History, Upload, Phone, FileSpreadsheet, FileText,
+    LogOut
 } from 'lucide-react';
 import { useCurrentUser } from './components/hooks/useCurrentUser';
+import { base44 } from '@/api/base44Client';
 
 const FLOOF_PAGES = ['Whiteboard', 'Pets', 'CheckIn', 'MonitorView', 'Reports'];
 
@@ -182,6 +184,18 @@ export default function Layout({ children }) {
                         )}
                     </div>
                 )}
+
+                {/* Logout — desktop sidebar */}
+                <div className="mt-auto pt-4 border-t border-stone-100">
+                    <button
+                        onClick={() => base44.auth.logout()}
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors w-full text-stone-500 hover:text-rose-600 hover:bg-rose-50"
+                        title={!sidebarOpen ? 'Log Out' : ''}
+                    >
+                        <LogOut className="w-5 h-5 flex-shrink-0" />
+                        {sidebarOpen && <span className="font-medium">Log Out</span>}
+                    </button>
+                </div>
             </nav>
 
             {/* Main Content */}
@@ -294,6 +308,17 @@ export default function Layout({ children }) {
                             )}
                         </div>
                     )}
+
+                    {/* Logout — mobile sidebar */}
+                    <div className="mt-auto pt-4 border-t border-stone-100">
+                        <button
+                            onClick={() => base44.auth.logout()}
+                            className="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors w-full text-stone-500 hover:text-rose-600 hover:bg-rose-50"
+                        >
+                            <LogOut className="w-5 h-5 flex-shrink-0" />
+                            <span className="font-medium">Log Out</span>
+                        </button>
+                    </div>
                 </nav>
             )}
 
