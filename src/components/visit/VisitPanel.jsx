@@ -71,12 +71,11 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
     
     // Get tasks for the current viewing date
      const getTasksForDate = (date) => {
-         const isCheckInDay = moment(visit.check_in_date).format('YYYY-MM-DD') === date;
-         const checkInTime = moment(visit.check_in_time);
-
          let tasks = visit.scheduled_tasks?.filter(task => {
-             // Hide completed tasks
-             if (task.completed) return false;
+             // For completed tasks, only show if completed on this date (so Undo is accessible)
+             if (task.completed) {
+                 return task.completed_date === date;
+             }
 
              if (task.date) {
                  // If task has an explicit date, only show if it matches
