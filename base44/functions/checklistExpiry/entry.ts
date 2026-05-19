@@ -13,6 +13,9 @@ Deno.serve(async (req) => {
     for (const checklist of activeChecklists) {
       const dueTime = checklist.due_time || '21:00';
       
+      // Skip checklists with no due date (e.g. template checklists)
+      if (!checklist.due_date) continue;
+
       // Check if checklist has expired
       if (checklist.due_date < today || (checklist.due_date === today && currentTime >= dueTime)) {
         // Archive the checklist
