@@ -24,9 +24,7 @@ export default function ChecklistEditor() {
   const canDirectSave = isSuperAdmin || isAdmin;
 
   const [form, setForm] = useState({
-    title: '', description: '', category: '', status: 'active', assigned_to_emails: [], assigned_to_teams: [], items: [],
-    recurrence_type: 'once', recurrence_days_of_week: [], recurrence_day_of_month: 1, recurrence_interval_months: 1,
-    due_date: '', due_time: '21:00'
+    title: '', description: '', category: '', status: 'active', items: [],
   });
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [selectedTeams, setSelectedTeams] = useState([]);
@@ -58,18 +56,12 @@ export default function ChecklistEditor() {
   useEffect(() => {
     if (existing) {
       setForm({
-        ...existing,
-        assigned_to_emails: existing.assigned_to_emails || [],
-        assigned_to_teams: existing.assigned_to_teams || [],
-        recurrence_type: existing.recurrence_type || 'once',
-        recurrence_days_of_week: existing.recurrence_days_of_week || [],
-        recurrence_day_of_month: existing.recurrence_day_of_month || 1,
-        recurrence_interval_months: existing.recurrence_interval_months || 1,
-        due_date: existing.due_date || '',
-        due_time: existing.due_time || '21:00'
+        title: existing.title || '',
+        description: existing.description || '',
+        category: existing.category || '',
+        status: existing.status || 'active',
+        items: existing.items || [],
       });
-      setSelectedUsers(existing.assigned_to_emails || []);
-      setSelectedTeams(existing.assigned_to_teams || []);
     }
   }, [existing]);
 
@@ -140,17 +132,6 @@ export default function ChecklistEditor() {
       status: form.status || 'active',
       items: form.items
     };
-    if (id) {
-      data.assigned_to_emails = selectedUsers;
-      data.assigned_to_names = selectedUsers.map(email => users.find(u => u.email === email)?.full_name || email);
-      data.assigned_teams = selectedTeams;
-      data.due_date = form.due_date;
-      data.due_time = form.due_time || '21:00';
-      data.recurrence_type = form.recurrence_type;
-      data.recurrence_days_of_week = form.recurrence_days_of_week;
-      data.recurrence_day_of_month = form.recurrence_day_of_month;
-      data.recurrence_interval_months = form.recurrence_interval_months;
-    }
     saveMutation.mutate(data);
   };
 
@@ -279,7 +260,7 @@ export default function ChecklistEditor() {
             </Select>
           </div>
 
-          {id && (
+          {false && (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
