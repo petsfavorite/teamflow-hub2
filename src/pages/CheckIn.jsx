@@ -79,14 +79,13 @@ export default function CheckIn() {
     const handleConfirmCheckIn = async (visitData) => {
         setCheckingIn(true);
         
-        // Update pet status
-        await updatePetMutation.mutateAsync({
-            id: selectedPet.id,
-            data: { is_checked_in: true, picture_sent_today: false }
-        });
-
-        // Create visit record
-        await createVisitMutation.mutateAsync({
+        // Update pet status and create visit record in parallel
+        await Promise.all([
+            updatePetMutation.mutateAsync({
+                id: selectedPet.id,
+                data: { is_checked_in: true, picture_sent_today: false }
+            }),
+            createVisitMutation.mutateAsync({
             pet_id: selectedPet.id,
             pet_name: selectedPet.name,
             check_in_date: moment().format('YYYY-MM-DD'),
@@ -100,7 +99,8 @@ export default function CheckIn() {
             }],
             picture_sent: false,
             ...visitData
-        });
+            })
+        ]);
 
         setCheckingIn(false);
         setShowSuccess(true);
