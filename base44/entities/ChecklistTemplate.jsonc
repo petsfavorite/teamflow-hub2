@@ -1,0 +1,168 @@
+{
+  "name": "ChecklistTemplate",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Name of the checklist"
+    },
+    "description": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string"
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "order": {
+            "type": "number"
+          },
+          "sop_id": {
+            "type": "string",
+            "description": "Optional SOP this item links to"
+          }
+        }
+      },
+      "description": "Checklist items in order"
+    },
+    "assigned_to_emails": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Email addresses of assigned users"
+    },
+    "assigned_to_names": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Display names of assigned users"
+    },
+    "assigned_teams": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Team IDs this checklist is assigned to"
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date",
+      "description": "When the checklist is due"
+    },
+    "due_time": {
+      "type": "string",
+      "description": "Time in HH:MM format (defaults to 21:00 if not set)"
+    },
+    "visible_time": {
+      "type": "string",
+      "description": "Time in HH:MM format \u2014 when the checklist becomes visible to assignees. If not set, visible immediately when due_date arrives."
+    },
+    "recurrence_type": {
+      "type": "string",
+      "enum": [
+        "once",
+        "daily",
+        "weekdays",
+        "specific_days",
+        "monthly",
+        "every_x_months",
+        "annually",
+        "manual"
+      ],
+      "default": "once",
+      "description": "How often the checklist recurs"
+    },
+    "recurrence_days_of_week": {
+      "type": "array",
+      "items": {
+        "type": "integer"
+      },
+      "description": "Days of week for specific_days (0=Sun, 6=Sat)"
+    },
+    "recurrence_day_of_month": {
+      "type": "integer",
+      "description": "Day of month for monthly/every_x_months recurrence"
+    },
+    "recurrence_interval_months": {
+      "type": "integer",
+      "description": "Every X months for every_x_months recurrence"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "pending_approval",
+        "published",
+        "archived",
+        "active"
+      ],
+      "default": "draft",
+      "description": "Publishing status of the checklist"
+    },
+    "version": {
+      "type": "number",
+      "default": 1
+    },
+    "last_updated_by": {
+      "type": "string"
+    },
+    "last_updated_by_name": {
+      "type": "string"
+    },
+    "last_verified_by": {
+      "type": "string"
+    },
+    "last_verified_by_name": {
+      "type": "string"
+    },
+    "last_verified_at": {
+      "type": "string"
+    },
+    "pending_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "order": {
+            "type": "number"
+          },
+          "sop_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "pending_description": {
+      "type": "string"
+    },
+    "pending_change_summary": {
+      "type": "string"
+    },
+    "pending_submitted_by": {
+      "type": "string"
+    },
+    "pending_submitted_by_name": {
+      "type": "string"
+    },
+    "is_visible": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this checklist is visible to assigned users"
+    }
+  },
+  "required": [
+    "title",
+    "items"
+  ]
+}

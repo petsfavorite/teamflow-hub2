@@ -50,7 +50,16 @@
     },
     "due_time": {
       "type": "string",
-      "description": "Time in HH:MM format"
+      "description": "Time in HH:MM format \u2014 when the checklist is due"
+    },
+    "visible_time": {
+      "type": "string",
+      "description": "Time in HH:MM format \u2014 when the checklist becomes visible to assignees on the due date"
+    },
+    "visible_day_offset": {
+      "type": "integer",
+      "default": 0,
+      "description": "How many days before the due date the checklist should become visible (0 = same day, 1 = day before, etc.). Used for weekly/monthly recurrence."
     },
     "recurrence_type": {
       "type": "string",

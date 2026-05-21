@@ -36,6 +36,8 @@ export default function Checklists() {
     assigned_teams: [],
     due_date: '',
     due_time: '21:00',
+    visible_time: '',
+    visible_day_offset: 0,
     recurrence_type: 'once',
     recurrence_days_of_week: [],
     recurrence_day_of_month: undefined,
@@ -116,6 +118,27 @@ export default function Checklists() {
     return recurringSchedules.filter(r => r.is_active !== false);
   }, [recurringSchedules]);
 
+  // Team Checklists - active checklists assigned to members of my teams (for managers) or all assigned (for admins)
+  const teamChecklists = useMemo(() => {
+    if (!canManage) return [];
+    const activeAssigned = allTemplates.filter(t =>
+      t.status === 'active' &&
+      ((t.assigned_to_emails && t.assigned_to_emails.length > 0) ||
+       (t.assigned_teams && t.assigned_teams.length > 0))
+    );
+    if (isAdmin || isSuperAdmin) return activeAssigned;
+    // Managers: only checklists assigned to people on their teams
+    const myTeamEmailSet = new Set(
+      teams
+        .filter(t => t.member_emails?.includes(user?.email))
+        .flatMap(t => t.member_emails || [])
+    );
+    return activeAssigned.filter(t =>
+      t.assigned_to_emails?.some(e => myTeamEmailSet.has(e)) ||
+      t.assigned_teams?.some(tid => myTeamIds.includes(tid))
+    );
+  }, [allTemplates, canManage, isAdmin, isSuperAdmin, teams, user, myTeamIds]);
+
   const recurrenceLabel = (r) => {
     switch (r.recurrence_type) {
       case 'daily': return 'Repeats daily';
@@ -188,6 +211,7 @@ export default function Checklists() {
           recurrence_day_of_month: data.recurrence_day_of_month,
           recurrence_interval_months: data.recurrence_interval_months,
           status: 'active',
+          visible_time: data.visible_time || null,
         });
 
         // 2. If recurring, also create a RecurringChecklist schedule record (completely separate)
@@ -201,6 +225,8 @@ export default function Checklists() {
             assigned_to_names: data.assigned_to_names,
             assigned_teams: data.assigned_teams,
             due_time: data.due_time || '21:00',
+            visible_time: data.visible_time || null,
+            visible_day_offset: data.visible_day_offset || 0,
             recurrence_type: data.recurrence_type,
             recurrence_days_of_week: data.recurrence_days_of_week,
             recurrence_day_of_month: data.recurrence_day_of_month,
@@ -215,6 +241,8 @@ export default function Checklists() {
           assigned_to_names: data.assigned_to_names,
           assigned_teams: data.assigned_teams,
           due_time: data.due_time || '21:00',
+          visible_time: data.visible_time || null,
+          visible_day_offset: data.visible_day_offset || 0,
           recurrence_type: data.recurrence_type,
           recurrence_days_of_week: data.recurrence_days_of_week,
           recurrence_day_of_month: data.recurrence_day_of_month,
@@ -233,6 +261,8 @@ export default function Checklists() {
         assigned_teams: [],
         due_date: '',
         due_time: '21:00',
+        visible_time: '',
+        visible_day_offset: 0,
         recurrence_type: 'once'
       });
       queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
@@ -275,6 +305,8 @@ export default function Checklists() {
       assigned_teams: [],
       due_date: '',
       due_time: '21:00',
+      visible_time: '',
+      visible_day_offset: 0,
       recurrence_type: 'once',
       recurrence_days_of_week: [],
       recurrence_day_of_month: undefined,
@@ -293,6 +325,8 @@ export default function Checklists() {
       assigned_teams: record.assigned_teams || [],
       due_date: '',
       due_time: record.due_time || '21:00',
+      visible_time: record.visible_time || '',
+      visible_day_offset: record.visible_day_offset || 0,
       recurrence_type: record.recurrence_type || 'daily',
       recurrence_days_of_week: record.recurrence_days_of_week || [],
       recurrence_day_of_month: record.recurrence_day_of_month || undefined,
@@ -582,7 +616,12 @@ export default function Checklists() {
                         </div>
                         <h3 className="font-semibold text-slate-900 mb-1">{schedule.template_title}</h3>
                         <p className="text-xs font-medium text-purple-600 mb-1">{recurrenceLabel(schedule)}</p>
-                        {schedule.due_time && <p className="text-xs text-slate-400 mb-2">Due by {schedule.due_time}</p>}
+                        {schedule.due_time && <p className="text-xs text-slate-400">Due by {schedule.due_time}</p>}
+                        {schedule.visible_time && (
+                          <p className="text-xs text-indigo-500 mb-1">
+                            Visible from {schedule.visible_day_offset > 0 ? `${schedule.visible_day_offset}d before at ` : ''}{schedule.visible_time}
+                          </p>
+                        )}
                         {schedule.template_description && <p className="text-sm text-slate-500 mb-3">{schedule.template_description}</p>}
                         <div className="flex items-center gap-2 text-xs text-slate-400 mb-4">
                           <Clock className="w-3 h-3" />
@@ -607,6 +646,69 @@ export default function Checklists() {
                               <Trash2 className="w-4 h-4" />
                             </Button>
                           )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Team Checklists - managers and above */}
+          {canManage && (
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900 mb-1">
+                {isAdmin || isSuperAdmin ? 'All Assigned Checklists' : 'My Team\'s Checklists'}
+              </h2>
+              <p className="text-sm text-slate-500 mb-4">
+                {isAdmin || isSuperAdmin
+                  ? 'All currently active checklists assigned to staff'
+                  : 'Active checklists assigned to members of your teams'}
+              </p>
+              {teamChecklists.filter(t => t.title.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 ? (
+                <p className="text-slate-500 text-sm">No assigned checklists</p>
+              ) : (
+                <div className="space-y-2">
+                  {teamChecklists.filter(t => t.title.toLowerCase().includes(searchTerm.toLowerCase())).map(t => (
+                    <Card key={t.id} className="border-0 shadow-sm">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-slate-900">{t.title}</p>
+                            <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
+                              {t.due_date && (
+                                <span className="text-xs text-slate-500">
+                                  Due {t.due_date} at {t.due_time || '21:00'}
+                                </span>
+                              )}
+                              {t.visible_time && (
+                                <span className="text-xs text-indigo-600">
+                                  Visible from {t.visible_time}
+                                </span>
+                              )}
+                              <span className={`text-xs font-medium ${t.is_visible ? 'text-emerald-600' : 'text-amber-600'}`}>
+                                {t.is_visible ? '● Visible' : '● Hidden'}
+                              </span>
+                            </div>
+                            {(t.assigned_to_names?.length > 0 || t.assigned_teams?.length > 0) && (
+                              <div className="mt-1 flex flex-wrap gap-1">
+                                {t.assigned_to_names?.map((name, i) => (
+                                  <span key={i} className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{name}</span>
+                                ))}
+                                {t.assigned_teams?.map(tid => {
+                                  const team = teams.find(tm => tm.id === tid);
+                                  return team ? (
+                                    <span key={tid} className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">{team.name}</span>
+                                  ) : null;
+                                })}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <Clock className="w-3.5 h-3.5 text-slate-400" />
+                            <span className="text-xs text-slate-400">{t.items?.length || 0} items</span>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
@@ -817,6 +919,45 @@ export default function Checklists() {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Visible From — Days Before Due (only for weekly/monthly/etc) */}
+            {useForm.recurrence_type && useForm.recurrence_type !== 'once' && useForm.recurrence_type !== 'daily' && useForm.recurrence_type !== 'weekdays' && (
+              <div className="space-y-2">
+                <Label>Visible From — Days Before Due Date</Label>
+                <Select
+                  value={String(useForm.visible_day_offset || 0)}
+                  onValueChange={(v) => setUseForm({ ...useForm, visible_day_offset: parseInt(v) })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">Same day as due date</SelectItem>
+                    <SelectItem value="1">1 day before</SelectItem>
+                    <SelectItem value="2">2 days before</SelectItem>
+                    <SelectItem value="3">3 days before</SelectItem>
+                    <SelectItem value="4">4 days before</SelectItem>
+                    <SelectItem value="5">5 days before</SelectItem>
+                    <SelectItem value="6">6 days before</SelectItem>
+                    <SelectItem value="7">7 days before (1 week)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-slate-500">How many days before the due date this checklist should first appear for assignees.</p>
+              </div>
+            )}
+
+            {/* Visible From — Time */}
+            <div className="space-y-2">
+              <Label>Visible From — Time of Day</Label>
+              <Input
+                type="time"
+                value={useForm.visible_time}
+                onChange={(e) => setUseForm({ ...useForm, visible_time: e.target.value })}
+              />
+              <p className="text-xs text-slate-500">
+                {useForm.recurrence_type === 'once' || useForm.recurrence_type === 'daily' || useForm.recurrence_type === 'weekdays'
+                  ? 'The time this checklist becomes visible on its due date. Leave blank to show it at midnight.'
+                  : 'The time of day this checklist becomes visible (on the "days before" date above). Leave blank for midnight.'}
+              </p>
+            </div>
           </div>
 
           <DialogFooter>
@@ -829,6 +970,8 @@ export default function Checklists() {
                   assigned_teams: useForm.assigned_teams,
                   due_date: useForm.due_date || undefined,
                   due_time: useForm.due_time || '21:00',
+                  visible_time: useForm.visible_time || null,
+                  visible_day_offset: useForm.visible_day_offset || 0,
                   recurrence_type: useForm.recurrence_type,
                   recurrence_days_of_week: useForm.recurrence_days_of_week,
                   recurrence_day_of_month: useForm.recurrence_day_of_month,

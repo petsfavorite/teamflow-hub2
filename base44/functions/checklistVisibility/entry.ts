@@ -1,21 +1,40 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const today = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
-    // Get all active checklists
-    const activeChecklists = await base44.asServiceRole.entities.ChecklistTemplate.filter({ status: 'active' });
+    // Get all active checklists that are not yet visible
+    const hiddenChecklists = await base44.asServiceRole.entities.ChecklistTemplate.filter({
+      status: 'active',
+      is_visible: false
+    });
 
-    // Make visible those with due_date matching today
-    for (const checklist of activeChecklists) {
-      if (checklist.due_date === today && checklist.is_visible === false) {
-        await base44.asServiceRole.entities.ChecklistTemplate.update(checklist.id, { is_visible: true });
+    let updated = 0;
+
+    for (const checklist of hiddenChecklists) {
+      if (!checklist.due_date) continue;
+
+      const isToday = checklist.due_date === today;
+      const isPast = checklist.due_date < today;
+
+      if (!isToday && !isPast) continue;
+
+      // If there's a visible_time set, check if we've reached it yet (only matters for today)
+      if (isToday && checklist.visible_time) {
+        const [vh, vm] = checklist.visible_time.split(':').map(Number);
+        const visibleMinutes = vh * 60 + (vm || 0);
+        if (currentMinutes < visibleMinutes) continue; // Not yet time to show
       }
+
+      await base44.asServiceRole.entities.ChecklistTemplate.update(checklist.id, { is_visible: true });
+      updated++;
     }
 
-    return Response.json({ success: true, updated: activeChecklists.length });
+    return Response.json({ success: true, updated });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
