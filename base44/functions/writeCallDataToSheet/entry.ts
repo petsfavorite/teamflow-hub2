@@ -86,7 +86,9 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
-    const { callRecordId, backfillAll } = body;
+    // Support both direct invocation ({ callRecordId }) and entity automation payload ({ event, data })
+    const callRecordId = body.callRecordId || body.event?.entity_id;
+    const { backfillAll } = body;
 
     const { accessToken } = await base44.asServiceRole.connectors.getConnection("googlesheets");
     const spreadsheetId = Deno.env.get("GOOGLE_SHEET_ID");
