@@ -48,7 +48,8 @@ export default function StaffLeaderboard({ calls, users = [], nameMap = {} }) {
 
   const sorted = Object.entries(staffStats)
     .map(([name, stats]) => ({ name, ...stats, bookingRate: stats.possibleBooked > 0 ? Math.round((stats.booked / stats.possibleBooked) * 100) : null }))
-    .sort((a, b) => b.total - a.total);
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 5);
 
   if (sorted.length === 0) {
     return (

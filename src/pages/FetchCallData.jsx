@@ -13,9 +13,20 @@ export default function FetchCallData() {
     setLoading(true);
     setError(null);
     setResult(null);
+    let totalImported = 0;
+    let totalSkipped = 0;
+    let allErrors = [];
     try {
-      const res = await base44.functions.invoke("scheduledSheetSync", {});
-      setResult(res.data);
+      let remaining = 1;
+      while (remaining > 0) {
+        const res = await base44.functions.invoke("scheduledSheetSync", {});
+        const data = res.data;
+        totalImported += data.imported || 0;
+        totalSkipped += data.skipped || 0;
+        if (data.errors?.length) allErrors = allErrors.concat(data.errors);
+        remaining = data.remaining || 0;
+        setResult({ imported: totalImported, skipped: totalSkipped, remaining, errors: allErrors });
+      }
     } catch (err) {
       setError(err.message || "Failed to import from Google Sheet");
     } finally {
@@ -33,10 +44,10 @@ export default function FetchCallData() {
         <p className="text-slate-600 mb-6">Manually import the latest call records from the connected Google Sheet.</p>
         <Card className="p-6 space-y-4">
           <ul className="list-disc list-inside space-y-1 text-sm text-slate-600 ml-2">
-            <li>Reads up to 15 new rows per run from the Google Sheet</li>
-            <li>Analyzes each transcript with AI</li>
+            <li>Automatically pulls all pending rows from the Google Sheet</li>
+            <li>Analyzes each transcript with AI (15 rows at a time)</li>
             <li>Skips already-imported records (no duplicates)</li>
-            <li>Run repeatedly until "remaining" reaches 0</li>
+            <li>Keeps running until all new rows are imported</li>
           </ul>
           <Button onClick={handleImport} disabled={loading} className="bg-emerald-600 hover:bg-emerald-700 text-white">
             {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Importing...</> : "Fetch Data Now"}
