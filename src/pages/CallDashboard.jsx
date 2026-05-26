@@ -18,7 +18,7 @@ export default function CallDashboard() {
   const [customEnd, setCustomEnd] = useState(null);
 
   const { data: user } = useQuery({ queryKey: ["me"], queryFn: () => base44.auth.me() });
-  const isAdmin = user?.role === "admin" || user?.role === "super_admin";
+  const isAdmin = user?.role === "admin" || user?.role === "super_admin" || user?.role === "manager";
 
   const { data: calls = [], isLoading, refetch } = useQuery({
     queryKey: ["callRecords"],

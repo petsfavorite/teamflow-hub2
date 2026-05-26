@@ -2,14 +2,31 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// Build a lookup: any variant of a name → canonical "First Last"
+function buildNormalizer(users) {
+  const map = {};
+  users.forEach(u => {
+    const canonical = [u.first_name, u.last_name].filter(Boolean).join(" ") || u.full_name;
+    if (!canonical) return;
+    // Map full_name (as stored on call records) → canonical
+    if (u.full_name) map[u.full_name.toLowerCase()] = canonical;
+    map[canonical.toLowerCase()] = canonical;
+  });
+  return (name) => {
+    if (!name) return null;
+    return map[name.toLowerCase()] || null;
+  };
+}
+
 export default function StaffLeaderboard({ calls, users = [], nameMap = {} }) {
-  const userNameSet = new Set(users.map(u => u.full_name).filter(Boolean));
+  const normalize = buildNormalizer(users);
   const staffStats = {};
 
   calls.forEach(call => {
-    const key = call.team_member;
-    if (!key) return;
-    if (users.length > 0 && !userNameSet.has(key)) return;
+    const raw = call.team_member;
+    if (!raw) return;
+    const key = normalize(raw);
+    if (!key) return; // skip if not a known user
     if (!staffStats[key]) staffStats[key] = { total: 0, answered: 0, booked: 0, possibleBooked: 0 };
     staffStats[key].total += 1;
     if (call.call_direction === "inbound" && (call.booking_outcome || call.transcript_summary)) {
@@ -47,7 +64,7 @@ export default function StaffLeaderboard({ calls, users = [], nameMap = {} }) {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold", i === 0 ? "bg-blue-100 text-blue-700" : i === 1 ? "bg-slate-100 text-slate-600" : "bg-slate-50 text-slate-400")}>{i + 1}</div>
-                <span className="text-sm font-medium text-slate-800">{nameMap[staff.name] || staff.name}</span>
+                <span className="text-sm font-medium text-slate-800">{staff.name}</span>
               </div>
               <span className="text-xs text-slate-500">{staff.answered} inbound answered</span>
             </div>
