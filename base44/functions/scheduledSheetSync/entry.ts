@@ -89,9 +89,19 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
-    const { accessToken } = await base44.asServiceRole.connectors.getConnection("googlesheets");
+    let connResult;
+    try {
+      connResult = await base44.asServiceRole.connectors.getConnection("googlesheets");
+    } catch (connErr) {
+      console.error("[ERROR] getConnection failed:", connErr.message);
+      return Response.json({ error: "getConnection failed: " + connErr.message }, { status: 500 });
+    }
+    const { accessToken } = connResult;
+    console.log("[DEBUG] accessToken present:", !!accessToken);
+    console.log("[DEBUG] accessToken prefix:", accessToken ? accessToken.substring(0, 30) : "NULL/UNDEFINED");
 
     const spreadsheetId = Deno.env.get("GOOGLE_SHEET_ID");
+    console.log("[DEBUG] spreadsheetId:", spreadsheetId);
 
     // Fetch up to 2000 rows; only metadata columns (A:D) to keep payload small,
     // then fetch full data only for new rows
