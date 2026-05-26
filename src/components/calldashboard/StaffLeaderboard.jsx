@@ -2,19 +2,26 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// Build a lookup: any variant of a name → canonical "First Last"
+// Build a lookup: any stored name variant → canonical "First Last"
 function buildNormalizer(users) {
   const map = {};
   users.forEach(u => {
-    const canonical = [u.first_name, u.last_name].filter(Boolean).join(" ") || u.full_name;
+    const canonical = u.full_name;
     if (!canonical) return;
-    // Map full_name (as stored on call records) → canonical
-    if (u.full_name) map[u.full_name.toLowerCase()] = canonical;
     map[canonical.toLowerCase()] = canonical;
   });
   return (name) => {
     if (!name) return null;
-    return map[name.toLowerCase()] || null;
+    // Exact match first
+    const lower = name.toLowerCase();
+    if (map[lower]) return map[lower];
+    // Fuzzy: find a user whose full_name words all appear in the raw name or vice versa
+    for (const [key, canonical] of Object.entries(map)) {
+      const keyWords = key.split(/\s+/).filter(w => w.length > 2);
+      if (keyWords.length >= 2 && keyWords.every(w => lower.includes(w))) return canonical;
+      if (keyWords.length >= 2 && lower.split(/\s+/).filter(w => w.length > 2).every(w => key.includes(w))) return canonical;
+    }
+    return name; // fallback: use as-is
   };
 }
 
@@ -26,7 +33,6 @@ export default function StaffLeaderboard({ calls, users = [], nameMap = {} }) {
     const raw = call.team_member;
     if (!raw) return;
     const key = normalize(raw);
-    if (!key) return; // skip if not a known user
     if (!staffStats[key]) staffStats[key] = { total: 0, answered: 0, booked: 0, possibleBooked: 0 };
     staffStats[key].total += 1;
     if (call.call_direction === "inbound" && (call.booking_outcome || call.transcript_summary)) {

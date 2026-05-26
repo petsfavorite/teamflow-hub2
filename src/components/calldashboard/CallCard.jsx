@@ -30,12 +30,19 @@ export default function CallCard({ call, onClick, nameMap = {} }) {
                 <p className="text-sm font-semibold text-slate-900 truncate">{call.caller_name || call.caller_phone || "Unknown Caller"}</p>
                 {call.caller_phone && call.caller_name && <p className="text-xs text-slate-400">{call.caller_phone}</p>}
               </div>
-              {call.team_member && (
+              {call.call_direction === "inbound" ? (
+                <div className={cn("flex items-center gap-1.5 px-2.5 py-1 rounded-lg", call.team_member ? "bg-slate-50" : "bg-amber-50")}>
+                  <User className={cn("w-3 h-3", call.team_member ? "text-slate-400" : "text-amber-400")} />
+                  <span className={cn("text-xs font-medium", call.team_member ? "text-slate-600" : "text-amber-600")}>
+                    {call.team_member ? (nameMap[call.team_member] || call.team_member) : "Not Answered"}
+                  </span>
+                </div>
+              ) : call.team_member ? (
                 <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 rounded-lg">
                   <User className="w-3 h-3 text-slate-400" />
                   <span className="text-xs font-medium text-slate-600">{nameMap[call.team_member] || call.team_member}</span>
                 </div>
-              )}
+              ) : null}
             </div>
             {call.caller_intent && <p className="text-sm text-slate-600 line-clamp-1"><span className="text-slate-400 font-medium">Intent:</span> {call.caller_intent}</p>}
             <div className="flex flex-wrap items-center gap-2">
