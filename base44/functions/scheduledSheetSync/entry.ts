@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
 
     // Fetch up to 2000 rows; only metadata columns (A:D) to keep payload small,
     // then fetch full data only for new rows
-    const range = "Sheet1!A1:Z2000";
+    const range = "Sheet1!A1:Z2500";
 
     const [sheetRes, userList, allExistingRecords] = await Promise.all([
       fetch(
@@ -109,7 +109,7 @@ Deno.serve(async (req) => {
         { headers: { Authorization: `Bearer ${accessToken}` } }
       ),
       base44.asServiceRole.entities.User.list(),
-      base44.asServiceRole.entities.CallRecord.list("-created_date", 2000),
+      base44.asServiceRole.entities.CallRecord.list("-created_date", 2500),
     ]);
 
     if (!sheetRes.ok) {
