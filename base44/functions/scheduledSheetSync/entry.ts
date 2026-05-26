@@ -103,13 +103,12 @@ Deno.serve(async (req) => {
     // then fetch full data only for new rows
     const range = "Sheet1!A1:Z2500";
 
-    const [sheetRes, userList, allExistingRecords] = await Promise.all([
+    const [sheetRes, userList] = await Promise.all([
       fetch(
         `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}`,
         { headers: { Authorization: `Bearer ${accessToken}` } }
       ),
       base44.asServiceRole.entities.User.list(),
-      base44.asServiceRole.entities.CallRecord.list("-created_date", 2500),
     ]);
 
     if (!sheetRes.ok) {
@@ -128,9 +127,16 @@ Deno.serve(async (req) => {
       return obj;
     });
 
-    const existingIds = new Set(
-      (allExistingRecords || []).map(r => r.zoom_meeting_id).filter(Boolean)
-    );
+    // Fetch all existing IDs in batches of 1000 to avoid cap issues
+    const existingIds = new Set();
+    let fetchOffset = 0;
+    while (true) {
+      const batch = await base44.asServiceRole.entities.CallRecord.list("-created_date", 1000, fetchOffset);
+      if (!batch || batch.length === 0) break;
+      batch.forEach(r => { if (r.zoom_meeting_id) existingIds.add(r.zoom_meeting_id); });
+      if (batch.length < 1000) break;
+      fetchOffset += 1000;
+    }
 
     const newRows = records.filter(row => !existingIds.has(`sheet_row_${row.__rowIndex}`));
 
