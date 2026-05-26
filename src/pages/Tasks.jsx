@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useCurrentUser } from '../components/hooks/useCurrentUser';
@@ -90,16 +90,16 @@ export default function Tasks() {
     },
   });
 
-  const myTeamIds = new Set(
+  const myTeamIds = useMemo(() => new Set(
     teams.filter(t => t.member_emails?.includes(user?.email)).map(t => t.id)
-  );
+  ), [teams, user?.email]);
 
   // Users on teams managed by this manager
-  const managedTeamMemberEmails = new Set(
+  const managedTeamMemberEmails = useMemo(() => new Set(
     teams
       .filter(t => t.member_emails?.includes(user?.email))
       .flatMap(t => t.member_emails || [])
-  );
+  ), [teams, user?.email]);
 
   // For assignment: admins/super_admins see all; managers see only their teams + teammates
   // While user is still loading, default to showing all so the dialog isn't empty
@@ -111,13 +111,13 @@ export default function Tasks() {
     ? (managedTeamMemberEmails.size > 0 ? users.filter(u => managedTeamMemberEmails.has(u.email)) : users)
     : users;
 
-  const myTasks = tasks.filter(t => {
+  const myTasks = useMemo(() => tasks.filter(t => {
     const assignedToMe = t.assigned_to_emails?.includes(user?.email);
     const inMyTeam = t.assigned_teams?.some(teamId => myTeamIds.has(teamId));
     return (assignedToMe || inMyTeam) && t.status !== 'completed' && t.status !== 'cancelled';
-  });
-  const allTasks = tasks.filter(t => t.status !== 'completed' && t.status !== 'cancelled');
-  const completedTasks = tasks.filter(t => t.status === 'completed');
+  }), [tasks, user?.email, myTeamIds]);
+  const allTasks = useMemo(() => tasks.filter(t => t.status !== 'completed' && t.status !== 'cancelled'), [tasks]);
+  const completedTasks = useMemo(() => tasks.filter(t => t.status === 'completed'), [tasks]);
 
   // All tasks with a recurrence type other than 'once'
   const allRecurringTasks = tasks.filter(t => t.recurrence_type && t.recurrence_type !== 'once');
