@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.30';
 import OpenAI from 'npm:openai';
 
 async function analyzeTranscript(transcript, callerInfo, userList) {
@@ -97,11 +97,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: "getConnection failed: " + connErr.message }, { status: 500 });
     }
     const { accessToken } = connResult;
-    console.log("[DEBUG] accessToken present:", !!accessToken);
-    console.log("[DEBUG] accessToken prefix:", accessToken ? accessToken.substring(0, 30) : "NULL/UNDEFINED");
-
     const spreadsheetId = Deno.env.get("GOOGLE_SHEET_ID");
-    console.log("[DEBUG] spreadsheetId:", spreadsheetId);
 
     // Fetch up to 2000 rows; only metadata columns (A:D) to keep payload small,
     // then fetch full data only for new rows
