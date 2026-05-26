@@ -1,0 +1,73 @@
+{
+  "name": "TaskHistory",
+  "type": "object",
+  "properties": {
+    "task_id": {
+      "type": "string",
+      "description": "Reference to the original Task"
+    },
+    "task_title": {
+      "type": "string"
+    },
+    "task_description": {
+      "type": "string"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "assigned_to_emails": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "assigned_to_names": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "assigned_teams": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "outcome": {
+      "type": "string",
+      "enum": [
+        "completed",
+        "cancelled",
+        "expired"
+      ],
+      "description": "How the task was closed out"
+    },
+    "closed_by": {
+      "type": "string",
+      "description": "Email of user who closed the task, or 'system' for auto-expiry"
+    },
+    "closed_by_name": {
+      "type": "string"
+    },
+    "closed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completion_notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "task_title",
+    "outcome"
+  ]
+}
