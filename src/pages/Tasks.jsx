@@ -67,6 +67,11 @@ export default function Tasks() {
     queryFn: () => base44.entities.Team.list(),
   });
 
+  const { data: assets = [] } = useQuery({
+    queryKey: ['assets'],
+    queryFn: () => base44.entities.Asset.list('name', 200),
+  });
+
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Task.create(data),
     onSuccess: () => {
@@ -199,7 +204,7 @@ export default function Tasks() {
         ) : (
           <div className="space-y-3">
             {recurringTasks.map(task => (
-              <RecurringTaskCard key={task.id} task={task} onEdit={openEditTask} />
+              <RecurringTaskCard key={task.id} task={task} onEdit={openEditTask} assetName={task.asset_id ? assets.find(a => a.id === task.asset_id)?.name : null} />
             ))}
           </div>
         )
@@ -218,6 +223,7 @@ export default function Tasks() {
               user={user}
               teams={assignableTeams}
               allowedUsers={assignableUsers}
+              assetName={task.asset_id ? assets.find(a => a.id === task.asset_id)?.name : null}
             />
           ))}
         </div>

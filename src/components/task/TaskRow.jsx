@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, Calendar, Circle, PlayCircle, CheckCircle, Edit2, Loader2, Search } from 'lucide-react';
+import { Users, Calendar, Circle, PlayCircle, CheckCircle, Edit2, Loader2, Search, Package } from 'lucide-react';
 import { toast } from "sonner";
 
 const priorityColors = {
@@ -18,7 +18,7 @@ const priorityColors = {
   high: 'bg-orange-100 text-orange-700',
 };
 
-export default function TaskRow({ task, onStatusChange, canEdit, user, teams = [], allowedUsers = [] }) {
+export default function TaskRow({ task, onStatusChange, canEdit, user, teams = [], allowedUsers = [], assetName = null }) {
   const [editOpen, setEditOpen] = useState(false);
   const [form, setForm] = useState({});
   const [isSaving, setIsSaving] = useState(false);
@@ -90,6 +90,12 @@ export default function TaskRow({ task, onStatusChange, canEdit, user, teams = [
                   <span className="flex items-center gap-1">
                     <Calendar className="w-3 h-3" />
                     Due {task.due_date}
+                  </span>
+                )}
+                {assetName && (
+                  <span className="flex items-center gap-1 text-amber-600">
+                    <Package className="w-3 h-3" />
+                    {assetName}
                   </span>
                 )}
               </div>

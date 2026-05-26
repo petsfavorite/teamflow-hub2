@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, Calendar, RefreshCw, Edit2 } from 'lucide-react';
+import { Users, Calendar, RefreshCw, Edit2, Package } from 'lucide-react';
 
 const priorityColors = {
   low: 'bg-slate-100 text-slate-600',
@@ -93,7 +93,7 @@ function recurrenceLabel(task) {
   }
 }
 
-export default function RecurringTaskCard({ task, onEdit }) {
+export default function RecurringTaskCard({ task, onEdit, assetName = null }) {
   return (
     <Card className="border-0 shadow-sm">
       <CardContent className="p-4">
@@ -133,6 +133,12 @@ export default function RecurringTaskCard({ task, onEdit }) {
                   </span>
                 ) : null;
               })()}
+              {assetName && (
+                <span className="flex items-center gap-1 text-amber-600">
+                  <Package className="w-3 h-3" />
+                  {assetName}
+                </span>
+              )}
             </div>
           </div>
         </div>
