@@ -919,42 +919,38 @@ export default function Checklists() {
               </Select>
             </div>
 
-            {/* Visible From — Days Before Due (only for weekly/monthly/etc) */}
-            {useForm.recurrence_type && useForm.recurrence_type !== 'once' && useForm.recurrence_type !== 'daily' && useForm.recurrence_type !== 'weekdays' && (
-              <div className="space-y-2">
-                <Label>Visible From — Days Before Due Date</Label>
-                <Select
-                  value={String(useForm.visible_day_offset || 0)}
-                  onValueChange={(v) => setUseForm({ ...useForm, visible_day_offset: parseInt(v) })}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">Same day as due date</SelectItem>
-                    <SelectItem value="1">1 day before</SelectItem>
-                    <SelectItem value="2">2 days before</SelectItem>
-                    <SelectItem value="3">3 days before</SelectItem>
-                    <SelectItem value="4">4 days before</SelectItem>
-                    <SelectItem value="5">5 days before</SelectItem>
-                    <SelectItem value="6">6 days before</SelectItem>
-                    <SelectItem value="7">7 days before (1 week)</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-slate-500">How many days before the due date this checklist should first appear for assignees.</p>
-              </div>
-            )}
+            {/* Visible From — Days Before Due */}
+            <div className="space-y-2">
+              <Label>Visibility — Days Before Due</Label>
+              <Select
+                value={String(useForm.visible_day_offset || 0)}
+                onValueChange={(v) => setUseForm({ ...useForm, visible_day_offset: parseInt(v) })}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">Same day as due (0 days before)</SelectItem>
+                  <SelectItem value="1">1 day before</SelectItem>
+                  <SelectItem value="2">2 days before</SelectItem>
+                  <SelectItem value="3">3 days before</SelectItem>
+                  <SelectItem value="4">4 days before</SelectItem>
+                  <SelectItem value="5">5 days before</SelectItem>
+                  <SelectItem value="6">6 days before</SelectItem>
+                  <SelectItem value="7">7 days before (1 week)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-slate-500">How many days before the due date this checklist becomes visible to assignees.</p>
+            </div>
 
             {/* Visible From — Time */}
             <div className="space-y-2">
-              <Label>Visible From — Time of Day</Label>
+              <Label>Visibility — Time of Day</Label>
               <Input
                 type="time"
                 value={useForm.visible_time}
                 onChange={(e) => setUseForm({ ...useForm, visible_time: e.target.value })}
               />
               <p className="text-xs text-slate-500">
-                {useForm.recurrence_type === 'once' || useForm.recurrence_type === 'daily' || useForm.recurrence_type === 'weekdays'
-                  ? 'The time this checklist becomes visible on its due date. Leave blank to show it at midnight.'
-                  : 'The time of day this checklist becomes visible (on the "days before" date above). Leave blank for midnight.'}
+                The time this checklist becomes visible on the visibility date. Leave blank to show immediately (no time restriction).
               </p>
             </div>
           </div>
