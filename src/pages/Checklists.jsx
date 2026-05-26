@@ -75,15 +75,14 @@ export default function Checklists() {
     enabled: canManage,
   });
 
-  // Admins/super_admins see all users; managers see only teammates
+  // Admins/super_admins see all users; managers see only teammates (users on same teams)
   const allUsers = useMemo(() => {
     if (!userLoading && isManager && !isAdmin && !isSuperAdmin) {
-      const myTeamEmails = new Set(
-        teams
-          .filter(t => t.member_emails?.includes(user?.email))
-          .flatMap(t => t.member_emails || [])
-      );
-      return allUsersRaw.filter(u => myTeamEmails.has(u.email));
+      const myTeams = teams.filter(t => t.member_emails?.includes(user?.email));
+      if (myTeams.length === 0) return allUsersRaw; // fallback: no teams configured yet
+      const myTeamEmails = new Set(myTeams.flatMap(t => t.member_emails || []));
+      const filtered = allUsersRaw.filter(u => myTeamEmails.has(u.email));
+      return filtered.length > 0 ? filtered : allUsersRaw;
     }
     return allUsersRaw;
   }, [allUsersRaw, userLoading, isManager, isAdmin, isSuperAdmin, teams, user]);

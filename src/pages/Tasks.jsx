@@ -103,7 +103,7 @@ export default function Tasks() {
     : teams;
 
   const assignableUsers = (!userLoading && isManager && !isAdmin && !isSuperAdmin)
-    ? users.filter(u => managedTeamMemberEmails.has(u.email))
+    ? (managedTeamMemberEmails.size > 0 ? users.filter(u => managedTeamMemberEmails.has(u.email)) : users)
     : users;
 
   const myTasks = tasks.filter(t => {
