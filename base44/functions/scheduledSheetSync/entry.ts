@@ -40,9 +40,20 @@ Return ONLY valid JSON, no markdown.`;
   return JSON.parse(response.choices[0].message.content);
 }
 
+const NAME_ALIASES = {
+  "katelyn": "katie",
+  "kaitlyn": "katie",
+  "caitlyn": "katie",
+  "caitlin": "katie",
+  "kaitlin": "katie",
+};
+
 function fuzzyMatchUser(detectedName, userList) {
   if (!detectedName || !userList.length) return detectedName;
-  const lower = detectedName.toLowerCase().trim();
+  let lower = detectedName.toLowerCase().trim();
+
+  // Apply alias normalization before matching
+  if (NAME_ALIASES[lower]) lower = NAME_ALIASES[lower];
 
   const exact = userList.find(u => u.full_name.toLowerCase() === lower);
   if (exact) return exact.full_name;
