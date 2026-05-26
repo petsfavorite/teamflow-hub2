@@ -105,6 +105,9 @@ export default function PlayCampWhiteboardCard({ pet, visit, onViewVisit }) {
                                         )}
                                         <span className={`text-xs font-medium ${session.completed ? 'text-emerald-700' : 'text-purple-700'}`}>
                                             {session.type}
+                                            {session.completed && session.completed_by && (
+                                                <span className="ml-1 font-bold">[{session.completed_by}]</span>
+                                            )}
                                         </span>
                                     </div>
                                 ))}

@@ -187,6 +187,9 @@ export default function BoardingWhiteboardCard({ pet, visit, onViewVisit }) {
                                                     : 'text-stone-700'
                                             }`}>
                                                 {task.time} {task.type === 'Medication' ? task.medication_name : task.type}
+                                                {isCompleted && task.completed_by && (
+                                                    <span className="ml-1 font-bold">[{task.completed_by}]</span>
+                                                )}
                                             </span>
                                         </div>
                                     );
