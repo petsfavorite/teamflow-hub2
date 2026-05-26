@@ -16,7 +16,15 @@ Deno.serve(async (req) => {
     let updated = 0;
 
     for (const checklist of hiddenChecklists) {
-      if (!checklist.due_date) continue;
+      // Recurring checklists with no due_date and no visible_time become visible immediately
+      const isRecurring = checklist.recurrence_type && checklist.recurrence_type !== 'once';
+      if (!checklist.due_date) {
+        if (isRecurring && !checklist.visible_time) {
+          await base44.asServiceRole.entities.ChecklistTemplate.update(checklist.id, { is_visible: true });
+          updated++;
+        }
+        continue;
+      }
 
       const isToday = checklist.due_date === today;
       const isPast = checklist.due_date < today;
