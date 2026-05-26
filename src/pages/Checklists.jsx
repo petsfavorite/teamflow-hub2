@@ -38,6 +38,7 @@ export default function Checklists() {
     due_time: '21:00',
     visible_time: '',
     visible_day_offset: 0,
+    visible_immediately: false,
     recurrence_type: 'once',
     recurrence_days_of_week: [],
     recurrence_day_of_month: undefined,
@@ -262,6 +263,7 @@ export default function Checklists() {
         due_time: '21:00',
         visible_time: '',
         visible_day_offset: 0,
+        visible_immediately: false,
         recurrence_type: 'once'
       });
       queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
@@ -306,6 +308,7 @@ export default function Checklists() {
       due_time: '21:00',
       visible_time: '',
       visible_day_offset: 0,
+      visible_immediately: false,
       recurrence_type: 'once',
       recurrence_days_of_week: [],
       recurrence_day_of_month: undefined,
@@ -318,6 +321,7 @@ export default function Checklists() {
   const handleEditRecurring = (record) => {
     setTemplateToUse(record);
     setIsAssigningFromTemplate(false);
+    const isImmediate = !record.visible_time && !record.visible_day_offset;
     setUseForm({
       assigned_to_emails: record.assigned_to_emails || [],
       assigned_to_names: record.assigned_to_names || [],
@@ -326,6 +330,7 @@ export default function Checklists() {
       due_time: record.due_time || '21:00',
       visible_time: record.visible_time || '',
       visible_day_offset: record.visible_day_offset || 0,
+      visible_immediately: isImmediate,
       recurrence_type: record.recurrence_type || 'daily',
       recurrence_days_of_week: record.recurrence_days_of_week || [],
       recurrence_day_of_month: record.recurrence_day_of_month || undefined,
@@ -919,39 +924,51 @@ export default function Checklists() {
               </Select>
             </div>
 
-            {/* Visible From — Days Before Due */}
-            <div className="space-y-2">
-              <Label>Visibility — Days Before Due</Label>
-              <Select
-                value={String(useForm.visible_day_offset || 0)}
-                onValueChange={(v) => setUseForm({ ...useForm, visible_day_offset: parseInt(v) })}
-              >
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="0">Same day as due (0 days before)</SelectItem>
-                  <SelectItem value="1">1 day before</SelectItem>
-                  <SelectItem value="2">2 days before</SelectItem>
-                  <SelectItem value="3">3 days before</SelectItem>
-                  <SelectItem value="4">4 days before</SelectItem>
-                  <SelectItem value="5">5 days before</SelectItem>
-                  <SelectItem value="6">6 days before</SelectItem>
-                  <SelectItem value="7">7 days before (1 week)</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-slate-500">How many days before the due date this checklist becomes visible to assignees.</p>
-            </div>
+            {/* Visibility Settings */}
+            <div className="space-y-3">
+              <Label>Visibility</Label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!!useForm.visible_immediately}
+                  onChange={e => setUseForm({ ...useForm, visible_immediately: e.target.checked, visible_time: e.target.checked ? '' : useForm.visible_time, visible_day_offset: e.target.checked ? 0 : useForm.visible_day_offset })}
+                  className="w-4 h-4 rounded border-slate-300"
+                />
+                <span className="text-sm text-slate-700 font-medium">Immediately (visible as soon as assigned)</span>
+              </label>
 
-            {/* Visible From — Time */}
-            <div className="space-y-2">
-              <Label>Visibility — Time of Day</Label>
-              <Input
-                type="time"
-                value={useForm.visible_time}
-                onChange={(e) => setUseForm({ ...useForm, visible_time: e.target.value })}
-              />
-              <p className="text-xs text-slate-500">
-                The time this checklist becomes visible on the visibility date. Leave blank to show immediately (no time restriction).
-              </p>
+              {!useForm.visible_immediately && (
+                <div className="space-y-3 pl-1">
+                  <div className="space-y-2">
+                    <Label className="text-xs text-slate-600">Days Before Due</Label>
+                    <Select
+                      value={String(useForm.visible_day_offset || 0)}
+                      onValueChange={(v) => setUseForm({ ...useForm, visible_day_offset: parseInt(v) })}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="0">Same day as due (0 days before)</SelectItem>
+                        <SelectItem value="1">1 day before</SelectItem>
+                        <SelectItem value="2">2 days before</SelectItem>
+                        <SelectItem value="3">3 days before</SelectItem>
+                        <SelectItem value="4">4 days before</SelectItem>
+                        <SelectItem value="5">5 days before</SelectItem>
+                        <SelectItem value="6">6 days before</SelectItem>
+                        <SelectItem value="7">7 days before (1 week)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs text-slate-600">Time of Day</Label>
+                    <Input
+                      type="time"
+                      value={useForm.visible_time}
+                      onChange={(e) => setUseForm({ ...useForm, visible_time: e.target.value })}
+                    />
+                    <p className="text-xs text-slate-500">The time this checklist becomes visible on the visibility date.</p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -965,8 +982,8 @@ export default function Checklists() {
                   assigned_teams: useForm.assigned_teams,
                   due_date: useForm.due_date || undefined,
                   due_time: useForm.due_time || '21:00',
-                  visible_time: useForm.visible_time || null,
-                  visible_day_offset: useForm.visible_day_offset || 0,
+                  visible_time: useForm.visible_immediately ? null : (useForm.visible_time || null),
+                  visible_day_offset: useForm.visible_immediately ? 0 : (useForm.visible_day_offset || 0),
                   recurrence_type: useForm.recurrence_type,
                   recurrence_days_of_week: useForm.recurrence_days_of_week,
                   recurrence_day_of_month: useForm.recurrence_day_of_month,
