@@ -635,7 +635,7 @@ export default function Checklists() {
                           >
                             Edit
                           </Button>
-                          {(isSuperAdmin || isAdmin) && (
+                          {(isSuperAdmin || isAdmin || isManager) && (
                             <Button
                               variant="ghost"
                               size="sm"
