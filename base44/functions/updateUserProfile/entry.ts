@@ -60,6 +60,55 @@ Deno.serve(async (req) => {
     // Recompute initials if name changed
     if (updates.full_name) {
       await base44.functions.invoke('computeUserInitials', { user_id: userId });
+
+      // Also update the user's name in all Team.member_names arrays
+      const existingTeamIds = targetUser.team_ids || [];
+      if (existingTeamIds.length > 0 && team_ids === undefined) {
+        const allTeams = await base44.asServiceRole.entities.Team.list('name', 500);
+        await Promise.all(allTeams.filter(t => existingTeamIds.includes(t.id)).map(async (team) => {
+          const idx = (team.member_emails || []).indexOf(targetUser.email);
+          if (idx >= 0) {
+            const newNames = [...(team.member_names || [])];
+            newNames[idx] = updates.full_name;
+            await base44.asServiceRole.entities.Team.update(team.id, { member_names: newNames });
+          }
+        }));
+      }
+    }
+
+    // Sync Team.member_emails / member_names whenever team assignments change
+    if (team_ids !== undefined) {
+      const userEmail = updates.full_name
+        ? (targetUser.email)
+        : targetUser.email;
+      const userName = updates.full_name || targetUser.full_name || targetUser.email || '';
+
+      // Fetch all teams
+      const allTeams = await base44.asServiceRole.entities.Team.list('name', 500);
+
+      await Promise.all(allTeams.map(async (team) => {
+        const shouldBeMember = team_ids.includes(team.id);
+        const isMember = (team.member_emails || []).includes(userEmail);
+
+        if (shouldBeMember && !isMember) {
+          // Add user to team
+          const newEmails = [...(team.member_emails || []), userEmail];
+          const newNames = [...(team.member_names || []), userName];
+          await base44.asServiceRole.entities.Team.update(team.id, {
+            member_emails: newEmails,
+            member_names: newNames,
+          });
+        } else if (!shouldBeMember && isMember) {
+          // Remove user from team
+          const idx = (team.member_emails || []).indexOf(userEmail);
+          const newEmails = (team.member_emails || []).filter(e => e !== userEmail);
+          const newNames = (team.member_names || []).filter((_, i) => i !== idx);
+          await base44.asServiceRole.entities.Team.update(team.id, {
+            member_emails: newEmails,
+            member_names: newNames,
+          });
+        }
+      }));
     }
 
     return Response.json({ success: true });
