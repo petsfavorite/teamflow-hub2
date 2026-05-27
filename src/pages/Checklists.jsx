@@ -104,10 +104,10 @@ export default function Checklists() {
     });
   }, [allTemplates, user, teams]);
 
-  // Template checklists - pure templates: no assignments and not archived
+  // Template checklists - pure templates: draft/published status with no assignments
   const templateChecklists = useMemo(() => {
     return allTemplates.filter(t =>
-      t.status !== 'archived' &&
+      (t.status === 'draft' || t.status === 'published') &&
       (!t.assigned_to_emails || t.assigned_to_emails.length === 0) &&
       (!t.assigned_teams || t.assigned_teams.length === 0)
     );
