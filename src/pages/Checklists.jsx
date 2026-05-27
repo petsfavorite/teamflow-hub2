@@ -955,6 +955,7 @@ export default function Checklists() {
                         <SelectItem value="5">5 days before</SelectItem>
                         <SelectItem value="6">6 days before</SelectItem>
                         <SelectItem value="7">7 days before (1 week)</SelectItem>
+                        <SelectItem value="30">30 days before (1 month)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
