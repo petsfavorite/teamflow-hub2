@@ -1,0 +1,101 @@
+{
+  "name": "Asset",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "equipment",
+        "appliance",
+        "vehicle",
+        "technology",
+        "furniture",
+        "other"
+      ]
+    },
+    "location_detail": {
+      "type": "string",
+      "description": "Where in the facility"
+    },
+    "serial_number": {
+      "type": "string"
+    },
+    "purchase_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "last_maintenance_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "next_maintenance_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "maintenance_interval_days": {
+      "type": "number"
+    },
+    "manual_url": {
+      "type": "string"
+    },
+    "sop_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "IDs of linked SOPs"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "notes_log": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string",
+            "description": "Note text (max 200 characters)"
+          },
+          "date": {
+            "type": "string"
+          },
+          "added_by": {
+            "type": "string",
+            "description": "Email of person who added the note"
+          },
+          "added_by_name": {
+            "type": "string"
+          },
+          "attachment_url": {
+            "type": "string",
+            "description": "Optional attachment URL"
+          }
+        }
+      },
+      "description": "Log of notes with metadata"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "needs_maintenance",
+        "out_of_service"
+      ],
+      "default": "active"
+    },
+    "task_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "IDs of tasks related to this asset"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

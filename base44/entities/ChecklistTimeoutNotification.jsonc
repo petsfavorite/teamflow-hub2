@@ -1,0 +1,46 @@
+{
+  "name": "ChecklistTimeoutNotification",
+  "type": "object",
+  "properties": {
+    "checklist_template_id": {
+      "type": "string",
+      "description": "Reference to the ChecklistTemplate"
+    },
+    "checklist_title": {
+      "type": "string"
+    },
+    "assigned_to_email": {
+      "type": "string",
+      "description": "Email of person checklist was assigned to"
+    },
+    "assigned_to_name": {
+      "type": "string"
+    },
+    "manager_email": {
+      "type": "string",
+      "description": "Manager or admin being notified"
+    },
+    "manager_name": {
+      "type": "string"
+    },
+    "is_admin_notification": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if this is for an admin, false if for the assigned manager"
+    },
+    "timeout_date": {
+      "type": "string",
+      "description": "When the timeout occurred"
+    },
+    "read": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "checklist_template_id",
+    "checklist_title",
+    "assigned_to_email",
+    "manager_email"
+  ]
+}

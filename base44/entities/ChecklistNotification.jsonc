@@ -1,0 +1,64 @@
+{
+  "name": "ChecklistNotification",
+  "type": "object",
+  "properties": {
+    "checklist_completion_id": {
+      "type": "string",
+      "description": "Reference to the ChecklistCompletion"
+    },
+    "checklist_title": {
+      "type": "string"
+    },
+    "manager_email": {
+      "type": "string",
+      "description": "Manager who should be notified"
+    },
+    "manager_name": {
+      "type": "string"
+    },
+    "incomplete_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "order": {
+            "type": "number"
+          },
+          "assigned_to_email": {
+            "type": "string"
+          },
+          "assigned_to_name": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Items that were not checked off"
+    },
+    "completed_by": {
+      "type": "string",
+      "description": "Who submitted the checklist"
+    },
+    "completed_by_name": {
+      "type": "string"
+    },
+    "team_id": {
+      "type": "string",
+      "description": "Team this notification relates to"
+    },
+    "team_name": {
+      "type": "string"
+    },
+    "read": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "checklist_completion_id",
+    "checklist_title",
+    "manager_email"
+  ]
+}

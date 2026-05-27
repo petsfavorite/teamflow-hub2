@@ -1,0 +1,23 @@
+{
+  "name": "AppSettings",
+  "type": "object",
+  "properties": {
+    "key": {
+      "type": "string",
+      "description": "Setting identifier (use 'global' for app-wide settings)"
+    },
+    "inactivity_timeout_minutes": {
+      "type": "number",
+      "default": 5,
+      "description": "Minutes of inactivity before PIN lock screen appears"
+    },
+    "global_timezone": {
+      "type": "string",
+      "default": "America/New_York",
+      "description": "Global timezone for all users in the app"
+    }
+  },
+  "required": [
+    "key"
+  ]
+}

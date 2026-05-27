@@ -1,0 +1,82 @@
+{
+  "name": "MaintenanceRequest",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "location": {
+      "type": "string"
+    },
+    "asset_id": {
+      "type": "string",
+      "description": "Linked asset if applicable"
+    },
+    "asset_name": {
+      "type": "string"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "urgent"
+      ],
+      "default": "medium"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "received",
+        "working_on",
+        "waiting_on",
+        "completed"
+      ],
+      "default": "received"
+    },
+    "requested_by": {
+      "type": "string"
+    },
+    "requested_by_name": {
+      "type": "string"
+    },
+    "assigned_to": {
+      "type": "string",
+      "description": "Email of user assigned to this request"
+    },
+    "notes_log": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string"
+          },
+          "added_by": {
+            "type": "string",
+            "description": "Email of person who added the note"
+          },
+          "added_by_name": {
+            "type": "string"
+          },
+          "attachment_url": {
+            "type": "string",
+            "description": "Optional attachment URL"
+          }
+        }
+      },
+      "description": "Log of notes with metadata"
+    }
+  },
+  "required": [
+    "title",
+    "description"
+  ]
+}

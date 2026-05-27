@@ -14,10 +14,13 @@ ${transcript}
 
 CALLER INFO: ${JSON.stringify(callerInfo)}
 
-${teamEntries ? `KNOWN STAFF MEMBERS:\n${teamEntries}\n\nIMPORTANT: Match the name spoken in the transcript to one of the exact names above. Return that exact name. If no match, return null.` : ""}
+${teamEntries ? `KNOWN STAFF MEMBERS:\n${teamEntries}\n\nNote: "Caroline", "Dr. Cofer", or "Dr. Caroline Cofer" refers to a staff member named Caroline Cofer.` : ""}
 
 Return a JSON object with these fields:
-- team_member: string or null (exact name from staff list above, or null)
+- team_member: string or null
+  RULES:
+  * If call_direction is "outbound", always set team_member to null — do not assign a team member.
+  * For inbound calls: the team member is usually the FIRST staff name mentioned in the transcript, as they introduce themselves (e.g. "Thank you for calling, this is Sarah"). Match that name to the exact name from the KNOWN STAFF MEMBERS list above. If no match, return null.
 - caller_name: string or null
 - caller_phone: string or null
 - caller_type: "potential_client" | "returning_client" | "not_applicable"
@@ -167,7 +170,9 @@ Deno.serve(async (req) => {
           const callerInfo = { call_date: callDate, call_direction };
           const analysis = await analyzeTranscript(transcript, callerInfo, userList);
 
-          if (analysis.team_member && userList.length) {
+          if (call_direction === "outbound") {
+            analysis.team_member = null;
+          } else if (analysis.team_member && userList.length) {
             const matched = fuzzyMatchUser(analysis.team_member, userList);
             analysis.team_member = matched || null;
           }

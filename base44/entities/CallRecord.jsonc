@@ -1,0 +1,95 @@
+{
+  "name": "CallRecord",
+  "type": "object",
+  "properties": {
+    "zoom_meeting_id": {
+      "type": "string",
+      "description": "Zoom call ID or sheet row identifier (e.g. sheet_row_5)"
+    },
+    "call_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the call occurred"
+    },
+    "call_duration_seconds": {
+      "type": "number",
+      "description": "Duration in seconds"
+    },
+    "call_direction": {
+      "type": "string",
+      "enum": [
+        "inbound",
+        "outbound"
+      ]
+    },
+    "caller_phone": {
+      "type": "string"
+    },
+    "caller_name": {
+      "type": "string"
+    },
+    "team_member": {
+      "type": "string",
+      "description": "Full name of the app user who handled the call"
+    },
+    "transcript": {
+      "type": "string"
+    },
+    "transcript_summary": {
+      "type": "string",
+      "description": "AI-generated summary"
+    },
+    "recording_url": {
+      "type": "string"
+    },
+    "caller_type": {
+      "type": "string",
+      "enum": [
+        "potential_client",
+        "returning_client",
+        "not_applicable"
+      ]
+    },
+    "caller_intent": {
+      "type": "string"
+    },
+    "bookable": {
+      "type": "string",
+      "enum": [
+        "yes",
+        "no",
+        "unclear"
+      ]
+    },
+    "booking_outcome": {
+      "type": "string",
+      "enum": [
+        "appt_booked",
+        "appt_not_booked",
+        "appt_not_needed"
+      ]
+    },
+    "was_booked": {
+      "type": "boolean"
+    },
+    "booked_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ai_notes": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending_review",
+        "reviewed",
+        "flagged"
+      ],
+      "default": "pending_review"
+    }
+  },
+  "required": [
+    "call_date"
+  ]
+}

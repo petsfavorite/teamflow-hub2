@@ -1,0 +1,119 @@
+{
+  "name": "Task",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "assigned_to_emails": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Email addresses of assigned users"
+    },
+    "assigned_to_names": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Display names of assigned users"
+    },
+    "assigned_teams": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Team IDs this task is assigned to"
+    },
+    "created_by_name": {
+      "type": "string"
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "default": "medium"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "in_progress",
+        "completed",
+        "cancelled"
+      ],
+      "default": "pending"
+    },
+    "completion_notes": {
+      "type": "string"
+    },
+    "recurrence_type": {
+      "type": "string",
+      "enum": [
+        "once",
+        "daily",
+        "weekdays",
+        "specific_days",
+        "monthly",
+        "every_x_months",
+        "annually",
+        "manual"
+      ],
+      "default": "once",
+      "description": "How often the task recurs"
+    },
+    "recurrence_days_of_week": {
+      "type": "array",
+      "items": {
+        "type": "integer"
+      },
+      "description": "Days of week for specific_days (0=Sun, 6=Sat)"
+    },
+    "recurrence_day_of_month": {
+      "type": "integer",
+      "description": "Day of month for monthly/every_x_months recurrence"
+    },
+    "recurrence_interval_months": {
+      "type": "integer",
+      "description": "Every X months for every_x_months recurrence"
+    },
+    "sop_id": {
+      "type": "string",
+      "description": "Optional SOP this task is linked to"
+    },
+    "asset_id": {
+      "type": "string",
+      "description": "Optional Asset this task is linked to"
+    },
+    "dismissed_notifications": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "user_email": {
+            "type": "string"
+          },
+          "dismissed_at": {
+            "type": "string",
+            "description": "ISO timestamp when dismissed"
+          }
+        }
+      },
+      "description": "Track dismissals with timestamps for 24-hour tracking"
+    }
+  },
+  "required": [
+    "title"
+  ]
+}

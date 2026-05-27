@@ -1,0 +1,29 @@
+{
+  "name": "SOPAcknowledgement",
+  "type": "object",
+  "properties": {
+    "sop_id": {
+      "type": "string"
+    },
+    "sop_title": {
+      "type": "string"
+    },
+    "version_number": {
+      "type": "number"
+    },
+    "user_email": {
+      "type": "string"
+    },
+    "user_name": {
+      "type": "string"
+    },
+    "acknowledged_at": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "sop_id",
+    "user_email",
+    "version_number"
+  ]
+}

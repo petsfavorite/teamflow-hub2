@@ -1,0 +1,56 @@
+{
+  "name": "Report",
+  "type": "object",
+  "properties": {
+    "pet_id": {
+      "type": "string",
+      "description": "ID of the pet"
+    },
+    "pet_name": {
+      "type": "string",
+      "description": "Name of the pet"
+    },
+    "visit_id": {
+      "type": "string",
+      "description": "ID of the visit"
+    },
+    "visit_type": {
+      "type": "string",
+      "enum": [
+        "boarding",
+        "play_camp"
+      ]
+    },
+    "check_in_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "check_out_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "report_url": {
+      "type": "string",
+      "description": "URL to the PDF report"
+    },
+    "expiry_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When PDF expires (90 days)"
+    },
+    "owner_email": {
+      "type": "string"
+    },
+    "email_sent": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "pet_id",
+    "pet_name",
+    "visit_id",
+    "report_url",
+    "expiry_date"
+  ]
+}

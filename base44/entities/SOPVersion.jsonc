@@ -1,0 +1,41 @@
+{
+  "name": "SOPVersion",
+  "type": "object",
+  "properties": {
+    "sop_id": {
+      "type": "string"
+    },
+    "version_number": {
+      "type": "number"
+    },
+    "title": {
+      "type": "string"
+    },
+    "content": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "category": {
+      "type": "string"
+    },
+    "change_summary": {
+      "type": "string",
+      "description": "What changed in this version"
+    },
+    "created_by_name": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "sop_id",
+    "version_number"
+  ]
+}

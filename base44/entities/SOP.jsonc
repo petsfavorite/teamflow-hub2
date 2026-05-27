@@ -1,0 +1,139 @@
+{
+  "name": "SOP",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string"
+    },
+    "purpose": {
+      "type": "string",
+      "description": "Why this SOP exists"
+    },
+    "when_it_applies": {
+      "type": "string",
+      "description": "Conditions under which this SOP applies"
+    },
+    "required_tools": {
+      "type": "string",
+      "description": "Tools, materials, or equipment needed"
+    },
+    "instructions": {
+      "type": "string",
+      "description": "Step-by-step instructions (rich text)"
+    },
+    "video_url": {
+      "type": "string",
+      "description": "Optional video link (YouTube, Vimeo, etc.)"
+    },
+    "warnings": {
+      "type": "string",
+      "description": "Safety warnings or cautions"
+    },
+    "responsible_role": {
+      "type": "string",
+      "description": "Who is responsible for this SOP"
+    },
+    "applicable_teams": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Team IDs this SOP applies to"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "pending_approval",
+        "published",
+        "archived"
+      ],
+      "default": "draft"
+    },
+    "version": {
+      "type": "number",
+      "default": 1
+    },
+    "last_updated_by": {
+      "type": "string"
+    },
+    "last_updated_by_name": {
+      "type": "string"
+    },
+    "verification_due_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date by which a manager/admin must re-verify this SOP (max 90 days out)"
+    },
+    "last_verified_by": {
+      "type": "string"
+    },
+    "last_verified_by_name": {
+      "type": "string"
+    },
+    "last_verified_at": {
+      "type": "string"
+    },
+    "requires_acknowledgement": {
+      "type": "boolean",
+      "default": false
+    },
+    "acknowledgement_due_days": {
+      "type": "number",
+      "default": 3
+    },
+    "acknowledgement_assigned_emails": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "acknowledgement_assigned_teams": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "content": {
+      "type": "string",
+      "description": "Legacy rich-text content field"
+    },
+    "pending_content": {
+      "type": "string"
+    },
+    "pending_summary": {
+      "type": "string"
+    },
+    "pending_tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "pending_change_summary": {
+      "type": "string"
+    },
+    "pending_submitted_by": {
+      "type": "string"
+    },
+    "pending_submitted_by_name": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "title",
+    "category"
+  ]
+}

@@ -1,0 +1,148 @@
+{
+  "name": "IncidentReport",
+  "type": "object",
+  "properties": {
+    "category": {
+      "type": "string",
+      "enum": [
+        "interpersonal",
+        "pet_issue",
+        "osha_reportable",
+        "other"
+      ],
+      "description": "High-level category of the incident"
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "incident_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "incident_time": {
+      "type": "string"
+    },
+    "is_private": {
+      "type": "boolean",
+      "default": false,
+      "description": "If true, only admins and super_admins can view"
+    },
+    "reported_by": {
+      "type": "string"
+    },
+    "reported_by_name": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "under_review",
+        "resolved"
+      ],
+      "default": "open"
+    },
+    "assigned_to": {
+      "type": "string",
+      "description": "Email of user assigned to this report"
+    },
+    "notes_log": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string"
+          },
+          "added_by": {
+            "type": "string"
+          },
+          "added_by_name": {
+            "type": "string"
+          },
+          "attachment_url": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "osha_employee_name": {
+      "type": "string"
+    },
+    "osha_job_title": {
+      "type": "string"
+    },
+    "osha_date_of_birth": {
+      "type": "string",
+      "format": "date"
+    },
+    "osha_date_hired": {
+      "type": "string",
+      "format": "date"
+    },
+    "osha_sex": {
+      "type": "string",
+      "enum": [
+        "male",
+        "female",
+        "prefer_not_to_say"
+      ]
+    },
+    "osha_time_of_incident": {
+      "type": "string"
+    },
+    "osha_what_was_employee_doing": {
+      "type": "string"
+    },
+    "osha_what_happened": {
+      "type": "string"
+    },
+    "osha_injury_or_illness": {
+      "type": "string",
+      "description": "Body part affected / nature of injury"
+    },
+    "osha_object_or_substance": {
+      "type": "string",
+      "description": "Object or substance that directly harmed employee"
+    },
+    "osha_not_sure_about_care": {
+      "type": "boolean",
+      "default": false,
+      "description": "If true, care/treatment details are unknown at time of filing"
+    },
+    "osha_medical_treatment": {
+      "type": "string",
+      "enum": [
+        "none",
+        "first_aid_only",
+        "physician_or_er",
+        "hospitalized"
+      ]
+    },
+    "osha_days_away_from_work": {
+      "type": "number"
+    },
+    "osha_days_on_restricted_duty": {
+      "type": "number"
+    },
+    "osha_physician_name": {
+      "type": "string"
+    },
+    "osha_treatment_facility": {
+      "type": "string"
+    },
+    "osha_treatment_facility_address": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "category",
+    "title"
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "name": "ChecklistVersion",
+  "type": "object",
+  "properties": {
+    "checklist_id": {
+      "type": "string"
+    },
+    "version_number": {
+      "type": "number"
+    },
+    "title": {
+      "type": "string"
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "order": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "description": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string"
+    },
+    "change_summary": {
+      "type": "string",
+      "description": "What changed in this version"
+    },
+    "created_by_name": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "checklist_id",
+    "version_number"
+  ]
+}

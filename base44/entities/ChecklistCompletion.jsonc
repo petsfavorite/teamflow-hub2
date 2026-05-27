@@ -1,0 +1,78 @@
+{
+  "name": "ChecklistCompletion",
+  "type": "object",
+  "properties": {
+    "checklist_template_id": {
+      "type": "string",
+      "description": "Reference to the checklist template"
+    },
+    "checklist_title": {
+      "type": "string"
+    },
+    "completed_by": {
+      "type": "string",
+      "description": "Email of user who completed the checklist"
+    },
+    "completed_by_name": {
+      "type": "string"
+    },
+    "completed_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "order": {
+            "type": "number"
+          },
+          "sop_id": {
+            "type": "string"
+          },
+          "assigned_to_email": {
+            "type": "string"
+          },
+          "assigned_to_name": {
+            "type": "string"
+          },
+          "checked": {
+            "type": "boolean"
+          },
+          "checked_at": {
+            "type": "string"
+          },
+          "checked_by_email": {
+            "type": "string"
+          },
+          "checked_by_name": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "completion_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "in_progress",
+        "completed",
+        "edited"
+      ],
+      "default": "in_progress"
+    },
+    "manager_notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "checklist_template_id",
+    "checklist_title"
+  ]
+}
