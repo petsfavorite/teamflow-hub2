@@ -528,7 +528,7 @@ export default function Checklists() {
         title="Checklists"
         description={canManage ? "Manage and assign checklists" : "Complete your assigned checklists"}
         actions={
-          (isSuperAdmin || isAdmin) && (
+          canManage && (
             <Link to={createPageUrl('ChecklistEditor')}>
               <Button className="bg-indigo-600 hover:bg-indigo-700 gap-2">
                 <Plus className="w-4 h-4" /> New Checklist
