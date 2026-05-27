@@ -150,7 +150,7 @@ export default function Maintenance() {
           </h2>
           <div className="space-y-3">
             {myAssignedTasks.map(req => (
-              <RequestCard key={req.id} req={req} onClick={() => setSelected(req)} highlight />
+              <RequestCard key={req.id} req={req} onClick={() => setSelected(req)} highlight allUsers={allUsers} />
             ))}
           </div>
           <div className="border-t my-6" />
@@ -164,7 +164,7 @@ export default function Maintenance() {
       ) : (
         <div className="space-y-3">
           {visibleActive.map(req => (
-            <RequestCard key={req.id} req={req} onClick={() => setSelected(req)} />
+            <RequestCard key={req.id} req={req} onClick={() => setSelected(req)} allUsers={allUsers} />
           ))}
         </div>
       )}
@@ -193,7 +193,7 @@ export default function Maintenance() {
                   <p className="text-sm text-slate-400 py-8 text-center">No archived requests match your search</p>
                 ) : (
                   filteredArchive.map(req => (
-                    <RequestCard key={req.id} req={req} onClick={() => setSelected(req)} archived />
+                    <RequestCard key={req.id} req={req} onClick={() => setSelected(req)} archived allUsers={allUsers} />
                   ))
                 )}
               </div>
@@ -258,7 +258,7 @@ export default function Maintenance() {
                 <div><span className="text-slate-400">Priority:</span> <StatusBadge status={selected?.priority} /></div>
                 <div><span className="text-slate-400">Status:</span> <StatusBadge status={selected?.status} /></div>
                 {selected?.location && <div><span className="text-slate-400">Location:</span> <span className="font-medium">{selected?.location}</span></div>}
-                {selected?.assigned_to && <div className="col-span-2"><span className="text-slate-400">Assigned to:</span> <span className="font-medium text-purple-700">{selected.assigned_to}</span></div>}
+                {selected?.assigned_to && <div className="col-span-2"><span className="text-slate-400">Assigned to:</span> <span className="font-medium text-purple-700">{allUsers.find(u => u.email === selected.assigned_to)?.full_name || selected.assigned_to}</span></div>}
               </div>
               {selected?.asset_name && (
                 <div className="bg-blue-50 p-3 rounded-lg">
@@ -364,8 +364,9 @@ export default function Maintenance() {
                     value={selected.assigned_to || ''}
                     onValueChange={v => {
                       const val = v || null;
-                      updateMutation.mutate({ id: selected.id, data: { assigned_to: val } });
-                      setSelected({ ...selected, assigned_to: val });
+                      const assignedUser = allUsers.find(u => u.email === val);
+                      updateMutation.mutate({ id: selected.id, data: { assigned_to: val, assigned_to_name: assignedUser?.full_name || null } });
+                      setSelected({ ...selected, assigned_to: val, assigned_to_name: assignedUser?.full_name || null });
                     }}
                   >
                     <SelectTrigger><SelectValue placeholder="Select user" /></SelectTrigger>
@@ -386,7 +387,7 @@ export default function Maintenance() {
   );
 }
 
-function RequestCard({ req, onClick, highlight, archived }) {
+function RequestCard({ req, onClick, highlight, archived, allUsers = [] }) {
   return (
     <Card
       className={`border-0 shadow-sm hover:shadow-md transition-all cursor-pointer ${archived ? 'bg-emerald-50' : highlight ? 'bg-purple-50' : ''}`}
@@ -405,7 +406,7 @@ function RequestCard({ req, onClick, highlight, archived }) {
                 {req.asset_name && <span>Asset: {req.asset_name}</span>}
                 <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{new Date(req.created_date).toLocaleDateString()}</span>
                 <span className="flex items-center gap-1"><User className="w-3 h-3" />{req.requested_by_name || req.requested_by}</span>
-                {req.assigned_to && <span className="text-purple-500">→ {req.assigned_to}</span>}
+                {req.assigned_to && <span className="text-purple-500">→ {req.assigned_to_name || allUsers.find(u => u.email === req.assigned_to)?.full_name || req.assigned_to}</span>}
               </div>
             </div>
           </div>
