@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 Deno.serve(async (req) => {
   try {
@@ -26,13 +26,19 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      const isToday = checklist.due_date === today;
-      const isPast = checklist.due_date < today;
+      // Calculate the visibility date by subtracting visible_day_offset from due_date
+      const dayOffset = checklist.visible_day_offset || 0;
+      const dueDateObj = new Date(checklist.due_date + 'T00:00:00');
+      dueDateObj.setDate(dueDateObj.getDate() - dayOffset);
+      const visibilityDate = dueDateObj.toISOString().split('T')[0];
 
-      if (!isToday && !isPast) continue;
+      const isVisibilityDateToday = visibilityDate === today;
+      const isVisibilityDatePast = visibilityDate < today;
+
+      if (!isVisibilityDateToday && !isVisibilityDatePast) continue;
 
       // If there's a visible_time set, check if we've reached it yet (only matters for today)
-      if (isToday && checklist.visible_time) {
+      if (isVisibilityDateToday && checklist.visible_time) {
         const [vh, vm] = checklist.visible_time.split(':').map(Number);
         const visibleMinutes = vh * 60 + (vm || 0);
         if (currentMinutes < visibleMinutes) continue; // Not yet time to show
