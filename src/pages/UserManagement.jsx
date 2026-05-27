@@ -673,6 +673,13 @@ export default function UserManagement() {
                   return;
                 }
 
+                // Managers cannot edit admin or super_admin profiles
+                if (isManager && !isAdmin && !isSuperAdmin && ['admin', 'super_admin'].includes(editingUser?.role)) {
+                  toast.error('You do not have permission to edit admin profiles');
+                  setEditingUser(null);
+                  return;
+                }
+
                 const payload = { userId: editingUser.id };
                 let hasChanges = false;
 
