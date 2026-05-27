@@ -21,7 +21,7 @@ export default function ChecklistEditor() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user, isSuperAdmin, isAdmin, isManager, canManage } = useCurrentUser();
-  const canDirectSave = isSuperAdmin || isAdmin;
+  const canDirectSave = isSuperAdmin || isAdmin || (isManager && !id);
 
   const [form, setForm] = useState({
     title: '', description: '', category: '', status: 'active', items: [],
@@ -135,10 +135,10 @@ export default function ChecklistEditor() {
     saveMutation.mutate(data);
   };
 
-  if (!id && !canDirectSave) {
+  if (!id && !canManage) {
     return (
       <div className="text-center py-20">
-        <p className="text-slate-500">Only admins can create new checklists</p>
+        <p className="text-slate-500">You don't have permission to create checklists</p>
         <Link to={createPageUrl('Checklists')}><Button variant="ghost" className="mt-4">Back</Button></Link>
       </div>
     );
