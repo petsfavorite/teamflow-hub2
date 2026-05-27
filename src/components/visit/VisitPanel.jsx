@@ -12,7 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { 
     Dog, Cat, MapPin, Clock, Utensils, Pill, 
-    CheckCircle2, Plus, X, FileText, Camera, ChevronLeft, AlertCircle
+    CheckCircle2, Plus, X, FileText, Camera, ChevronLeft, AlertCircle, Sparkles
 } from "lucide-react";
 import moment from "moment";
 
@@ -59,6 +59,8 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
     const [confirmUndoLogIdx, setConfirmUndoLogIdx] = useState(null);
     const [cancelTaskIdx, setCancelTaskIdx] = useState(null);
     const [cancelTaskNote, setCancelTaskNote] = useState('');
+    const [addingPlayCamp, setAddingPlayCamp] = useState(false);
+    const [playCampDuration, setPlayCampDuration] = useState('half_day');
 
     const [recurrenceType, setRecurrenceType] = useState('none');
     const [customTaskType, setCustomTaskType] = useState('');
@@ -455,6 +457,27 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
          setAddingTask(false);
          };
 
+    const handleAddPlayCamp = () => {
+        const today = moment().format('YYYY-MM-DD');
+        const totalSessions = playCampDuration === 'half_day' ? 2 : 4;
+        const newSessionTasks = Array.from({ length: totalSessions }, (_, i) => ({
+            type: 'Play Session',
+            time: '',
+            date: today,
+            is_template: false,
+            completed: false,
+            completed_at: null,
+            completed_by: null,
+            notes: `Session ${i + 1}`
+        }));
+        onUpdateVisit({
+            ...visit,
+            play_camp_duration: playCampDuration,
+            scheduled_tasks: [...(visit.scheduled_tasks || []), ...newSessionTasks]
+        });
+        setAddingPlayCamp(false);
+    };
+
     const handleCancelTask = (taskIndex) => {
         if (!cancelTaskNote.trim()) return;
         const task = visit.scheduled_tasks[taskIndex];
@@ -776,8 +799,53 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                             </Card>
                                             )}
 
+                                            {/* Add Play Camp — only for boarding pets without play camp */}
+                                            {isBoarding && !visit.play_camp_duration && (
+                                            <Card className="border-0 shadow-sm rounded-2xl border-2 border-dashed border-emerald-400/50">
+                                            <CardHeader className="pb-2">
+                                            <CardTitle className="text-sm flex items-center gap-2">
+                                            <Sparkles className="w-4 h-4 text-emerald-500" />
+                                            Add Play Camp
+                                            </CardTitle>
+                                            </CardHeader>
+                                            <CardContent className="space-y-2">
+                                            {!addingPlayCamp ? (
+                                            <Button
+                                            size="sm"
+                                            onClick={() => setAddingPlayCamp(true)}
+                                            variant="outline"
+                                            className="w-full rounded-xl border-emerald-400/50 text-emerald-600 hover:bg-emerald-50"
+                                            >
+                                            <Sparkles className="w-4 h-4 mr-2" />
+                                            Add Play Camp Today
+                                            </Button>
+                                            ) : (
+                                            <>
+                                            <Select value={playCampDuration} onValueChange={setPlayCampDuration}>
+                                            <SelectTrigger className="rounded-xl">
+                                               <SelectValue placeholder="Select duration" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                               <SelectItem value="half_day">Half Day (2 sessions)</SelectItem>
+                                               <SelectItem value="full_day">Full Day (4 sessions)</SelectItem>
+                                            </SelectContent>
+                                            </Select>
+                                            <div className="flex gap-2">
+                                            <Button size="sm" variant="outline" onClick={() => setAddingPlayCamp(false)} className="flex-1 rounded-xl">
+                                               Cancel
+                                            </Button>
+                                            <Button size="sm" onClick={handleAddPlayCamp} className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-700">
+                                               Confirm
+                                            </Button>
+                                            </div>
+                                            </>
+                                            )}
+                                            </CardContent>
+                                            </Card>
+                                            )}
+
                                             {/* Add Custom Task */}
-                    <Card className="border-0 shadow-sm rounded-2xl border-2 border-dashed border-[#82bb32]/40">
+                                            <Card className="border-0 shadow-sm rounded-2xl border-2 border-dashed border-[#82bb32]/40">
                         <CardHeader className="pb-2">
                             <CardTitle className="text-sm flex items-center gap-2">
                                 <Plus className="w-4 h-4 text-[#82bb32]" />
