@@ -14,7 +14,7 @@ ${transcript}
 
 CALLER INFO: ${JSON.stringify(callerInfo)}
 
-${teamEntries ? `KNOWN STAFF MEMBERS:\n${teamEntries}\n\nNote: "Caroline", "Dr. Cofer", or "Dr. Caroline Cofer" refers to a staff member named Caroline Cofer.` : ""}
+${teamEntries ? `KNOWN STAFF MEMBERS:\n${teamEntries}\n\nNotes:\n- "Caroline", "Dr. Cofer", or "Dr. Caroline Cofer" refers to a staff member named Caroline Cofer.\n- "Ariana" or "Arianna" in the transcript almost certainly refers to the staff member named Aryana — use the closest match from the list above.` : ""}
 
 Return a JSON object with these fields:
 - team_member: string or null
@@ -49,6 +49,9 @@ const NAME_ALIASES = {
   "caitlyn": "katie",
   "caitlin": "katie",
   "kaitlin": "katie",
+  // OpenAI frequently transcribes "Aryana" as "Ariana"
+  "ariana": "aryana",
+  "arianna": "aryana",
 };
 
 function fuzzyMatchUser(detectedName, userList) {

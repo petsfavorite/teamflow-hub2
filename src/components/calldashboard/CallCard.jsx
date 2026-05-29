@@ -31,12 +31,30 @@ export default function CallCard({ call, onClick, nameMap = {} }) {
                 {call.caller_phone && call.caller_name && <p className="text-xs text-slate-400">{call.caller_phone}</p>}
               </div>
               {call.call_direction === "inbound" ? (
-                <div className={cn("flex items-center gap-1.5 px-2.5 py-1 rounded-lg", call.team_member ? "bg-slate-50" : "bg-amber-50")}>
-                  <User className={cn("w-3 h-3", call.team_member ? "text-slate-400" : "text-amber-400")} />
-                  <span className={cn("text-xs font-medium", call.team_member ? "text-slate-600" : "text-amber-600")}>
-                    {call.team_member ? (nameMap[call.team_member] || call.team_member) : "Not Answered"}
-                  </span>
-                </div>
+                (() => {
+                  const isNotAnswered = !call.team_member && (
+                    call.booking_outcome === "appt_not_needed" ||
+                    (call.call_duration_seconds != null && call.call_duration_seconds < 30) ||
+                    (call.transcript_summary && /voicemail|not answered|hung up|no answer/i.test(call.transcript_summary))
+                  );
+                  if (call.team_member) {
+                    return (
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50">
+                        <User className="w-3 h-3 text-slate-400" />
+                        <span className="text-xs font-medium text-slate-600">{nameMap[call.team_member] || call.team_member}</span>
+                      </div>
+                    );
+                  }
+                  if (isNotAnswered) {
+                    return (
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50">
+                        <User className="w-3 h-3 text-amber-400" />
+                        <span className="text-xs font-medium text-amber-600">Not Answered</span>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()
               ) : call.team_member ? (
                 <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 rounded-lg">
                   <User className="w-3 h-3 text-slate-400" />
