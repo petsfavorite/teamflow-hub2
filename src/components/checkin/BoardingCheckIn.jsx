@@ -244,15 +244,16 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
         });
     });
 
-    // Add CBD Chews — twice daily: breakfast and dinner only
+    // Add CBD Chews at meal times if selected
     if (addCBDChews) {
-        const cbdMealTimes = {
+        const mealTimes = {
             'Breakfast': { hour: 9, minute: 0, time: '9:00 AM' },
+            'Lunch': { hour: 12, minute: 0, time: '12:00 PM' },
             'Dinner': { hour: 17, minute: 30, time: '5:30 PM' }
         };
 
         const addCBDTask = (mealName) => {
-            const mealInfo = cbdMealTimes[mealName];
+            const mealInfo = mealTimes[mealName];
             const startDate = (feedingCheckInHour < mealInfo.hour || (feedingCheckInHour === mealInfo.hour && feedingCheckInMinute < mealInfo.minute))
                 ? checkInDate
                 : moment(checkInDate).add(1, 'day').format('YYYY-MM-DD');
@@ -272,14 +273,16 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
             }
         };
 
-        // CBD is twice daily: breakfast + dinner (regardless of Three Meals)
-        if (feedingFrequency === 'Just Dinner') {
+        if (feedingFrequency === 'Just Breakfast') {
+            addCBDTask('Breakfast');
+        } else if (feedingFrequency === 'Just Dinner') {
             addCBDTask('Dinner');
-        } else if (feedingFrequency === 'Just Breakfast') {
+        } else if (feedingFrequency === 'Two Meals') {
             addCBDTask('Breakfast');
-        } else {
-            // Two Meals or Three Meals: breakfast + dinner only
+            addCBDTask('Dinner');
+        } else if (feedingFrequency === 'Three Meals') {
             addCBDTask('Breakfast');
+            addCBDTask('Lunch');
             addCBDTask('Dinner');
         }
     }
@@ -304,32 +307,46 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
         }
     }
 
-    // Add "Probiotic Added to Meal" — once daily with the FIRST meal of the day
+    // Add "Probiotic Added to Meal" for each feeding if selected
     if (addProbiotic) {
-        const probioticMealTimes = {
+        const mealTimes = {
             'Breakfast': { hour: 9, minute: 0, time: '9:00 AM' },
+            'Lunch': { hour: 12, minute: 0, time: '12:00 PM' },
             'Dinner': { hour: 17, minute: 30, time: '5:30 PM' }
         };
 
-        // First meal: Breakfast if pet gets breakfast, otherwise Dinner
-        const firstMealName = feedingFrequency === 'Just Dinner' ? 'Dinner' : 'Breakfast';
-        const mealInfo = probioticMealTimes[firstMealName];
-        const startDate = feedingCheckInHour < mealInfo.hour || (feedingCheckInHour === mealInfo.hour && feedingCheckInMinute < mealInfo.minute)
-            ? checkInDate
-            : moment(checkInDate).add(1, 'day').format('YYYY-MM-DD');
+        const addProbioticTask = (type) => {
+            const mealInfo = mealTimes[type];
+            const startDate = feedingCheckInHour < mealInfo.hour || (feedingCheckInHour === mealInfo.hour && feedingCheckInMinute < mealInfo.minute) 
+                ? checkInDate 
+                : moment(checkInDate).add(1, 'day').format('YYYY-MM-DD');
 
-        let currentDate = moment(startDate);
-        while (currentDate.format('YYYY-MM-DD') <= checkoutDate) {
-            tasks.push({
-                type: 'Probiotic Added to Meal',
-                time: mealInfo.time,
-                date: currentDate.format('YYYY-MM-DD'),
-                is_template: true,
-                completed: false,
-                completed_at: null,
-                notes: firstMealName
-            });
-            currentDate.add(1, 'day');
+            let currentDate = moment(startDate);
+            while (currentDate.format('YYYY-MM-DD') <= checkoutDate) {
+                tasks.push({
+                    type: 'Probiotic Added to Meal',
+                    time: mealInfo.time,
+                    date: currentDate.format('YYYY-MM-DD'),
+                    is_template: true,
+                    completed: false,
+                    completed_at: null,
+                    notes: type
+                });
+                currentDate.add(1, 'day');
+            }
+        };
+
+        if (feedingFrequency === 'Just Breakfast') {
+            addProbioticTask('Breakfast');
+        } else if (feedingFrequency === 'Just Dinner') {
+            addProbioticTask('Dinner');
+        } else if (feedingFrequency === 'Two Meals') {
+            addProbioticTask('Breakfast');
+            addProbioticTask('Dinner');
+        } else if (feedingFrequency === 'Three Meals') {
+            addProbioticTask('Breakfast');
+            addProbioticTask('Lunch');
+            addProbioticTask('Dinner');
         }
     }
 
@@ -625,8 +642,8 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
                                     )}
                             <li>• Feeding: {feedingFrequency === 'Just Breakfast' && 'Breakfast at 9 AM'} {feedingFrequency === 'Just Dinner' && 'Dinner at 5:30 PM'} {feedingFrequency === 'Two Meals' && 'Breakfast at 9 AM & Dinner at 5:30 PM'} {feedingFrequency === 'Three Meals' && 'Breakfast at 9 AM, Lunch at 12 PM & Dinner at 5:30 PM'}</li>
                             {pet.medications?.length > 0 && <li>• Medications as scheduled</li>}
-                            {addCBDChews && <li>• CBD Chews (with breakfast &amp; dinner)</li>}
-                            {addProbiotic && <li>• Probiotic added to first meal of the day</li>}
+                            {addCBDChews && <li>• CBD Chews (with each meal)</li>}
+                            {addProbiotic && <li>• Probiotic added to each meal</li>}
                             {addFeedingEnrichment && <li>• Give Feeding Enrichment Toy (3:00 PM daily)</li>}
                             {addBath && <li>• Schedule Bath</li>}
                         </ul>
