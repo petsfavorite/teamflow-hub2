@@ -15,6 +15,57 @@
       "type": "string",
       "default": "America/New_York",
       "description": "Global timezone for all users in the app"
+    },
+    "call_dashboard_options": {
+      "type": "object",
+      "description": "Configurable options for the Call Dashboard dropdowns",
+      "properties": {
+        "caller_types": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "value": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              }
+            }
+          },
+          "description": "Options for the Caller Type field"
+        },
+        "booking_outcomes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "value": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              }
+            }
+          },
+          "description": "Options for the Booking Outcome field"
+        },
+        "call_statuses": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "value": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              }
+            }
+          },
+          "description": "Options for the Call Status field"
+        }
+      }
     }
   },
   "required": [

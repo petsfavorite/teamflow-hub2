@@ -8,8 +8,20 @@ import { Checkbox } from "@/components/ui/checkbox";
 import CallerTypeBadge from "./CallerTypeBadge";
 import { base44 } from "@/api/base44Client";
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
 
 const CLIENT_CARE_EMAILS = ['drcaroline@petsfavoritevet.com', 'jen@petsfavoritevet.com', 'rebecca@petsfavoritevet.com'];
+
+const DEFAULT_CALLER_TYPES = [
+  { value: "potential_client", label: "Potential Client" },
+  { value: "returning_client", label: "Returning Client" },
+  { value: "not_applicable", label: "Not a Client" },
+];
+const DEFAULT_BOOKING_OUTCOMES = [
+  { value: "appt_booked", label: "Appt Booked" },
+  { value: "appt_not_booked", label: "Appt Not Booked" },
+  { value: "appt_not_needed", label: "Appt Not Needed" },
+];
 
 export default function CallDetailPanel({ call, open, onClose, onUpdate, isAdmin, users = [] }) {
   const [pendingChanges, setPendingChanges] = useState({});
@@ -19,6 +31,14 @@ export default function CallDetailPanel({ call, open, onClose, onUpdate, isAdmin
   const [bookingOutcome, setBookingOutcome] = useState(call?.booking_outcome || "");
   const [saving, setSaving] = useState(false);
   const [transcriptOpen, setTranscriptOpen] = useState(false);
+
+  const { data: appSettings } = useQuery({
+    queryKey: ["appSettings"],
+    queryFn: () => base44.entities.AppSettings.filter({ key: "global" }).then(r => r?.[0] || null),
+  });
+  const cdOptions = appSettings?.call_dashboard_options || {};
+  const callerTypeOptions = cdOptions.caller_types?.length ? cdOptions.caller_types : DEFAULT_CALLER_TYPES;
+  const bookingOutcomeOptions = cdOptions.booking_outcomes?.length ? cdOptions.booking_outcomes : DEFAULT_BOOKING_OUTCOMES;
 
   useEffect(() => {
     if (call) {
@@ -115,9 +135,7 @@ export default function CallDetailPanel({ call, open, onClose, onUpdate, isAdmin
               <Select value={callerType} onValueChange={(value) => { setCallerType(value); handleUpdate({ caller_type: value }); }}>
                 <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="not_applicable">Not a Client</SelectItem>
-                  <SelectItem value="potential_client">Potential Client</SelectItem>
-                  <SelectItem value="returning_client">Returning Client</SelectItem>
+                  {callerTypeOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             ) : (
@@ -142,9 +160,7 @@ export default function CallDetailPanel({ call, open, onClose, onUpdate, isAdmin
               <Select value={bookingOutcome} onValueChange={(value) => { setBookingOutcome(value); handleUpdate({ booking_outcome: value }); }}>
                 <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="appt_booked">Appt Booked</SelectItem>
-                  <SelectItem value="appt_not_booked">Appt Not Booked</SelectItem>
-                  <SelectItem value="appt_not_needed">Appt Not Needed</SelectItem>
+                  {bookingOutcomeOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             ) : (

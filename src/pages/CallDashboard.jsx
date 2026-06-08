@@ -1,7 +1,9 @@
 import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { Phone, CalendarCheck, UserPlus, AlertTriangle, Loader2 } from "lucide-react";
+import { Phone, CalendarCheck, UserPlus, AlertTriangle, Loader2, Settings } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import CallDashboardSettings from "@/components/calldashboard/CallDashboardSettings";
 import DateRangePicker, { getDateRange } from "@/components/calldashboard/DateRangePicker";
 import StatCard from "@/components/calldashboard/StatCard";
 import CallCard from "@/components/calldashboard/CallCard";
@@ -12,6 +14,7 @@ import DashboardFilters from "@/components/calldashboard/DashboardFilters";
 
 export default function CallDashboard() {
   const [selectedCall, setSelectedCall] = useState(null);
+  const [showSettings, setShowSettings] = useState(false);
   const [filters, setFilters] = useState({ search: "", callerType: "all", bookingStatus: "all", teamMember: "all", status: "all" });
   const [datePreset, setDatePreset] = useState("all");
   const [customStart, setCustomStart] = useState(null);
@@ -111,8 +114,17 @@ export default function CallDashboard() {
     <div className="min-h-screen bg-slate-50">
       <div className="bg-white border-b border-slate-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Call Dashboard</h1>
-          <p className="text-sm text-slate-500 mt-1">{filteredCalls.length} total calls · {stats.booked} booked · {stats.missedBookings} missed opportunities</p>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Call Dashboard</h1>
+              <p className="text-sm text-slate-500 mt-1">{filteredCalls.length} total calls · {stats.booked} booked · {stats.missedBookings} missed opportunities</p>
+            </div>
+            {isAdmin && (
+              <Button variant="outline" size="sm" onClick={() => setShowSettings(true)} className="gap-2 flex-shrink-0">
+                <Settings className="w-4 h-4" /> Settings
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -148,6 +160,7 @@ export default function CallDashboard() {
       </div>
 
       <CallDetailPanel call={selectedCall} open={!!selectedCall} onClose={() => setSelectedCall(null)} onUpdate={refetch} isAdmin={isAdmin} users={users} />
+      {isAdmin && <CallDashboardSettings open={showSettings} onClose={() => setShowSettings(false)} />}
     </div>
   );
 }
