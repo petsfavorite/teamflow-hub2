@@ -29,6 +29,7 @@ export default function CallDetailPanel({ call, open, onClose, onUpdate, isAdmin
   const [teamMember, setTeamMember] = useState(call?.team_member || "");
   const [callerType, setCallerType] = useState(call?.caller_type || "");
   const [bookingOutcome, setBookingOutcome] = useState(call?.booking_outcome || "");
+  const [missedCall, setMissedCall] = useState(call?.missed_call || false);
   const [saving, setSaving] = useState(false);
   const [transcriptOpen, setTranscriptOpen] = useState(false);
 
@@ -46,6 +47,7 @@ export default function CallDetailPanel({ call, open, onClose, onUpdate, isAdmin
       setTeamMember(call.team_member || "");
       setCallerType(call.caller_type || "");
       setBookingOutcome(call.booking_outcome || "");
+      setMissedCall(call.missed_call || false);
       setPendingChanges({});
     }
   }, [call?.id]);
@@ -217,11 +219,20 @@ export default function CallDetailPanel({ call, open, onClose, onUpdate, isAdmin
 
           <Separator />
 
-          <div className="flex items-center gap-3">
-            <Checkbox id="flagged-checkbox" checked={status === "flagged"} disabled={!isAdmin || saving}
-              onCheckedChange={async (checked) => handleStatusChange(checked ? "flagged" : "pending_review")} />
-            <label htmlFor="flagged-checkbox" className={cn("text-sm font-medium cursor-pointer", isAdmin ? "text-slate-700" : "text-slate-500 cursor-default")}>Flag for Review</label>
-            {saving && <span className="text-xs text-slate-400">Saving...</span>}
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <Checkbox id="missed-call-checkbox" checked={missedCall} disabled={!isAdmin || saving}
+                onCheckedChange={(checked) => { setMissedCall(!!checked); handleUpdate({ missed_call: !!checked }); }} />
+              <label htmlFor="missed-call-checkbox" className={cn("text-sm font-medium cursor-pointer", isAdmin ? "text-slate-700" : "text-slate-500 cursor-default")}>
+                Missed Call <span className="text-xs font-normal text-slate-400">(no one answered)</span>
+              </label>
+            </div>
+            <div className="flex items-center gap-3">
+              <Checkbox id="flagged-checkbox" checked={status === "flagged"} disabled={!isAdmin || saving}
+                onCheckedChange={async (checked) => handleStatusChange(checked ? "flagged" : "pending_review")} />
+              <label htmlFor="flagged-checkbox" className={cn("text-sm font-medium cursor-pointer", isAdmin ? "text-slate-700" : "text-slate-500 cursor-default")}>Flag for Review</label>
+              {saving && <span className="text-xs text-slate-400">Saving...</span>}
+            </div>
           </div>
         </div>
       </SheetContent>

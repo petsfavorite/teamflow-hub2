@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { Phone, CalendarCheck, UserPlus, AlertTriangle, Loader2, Settings } from "lucide-react";
+import { Phone, CalendarCheck, UserPlus, AlertTriangle, Loader2, Settings, PhoneMissed } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import CallDashboardSettings from "@/components/calldashboard/CallDashboardSettings";
 import DateRangePicker, { getDateRange } from "@/components/calldashboard/DateRangePicker";
@@ -100,8 +100,9 @@ export default function CallDashboard() {
     const bookableTotal = booked + notBooked;
     const missedBookings = notBooked;
     const potential = filteredCalls.filter(c => c.caller_type === "potential_client").length;
+    const missed = filteredCalls.filter(c => c.missed_call).length;
     const bookingRate = bookableTotal > 0 ? Math.round((booked / bookableTotal) * 100) : 0;
-    return { total, booked, bookable: bookableTotal, missedBookings, potential, bookingRate };
+    return { total, booked, bookable: bookableTotal, missedBookings, potential, bookingRate, missed };
   }, [filteredCalls]);
 
   if (isLoading) return (
@@ -129,11 +130,12 @@ export default function CallDashboard() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 items-stretch">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 items-stretch">
           <StatCard label="Total Calls" value={stats.total} icon={Phone} accentColor="bg-blue-500" />
           <StatCard label="Booking Rate" value={`${stats.bookingRate}%`} subtitle={`${stats.booked} of ${stats.bookable} bookable`} icon={CalendarCheck} accentColor="bg-emerald-500" />
           <StatCard label="Potential Clients" value={stats.potential} subtitle={`${filteredCalls.length > 0 ? Math.round((stats.potential / filteredCalls.length) * 100) : 0}% of calls`} icon={UserPlus} accentColor="bg-amber-500" />
           <StatCard label="Missed Bookings" value={stats.missedBookings} subtitle="Could have booked" icon={AlertTriangle} accentColor="bg-red-500" />
+          <StatCard label="Missed Calls" value={stats.missed} subtitle="No one answered" icon={PhoneMissed} accentColor="bg-rose-400" />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">

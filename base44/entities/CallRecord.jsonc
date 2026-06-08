@@ -76,6 +76,11 @@
       "type": "string",
       "format": "date-time"
     },
+    "missed_call": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if no one at the clinic answered this call"
+    },
     "ai_notes": {
       "type": "string"
     },

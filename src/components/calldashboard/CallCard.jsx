@@ -1,5 +1,5 @@
 import { Card } from "@/components/ui/card";
-import { PhoneIncoming, PhoneOutgoing, Clock, User, ChevronRight } from "lucide-react";
+import { PhoneIncoming, PhoneOutgoing, Clock, User, ChevronRight, PhoneMissed } from "lucide-react";
 import CallerTypeBadge from "./CallerTypeBadge";
 import BookingStatus from "./BookingStatus";
 import { cn } from "@/lib/utils";
@@ -12,7 +12,7 @@ export default function CallCard({ call, onClick, nameMap = {} }) {
     ? `${Math.floor(call.call_duration_seconds / 60)}m ${call.call_duration_seconds % 60}s` : "—";
 
   return (
-    <Card className={cn("border-0 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer group", call.status === "flagged" && "ring-1 ring-amber-300", call.status === "reviewed" && "opacity-75")} onClick={() => onClick?.(call)}>
+    <Card className={cn("border-0 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer group", call.status === "flagged" && "ring-1 ring-amber-300", call.status === "reviewed" && "opacity-75", call.missed_call && "ring-1 ring-rose-200 bg-rose-50/30")} onClick={() => onClick?.(call)}>
       <div className="p-4 sm:p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0 space-y-3">
@@ -64,6 +64,11 @@ export default function CallCard({ call, onClick, nameMap = {} }) {
             </div>
             {call.caller_intent && <p className="text-sm text-slate-600 line-clamp-1"><span className="text-slate-400 font-medium">Intent:</span> {call.caller_intent}</p>}
             <div className="flex flex-wrap items-center gap-2">
+              {call.missed_call && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-600">
+                  <PhoneMissed className="w-3 h-3" /> Missed
+                </span>
+              )}
               <CallerTypeBadge type={call.caller_type} />
               <BookingStatus bookable={call.bookable} wasBooked={call.was_booked} bookedDate={call.booked_date} bookingOutcome={call.booking_outcome} />
             </div>

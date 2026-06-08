@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 import { Plus, Trash2, Save, Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 
@@ -23,6 +24,7 @@ const DEFAULT_OPTIONS = {
     { value: "reviewed", label: "Reviewed" },
     { value: "flagged", label: "Flagged" },
   ],
+  ai_booking_criteria: "",
 };
 
 function OptionList({ title, items, onChange }) {
@@ -72,6 +74,7 @@ export default function CallDashboardSettings({ open, onClose }) {
   const [options, setOptions] = useState(null);
   const [settingsId, setSettingsId] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [aiCriteria, setAiCriteria] = useState("");
 
   useEffect(() => {
     if (!open) return;
@@ -79,17 +82,20 @@ export default function CallDashboardSettings({ open, onClose }) {
       const rec = results?.[0];
       if (rec) {
         setSettingsId(rec.id);
-        setOptions(rec.call_dashboard_options || { ...DEFAULT_OPTIONS });
+        const cdOpts = rec.call_dashboard_options || { ...DEFAULT_OPTIONS };
+        setOptions(cdOpts);
+        setAiCriteria(cdOpts.ai_booking_criteria || "");
       } else {
         setSettingsId(null);
         setOptions({ ...DEFAULT_OPTIONS });
+        setAiCriteria("");
       }
     });
   }, [open]);
 
   const handleSave = async () => {
     setSaving(true);
-    const data = { key: "global", call_dashboard_options: options };
+    const data = { key: "global", call_dashboard_options: { ...options, ai_booking_criteria: aiCriteria } };
     if (settingsId) {
       await base44.entities.AppSettings.update(settingsId, data);
     } else {
@@ -114,6 +120,22 @@ export default function CallDashboardSettings({ open, onClose }) {
             <div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-slate-400" /></div>
           ) : (
             <>
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-slate-700">AI Booking Classification Criteria</Label>
+                <p className="text-xs text-slate-500">Tell the AI how to decide if a call was <strong>booked</strong>, a <strong>missed booking opportunity</strong>, or <strong>not bookable</strong>. Be specific about your clinic's workflow.</p>
+                <Textarea
+                  placeholder="e.g. A call is 'booked' if an appointment was scheduled before the call ended. A call is a 'missed booking' if the caller wanted to schedule but didn't. A call is 'not bookable' if it was a prescription refill, general question, or existing client who didn't need an appointment."
+                  value={aiCriteria}
+                  onChange={(e) => setAiCriteria(e.target.value)}
+                  className="min-h-[120px] text-sm"
+                />
+              </div>
+              <Separator />
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-slate-700">Missed Calls</Label>
+                <p className="text-xs text-slate-500">Calls where no one at the clinic answered are automatically marked as <strong>missed</strong> by the AI based on the transcript/recording. You can also manually mark any call as missed from the call detail panel.</p>
+              </div>
+              <Separator />
               <OptionList
                 title="Caller Type Options"
                 items={options.caller_types || []}
