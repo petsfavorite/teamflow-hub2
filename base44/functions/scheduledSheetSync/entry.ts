@@ -250,6 +250,8 @@ Deno.serve(async (req) => {
 
         imported++;
         if (row.__rowIndex > maxProcessedRow) maxProcessedRow = row.__rowIndex;
+        // Small pause to avoid entity rate limits
+        await new Promise(r => setTimeout(r, 200));
       } catch (err) {
         errors.push(`Row ${row.__rowIndex}: ${err.message}`);
         skipped++;
