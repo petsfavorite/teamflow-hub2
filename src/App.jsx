@@ -10,6 +10,7 @@ import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import { PinProvider } from '@/lib/PinContext';
 import PinLockScreen from '@/components/PinLockScreen';
 import Reports from './pages/Reports';
+import DataExport from './pages/DataExport';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -64,6 +65,11 @@ const AuthenticatedApp = () => {
       <Route path="/Reports" element={
         <LayoutWrapper currentPageName="Reports">
           <Reports />
+        </LayoutWrapper>
+      } />
+      <Route path="/DataExport" element={
+        <LayoutWrapper currentPageName="DataExport">
+          <DataExport />
         </LayoutWrapper>
       } />
       <Route path="*" element={<PageNotFound />} />

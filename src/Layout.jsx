@@ -6,7 +6,8 @@ import {
     LayoutDashboard, BookOpen, CheckSquare, ClipboardList, Wrench,
     AlertTriangle, BarChart2, MessageSquare, Link as LinkIcon, Package, PawPrint,
     ChevronDown, ChevronRight, ShieldCheck, History, Upload, Phone, FileSpreadsheet, FileText,
-    LogOut
+    LogOut,
+    Download
 } from 'lucide-react';
 import { useCurrentUser } from './components/hooks/useCurrentUser';
 import { base44 } from '@/api/base44Client';
@@ -42,6 +43,7 @@ const adminNavItems = [
     { name: 'Analytics', icon: BarChart2, label: 'Analytics' },
     { name: 'FetchCallData', icon: FileSpreadsheet, label: 'Fetch Call Data' },
     { name: 'DevChecklist', icon: ClipboardList, label: 'Dev Checklist', superAdminOnly: true },
+    { name: 'DataExport', icon: Download, label: 'Data Export', superAdminOnly: true },
 ];
 
 const ADMIN_ROLES = ['admin', 'manager', 'super_admin'];
