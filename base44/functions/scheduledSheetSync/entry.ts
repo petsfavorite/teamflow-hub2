@@ -114,11 +114,23 @@ Deno.serve(async (req) => {
     const startRow = lastProcessedRow + 1;
     // Fetch a window of 500 rows at a time
     const endRow = startRow + 499;
-    const range = `Sheet1!A1:Z1`; // headers first
+
+    // First, get the actual sheet name from spreadsheet metadata
+    const metaRes = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties.title`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    if (!metaRes.ok) {
+      const err = await metaRes.text();
+      return Response.json({ error: "metadata fetch failed: " + err }, { status: metaRes.status });
+    }
+    const metaJson = await metaRes.json();
+    const sheetName = metaJson.sheets?.[0]?.properties?.title || "Sheet1";
+    console.log(`[INFO] Using sheet name: "${sheetName}"`);
 
     const [headersRes, userList] = await Promise.all([
       fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}`,
+        `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(`${sheetName}!1:1`)}`,
         { headers: { Authorization: `Bearer ${accessToken}` } }
       ),
       base44.asServiceRole.entities.User.list(),
@@ -133,8 +145,8 @@ Deno.serve(async (req) => {
     const headers = headersData.values?.[0] || [];
     if (!headers.length) return Response.json({ imported: 0, skipped: 0, remaining: 0 });
 
-    // Fetch the window of new rows
-    const dataRange = `Sheet1!A${startRow}:Z${endRow}`;
+    // Fetch the window of new rows (no column limit — use row-only range)
+    const dataRange = `${sheetName}!${startRow}:${endRow}`;
     const dataRes = await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(dataRange)}`,
       { headers: { Authorization: `Bearer ${accessToken}` } }
@@ -148,8 +160,10 @@ Deno.serve(async (req) => {
     const dataJson = await dataRes.json();
     const rawRows = dataJson.values || [];
 
+    console.log(`[INFO] Fetching range ${dataRange}, got ${rawRows.length} rows`);
+
     if (rawRows.length === 0) {
-      return Response.json({ imported: 0, skipped: 0, remaining: 0, message: "No new rows found" });
+      return Response.json({ imported: 0, skipped: 0, remaining: 0, message: "No new rows found", debugRange: dataRange });
     }
 
     // Map rows to objects using actual sheet row numbers
@@ -159,8 +173,19 @@ Deno.serve(async (req) => {
       return obj;
     });
 
-    // Process only rows that have a date (skip blanks)
-    const rowsToProcess = records.filter(row => !!(row["Date/Time"] || row["Call Date"]));
+    // Process only rows that have a date (skip truly blank rows)
+    // Also log a sample to help debug column names
+    if (records.length > 0) {
+      console.log(`[DEBUG] First row keys: ${Object.keys(records[0]).filter(k => k !== '__rowIndex').join(', ')}`);
+      console.log(`[DEBUG] First row sample: ${JSON.stringify(records[0]).substring(0, 300)}`);
+    }
+    const rowsToProcess = records.filter(row => {
+      const dateVal = row["Date/Time"] || row["Call Date"] || row["Date"] || row["date"] || row["Timestamp"];
+      // fallback: any non-empty non-rowIndex value
+      if (dateVal) return true;
+      const hasAnyData = Object.entries(row).some(([k, v]) => k !== '__rowIndex' && v !== '');
+      return hasAnyData;
+    });
     const remaining = rawRows.length === 500 ? "possibly more" : 0;
 
     let imported = 0;
@@ -171,13 +196,35 @@ Deno.serve(async (req) => {
     // Process sequentially to avoid CPU spikes from parallel OpenAI calls
     for (const row of rowsToProcess) {
       try {
-        const callDate = row["Date/Time"] || row["Call Date"];
+        const callDate = row["Date/Time"] || row["Call Date"] || row["Date"] || row["date"] || row["Timestamp"] || "";
         const transcript = row["Transcript"] || "";
         const rawLink = row["Link to Recording"] || "";
         const directionRaw = (row["Inbound/Outbound"] || "").toLowerCase();
         const call_direction = directionRaw.includes("out") ? "outbound" : "inbound";
 
         const zoom_meeting_id = `sheet_row_${row.__rowIndex}`;
+
+        // Robust date parsing — try multiple formats
+        let callDateISO;
+        if (callDate) {
+          const parsed = new Date(callDate);
+          if (!isNaN(parsed.getTime())) {
+            callDateISO = parsed.toISOString();
+          } else {
+            // Try M/D/YYYY H:MM or M/D/YYYY formats
+            const mdyMatch = callDate.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s*(.*)$/);
+            if (mdyMatch) {
+              const reconstructed = `${mdyMatch[3]}-${mdyMatch[1].padStart(2,'0')}-${mdyMatch[2].padStart(2,'0')}T${mdyMatch[4] || '00:00'}`;
+              const p2 = new Date(reconstructed);
+              callDateISO = isNaN(p2.getTime()) ? new Date().toISOString() : p2.toISOString();
+            } else {
+              callDateISO = new Date().toISOString(); // fallback to now
+            }
+          }
+        } else {
+          callDateISO = new Date().toISOString();
+        }
+
         const callerInfo = { call_date: callDate, call_direction };
         const analysis = await analyzeTranscript(transcript, callerInfo, userList);
 
@@ -192,7 +239,7 @@ Deno.serve(async (req) => {
 
         await base44.asServiceRole.entities.CallRecord.create({
           zoom_meeting_id,
-          call_date: new Date(callDate).toISOString(),
+          call_date: callDateISO,
           call_direction,
           transcript: transcript || null,
           recording_url: recordingUrl,
