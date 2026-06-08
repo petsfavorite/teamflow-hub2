@@ -14,14 +14,17 @@ export default function BoardingCheckIn({ pet, visit, onConfirm, onCancel, editM
      const [feedingFrequency, setFeedingFrequency] = useState(visit?.feeding_frequency || pet.feeding_frequency || 'Two Meals');
      const [addPlayCamp, setAddPlayCamp] = useState(!!(visit?.play_camp_duration));
      const [whatWasBrought, setWhatWasBrought] = useState(visit?.what_was_brought || '');
-     const [needFecal, setNeedFecal] = useState(false);
-     const [needUrine, setNeedUrine] = useState(false);
-     const [addCBDChews, setAddCBDChews] = useState(false);
-     const [addProbiotic, setAddProbiotic] = useState(false);
-     const [addCBDStorming, setAddCBDStorming] = useState(false);
-     const [addProbioticDiarrhea, setAddProbioticDiarrhea] = useState(false);
-     const [addFeedingEnrichment, setAddFeedingEnrichment] = useState(false);
-     const [addBath, setAddBath] = useState(false);
+     const [needFecal, setNeedFecal] = useState(() => hasTaskType('Collect Feces'));
+     const [needUrine, setNeedUrine] = useState(() => hasTaskType('Collect Urine'));
+     const existingTasks = visit?.scheduled_tasks || [];
+     const hasTaskType = (type) => existingTasks.some(t => t.type === type);
+
+     const [addCBDChews, setAddCBDChews] = useState(() => hasTaskType('CBD Chews') || existingTasks.some(t => t.medication_name === 'CBD Chews'));
+     const [addProbiotic, setAddProbiotic] = useState(() => hasTaskType('Probiotic Added to Meal'));
+     const [addCBDStorming, setAddCBDStorming] = useState(() => hasTaskType('CBD if needed for storms'));
+     const [addProbioticDiarrhea, setAddProbioticDiarrhea] = useState(() => hasTaskType('Probiotic if Diarrhea Seen'));
+     const [addFeedingEnrichment, setAddFeedingEnrichment] = useState(() => hasTaskType('Give Feeding Enrichment Toy'));
+     const [addBath, setAddBath] = useState(() => hasTaskType('Schedule Bath'));
     const inferMealTimesFromFrequency = (freq) => {
         const f = (freq || '').toLowerCase();
         const isTwice = f.includes('twice') || f.includes('bid') || (f.includes('am') && f.includes('pm'));
