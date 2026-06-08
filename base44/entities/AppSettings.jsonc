@@ -32,8 +32,7 @@
                 "type": "string"
               }
             }
-          },
-          "description": "Options for the Caller Type field"
+          }
         },
         "booking_outcomes": {
           "type": "array",
@@ -47,8 +46,7 @@
                 "type": "string"
               }
             }
-          },
-          "description": "Options for the Booking Outcome field"
+          }
         },
         "call_statuses": {
           "type": "array",
@@ -62,10 +60,17 @@
                 "type": "string"
               }
             }
-          },
-          "description": "Options for the Call Status field"
+          }
+        },
+        "ai_booking_criteria": {
+          "type": "string",
+          "description": "Instructions for the AI on how to classify booking outcomes"
         }
       }
+    },
+    "last_synced_sheet_row": {
+      "type": "number",
+      "description": "The last Google Sheet row number that was successfully processed by scheduledSheetSync. Used as a high-water mark to avoid re-scanning all rows on every run."
     }
   },
   "required": [

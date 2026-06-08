@@ -105,11 +105,18 @@ Deno.serve(async (req) => {
     const { accessToken } = connResult;
     const spreadsheetId = Deno.env.get("GOOGLE_SHEET_ID");
 
-    // Fetch up to 2000 rows; only metadata columns (A:D) to keep payload small,
-    // then fetch full data only for new rows
-    const range = "Sheet1!A1:Z2500";
+    // --- Load the last processed row index from AppSettings ---
+    const settingsList = await base44.asServiceRole.entities.AppSettings.filter({ key: "global" });
+    const settings = settingsList?.[0] || null;
+    const lastProcessedRow = settings?.last_synced_sheet_row || 1; // 1 = header row, so data starts at row 2
 
-    const [sheetRes, userList] = await Promise.all([
+    // Only fetch rows we haven't seen yet (start from lastProcessedRow + 1)
+    const startRow = lastProcessedRow + 1;
+    // Fetch a window of 200 rows at a time to keep payload small
+    const endRow = startRow + 199;
+    const range = `Sheet1!A1:Z1`; // headers first
+
+    const [headersRes, userList] = await Promise.all([
       fetch(
         `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}`,
         { headers: { Authorization: `Bearer ${accessToken}` } }
@@ -117,90 +124,108 @@ Deno.serve(async (req) => {
       base44.asServiceRole.entities.User.list(),
     ]);
 
-    if (!sheetRes.ok) {
-      const err = await sheetRes.text();
-      return Response.json({ error: err }, { status: sheetRes.status });
+    if (!headersRes.ok) {
+      const err = await headersRes.text();
+      return Response.json({ error: err }, { status: headersRes.status });
     }
 
-    const data = await sheetRes.json();
-    const rows = data.values || [];
-    if (rows.length < 2) return Response.json({ imported: 0, skipped: 0, remaining: 0 });
+    const headersData = await headersRes.json();
+    const headers = headersData.values?.[0] || [];
+    if (!headers.length) return Response.json({ imported: 0, skipped: 0, remaining: 0 });
 
-    const headers = rows[0];
-    const records = rows.slice(1).map((row, idx) => {
-      const obj = { __rowIndex: idx + 2 };
+    // Fetch the window of new rows
+    const dataRange = `Sheet1!A${startRow}:Z${endRow}`;
+    const dataRes = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(dataRange)}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+
+    if (!dataRes.ok) {
+      const err = await dataRes.text();
+      return Response.json({ error: err }, { status: dataRes.status });
+    }
+
+    const dataJson = await dataRes.json();
+    const rawRows = dataJson.values || [];
+
+    if (rawRows.length === 0) {
+      return Response.json({ imported: 0, skipped: 0, remaining: 0, message: "No new rows found" });
+    }
+
+    // Map rows to objects using actual sheet row numbers
+    const records = rawRows.map((row, idx) => {
+      const obj = { __rowIndex: startRow + idx };
       headers.forEach((h, i) => { obj[h] = row[i] ?? ""; });
       return obj;
     });
 
-    // Fetch all existing IDs in batches of 1000 to avoid cap issues
-    const existingIds = new Set();
-    let fetchOffset = 0;
-    while (true) {
-      const batch = await base44.asServiceRole.entities.CallRecord.list("-created_date", 1000, fetchOffset);
-      if (!batch || batch.length === 0) break;
-      batch.forEach(r => { if (r.zoom_meeting_id) existingIds.add(r.zoom_meeting_id); });
-      if (batch.length < 1000) break;
-      fetchOffset += 1000;
-    }
+    // Process only rows that have a date (skip blanks)
+    const validRecords = records.filter(row => !!(row["Date/Time"] || row["Call Date"]));
+    const remaining = rawRows.length === 200 ? "possibly more" : 0; // if we got a full page, there may be more
 
-    const newRows = records.filter(row => !existingIds.has(`sheet_row_${row.__rowIndex}`));
-
-    // Process in small batches to avoid timeouts
-    const MAX_PER_RUN = 15;
-    const rowsToProcess = newRows.slice(0, MAX_PER_RUN);
-    const remaining = newRows.length - rowsToProcess.length;
+    // Process in small batches — 10 per run to stay well within CPU limits
+    const MAX_PER_RUN = 10;
+    const rowsToProcess = validRecords.slice(0, MAX_PER_RUN);
 
     let imported = 0;
     let skipped = 0;
     const errors = [];
+    let maxProcessedRow = lastProcessedRow;
 
-    // Process in parallel groups of 5 to stay within memory/time limits
-    const CONCURRENCY = 5;
-    for (let i = 0; i < rowsToProcess.length; i += CONCURRENCY) {
-      const batch = rowsToProcess.slice(i, i + CONCURRENCY);
-      await Promise.all(batch.map(async (row) => {
-        try {
-          const callDate = row["Date/Time"] || row["Call Date"];
-          const transcript = row["Transcript"] || "";
-          const rawLink = row["Link to Recording"] || "";
-          const directionRaw = (row["Inbound/Outbound"] || "").toLowerCase();
-          const call_direction = directionRaw.includes("out") ? "outbound" : "inbound";
+    // Process sequentially to avoid CPU spikes from parallel OpenAI calls
+    for (const row of rowsToProcess) {
+      try {
+        const callDate = row["Date/Time"] || row["Call Date"];
+        const transcript = row["Transcript"] || "";
+        const rawLink = row["Link to Recording"] || "";
+        const directionRaw = (row["Inbound/Outbound"] || "").toLowerCase();
+        const call_direction = directionRaw.includes("out") ? "outbound" : "inbound";
 
-          if (!callDate) { skipped++; return; }
+        const zoom_meeting_id = `sheet_row_${row.__rowIndex}`;
+        const callerInfo = { call_date: callDate, call_direction };
+        const analysis = await analyzeTranscript(transcript, callerInfo, userList);
 
-          const zoom_meeting_id = `sheet_row_${row.__rowIndex}`;
-          const callerInfo = { call_date: callDate, call_direction };
-          const analysis = await analyzeTranscript(transcript, callerInfo, userList);
-
-          if (call_direction === "outbound") {
-            analysis.team_member = null;
-          } else if (analysis.team_member && userList.length) {
-            const matched = fuzzyMatchUser(analysis.team_member, userList);
-            analysis.team_member = matched || null;
-          }
-
-          const recordingUrl = extractRecordingUrl(rawLink);
-
-          await base44.asServiceRole.entities.CallRecord.create({
-            zoom_meeting_id,
-            call_date: new Date(callDate).toISOString(),
-            call_direction,
-            transcript: transcript || null,
-            recording_url: recordingUrl,
-            status: "pending_review",
-            was_booked: analysis.booking_outcome === "appt_booked",
-            ...analysis,
-          });
-          imported++;
-        } catch (err) {
-          errors.push(err.message);
-          skipped++;
+        if (call_direction === "outbound") {
+          analysis.team_member = null;
+        } else if (analysis.team_member && userList.length) {
+          const matched = fuzzyMatchUser(analysis.team_member, userList);
+          analysis.team_member = matched || null;
         }
-      }));
+
+        const recordingUrl = extractRecordingUrl(rawLink);
+
+        await base44.asServiceRole.entities.CallRecord.create({
+          zoom_meeting_id,
+          call_date: new Date(callDate).toISOString(),
+          call_direction,
+          transcript: transcript || null,
+          recording_url: recordingUrl,
+          status: "pending_review",
+          was_booked: analysis.booking_outcome === "appt_booked",
+          ...analysis,
+        });
+
+        imported++;
+        if (row.__rowIndex > maxProcessedRow) maxProcessedRow = row.__rowIndex;
+      } catch (err) {
+        errors.push(`Row ${row.__rowIndex}: ${err.message}`);
+        skipped++;
+        // Still advance past this row so we don't get stuck on it forever
+        if (row.__rowIndex > maxProcessedRow) maxProcessedRow = row.__rowIndex;
+      }
     }
 
-    return Response.json({ imported, skipped, remaining, errors: errors.slice(0, 5) });
+    // --- Save the high-water mark so next run starts from here ---
+    if (maxProcessedRow > lastProcessedRow) {
+      const updateData = { last_synced_sheet_row: maxProcessedRow };
+      if (settings?.id) {
+        await base44.asServiceRole.entities.AppSettings.update(settings.id, updateData);
+      } else {
+        await base44.asServiceRole.entities.AppSettings.create({ key: "global", ...updateData });
+      }
+    }
+
+    return Response.json({ imported, skipped, remaining, lastProcessedRow, maxProcessedRow, errors: errors.slice(0, 5) });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
