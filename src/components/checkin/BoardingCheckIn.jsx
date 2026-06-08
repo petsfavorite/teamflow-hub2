@@ -18,6 +18,8 @@ export default function BoardingCheckIn({ pet, visit, onConfirm, onCancel, editM
      const [needUrine, setNeedUrine] = useState(false);
      const [addCBDChews, setAddCBDChews] = useState(false);
      const [addProbiotic, setAddProbiotic] = useState(false);
+     const [addCBDStorming, setAddCBDStorming] = useState(false);
+     const [addProbioticDiarrhea, setAddProbioticDiarrhea] = useState(false);
      const [addFeedingEnrichment, setAddFeedingEnrichment] = useState(false);
      const [addBath, setAddBath] = useState(false);
     const inferMealTimesFromFrequency = (freq) => {
@@ -391,6 +393,38 @@ export default function BoardingCheckIn({ pet, visit, onConfirm, onCancel, editM
         });
     }
 
+    // Add "CBD if needed for storms" once daily if selected (no time, resets daily)
+    if (addCBDStorming) {
+        let d = moment(checkInDate);
+        while (d.format('YYYY-MM-DD') <= checkoutDate) {
+            tasks.push({
+                type: 'CBD if needed for storms',
+                time: '',
+                date: d.format('YYYY-MM-DD'),
+                is_template: true,
+                completed: false,
+                completed_at: null
+            });
+            d.add(1, 'day');
+        }
+    }
+
+    // Add "Probiotic if Diarrhea Seen" once daily if selected (no time, resets daily)
+    if (addProbioticDiarrhea) {
+        let d = moment(checkInDate);
+        while (d.format('YYYY-MM-DD') <= checkoutDate) {
+            tasks.push({
+                type: 'Probiotic if Diarrhea Seen',
+                time: '',
+                date: d.format('YYYY-MM-DD'),
+                is_template: true,
+                completed: false,
+                completed_at: null
+            });
+            d.add(1, 'day');
+        }
+    }
+
     // Add "Enter All Charges" task on day before checkout at 6 PM
     const chargesDueDate = moment(checkoutDate).subtract(1, 'day').format('YYYY-MM-DD');
     tasks.push({
@@ -520,7 +554,7 @@ export default function BoardingCheckIn({ pet, visit, onConfirm, onCancel, editM
                                  onCheckedChange={setAddCBDChews}
                              />
                              <Label htmlFor="cbdchews" className="cursor-pointer">
-                                 Add CBD Chews
+                                 Add Twice Daily CBD
                              </Label>
                          </div>
                          <div className="flex items-center space-x-2">
@@ -530,7 +564,27 @@ export default function BoardingCheckIn({ pet, visit, onConfirm, onCancel, editM
                                  onCheckedChange={setAddProbiotic}
                              />
                              <Label htmlFor="probiotic" className="cursor-pointer">
-                                 Add Probiotic
+                                 Add Daily Probiotic
+                             </Label>
+                         </div>
+                         <div className="flex items-center space-x-2">
+                             <Checkbox 
+                                 id="cbdstorming" 
+                                 checked={addCBDStorming}
+                                 onCheckedChange={setAddCBDStorming}
+                             />
+                             <Label htmlFor="cbdstorming" className="cursor-pointer">
+                                 Add CBD if Storming
+                             </Label>
+                         </div>
+                         <div className="flex items-center space-x-2">
+                             <Checkbox 
+                                 id="probioticDiarrhea" 
+                                 checked={addProbioticDiarrhea}
+                                 onCheckedChange={setAddProbioticDiarrhea}
+                             />
+                             <Label htmlFor="probioticDiarrhea" className="cursor-pointer">
+                                 Add Probiotic if Diarrhea Seen
                              </Label>
                          </div>
                          <div className="flex items-center space-x-2">
@@ -652,8 +706,10 @@ export default function BoardingCheckIn({ pet, visit, onConfirm, onCancel, editM
                                     )}
                             <li>• Feeding: {feedingFrequency === 'Just Breakfast' && 'Breakfast at 9 AM'} {feedingFrequency === 'Just Dinner' && 'Dinner at 5:30 PM'} {feedingFrequency === 'Two Meals' && 'Breakfast at 9 AM & Dinner at 5:30 PM'} {feedingFrequency === 'Three Meals' && 'Breakfast at 9 AM, Lunch at 12 PM & Dinner at 5:30 PM'}</li>
                             {pet.medications?.length > 0 && <li>• Medications as scheduled</li>}
-                            {addCBDChews && <li>• CBD Chews (with each meal)</li>}
-                            {addProbiotic && <li>• Probiotic added to each meal</li>}
+                            {addCBDChews && <li>• Twice Daily CBD (with each meal)</li>}
+                            {addProbiotic && <li>• Daily Probiotic (with each meal)</li>}
+                            {addCBDStorming && <li>• CBD if needed for storms (daily, no set time)</li>}
+                            {addProbioticDiarrhea && <li>• Probiotic if Diarrhea Seen (daily, no set time)</li>}
                             {addFeedingEnrichment && <li>• Give Feeding Enrichment Toy (3:00 PM daily)</li>}
                             {addBath && <li>• Schedule Bath</li>}
                         </ul>
