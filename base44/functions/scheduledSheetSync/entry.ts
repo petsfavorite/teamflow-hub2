@@ -112,8 +112,8 @@ Deno.serve(async (req) => {
 
     // Only fetch rows we haven't seen yet (start from lastProcessedRow + 1)
     const startRow = lastProcessedRow + 1;
-    // Fetch a window of 200 rows at a time to keep payload small
-    const endRow = startRow + 199;
+    // Fetch a window of 500 rows at a time
+    const endRow = startRow + 499;
     const range = `Sheet1!A1:Z1`; // headers first
 
     const [headersRes, userList] = await Promise.all([
@@ -160,12 +160,8 @@ Deno.serve(async (req) => {
     });
 
     // Process only rows that have a date (skip blanks)
-    const validRecords = records.filter(row => !!(row["Date/Time"] || row["Call Date"]));
-    const remaining = rawRows.length === 200 ? "possibly more" : 0; // if we got a full page, there may be more
-
-    // Process in small batches — 10 per run to stay well within CPU limits
-    const MAX_PER_RUN = 10;
-    const rowsToProcess = validRecords.slice(0, MAX_PER_RUN);
+    const rowsToProcess = records.filter(row => !!(row["Date/Time"] || row["Call Date"]));
+    const remaining = rawRows.length === 500 ? "possibly more" : 0;
 
     let imported = 0;
     let skipped = 0;
