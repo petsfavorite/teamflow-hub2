@@ -594,7 +594,7 @@ export default function BoardingCheckIn({ pet, visit, onConfirm, onCancel, editM
                                  onCheckedChange={setAddFeedingEnrichment}
                              />
                              <Label htmlFor="feedingenrichment" className="cursor-pointer">
-                                 Add Feeding Enrichment Toy
+                                 Add Daily Feeding Enrichment Toy
                              </Label>
                          </div>
                          <div className="flex items-center space-x-2">
