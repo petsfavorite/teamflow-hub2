@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import PreliminaryReportDialog from './PreliminaryReportDialog';
+import EditCheckInDialog from './EditCheckInDialog';
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { 
     Dog, Cat, MapPin, Clock, Utensils, Pill, 
-    CheckCircle2, Plus, X, FileText, Camera, ChevronLeft, AlertCircle, Sparkles
+    CheckCircle2, Plus, X, FileText, Camera, ChevronLeft, AlertCircle, Sparkles, Pencil
 } from "lucide-react";
 import moment from "moment";
 
@@ -61,6 +62,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
     const [cancelTaskNote, setCancelTaskNote] = useState('');
     const [addingPlayCamp, setAddingPlayCamp] = useState(false);
     const [playCampDuration, setPlayCampDuration] = useState('half_day');
+    const [editCheckInOpen, setEditCheckInOpen] = useState(false);
 
     const [recurrenceType, setRecurrenceType] = useState('none');
     const [customTaskType, setCustomTaskType] = useState('');
@@ -519,6 +521,15 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
             open={showPrelimReport}
             onClose={() => setShowPrelimReport(false)}
         />
+        {isBoarding && (
+            <EditCheckInDialog
+                pet={pet}
+                visit={visit}
+                open={editCheckInOpen}
+                onClose={() => setEditCheckInOpen(false)}
+                onSave={onUpdateVisit}
+            />
+        )}
         <div className="h-screen flex flex-col max-h-screen overflow-hidden">
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-stone-100 flex-shrink-0" style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))' }}>
@@ -1124,6 +1135,16 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
 
             {/* Footer */}
             <div className="p-4 border-t border-stone-100 flex-shrink-0 bg-white space-y-2" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
+                {isBoarding && (
+                    <Button
+                        variant="outline"
+                        onClick={() => setEditCheckInOpen(true)}
+                        className="w-full rounded-xl h-10 border-stone-200 text-stone-600 hover:bg-stone-50"
+                    >
+                        <Pencil className="w-4 h-4 mr-2" />
+                        Edit Check-In Options
+                    </Button>
+                )}
                 <Button 
                     variant="outline"
                     onClick={() => setShowPrelimReport(true)}

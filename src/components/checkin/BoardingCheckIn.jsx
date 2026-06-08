@@ -9,11 +9,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Plus, Trash2 } from "lucide-react";
 import moment from 'moment';
 
-export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
-     const [checkoutDate, setCheckoutDate] = useState('');
-     const [feedingFrequency, setFeedingFrequency] = useState(pet.feeding_frequency || 'Two Meals');
-     const [addPlayCamp, setAddPlayCamp] = useState(false);
-     const [whatWasBrought, setWhatWasBrought] = useState('');
+export default function BoardingCheckIn({ pet, visit, onConfirm, onCancel, editMode }) {
+     const [checkoutDate, setCheckoutDate] = useState(visit?.scheduled_checkout_date || '');
+     const [feedingFrequency, setFeedingFrequency] = useState(visit?.feeding_frequency || pet.feeding_frequency || 'Two Meals');
+     const [addPlayCamp, setAddPlayCamp] = useState(!!(visit?.play_camp_duration));
+     const [whatWasBrought, setWhatWasBrought] = useState(visit?.what_was_brought || '');
      const [needFecal, setNeedFecal] = useState(false);
      const [needUrine, setNeedUrine] = useState(false);
      const [addCBDChews, setAddCBDChews] = useState(false);
@@ -33,12 +33,22 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
         ];
     };
 
-    const [visitMedications, setVisitMedications] = useState(
-        pet.medications?.length > 0 ? pet.medications.map(m => ({
-            ...m,
-            meal_times: inferMealTimesFromFrequency(m.frequency)
-        })) : []
-    );
+    const [visitMedications, setVisitMedications] = useState(() => {
+        // In edit mode, use existing visit medications if available
+        if (visit?.visit_medications?.length > 0) {
+            return visit.visit_medications.map(m => ({
+                ...m,
+                meal_times: m.meal_times || inferMealTimesFromFrequency(m.frequency)
+            }));
+        }
+        if (pet.medications?.length > 0) {
+            return pet.medications.map(m => ({
+                ...m,
+                meal_times: inferMealTimesFromFrequency(m.frequency)
+            }));
+        }
+        return [];
+    });
     const defaultMedTimes = () => {
         const times = [];
         if (feedingFrequency === 'Just Breakfast' || feedingFrequency === 'Two Meals' || feedingFrequency === 'Three Meals') {
@@ -430,7 +440,7 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
          <form onSubmit={handleSubmit} className="space-y-4">
              <Card className="border-0 shadow-sm rounded-2xl">
                 <CardHeader>
-                    <CardTitle className="text-lg">Boarding Check-In</CardTitle>
+                   <CardTitle className="text-lg">{editMode ? 'Edit Check-In Options' : 'Boarding Check-In'}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="space-y-2">
@@ -656,7 +666,7 @@ export default function BoardingCheckIn({ pet, onConfirm, onCancel }) {
                     Back
                     </Button>
                     <Button type="submit" className="flex-1 rounded-xl bg-blue-500 hover:bg-blue-600 py-6 text-base">
-                    Complete Check-In
+                    {editMode ? 'Save Changes' : 'Complete Check-In'}
                     </Button>
                     </div>
                     </form>
