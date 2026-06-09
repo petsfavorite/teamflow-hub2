@@ -212,19 +212,23 @@ Deno.serve(async (req) => {
     for (const callLog of batch) {
       const callId = String(callLog.id);
       try {
-        // Extract phone numbers directly from call log (Zoom uses 'from_phone' and 'to_phone')
-        const callFromNumber = callLog.from_phone || callLog.from || null;
-        const callToNumber = callLog.to_phone || callLog.to || null;
+        // Extract phone numbers from Zoom API response
+        const callFromNumber = callLog.caller_number || null; // e.g., "+18645853401"
+        const callToNumber = callLog.callee_did_number || callLog.callee_number || null; // e.g., "+18646868583" or "1378"
         
         const callDirection = callLog.direction || "inbound";
-        const startTime     = callLog.start_time || new Date().toISOString();
+        const startTime     = callLog.date_time || new Date().toISOString(); // Zoom uses 'date_time'
         const duration      = callLog.duration || 0; // already in seconds
+        const callerName    = callLog.caller_name || null;
+        // Zoom recording URL: https://api.zoom.us/v2/call_records/{recordingId}/download
+        // Some recordings may not have IDs or may be blocked
+        const recording_url = callLog.recording_id ? `https://zoom.us/recording/download/${callLog.recording_id}` : null;
 
         // Get transcript if recording URL exists
         let transcript = "";
-        if (callLog.recording_url) {
+        if (recording_url) {
           try {
-            const audioBuffer = await downloadRecording(callLog.recording_url, zoomToken);
+            const audioBuffer = await downloadRecording(recording_url, zoomToken);
             transcript = await transcribeAudio(audioBuffer, "M4A", openai);
           } catch (transcriptErr) {
             console.warn(`[WARN] Transcript failed for ${callId}: ${transcriptErr.message}`);
@@ -262,11 +266,11 @@ Deno.serve(async (req) => {
           call_duration_seconds: duration,
           call_direction: callDirection,
           caller_phone: finalCallerPhone,
-          caller_name:  analysis.caller_name  || null,
+          caller_name:  callerName || analysis.caller_name || null,
           team_member:  analysis.team_member  || null,
           transcript,
           transcript_summary: analysis.transcript_summary || null,
-          recording_url: callLog.recording_url || null,
+          recording_url: recording_url || null,
           caller_type:   analysis.caller_type   || "not_applicable",
           caller_intent: analysis.caller_intent || null,
           bookable:      analysis.bookable       || "unclear",
