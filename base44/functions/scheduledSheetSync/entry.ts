@@ -173,16 +173,12 @@ Deno.serve(async (req) => {
       return obj;
     });
 
-    // Process only rows that have a date (skip truly blank rows)
-    // Also log a sample to help debug column names
+    // Process only rows that have any data (skip blank rows)
     if (records.length > 0) {
       console.log(`[DEBUG] First row keys: ${Object.keys(records[0]).filter(k => k !== '__rowIndex').join(', ')}`);
       console.log(`[DEBUG] First row sample: ${JSON.stringify(records[0]).substring(0, 300)}`);
     }
     const rowsToProcess = records.filter(row => {
-      const dateVal = row["Date/Time"] || row["Call Date"] || row["Date"] || row["date"] || row["Timestamp"];
-      // fallback: any non-empty non-rowIndex value
-      if (dateVal) return true;
       const hasAnyData = Object.entries(row).some(([k, v]) => k !== '__rowIndex' && v !== '');
       return hasAnyData;
     });
@@ -193,59 +189,68 @@ Deno.serve(async (req) => {
     const errors = [];
     let maxProcessedRow = lastProcessedRow;
 
-    // Process sequentially to avoid CPU spikes from parallel OpenAI calls
     for (const row of rowsToProcess) {
       try {
-        const callDate = row["Date/Time"] || row["Call Date"] || row["Date"] || row["date"] || row["Timestamp"] || "";
-        const transcript = row["Transcript"] || "";
-        const rawLink = row["Link to Recording"] || "";
         const directionRaw = (row["Inbound/Outbound"] || "").toLowerCase();
         const call_direction = directionRaw.includes("out") ? "outbound" : "inbound";
 
-        const zoom_meeting_id = `sheet_row_${row.__rowIndex}`;
+        // Derive caller_phone and caller_name from Caller/Callee columns
+        // For inbound: Caller is the external party; for outbound: Callee is the external party
+        const callerField = row["Caller"] || "";
+        const calleeField = row["Callee"] || "";
+        let caller_phone = null;
+        let caller_name = null;
 
-        // Robust date parsing — try multiple formats
-        let callDateISO;
-        if (callDate) {
-          const parsed = new Date(callDate);
-          if (!isNaN(parsed.getTime())) {
-            callDateISO = parsed.toISOString();
+        if (call_direction === "inbound") {
+          // Caller is the person calling in
+          if (/\d{7,}/.test(callerField)) {
+            caller_phone = callerField;
           } else {
-            // Try M/D/YYYY H:MM or M/D/YYYY formats
-            const mdyMatch = callDate.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s*(.*)$/);
-            if (mdyMatch) {
-              const reconstructed = `${mdyMatch[3]}-${mdyMatch[1].padStart(2,'0')}-${mdyMatch[2].padStart(2,'0')}T${mdyMatch[4] || '00:00'}`;
-              const p2 = new Date(reconstructed);
-              callDateISO = isNaN(p2.getTime()) ? new Date().toISOString() : p2.toISOString();
-            } else {
-              callDateISO = new Date().toISOString(); // fallback to now
-            }
+            caller_name = callerField || null;
           }
         } else {
-          callDateISO = new Date().toISOString();
+          // Outbound: Callee is who we called
+          if (/\d{7,}/.test(calleeField)) {
+            caller_phone = calleeField;
+          } else {
+            caller_name = calleeField || null;
+          }
         }
 
-        const callerInfo = { call_date: callDate, call_direction };
-        const analysis = await analyzeTranscript(transcript, callerInfo, userList);
-
-        if (call_direction === "outbound") {
-          analysis.team_member = null;
-        } else if (analysis.team_member && userList.length) {
-          const matched = fuzzyMatchUser(analysis.team_member, userList);
-          analysis.team_member = matched || null;
+        // team_member from "Answered By" column
+        let team_member = row["Answered By"] || null;
+        if (team_member && userList.length) {
+          const matched = fuzzyMatchUser(team_member, userList);
+          team_member = matched || team_member || null;
         }
+        if (call_direction === "outbound") team_member = null;
 
-        const recordingUrl = extractRecordingUrl(rawLink);
+        // caller_type from "Caller Type" column
+        const callerTypeRaw = (row["Caller Type"] || "").toLowerCase();
+        let caller_type = "not_applicable";
+        if (callerTypeRaw.includes("potential") || callerTypeRaw.includes("new")) caller_type = "potential_client";
+        else if (callerTypeRaw.includes("return") || callerTypeRaw.includes("existing")) caller_type = "returning_client";
+
+        // booking_outcome from "Booking Status" column
+        const bookingRaw = (row["Booking Status"] || "").toLowerCase();
+        let booking_outcome = "appt_not_booked";
+        if (bookingRaw.includes("booked") || bookingRaw.includes("scheduled") || bookingRaw.includes("yes")) booking_outcome = "appt_booked";
+        else if (bookingRaw.includes("not needed") || bookingRaw.includes("n/a") || bookingRaw.includes("not applicable")) booking_outcome = "appt_not_needed";
+
+        const zoom_meeting_id = `sheet_row_${row.__rowIndex}`;
+        const callDateISO = new Date().toISOString(); // no date column available
 
         await base44.asServiceRole.entities.CallRecord.create({
           zoom_meeting_id,
           call_date: callDateISO,
           call_direction,
-          transcript: transcript || null,
-          recording_url: recordingUrl,
+          caller_phone,
+          caller_name,
+          team_member,
+          caller_type,
+          booking_outcome,
+          was_booked: booking_outcome === "appt_booked",
           status: "pending_review",
-          was_booked: analysis.booking_outcome === "appt_booked",
-          ...analysis,
         });
 
         imported++;
