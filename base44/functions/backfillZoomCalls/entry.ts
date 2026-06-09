@@ -79,7 +79,14 @@ EXTRACTION RULES - BE STRICT AND EXPLICIT:
 - Extract EVERY field from the transcript
 - If you are NOT 95%+ confident about a value, use "Unsure" (for strings) or null (for optional fields)
 - Do NOT guess or assume - only extract what you can clearly identify
-- For phone numbers: look for digits spoken, written, or read aloud. If none clearly extracted, use null.
+- For phone numbers: 
+  * Look for 10-digit sequences (including parentheses/dashes like (555) 123-4567 or 555-123-4567)
+  * Look for caller reading numbers aloud (e.g., "my number is 5 5 5 1 2 3 4 5 6 7")
+  * Look for clinic/staff reading back a number to confirm it
+  * For caller_phone: ANY phone number the caller provided or gave out
+  * For callee_phone: the clinic's phone number being called, or any number staff/system mentioned
+  * If transcript mentions numbers in ANY format, EXTRACT them
+  * Only use null if NO phone numbers appear AT ALL in the entire transcript
 - For caller_name: only if explicitly stated in transcript. Otherwise "Unsure".
 - For team_member: only exact matches to KNOWN STAFF MEMBERS. Otherwise use "Please Check" or null.
 - For caller_type/booking_outcome: use "Unsure" if unclear, never guess.
