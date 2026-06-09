@@ -124,10 +124,12 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const from = "2026-04-01";
-    const to   = new Date().toISOString().slice(0, 10);
+    const body = await req.json().catch(() => ({}));
+    const from       = body.from       || "2026-04-01";
+    const to         = body.to         || new Date().toISOString().slice(0, 10);
+    const batchSize  = body.batch_size || 5;
 
-    console.log(`[INFO] Backfilling Zoom recordings from ${from} to ${to}`);
+    console.log(`[INFO] Backfilling Zoom recordings from ${from} to ${to}, batch_size=${batchSize}`);
 
     const openai = new OpenAI({ apiKey: Deno.env.get("OPENAI_API_KEY") });
     const [zoomToken, sheetsConn, userList] = await Promise.all([
@@ -142,32 +144,26 @@ Deno.serve(async (req) => {
     const existingRecords = await base44.asServiceRole.entities.CallRecord.list('-created_date', 5000);
     const existingMeetingIds = new Set(existingRecords.map(r => String(r.zoom_meeting_id)));
 
-    const meetings = await fetchAllRecordings(zoomToken, from, to);
-    console.log(`[INFO] Found ${meetings.length} Zoom Phone recordings`);
+    const allRecordings = await fetchAllRecordings(zoomToken, from, to);
+    console.log(`[INFO] Found ${allRecordings.length} Zoom Phone recordings`);
+
+    // Filter to only unprocessed recordings with a download URL
+    const pending = allRecordings.filter(m => m.download_url && !existingMeetingIds.has(String(m.id)));
+    console.log(`[INFO] ${pending.length} unprocessed recordings remaining`);
 
     const sheetName = await getSheetName(spreadsheetId, sheetsToken);
 
     let processed = 0;
-    let skipped   = 0;
+    let skipped   = allRecordings.length - pending.length;
     const errors  = [];
 
-    for (const meeting of meetings) {
+    // Process only up to batchSize recordings per call
+    const batch = pending.slice(0, batchSize);
+
+    for (const meeting of batch) {
       const meetingId = String(meeting.id);
-
-      // Skip if already imported
-      if (existingMeetingIds.has(meetingId)) {
-        skipped++;
-        continue;
-      }
-
-      const downloadUrl = meeting.download_url;
-      if (!downloadUrl) {
-        skipped++;
-        continue;
-      }
-
       try {
-        const audioBuffer = await downloadRecording(downloadUrl, zoomToken);
+        const audioBuffer = await downloadRecording(meeting.download_url, zoomToken);
         const transcript  = await transcribeAudio(audioBuffer, "M4A", openai);
 
         const callDirection = meeting.direction === "outbound" ? "outbound" : "inbound";
@@ -215,17 +211,25 @@ Deno.serve(async (req) => {
         });
 
         processed++;
-        console.log(`[INFO] Processed ${processed}: ${topic} (${startTime})`);
+        console.log(`[INFO] Processed recording ${meetingId} (${startTime})`);
 
         // Throttle to avoid rate limits
-        await new Promise(r => setTimeout(r, 1500));
+        await new Promise(r => setTimeout(r, 500));
       } catch (err) {
-        console.error(`[ERROR] Meeting ${meetingId}: ${err.message}`);
+        console.error(`[ERROR] Recording ${meetingId}: ${err.message}`);
         errors.push(`${meetingId}: ${err.message}`);
       }
     }
 
-    return Response.json({ processed, skipped, errors: errors.slice(0, 20), total: meetings.length });
+    const remaining = pending.length - batch.length;
+    return Response.json({
+      processed,
+      skipped,
+      errors: errors.slice(0, 20),
+      total: allRecordings.length,
+      remaining,
+      done: remaining === 0,
+    });
   } catch (error) {
     console.error("[ERROR]", error.message);
     return Response.json({ error: error.message }, { status: 500 });

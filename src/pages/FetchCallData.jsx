@@ -13,19 +13,36 @@ export default function FetchCallData() {
   const [backfilling, setBackfilling] = useState(false);
   const [backfillResult, setBackfillResult] = useState(null);
   const [backfillError, setBackfillError] = useState(null);
+  const [backfillProgress, setBackfillProgress] = useState(null);
 
   const handleBackfill = async () => {
     setBackfilling(true);
     setBackfillResult(null);
     setBackfillError(null);
+    setBackfillProgress(null);
+    let totalProcessed = 0;
+    let totalSkipped = 0;
+    let allErrors = [];
+
     try {
-      const res = await base44.functions.invoke("backfillZoomCalls", { from: "2026-04-01" });
-      setBackfillResult(res.data);
+      let done = false;
+      while (!done) {
+        const res = await base44.functions.invoke("backfillZoomCalls", { from: "2026-04-01", batch_size: 5 });
+        const data = res.data;
+        totalProcessed += data.processed || 0;
+        totalSkipped = data.skipped || 0;
+        allErrors = allErrors.concat(data.errors || []);
+        done = data.done;
+        setBackfillProgress({ processed: totalProcessed, skipped: totalSkipped, remaining: data.remaining, total: data.total });
+        if (!done) await new Promise(r => setTimeout(r, 1000));
+      }
+      setBackfillResult({ processed: totalProcessed, skipped: totalSkipped, errors: allErrors });
       refetch();
     } catch (err) {
       setBackfillError(err.message);
     } finally {
       setBackfilling(false);
+      setBackfillProgress(null);
     }
   };
 
@@ -117,13 +134,19 @@ export default function FetchCallData() {
         <p className="text-sm text-slate-600">Fetch all Zoom cloud recordings from <strong>April 1, 2026</strong> to today, transcribe each one, and add them to the sheet and call dashboard. Skips any already imported.</p>
         <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">⚠️ This may take several minutes depending on the number of recordings. Do not close this page.</p>
         <Button onClick={handleBackfill} disabled={backfilling} className="bg-blue-600 hover:bg-blue-700 text-white">
-          {backfilling ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Processing recordings...</> : "Run Backfill"}
+          {backfilling ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Processing...</> : "Run Backfill"}
         </Button>
+        {backfilling && backfillProgress && (
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+            <Loader2 className="w-4 h-4 inline animate-spin mr-2" />
+            <span className="font-medium">{backfillProgress.processed} processed</span> · {backfillProgress.remaining} remaining of {backfillProgress.total} total
+          </div>
+        )}
         {backfillResult && (
           <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex items-start gap-2 text-sm text-emerald-800">
             <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
             <div>
-              <span className="font-medium">Done!</span> {backfillResult.processed} processed · {backfillResult.skipped} skipped · {backfillResult.total} total found
+              <span className="font-medium">Done!</span> {backfillResult.processed} processed · {backfillResult.skipped} already imported
               {backfillResult.errors?.length > 0 && <p className="text-xs text-amber-700 mt-1">Errors: {backfillResult.errors.join("; ")}</p>}
             </div>
           </div>
