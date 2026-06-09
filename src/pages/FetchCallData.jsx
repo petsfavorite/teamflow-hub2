@@ -158,24 +158,7 @@ export default function FetchCallData() {
         )}
       </Card>
 
-      {/* Utility: clear written sheet columns */}
-      <Card className="p-6 space-y-3 border-amber-200 bg-amber-50">
-        <h2 className="font-semibold text-amber-800">Utility: Clear Sheet Columns G–I</h2>
-        <p className="text-sm text-amber-700">If columns were accidentally overwritten, use this to clear the written data columns (G, H, I) for all sheet rows.</p>
-        <Button variant="outline" size="sm" onClick={handleClearSheet} disabled={resetting} className="border-amber-300 text-amber-700 hover:bg-amber-100">
-          {resetting ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Clearing...</> : "Clear Written Columns"}
-        </Button>
-        {resetResult && (
-          <div className="flex items-center gap-2 text-sm text-emerald-700">
-            <CheckCircle className="w-4 h-4" /> Cleared {resetResult.cleared} rows
-          </div>
-        )}
-        {resetError && (
-          <div className="flex items-center gap-2 text-sm text-red-700">
-            <AlertCircle className="w-4 h-4" /> {resetError}
-          </div>
-        )}
-      </Card>
+
     </div>
   );
 }
