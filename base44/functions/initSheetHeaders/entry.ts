@@ -34,6 +34,21 @@ Deno.serve(async (req) => {
       "Booking Outcome"
     ];
 
+    // Step 1: Clear the entire sheet so no stale data or ghost columns remain
+    const clearRes = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(`${sheetName}`)}:clear`,
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+      }
+    );
+    if (!clearRes.ok) {
+      const err = await clearRes.text();
+      return Response.json({ error: "clear failed: " + err }, { status: 500 });
+    }
+
+    // Step 2: Write the canonical headers to row 1
     const writeRes = await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(`${sheetName}!A1`)}?valueInputOption=USER_ENTERED`,
       {

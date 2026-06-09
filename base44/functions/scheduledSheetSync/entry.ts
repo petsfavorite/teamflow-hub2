@@ -206,9 +206,12 @@ Deno.serve(async (req) => {
     }
 
     // Map rows to objects using actual sheet row numbers
+    // Only use headers that are non-empty strings to avoid blank-column offset issues
     const records = rawRows.map((row, idx) => {
       const obj = { __rowIndex: startRow + idx };
-      headers.forEach((h, i) => { obj[h] = row[i] ?? ""; });
+      headers.forEach((h, i) => {
+        if (h && h.trim()) obj[h.trim()] = row[i] ?? "";
+      });
       return obj;
     });
 
