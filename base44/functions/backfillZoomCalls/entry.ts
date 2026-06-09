@@ -75,20 +75,28 @@ CLASSIFICATION RULES:
 - EXISTING_CLIENT if: they mention they've been here before, you recognize their pet's name, they reference past visits, or they have an established history
 - POTENTIAL_CLIENT if: they want boarding, doggie daycare, or vet services, AND we have no prior relationship
 
+EXTRACTION RULES - BE STRICT AND EXPLICIT:
+- Extract EVERY field from the transcript
+- If you are NOT 95%+ confident about a value, use "Unsure" (for strings) or null (for optional fields)
+- Do NOT guess or assume - only extract what you can clearly identify
+- For phone numbers: look for digits spoken, written, or read aloud. If none clearly extracted, use null.
+- For caller_name: only if explicitly stated in transcript. Otherwise "Unsure".
+- For team_member: only exact matches to KNOWN STAFF MEMBERS. Otherwise use "Please Check" or null.
+- For caller_type/booking_outcome: use "Unsure" if unclear, never guess.
+
 Return JSON with these fields:
-- team_member: string or null (must exist in KNOWN STAFF MEMBERS exactly, or null for outbound/missed calls, or "Please Check" if uncertain)
-- caller_name: string or null
-- caller_phone: string or null (extract from transcript: any phone number mentioned as caller/external party - look for numbers given to staff, voicemail callbacks, or at call start)
-- callee_phone: string or null (extract from transcript: the clinic phone number being called, or mentioned by staff/system)
-- caller_type: "existing_client" | "potential_client" | "not_applicable"
-- caller_intent: string (1-sentence: what they're calling about)
-- bookable: "yes" | "no" | "unclear" (could a booking realistically happen from this call?)
-- booking_outcome: "appt_booked" | "appt_not_booked" | "appt_not_needed"
-  NOTE: "appt_not_needed" for voicemails, wrong numbers, or confirmations. "appt_not_booked" only when we spoke live but failed to book.
-- booked_date: "YYYY-MM-DDTHH:MM:00" if appt_booked, else null
-- appointment_offered: boolean (was an appointment offered to them during the call, even if not booked?)
-- transcript_summary: 2-3 sentence summary
-- ai_notes: brief flags or follow-up notes
+- team_member: string | null | "Please Check" (KNOWN STAFF MEMBER exact match, null for outbound/missed, "Please Check" if unsure)
+- caller_name: string | "Unsure" | null (only if clearly stated in transcript)
+- caller_phone: string | null (explicit digits from transcript - not guessed)
+- callee_phone: string | null (explicit clinic phone from transcript - not guessed)
+- caller_type: "existing_client" | "potential_client" | "not_applicable" | "Unsure" (only assign if 95%+ confident)
+- caller_intent: string (explicit 1-sentence summary of what they said they wanted)
+- bookable: "yes" | "no" | "unclear" | "Unsure" (only "yes" if booking clearly discussed/offered)
+- booking_outcome: "appt_booked" | "appt_not_booked" | "appt_not_needed" | "Unsure"
+- booked_date: "YYYY-MM-DDTHH:MM:00" | null (only if appointment explicitly booked with date)
+- appointment_offered: boolean (true only if appointment was explicitly offered during call)
+- transcript_summary: string (2-3 sentences, or "Unclear" if transcript is too short/unintelligible)
+- ai_notes: string | null (flag any "Unsure" fields, confidence concerns, or unclear moments)
 
 Return ONLY valid JSON, no markdown.`;
 
