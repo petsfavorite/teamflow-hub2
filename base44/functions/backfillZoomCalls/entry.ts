@@ -9,7 +9,7 @@ async function getZoomToken() {
   const creds = btoa(`${clientId}:${clientSecret}`);
   const res = await fetch(
     `https://zoom.us/oauth/token?grant_type=account_credentials&account_id=${accountId}`,
-    { method: "POST", headers: { Authorization: `Basic ${creds}` } }
+    { method: "POST", headers: { Authorization: `Basic ${creds}`, "Content-Type": "application/x-www-form-urlencoded" } }
   );
   if (!res.ok) throw new Error("Zoom token error: " + await res.text());
   return (await res.json()).access_token;
@@ -124,9 +124,8 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const body = await req.json().catch(() => ({}));
-    const from = body.from || "2026-04-01";
-    const to   = body.to   || new Date().toISOString().slice(0, 10);
+    const from = "2026-04-01";
+    const to   = new Date().toISOString().slice(0, 10);
 
     console.log(`[INFO] Backfilling Zoom recordings from ${from} to ${to}`);
 
