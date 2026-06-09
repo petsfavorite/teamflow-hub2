@@ -50,9 +50,16 @@ async function getTranscript(callId, zoomToken) {
     `https://api.zoom.us/v2/phone/call_records/${callId}/transcript`,
     { headers: { Authorization: `Bearer ${zoomToken}` } }
   );
-  if (!res.ok) return null; // No transcript available
+  if (!res.ok) {
+    console.warn(`[WARN] Transcript fetch failed (${res.status}) for ${callId}`);
+    return null;
+  }
   const data = await res.json();
-  return data.transcript_text || null;
+  const transcript = data.transcript_text || data.transcript || null;
+  if (transcript) {
+    console.log(`[INFO] Got transcript for ${callId} (${transcript.length} chars)`);
+  }
+  return transcript;
 }
 
 // ── Transcribe via Whisper ────────────────────────────────────────────────────
@@ -232,11 +239,15 @@ Deno.serve(async (req) => {
         try {
           const fetchedTranscript = await getTranscript(callId, zoomToken);
           transcript = fetchedTranscript || "";
+          if (!transcript) {
+            console.warn(`[WARN] No transcript available for ${callId} - AI will analyze call metadata only`);
+          }
         } catch (transcriptErr) {
           console.warn(`[WARN] Could not fetch transcript for ${callId}: ${transcriptErr.message}`);
         }
 
-        const analysis = await analyzeTranscript(transcript || "(No transcript available)", callDirection, userList, openai);
+        const analysisInput = transcript || `CALL METADATA ONLY - No transcript available.\nCaller: ${callerName || callFromNumber || "Unknown"}\nDirection: ${callDirection}\nDuration: ${duration}s\nCallee: ${callToNumber || "Unknown"}`;
+        const analysis = await analyzeTranscript(analysisInput, callDirection, userList, openai);
 
         // Use call log phone numbers, fallback to AI extraction
         const finalCallerPhone = callFromNumber || analysis.caller_phone || null;
