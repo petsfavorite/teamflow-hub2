@@ -44,37 +44,15 @@ async function fetchAllCallLogs(zoomToken, from, to) {
 }
 
 // ── Download audio ────────────────────────────────────────────────────────────
-async function downloadRecording(callLog, zoomToken) {
-  // Zoom Phone recordings might be accessible via CDN or blob storage
-  // Try direct binary download endpoint for the recording
-  const recordingId = callLog.recording_id;
-  
-  // Try the direct download endpoint for call recordings
-  const urls = [
-    `https://media-new.zoom.us/recording/${recordingId}`,
-    `https://media.zoom.us/recording/${recordingId}`,
-    `https://zoom.us/recording/download/${recordingId}`,
-  ];
-
-  let lastError = null;
-  for (const url of urls) {
-    try {
-      const res = await fetch(url, {
-        headers: { 
-          Authorization: `Bearer ${zoomToken}`,
-          "User-Agent": "Mozilla/5.0",
-        }
-      });
-      if (res.ok) {
-        return await res.arrayBuffer();
-      }
-      lastError = `${url} returned ${res.status}`;
-    } catch (err) {
-      lastError = err.message;
-    }
-  }
-  
-  throw new Error(`All recording download attempts failed: ${lastError}`);
+async function getTranscript(callId, zoomToken) {
+  // Fetch transcript from Zoom API (available if call was recorded)
+  const res = await fetch(
+    `https://api.zoom.us/v2/phone/call_records/${callId}/transcript`,
+    { headers: { Authorization: `Bearer ${zoomToken}` } }
+  );
+  if (!res.ok) return null; // No transcript available
+  const data = await res.json();
+  return data.transcript_text || null;
 }
 
 // ── Transcribe via Whisper ────────────────────────────────────────────────────
@@ -249,15 +227,13 @@ Deno.serve(async (req) => {
         // Some recordings may not have IDs or may be blocked
         const recording_url = callLog.recording_id ? `https://zoom.us/recording/download/${callLog.recording_id}` : null;
 
-        // Get transcript if recording ID exists
+        // Fetch existing transcript from Zoom API
         let transcript = "";
-        if (callLog.recording_id) {
-          try {
-            const audioBuffer = await downloadRecording(callLog, zoomToken);
-            transcript = await transcribeAudio(audioBuffer, "M4A", openai);
-          } catch (transcriptErr) {
-            console.warn(`[WARN] Transcript failed for ${callId}: ${transcriptErr.message}`);
-          }
+        try {
+          const fetchedTranscript = await getTranscript(callId, zoomToken);
+          transcript = fetchedTranscript || "";
+        } catch (transcriptErr) {
+          console.warn(`[WARN] Could not fetch transcript for ${callId}: ${transcriptErr.message}`);
         }
 
         const analysis = await analyzeTranscript(transcript || "(No transcript available)", callDirection, userList, openai);
