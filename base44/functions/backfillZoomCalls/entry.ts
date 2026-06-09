@@ -6,13 +6,22 @@ async function getZoomToken() {
   const clientId     = Deno.env.get("ZOOM_CLIENT_ID");
   const clientSecret = Deno.env.get("ZOOM_CLIENT_SECRET");
   const accountId    = Deno.env.get("ZOOM_ACCOUNT_ID");
+  
+  if (!clientId || !clientSecret || !accountId) {
+    throw new Error("Missing Zoom credentials (ZOOM_CLIENT_ID, ZOOM_CLIENT_SECRET, or ZOOM_ACCOUNT_ID)");
+  }
+  
   const creds = btoa(`${clientId}:${clientSecret}`);
   const res = await fetch(
     `https://zoom.us/oauth/token?grant_type=account_credentials&account_id=${accountId}`,
     { method: "POST", headers: { Authorization: `Basic ${creds}`, "Content-Type": "application/x-www-form-urlencoded" } }
   );
-  if (!res.ok) throw new Error("Zoom token error: " + await res.text());
-  return (await res.json()).access_token;
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`Zoom OAuth failed (${res.status}): ${errorText}`);
+  }
+  const data = await res.json();
+  return data.access_token;
 }
 
 // ── Fetch all Zoom Phone call logs for a date range (paginated) ────────
@@ -146,6 +155,7 @@ async function getSheetName(spreadsheetId, accessToken) {
 // ── Main ──────────────────────────────────────────────────────────────────────
 Deno.serve(async (req) => {
   try {
+    console.log("[DEBUG] Starting backfillZoomCalls");
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
     if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
@@ -159,14 +169,23 @@ Deno.serve(async (req) => {
 
     console.log(`[INFO] Backfilling Zoom recordings from ${from} to ${to}, batch_size=${batchSize}`);
 
-    const openai = new OpenAI({ apiKey: Deno.env.get("OPENAI_API_KEY") });
-    const [zoomToken, sheetsConn, userList] = await Promise.all([
-      getZoomToken(),
-      base44.asServiceRole.connectors.getConnection("googlesheets"),
-      base44.asServiceRole.entities.User.list(),
-    ]);
-    const { accessToken: sheetsToken } = sheetsConn;
-    const spreadsheetId = Deno.env.get("GOOGLE_SHEET_ID");
+    try {
+      const openai = new OpenAI({ apiKey: Deno.env.get("OPENAI_API_KEY") });
+      console.log("[DEBUG] Fetching connectors and user list...");
+      const [zoomToken, sheetsConn, userList] = await Promise.all([
+        getZoomToken().catch(e => { throw new Error(`Zoom token error: ${e.message}`); }),
+        base44.asServiceRole.connectors.getConnection("googlesheets").catch(e => { throw new Error(`Sheets connection error: ${e.message}`); }),
+        base44.asServiceRole.entities.User.list().catch(e => { throw new Error(`User list error: ${e.message}`); }),
+      ]);
+      console.log("[DEBUG] Got connections and user list");
+      const { accessToken: sheetsToken } = sheetsConn;
+      const spreadsheetId = Deno.env.get("GOOGLE_SHEET_ID");
+      console.log(`[DEBUG] Using spreadsheet: ${spreadsheetId}`);
+    } catch (setupError) {
+      const errorMsg = setupError instanceof Error ? setupError.message : JSON.stringify(setupError);
+      console.error("[ERROR] Setup failed:", errorMsg);
+      throw setupError;
+    }
 
     // Get existing call IDs so we don't duplicate
     const existingRecords = await base44.asServiceRole.entities.CallRecord.list('-created_date', 5000);
@@ -278,7 +297,8 @@ Deno.serve(async (req) => {
       done: remaining === 0,
     });
   } catch (error) {
-    console.error("[ERROR]", error.message);
-    return Response.json({ error: error.message }, { status: 500 });
+    const errorMsg = error instanceof Error ? error.message : JSON.stringify(error);
+    console.error("[ERROR]", errorMsg);
+    return Response.json({ error: errorMsg }, { status: 500 });
   }
 });
