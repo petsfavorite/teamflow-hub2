@@ -43,30 +43,44 @@ async function fetchAllCallLogs(zoomToken, from, to) {
   return allCalls;
 }
 
-// ── Fetch recording transcript ────────────────────────────────────────────────
-async function getTranscript(recordingId, zoomToken) {
-  // Fetch transcript from Zoom Phone recording endpoint (requires phone:read:recording_transcript:master scope)
+// ── Download and transcribe recording ──────────────────────────────────────────
+async function getRecordingTranscript(recordingId, zoomToken, openai) {
   if (!recordingId) {
-    console.warn(`[WARN] No recording_id available for transcript fetch`);
+    console.warn(`[WARN] No recording_id available for download`);
     return null;
   }
-  const res = await fetch(
-    `https://api.zoom.us/v2/phone/recordings/${recordingId}/transcript`,
-    { headers: { Authorization: `Bearer ${zoomToken}` } }
-  );
-  if (!res.ok) {
-    const errorBody = await res.text();
-    console.warn(`[WARN] Recording transcript fetch failed (${res.status}) for ${recordingId}: ${errorBody}`);
+
+  try {
+    // Download the recording MP3 from Zoom Phone API
+    const downloadRes = await fetch(
+      `https://api.zoom.us/v2/phone/recordings/${recordingId}/download`,
+      { headers: { Authorization: `Bearer ${zoomToken}` } }
+    );
+
+    if (!downloadRes.ok) {
+      const errorBody = await downloadRes.text();
+      console.warn(`[WARN] Recording download failed (${downloadRes.status}) for ${recordingId}: ${errorBody}`);
+      return null;
+    }
+
+    const audioBuffer = await downloadRes.arrayBuffer();
+    console.log(`[INFO] Downloaded recording ${recordingId} (${audioBuffer.byteLength} bytes)`);
+
+    // Transcribe with Whisper
+    const transcription = await openai.audio.transcriptions.create({
+      file: new File([audioBuffer], `recording.mp3`, { type: "audio/mpeg" }),
+      model: "whisper-1"
+    });
+
+    const transcript = transcription.text || "";
+    if (transcript) {
+      console.log(`[INFO] Transcribed recording ${recordingId} (${transcript.length} chars)`);
+    }
+    return transcript;
+  } catch (err) {
+    console.warn(`[WARN] Recording transcription failed for ${recordingId}: ${err.message}`);
     return null;
   }
-  const data = await res.json();
-  const transcript = data.transcript_text || data.transcript || null;
-  if (transcript) {
-    console.log(`[INFO] Got Zoom Phone recording transcript for ${recordingId} (${transcript.length} chars)`);
-  } else {
-    console.warn(`[WARN] No transcript in response for recording ${recordingId}`);
-  }
-  return transcript;
 }
 
 // ── Transcribe via Whisper ────────────────────────────────────────────────────
@@ -241,16 +255,16 @@ Deno.serve(async (req) => {
         // Some recordings may not have IDs or may be blocked
         const recording_url = callLog.recording_id ? `https://zoom.us/recording/download/${callLog.recording_id}` : null;
 
-        // Fetch existing transcript from Zoom Phone recording API
+        // Download and transcribe recording MP3
         let transcript = "";
         try {
-          const fetchedTranscript = await getTranscript(callLog.recording_id, zoomToken);
+          const fetchedTranscript = await getRecordingTranscript(callLog.recording_id, zoomToken, openai);
           transcript = fetchedTranscript || "";
           if (!transcript) {
             console.warn(`[WARN] No transcript available for recording ${callLog.recording_id || 'N/A'} - AI will analyze call metadata only`);
           }
         } catch (transcriptErr) {
-          console.warn(`[WARN] Could not fetch transcript for ${callLog.recording_id}: ${transcriptErr.message}`);
+          console.warn(`[WARN] Could not download/transcribe recording ${callLog.recording_id}: ${transcriptErr.message}`);
         }
 
         const analysisInput = transcript || `CALL METADATA ONLY - No transcript available.\nCaller: ${callerName || callFromNumber || "Unknown"}\nDirection: ${callDirection}\nDuration: ${duration}s\nCallee: ${callToNumber || "Unknown"}`;
