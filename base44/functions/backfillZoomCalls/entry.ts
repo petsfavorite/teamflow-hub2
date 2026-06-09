@@ -63,7 +63,7 @@ ${transcript}
 
 CALL DIRECTION: ${callDirection}
 
-${teamEntries ? `KNOWN STAFF MEMBERS:\n${teamEntries}\n\nNotes:\n- "Caroline", "Dr. Cofer", or "Dr. Caroline Cofer" refers to Caroline Cofer.\n- "Ariana" or "Arianna" almost certainly refers to Aryana.` : ""}
+${teamEntries ? `KNOWN STAFF MEMBERS:\n${teamEntries}\n\nTEAM MEMBER ATTRIBUTION RULES:\n- For OUTBOUND calls: team_member = null\n- For MISSED CALLS (no answer, voicemail): team_member = null\n- For INBOUND calls: identify the staff member who answered/spoke\n- MUST match exactly to a KNOWN STAFF MEMBER (case-insensitive OK)\n- Aliases: "Caroline", "Dr. Cofer", "Dr. Caroline Cofer" = "Caroline Cofer"; "Ariana" or "Arianna" = "Aryana"; "Rebecca" must refer to "Rebecca Evatt" (only Rebecca on staff)\n- If unsure or cannot determine: use "Please Check"\n- Return ONLY the exact full name from KNOWN STAFF MEMBERS, or null, or "Please Check"` : ""}
 
 CALLER TYPE LOGIC:
 - "existing_client": We have seen this animal/owner before at our clinic
@@ -76,7 +76,7 @@ CLASSIFICATION RULES:
 - POTENTIAL_CLIENT if: they want boarding, doggie daycare, or vet services, AND we have no prior relationship
 
 Return JSON with these fields:
-- team_member: string or null (null if outbound; for inbound, first staff member who answers/speaks — match to KNOWN STAFF MEMBERS, no partial matches)
+- team_member: string or null (must exist in KNOWN STAFF MEMBERS exactly, or null for outbound/missed calls, or "Please Check" if uncertain)
 - caller_name: string or null
 - caller_phone: string or null (10-digit phone or however it appears)
 - callee_phone: string or null (clinic phone being called)
