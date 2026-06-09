@@ -15,38 +15,23 @@ async function getZoomToken() {
   return (await res.json()).access_token;
 }
 
-// ── Fetch all cloud recordings for a date range (paginated) ───────────────────
+// ── Fetch all Zoom Phone call recordings for a date range (paginated) ────────
 async function fetchAllRecordings(zoomToken, from, to) {
-  const allMeetings = [];
+  const allRecordings = [];
   let nextPageToken = "";
   do {
     const params = new URLSearchParams({ from, to, page_size: "300" });
     if (nextPageToken) params.set("next_page_token", nextPageToken);
-
-    // Try account-level endpoint first, fall back to user-level
-    let res = await fetch(
-      `https://api.zoom.us/v2/accounts/me/recordings?${params}`,
+    const res = await fetch(
+      `https://api.zoom.us/v2/phone/recordings?${params}`,
       { headers: { Authorization: `Bearer ${zoomToken}` } }
     );
-    if (!res.ok) {
-      const errText = await res.text();
-      // If missing admin scope, fall back to current user's recordings
-      if (errText.includes("4711") || errText.includes("scopes")) {
-        console.log("[INFO] Falling back to /users/me/recordings endpoint");
-        res = await fetch(
-          `https://api.zoom.us/v2/users/me/recordings?${params}`,
-          { headers: { Authorization: `Bearer ${zoomToken}` } }
-        );
-        if (!res.ok) throw new Error("Zoom recordings list error: " + await res.text());
-      } else {
-        throw new Error("Zoom recordings list error: " + errText);
-      }
-    }
+    if (!res.ok) throw new Error("Zoom recordings list error: " + await res.text());
     const data = await res.json();
-    allMeetings.push(...(data.meetings || []));
+    allRecordings.push(...(data.recordings || []));
     nextPageToken = data.next_page_token || "";
   } while (nextPageToken);
-  return allMeetings;
+  return allRecordings;
 }
 
 // ── Download audio ────────────────────────────────────────────────────────────
@@ -158,7 +143,7 @@ Deno.serve(async (req) => {
     const existingMeetingIds = new Set(existingRecords.map(r => String(r.zoom_meeting_id)));
 
     const meetings = await fetchAllRecordings(zoomToken, from, to);
-    console.log(`[INFO] Found ${meetings.length} meetings in Zoom`);
+    console.log(`[INFO] Found ${meetings.length} Zoom Phone recordings`);
 
     const sheetName = await getSheetName(spreadsheetId, sheetsToken);
 
@@ -167,7 +152,7 @@ Deno.serve(async (req) => {
     const errors  = [];
 
     for (const meeting of meetings) {
-      const meetingId = String(meeting.uuid || meeting.id);
+      const meetingId = String(meeting.id);
 
       // Skip if already imported
       if (existingMeetingIds.has(meetingId)) {
@@ -175,25 +160,19 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      const files = meeting.recording_files || [];
-      const audioFile = files.find(f => f.file_type === "M4A" && f.status === "completed")
-                     || files.find(f => f.file_type === "MP4" && f.status === "completed")
-                     || files.find(f => f.status === "completed");
-
-      if (!audioFile?.download_url) {
+      const downloadUrl = meeting.download_url;
+      if (!downloadUrl) {
         skipped++;
         continue;
       }
 
       try {
-        const audioBuffer = await downloadRecording(audioFile.download_url, zoomToken);
-        const fileType    = audioFile.file_type || "MP4";
-        const transcript  = await transcribeAudio(audioBuffer, fileType, openai);
+        const audioBuffer = await downloadRecording(downloadUrl, zoomToken);
+        const transcript  = await transcribeAudio(audioBuffer, "M4A", openai);
 
-        const topic         = meeting.topic || "";
-        const callDirection = topic.toLowerCase().includes("outbound") ? "outbound" : "inbound";
+        const callDirection = meeting.direction === "outbound" ? "outbound" : "inbound";
         const startTime     = meeting.start_time || new Date().toISOString();
-        const duration      = meeting.duration || 0; // minutes
+        const duration      = Math.round((meeting.duration || 0) / 60); // seconds -> minutes
 
         const analysis = await analyzeTranscript(transcript, callDirection, userList, openai);
 
@@ -224,7 +203,7 @@ Deno.serve(async (req) => {
           team_member:  analysis.team_member  || null,
           transcript,
           transcript_summary: analysis.transcript_summary || null,
-          recording_url: audioFile.play_url || audioFile.download_url || null,
+          recording_url: meeting.download_url || null,
           caller_type:   analysis.caller_type   || "not_applicable",
           caller_intent: analysis.caller_intent || null,
           bookable:      analysis.bookable       || "unclear",
