@@ -179,7 +179,8 @@ Deno.serve(async (req) => {
         const transcript  = await transcribeAudio(audioBuffer, "M4A", openai);
 
         const callDirection = meeting.direction === "outbound" ? "outbound" : "inbound";
-        const startTime     = meeting.start_time || new Date().toISOString();
+        const startTime     = meeting.start_time;
+        if (!startTime) throw new Error("Call has no start_time");
         const duration      = Math.round((meeting.duration || 0) / 60); // seconds -> minutes
 
         const analysis = await analyzeTranscript(transcript, callDirection, userList, openai);
