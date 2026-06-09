@@ -43,24 +43,28 @@ async function fetchAllCallLogs(zoomToken, from, to) {
   return allCalls;
 }
 
-// ── Download audio ────────────────────────────────────────────────────────────
-async function getTranscript(callId, zoomToken) {
-  // Fetch transcript from Zoom Phone API (for phone call transcripts, not meeting transcripts)
+// ── Fetch recording transcript ────────────────────────────────────────────────
+async function getTranscript(recordingId, zoomToken) {
+  // Fetch transcript from Zoom Phone recording endpoint (requires phone:read:recording_transcript:master scope)
+  if (!recordingId) {
+    console.warn(`[WARN] No recording_id available for transcript fetch`);
+    return null;
+  }
   const res = await fetch(
-    `https://api.zoom.us/v2/phone/call_records/${callId}/transcript`,
+    `https://api.zoom.us/v2/phone/recordings/${recordingId}/transcript`,
     { headers: { Authorization: `Bearer ${zoomToken}` } }
   );
   if (!res.ok) {
     const errorBody = await res.text();
-    console.warn(`[WARN] Transcript fetch failed (${res.status}) for ${callId}: ${errorBody}`);
+    console.warn(`[WARN] Recording transcript fetch failed (${res.status}) for ${recordingId}: ${errorBody}`);
     return null;
   }
   const data = await res.json();
   const transcript = data.transcript_text || data.transcript || null;
   if (transcript) {
-    console.log(`[INFO] Got Zoom Phone transcript for ${callId} (${transcript.length} chars)`);
+    console.log(`[INFO] Got Zoom Phone recording transcript for ${recordingId} (${transcript.length} chars)`);
   } else {
-    console.warn(`[WARN] No transcript in response for ${callId}`);
+    console.warn(`[WARN] No transcript in response for recording ${recordingId}`);
   }
   return transcript;
 }
@@ -237,16 +241,16 @@ Deno.serve(async (req) => {
         // Some recordings may not have IDs or may be blocked
         const recording_url = callLog.recording_id ? `https://zoom.us/recording/download/${callLog.recording_id}` : null;
 
-        // Fetch existing transcript from Zoom API
+        // Fetch existing transcript from Zoom Phone recording API
         let transcript = "";
         try {
-          const fetchedTranscript = await getTranscript(callId, zoomToken);
+          const fetchedTranscript = await getTranscript(callLog.recording_id, zoomToken);
           transcript = fetchedTranscript || "";
           if (!transcript) {
-            console.warn(`[WARN] No transcript available for ${callId} - AI will analyze call metadata only`);
+            console.warn(`[WARN] No transcript available for recording ${callLog.recording_id || 'N/A'} - AI will analyze call metadata only`);
           }
         } catch (transcriptErr) {
-          console.warn(`[WARN] Could not fetch transcript for ${callId}: ${transcriptErr.message}`);
+          console.warn(`[WARN] Could not fetch transcript for ${callLog.recording_id}: ${transcriptErr.message}`);
         }
 
         const analysisInput = transcript || `CALL METADATA ONLY - No transcript available.\nCaller: ${callerName || callFromNumber || "Unknown"}\nDirection: ${callDirection}\nDuration: ${duration}s\nCallee: ${callToNumber || "Unknown"}`;
