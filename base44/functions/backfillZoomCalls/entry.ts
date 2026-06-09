@@ -183,7 +183,7 @@ Deno.serve(async (req) => {
     const sheetName = await getSheetName(spreadsheetId, sheetsToken);
 
     let processed = 0;
-    let skipped   = allRecordings.length - pending.length;
+    let skipped   = allCallLogs.length - pending.length;
     const errors  = [];
 
     // Process only up to batchSize calls per call
@@ -192,9 +192,9 @@ Deno.serve(async (req) => {
     for (const callLog of batch) {
       const callId = String(callLog.id);
       try {
-        // Extract phone numbers directly from call log
-        const callFromNumber = callLog.from || null;
-        const callToNumber = callLog.to || null;
+        // Extract phone numbers directly from call log (Zoom uses 'from_phone' and 'to_phone')
+        const callFromNumber = callLog.from_phone || callLog.from || null;
+        const callToNumber = callLog.to_phone || callLog.to || null;
         
         const callDirection = callLog.direction || "inbound";
         const startTime     = callLog.start_time || new Date().toISOString();
