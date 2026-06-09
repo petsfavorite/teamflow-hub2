@@ -15,23 +15,23 @@ async function getZoomToken() {
   return (await res.json()).access_token;
 }
 
-// ── Fetch all Zoom Phone call recordings for a date range (paginated) ────────
-async function fetchAllRecordings(zoomToken, from, to) {
-  const allRecordings = [];
+// ── Fetch all Zoom Phone call logs for a date range (paginated) ────────
+async function fetchAllCallLogs(zoomToken, from, to) {
+  const allCalls = [];
   let nextPageToken = "";
   do {
     const params = new URLSearchParams({ from, to, page_size: "300" });
     if (nextPageToken) params.set("next_page_token", nextPageToken);
     const res = await fetch(
-      `https://api.zoom.us/v2/phone/recordings?${params}`,
+      `https://api.zoom.us/v2/phone/call_logs?${params}`,
       { headers: { Authorization: `Bearer ${zoomToken}` } }
     );
-    if (!res.ok) throw new Error("Zoom recordings list error: " + await res.text());
+    if (!res.ok) throw new Error("Zoom call logs error: " + await res.text());
     const data = await res.json();
-    allRecordings.push(...(data.recordings || []));
+    allCalls.push(...(data.call_logs || []));
     nextPageToken = data.next_page_token || "";
   } while (nextPageToken);
-  return allRecordings;
+  return allCalls;
 }
 
 // ── Download audio ────────────────────────────────────────────────────────────
@@ -168,16 +168,17 @@ Deno.serve(async (req) => {
     const { accessToken: sheetsToken } = sheetsConn;
     const spreadsheetId = Deno.env.get("GOOGLE_SHEET_ID");
 
-    // Get existing meeting IDs so we don't duplicate
+    // Get existing call IDs so we don't duplicate
     const existingRecords = await base44.asServiceRole.entities.CallRecord.list('-created_date', 5000);
-    const existingMeetingIds = new Set(existingRecords.map(r => String(r.zoom_meeting_id)));
+    const existingCallIds = new Set(existingRecords.map(r => String(r.zoom_meeting_id)));
 
-    const allRecordings = await fetchAllRecordings(zoomToken, from, to);
-    console.log(`[INFO] Found ${allRecordings.length} Zoom Phone recordings`);
+    // Fetch call logs (which includes phone numbers)
+    const allCallLogs = await fetchAllCallLogs(zoomToken, from, to);
+    console.log(`[INFO] Found ${allCallLogs.length} Zoom Phone call logs`);
 
-    // Filter to only unprocessed recordings with a download URL
-    const pending = allRecordings.filter(m => m.download_url && !existingMeetingIds.has(String(m.id)));
-    console.log(`[INFO] ${pending.length} unprocessed recordings remaining`);
+    // Filter to only unprocessed calls
+    const pending = allCallLogs.filter(c => !existingCallIds.has(String(c.id)));
+    console.log(`[INFO] ${pending.length} unprocessed calls remaining`);
 
     const sheetName = await getSheetName(spreadsheetId, sheetsToken);
 
@@ -185,20 +186,36 @@ Deno.serve(async (req) => {
     let skipped   = allRecordings.length - pending.length;
     const errors  = [];
 
-    // Process only up to batchSize recordings per call
+    // Process only up to batchSize calls per call
     const batch = pending.slice(0, batchSize);
 
-    for (const meeting of batch) {
-      const meetingId = String(meeting.id);
+    for (const callLog of batch) {
+      const callId = String(callLog.id);
       try {
-        const audioBuffer = await downloadRecording(meeting.download_url, zoomToken);
-        const transcript  = await transcribeAudio(audioBuffer, "M4A", openai);
+        // Extract phone numbers directly from call log
+        const callFromNumber = callLog.from || null;
+        const callToNumber = callLog.to || null;
+        
+        const callDirection = callLog.direction || "inbound";
+        const startTime     = callLog.start_time || new Date().toISOString();
+        const duration      = callLog.duration || 0; // already in seconds
 
-        const callDirection = meeting.direction === "outbound" ? "outbound" : "inbound";
-        const startTime     = meeting.start_time || new Date().toISOString();
-        const duration      = Math.round((meeting.duration || 0) / 60); // seconds -> minutes
+        // Get transcript if recording URL exists
+        let transcript = "";
+        if (callLog.recording_url) {
+          try {
+            const audioBuffer = await downloadRecording(callLog.recording_url, zoomToken);
+            transcript = await transcribeAudio(audioBuffer, "M4A", openai);
+          } catch (transcriptErr) {
+            console.warn(`[WARN] Transcript failed for ${callId}: ${transcriptErr.message}`);
+          }
+        }
 
-        const analysis = await analyzeTranscript(transcript, callDirection, userList, openai);
+        const analysis = await analyzeTranscript(transcript || "(No transcript available)", callDirection, userList, openai);
+
+        // Use call log phone numbers, fallback to AI extraction
+        const finalCallerPhone = callFromNumber || analysis.caller_phone || null;
+        const finalCalleePhone = callToNumber || analysis.callee_phone || null;
 
         // Append to sheet (headers: Date, Inbound/Outbound, Caller, Callee, Answered By, Booking Status, Team Member, Caller Type, Booking Outcome)
         const callDate = new Date(startTime);
@@ -207,8 +224,8 @@ Deno.serve(async (req) => {
         const rowValues = [
           `${dateStr} ${timeStr}`,
           callDirection,
-          analysis.caller_phone || "",
-          analysis.callee_phone || "",
+          finalCallerPhone || "",
+          finalCalleePhone || "",
           analysis.team_member  || "",
           analysis.bookable || "unclear",
           analysis.caller_type  || "not_applicable",
@@ -218,18 +235,18 @@ Deno.serve(async (req) => {
         const sheetRowNumber = await appendToSheet(rowValues, sheetName, sheetsToken, spreadsheetId);
 
         // Save to DB
-        const zoom_meeting_id = sheetRowNumber ? `sheet_row_${sheetRowNumber}` : meetingId;
+        const zoom_call_id = sheetRowNumber ? `sheet_row_${sheetRowNumber}` : callId;
         await base44.asServiceRole.entities.CallRecord.create({
-          zoom_meeting_id,
+          zoom_meeting_id: zoom_call_id,
           call_date: startTime,
-          call_duration_seconds: duration * 60,
+          call_duration_seconds: duration,
           call_direction: callDirection,
-          caller_phone: analysis.caller_phone || null,
+          caller_phone: finalCallerPhone,
           caller_name:  analysis.caller_name  || null,
           team_member:  analysis.team_member  || null,
           transcript,
           transcript_summary: analysis.transcript_summary || null,
-          recording_url: meeting.download_url || null,
+          recording_url: callLog.recording_url || null,
           caller_type:   analysis.caller_type   || "not_applicable",
           caller_intent: analysis.caller_intent || null,
           bookable:      analysis.bookable       || "unclear",
@@ -241,13 +258,13 @@ Deno.serve(async (req) => {
         });
 
         processed++;
-        console.log(`[INFO] Processed recording ${meetingId} (${startTime})`);
+        console.log(`[INFO] Processed call ${callId} (${startTime}) - from: ${finalCallerPhone}, to: ${finalCalleePhone}`);
 
         // Throttle to avoid rate limits
         await new Promise(r => setTimeout(r, 500));
       } catch (err) {
-        console.error(`[ERROR] Recording ${meetingId}: ${err.message}`);
-        errors.push(`${meetingId}: ${err.message}`);
+        console.error(`[ERROR] Call ${callId}: ${err.message}`);
+        errors.push(`${callId}: ${err.message}`);
       }
     }
 
@@ -256,7 +273,7 @@ Deno.serve(async (req) => {
       processed,
       skipped,
       errors: errors.slice(0, 20),
-      total: allRecordings.length,
+      total: allCallLogs.length,
       remaining,
       done: remaining === 0,
     });
