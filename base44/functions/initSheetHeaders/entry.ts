@@ -19,9 +19,9 @@ Deno.serve(async (req) => {
     const metaJson = await metaRes.json();
     const sheetName = metaJson.sheets?.[0]?.properties?.title || "Sheet1";
 
-    // Headers: columns A-I
-    // A-F: input columns read by scheduledSheetSync
-    // G-I: written back by writeCallDataToSheet
+    // All columns in one place — no separate write-back columns
+    // A: Date, B: Inbound/Outbound, C: Caller, D: Callee, E: Answered By, F: Booking Status
+    // G: Team Member (AI-matched), H: Caller Type (AI), I: Booking Outcome (AI)
     const headers = [
       "Date",
       "Inbound/Outbound",
