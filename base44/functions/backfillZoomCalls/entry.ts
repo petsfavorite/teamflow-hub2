@@ -22,11 +22,26 @@ async function fetchAllRecordings(zoomToken, from, to) {
   do {
     const params = new URLSearchParams({ from, to, page_size: "300" });
     if (nextPageToken) params.set("next_page_token", nextPageToken);
-    const res = await fetch(
+
+    // Try account-level endpoint first, fall back to user-level
+    let res = await fetch(
       `https://api.zoom.us/v2/accounts/me/recordings?${params}`,
       { headers: { Authorization: `Bearer ${zoomToken}` } }
     );
-    if (!res.ok) throw new Error("Zoom recordings list error: " + await res.text());
+    if (!res.ok) {
+      const errText = await res.text();
+      // If missing admin scope, fall back to current user's recordings
+      if (errText.includes("4711") || errText.includes("scopes")) {
+        console.log("[INFO] Falling back to /users/me/recordings endpoint");
+        res = await fetch(
+          `https://api.zoom.us/v2/users/me/recordings?${params}`,
+          { headers: { Authorization: `Bearer ${zoomToken}` } }
+        );
+        if (!res.ok) throw new Error("Zoom recordings list error: " + await res.text());
+      } else {
+        throw new Error("Zoom recordings list error: " + errText);
+      }
+    }
     const data = await res.json();
     allMeetings.push(...(data.meetings || []));
     nextPageToken = data.next_page_token || "";
