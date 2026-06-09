@@ -19,19 +19,20 @@ Deno.serve(async (req) => {
     const metaJson = await metaRes.json();
     const sheetName = metaJson.sheets?.[0]?.properties?.title || "Sheet1";
 
-    // All columns in one place — no separate write-back columns
-    // A: Date, B: Inbound/Outbound, C: Caller, D: Callee, E: Answered By, F: Booking Status
-    // G: Team Member (AI-matched), H: Caller Type (AI), I: Booking Outcome (AI)
+    // All columns in one place
+    // A: Date, B: Inbound/Outbound, C: Caller Phone, D: Callee Phone, E: Team Member
+    // F: Bookable (yes/no/unclear), G: Caller Type (existing/potential/not_applicable), H: Booking Outcome (booked/not_booked/not_needed)
+    // I: Appointment Offered (yes/no)
     const headers = [
       "Date",
       "Inbound/Outbound",
-      "Caller",
-      "Callee",
-      "Answered By",
-      "Booking Status",
+      "Caller Phone",
+      "Callee Phone",
       "Team Member",
+      "Bookable",
       "Caller Type",
-      "Booking Outcome"
+      "Booking Outcome",
+      "Appointment Offered"
     ];
 
     // Step 1: Clear the entire sheet so no stale data or ghost columns remain

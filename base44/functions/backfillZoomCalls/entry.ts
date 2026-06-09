@@ -65,16 +65,28 @@ CALL DIRECTION: ${callDirection}
 
 ${teamEntries ? `KNOWN STAFF MEMBERS:\n${teamEntries}\n\nNotes:\n- "Caroline", "Dr. Cofer", or "Dr. Caroline Cofer" refers to Caroline Cofer.\n- "Ariana" or "Arianna" almost certainly refers to Aryana.` : ""}
 
+CALLER TYPE LOGIC:
+- "existing_client": We have seen this animal/owner before at our clinic
+- "potential_client": Wants a service we provide AND we have NOT seen them before
+- "not_applicable": Sales call, asking for a service we don't provide (e.g., exotic animals we don't see), calling from another clinic, or voicemail
+
+CLASSIFICATION RULES:
+- NOT_APPLICABLE if: sales pitch, asking for species/services we don't offer (like exotics, wildlife, livestock), calling from another clinic, or it's a voicemail
+- EXISTING_CLIENT if: they mention they've been here before, you recognize their pet's name, they reference past visits, or they have an established history
+- POTENTIAL_CLIENT if: they want boarding, doggie daycare, or vet services, AND we have no prior relationship
+
 Return JSON with these fields:
-- team_member: string or null (null if outbound; for inbound, first staff member who introduces themselves — match to KNOWN STAFF MEMBERS)
+- team_member: string or null (null if outbound; for inbound, first staff member who answers/speaks — match to KNOWN STAFF MEMBERS, no partial matches)
 - caller_name: string or null
-- caller_phone: string or null
-- caller_type: "potential_client" | "returning_client" | "not_applicable"
-- caller_intent: string (1-sentence)
-- bookable: "yes" | "no" | "unclear"
+- caller_phone: string or null (10-digit phone or however it appears)
+- callee_phone: string or null (clinic phone being called)
+- caller_type: "existing_client" | "potential_client" | "not_applicable"
+- caller_intent: string (1-sentence: what they're calling about)
+- bookable: "yes" | "no" | "unclear" (could a booking realistically happen from this call?)
 - booking_outcome: "appt_booked" | "appt_not_booked" | "appt_not_needed"
-  NOTE: "appt_not_needed" for voicemails or appointment confirmations. "appt_not_booked" only when we spoke live and failed to book.
+  NOTE: "appt_not_needed" for voicemails, wrong numbers, or confirmations. "appt_not_booked" only when we spoke live but failed to book.
 - booked_date: "YYYY-MM-DDTHH:MM:00" if appt_booked, else null
+- appointment_offered: boolean (was an appointment offered to them during the call, even if not booked?)
 - transcript_summary: 2-3 sentence summary
 - ai_notes: brief flags or follow-up notes
 
@@ -172,18 +184,17 @@ Deno.serve(async (req) => {
 
         const analysis = await analyzeTranscript(transcript, callDirection, userList, openai);
 
-        // Append to sheet
+        // Append to sheet (headers: Date, Inbound/Outbound, Caller, Callee, Answered By, Booking Status, Team Member, Caller Type, Booking Outcome)
         const rowValues = [
           new Date(startTime).toLocaleString("en-US", { timeZone: "America/New_York" }),
-          duration,
           callDirection,
-          analysis.caller_name  || "",
           analysis.caller_phone || "",
+          analysis.callee_phone || "",
           analysis.team_member  || "",
+          analysis.bookable || "unclear",
           analysis.caller_type  || "not_applicable",
           analysis.booking_outcome || "appt_not_booked",
-          analysis.transcript_summary || "",
-          analysis.ai_notes || "",
+          analysis.appointment_offered ? "yes" : "no",
         ];
         const sheetRowNumber = await appendToSheet(rowValues, sheetName, sheetsToken, spreadsheetId);
 
