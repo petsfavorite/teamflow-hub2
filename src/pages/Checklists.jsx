@@ -14,7 +14,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckSquare, Plus, Trash2, AlertCircle, Loader2, Clock, Search } from 'lucide-react';
+import { CheckSquare, Plus, Trash2, AlertCircle, Loader2, Clock, Search, History } from 'lucide-react';
+import ChecklistHistoryPanel from '../components/checklist/ChecklistHistoryPanel';
 
 import { toast } from "sonner";
 
@@ -28,6 +29,7 @@ export default function Checklists() {
   const [templateToUse, setTemplateToUse] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [templateToDelete, setTemplateToDelete] = useState(null);
+  const [historyChecklist, setHistoryChecklist] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [assignUserSearch, setAssignUserSearch] = useState('');
   const [useForm, setUseForm] = useState({
@@ -611,7 +613,7 @@ export default function Checklists() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {recurringChecklists.filter(r => r.template_title.toLowerCase().includes(searchTerm.toLowerCase())).map(schedule => (
                     <Card key={schedule.id} className="border-0 shadow-sm">
-                      <CardContent className="p-6">
+                      <CardContent className="p-6 cursor-pointer" onClick={() => setHistoryChecklist({ id: schedule.id, title: schedule.template_title })}>
                         <div className="flex items-start justify-between mb-3">
                           <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
                             <CheckSquare className="w-5 h-5 text-purple-600" />
@@ -631,7 +633,15 @@ export default function Checklists() {
                           <Clock className="w-3 h-3" />
                           {schedule.template_items?.length || 0} items
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2" onClick={e => e.stopPropagation()}>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-slate-600"
+                            onClick={() => setHistoryChecklist({ id: schedule.id, title: schedule.template_title })}
+                          >
+                            <History className="w-3.5 h-3.5 mr-1" /> History
+                          </Button>
                           <Button
                             size="sm"
                             className="flex-1 bg-purple-600 hover:bg-purple-700"
@@ -675,7 +685,7 @@ export default function Checklists() {
               ) : (
                 <div className="space-y-2">
                   {teamChecklists.filter(t => t.title.toLowerCase().includes(searchTerm.toLowerCase())).map(t => (
-                    <Card key={t.id} className="border-0 shadow-sm">
+                    <Card key={t.id} className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => setHistoryChecklist(t)}>
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1 min-w-0">
@@ -709,9 +719,12 @@ export default function Checklists() {
                               </div>
                             )}
                           </div>
-                          <div className="flex items-center gap-1 shrink-0">
-                            <Clock className="w-3.5 h-3.5 text-slate-400" />
-                            <span className="text-xs text-slate-400">{t.items?.length || 0} items</span>
+                          <div className="flex flex-col items-end gap-1 shrink-0">
+                            <div className="flex items-center gap-1">
+                              <Clock className="w-3.5 h-3.5 text-slate-400" />
+                              <span className="text-xs text-slate-400">{t.items?.length || 0} items</span>
+                            </div>
+                            <span className="text-xs text-indigo-500 flex items-center gap-1"><History className="w-3 h-3" /> View history</span>
                           </div>
                         </div>
                       </CardContent>
@@ -1001,6 +1014,12 @@ export default function Checklists() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* History Panel */}
+      <ChecklistHistoryPanel
+        checklist={historyChecklist}
+        onClose={() => setHistoryChecklist(null)}
+      />
 
       {/* Delete Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
