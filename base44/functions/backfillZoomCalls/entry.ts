@@ -45,19 +45,22 @@ async function fetchAllCallLogs(zoomToken, from, to) {
 
 // ── Download audio ────────────────────────────────────────────────────────────
 async function getTranscript(callId, zoomToken) {
-  // Fetch transcript from Zoom API (available if call was recorded)
+  // Fetch transcript from Zoom Phone API (for phone call transcripts, not meeting transcripts)
   const res = await fetch(
     `https://api.zoom.us/v2/phone/call_records/${callId}/transcript`,
     { headers: { Authorization: `Bearer ${zoomToken}` } }
   );
   if (!res.ok) {
-    console.warn(`[WARN] Transcript fetch failed (${res.status}) for ${callId}`);
+    const errorBody = await res.text();
+    console.warn(`[WARN] Transcript fetch failed (${res.status}) for ${callId}: ${errorBody}`);
     return null;
   }
   const data = await res.json();
   const transcript = data.transcript_text || data.transcript || null;
   if (transcript) {
-    console.log(`[INFO] Got transcript for ${callId} (${transcript.length} chars)`);
+    console.log(`[INFO] Got Zoom Phone transcript for ${callId} (${transcript.length} chars)`);
+  } else {
+    console.warn(`[WARN] No transcript in response for ${callId}`);
   }
   return transcript;
 }
