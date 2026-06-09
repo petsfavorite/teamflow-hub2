@@ -24,7 +24,7 @@ export default function ChecklistEditor() {
   const canDirectSave = isSuperAdmin || isAdmin || (isManager && !id);
 
   const [form, setForm] = useState({
-    title: '', description: '', category: '', status: 'active', items: [],
+    title: '', description: '', category: '', status: 'published', items: [],
   });
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [selectedTeams, setSelectedTeams] = useState([]);
@@ -125,11 +125,12 @@ export default function ChecklistEditor() {
     }
 
     // Admins/super admins save directly
+    // When editing an existing template, always preserve 'published' status so it stays in Template Checklists
     const data = {
       title: form.title,
       description: form.description,
       category: form.category,
-      status: form.status || 'active',
+      status: id && existing?.status === 'published' ? 'published' : (form.status || 'published'),
       items: form.items
     };
     saveMutation.mutate(data);
@@ -176,7 +177,7 @@ export default function ChecklistEditor() {
                   pending_change_summary: null,
                   pending_submitted_by: null,
                   pending_submitted_by_name: null,
-                  status: 'active',
+                  status: 'published',
                 }).then(() => {
                   queryClient.invalidateQueries({ queryKey: ['checklist-edit', id] });
                   queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
@@ -198,7 +199,7 @@ export default function ChecklistEditor() {
                   pending_change_summary: null,
                   pending_submitted_by: null,
                   pending_submitted_by_name: null,
-                  status: 'active',
+                  status: 'published',
                 }).then(() => {
                   queryClient.invalidateQueries({ queryKey: ['checklist-edit', id] });
                   queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
@@ -249,16 +250,19 @@ export default function ChecklistEditor() {
             <Textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Brief description" rows={2} />
           </div>
 
-          <div className="space-y-2">
-            <Label>Status</Label>
-            <Select value={form.status} onValueChange={v => setForm({ ...form, status: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Only show status selector when creating a new checklist, not editing a published template */}
+          {!(id && existing?.status === 'published') && (
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select value={form.status} onValueChange={v => setForm({ ...form, status: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="published">Published (Template)</SelectItem>
+                  <SelectItem value="draft">Draft</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {false && (
             <>
