@@ -118,11 +118,11 @@ export default function Checklists() {
     return recurringSchedules.filter(r => r.is_active !== false);
   }, [recurringSchedules]);
 
-  // Team Checklists - active checklists assigned to members of my teams (for managers) or all assigned (for admins)
+  // Team Checklists - checklists assigned to users or teams (for managers) or all assigned (for admins)
   const teamChecklists = useMemo(() => {
     if (!canManage) return [];
     const activeAssigned = allTemplates.filter(t =>
-      t.status === 'active' &&
+      (t.status === 'active' || t.status === 'published') &&
       ((t.assigned_to_emails && t.assigned_to_emails.length > 0) ||
        (t.assigned_teams && t.assigned_teams.length > 0))
     );
