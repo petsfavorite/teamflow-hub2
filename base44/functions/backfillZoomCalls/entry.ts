@@ -78,8 +78,8 @@ CLASSIFICATION RULES:
 Return JSON with these fields:
 - team_member: string or null (must exist in KNOWN STAFF MEMBERS exactly, or null for outbound/missed calls, or "Please Check" if uncertain)
 - caller_name: string or null
-- caller_phone: string or null (10-digit phone or however it appears)
-- callee_phone: string or null (clinic phone being called)
+- caller_phone: string or null (extract from transcript: any phone number mentioned as caller/external party - look for numbers given to staff, voicemail callbacks, or at call start)
+- callee_phone: string or null (extract from transcript: the clinic phone number being called, or mentioned by staff/system)
 - caller_type: "existing_client" | "potential_client" | "not_applicable"
 - caller_intent: string (1-sentence: what they're calling about)
 - bookable: "yes" | "no" | "unclear" (could a booking realistically happen from this call?)
