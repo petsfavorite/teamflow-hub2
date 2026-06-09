@@ -44,13 +44,37 @@ async function fetchAllCallLogs(zoomToken, from, to) {
 }
 
 // ── Download audio ────────────────────────────────────────────────────────────
-async function downloadRecording(recordingId, zoomToken) {
-  const url = `https://api.zoom.us/v2/call_records/${recordingId}/download`;
-  const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${zoomToken}` }
-  });
-  if (!res.ok) throw new Error("Download failed: " + res.status);
-  return await res.arrayBuffer();
+async function downloadRecording(callLog, zoomToken) {
+  // Zoom Phone recordings might be accessible via CDN or blob storage
+  // Try direct binary download endpoint for the recording
+  const recordingId = callLog.recording_id;
+  
+  // Try the direct download endpoint for call recordings
+  const urls = [
+    `https://media-new.zoom.us/recording/${recordingId}`,
+    `https://media.zoom.us/recording/${recordingId}`,
+    `https://zoom.us/recording/download/${recordingId}`,
+  ];
+
+  let lastError = null;
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, {
+        headers: { 
+          Authorization: `Bearer ${zoomToken}`,
+          "User-Agent": "Mozilla/5.0",
+        }
+      });
+      if (res.ok) {
+        return await res.arrayBuffer();
+      }
+      lastError = `${url} returned ${res.status}`;
+    } catch (err) {
+      lastError = err.message;
+    }
+  }
+  
+  throw new Error(`All recording download attempts failed: ${lastError}`);
 }
 
 // ── Transcribe via Whisper ────────────────────────────────────────────────────
@@ -229,7 +253,7 @@ Deno.serve(async (req) => {
         let transcript = "";
         if (callLog.recording_id) {
           try {
-            const audioBuffer = await downloadRecording(callLog.recording_id, zoomToken);
+            const audioBuffer = await downloadRecording(callLog, zoomToken);
             transcript = await transcribeAudio(audioBuffer, "M4A", openai);
           } catch (transcriptErr) {
             console.warn(`[WARN] Transcript failed for ${callId}: ${transcriptErr.message}`);
