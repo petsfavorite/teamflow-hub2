@@ -185,8 +185,11 @@ Deno.serve(async (req) => {
         const analysis = await analyzeTranscript(transcript, callDirection, userList, openai);
 
         // Append to sheet (headers: Date, Inbound/Outbound, Caller, Callee, Answered By, Booking Status, Team Member, Caller Type, Booking Outcome)
+        const callDate = new Date(startTime);
+        const dateStr = callDate.toLocaleDateString("en-US", { timeZone: "America/New_York" });
+        const timeStr = callDate.toLocaleTimeString("en-US", { timeZone: "America/New_York", hour12: false });
         const rowValues = [
-          new Date(startTime).toLocaleString("en-US", { timeZone: "America/New_York" }),
+          `${dateStr} ${timeStr}`,
           callDirection,
           analysis.caller_phone || "",
           analysis.callee_phone || "",
