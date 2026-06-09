@@ -44,8 +44,9 @@ async function fetchAllCallLogs(zoomToken, from, to) {
 }
 
 // ── Download audio ────────────────────────────────────────────────────────────
-async function downloadRecording(downloadUrl, zoomToken) {
-  const res = await fetch(downloadUrl, {
+async function downloadRecording(recordingId, zoomToken) {
+  const url = `https://api.zoom.us/v2/call_records/${recordingId}/download`;
+  const res = await fetch(url, {
     headers: { Authorization: `Bearer ${zoomToken}` }
   });
   if (!res.ok) throw new Error("Download failed: " + res.status);
@@ -224,11 +225,11 @@ Deno.serve(async (req) => {
         // Some recordings may not have IDs or may be blocked
         const recording_url = callLog.recording_id ? `https://zoom.us/recording/download/${callLog.recording_id}` : null;
 
-        // Get transcript if recording URL exists
+        // Get transcript if recording ID exists
         let transcript = "";
-        if (recording_url) {
+        if (callLog.recording_id) {
           try {
-            const audioBuffer = await downloadRecording(recording_url, zoomToken);
+            const audioBuffer = await downloadRecording(callLog.recording_id, zoomToken);
             transcript = await transcribeAudio(audioBuffer, "M4A", openai);
           } catch (transcriptErr) {
             console.warn(`[WARN] Transcript failed for ${callId}: ${transcriptErr.message}`);
