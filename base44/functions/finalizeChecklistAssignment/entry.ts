@@ -17,19 +17,14 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Completion or template not found' }, { status: 404 });
     }
 
-    // Only close/clear one-time active instances — never touch published recurring master templates
-    // A published template with recurrence_type != 'once' is a master template; leave it alone.
-    const isRecurringMaster = template.status === 'published' &&
-      template.recurrence_type &&
-      template.recurrence_type !== 'once' &&
-      template.recurrence_type !== 'manual';
-
-    if (!isRecurringMaster) {
+    // Only archive active (assigned) instances — never touch published master templates
+    // A published template is the master template; leave it alone.
+    if (template.status === 'active') {
       await base44.asServiceRole.entities.ChecklistTemplate.update(checklist_template_id, {
         assigned_to_emails: [],
         assigned_to_names: [],
         assigned_teams: [],
-        status: 'closed'
+        status: 'archived'
       });
     }
 
