@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 // Columns we write back (by header name, not fixed position)
-const WRITE_COLUMNS = ['Team Member', 'Caller Type', 'Booking Outcome'];
+const WRITE_COLUMNS = ['Team Member', 'Caller Type', 'Booking Outcome', 'Transcript'];
 
 // Map CallRecord fields to sheet header names
 function getWriteValue(record, header) {
@@ -9,6 +9,7 @@ function getWriteValue(record, header) {
     case 'Team Member':    return record.team_member || '';
     case 'Caller Type':    return record.caller_type?.replace(/_/g, ' ') || '';
     case 'Booking Outcome': return record.booking_outcome?.replace(/_/g, ' ') || '';
+    case 'Transcript':     return record.transcript || '';
     default: return '';
   }
 }

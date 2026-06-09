@@ -32,7 +32,8 @@ Deno.serve(async (req) => {
       "Bookable",
       "Caller Type",
       "Booking Outcome",
-      "Appointment Offered"
+      "Appointment Offered",
+      "Transcript"
     ];
 
     // Step 1: Clear the entire sheet so no stale data or ghost columns remain
