@@ -2,13 +2,32 @@ import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { AlertCircle, CheckCircle, Loader2, Zap, Phone, FileSpreadsheet, RefreshCw } from "lucide-react";
+import { AlertCircle, CheckCircle, Loader2, Zap, Phone, FileSpreadsheet, RefreshCw, Download } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
 export default function FetchCallData() {
   const [resetting, setResetting] = useState(false);
   const [resetResult, setResetResult] = useState(null);
   const [resetError, setResetError] = useState(null);
+
+  const [backfilling, setBackfilling] = useState(false);
+  const [backfillResult, setBackfillResult] = useState(null);
+  const [backfillError, setBackfillError] = useState(null);
+
+  const handleBackfill = async () => {
+    setBackfilling(true);
+    setBackfillResult(null);
+    setBackfillError(null);
+    try {
+      const res = await base44.functions.invoke("backfillZoomCalls", { from: "2026-04-01" });
+      setBackfillResult(res.data);
+      refetch();
+    } catch (err) {
+      setBackfillError(err.message);
+    } finally {
+      setBackfilling(false);
+    }
+  };
 
   const { data: recentCalls, isLoading, refetch } = useQuery({
     queryKey: ["recent-call-records"],
@@ -86,6 +105,32 @@ export default function FetchCallData() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+      </Card>
+
+      {/* Backfill historical Zoom calls */}
+      <Card className="p-6 space-y-3">
+        <h2 className="font-semibold text-slate-800 flex items-center gap-2">
+          <Download className="w-4 h-4 text-blue-600" /> Backfill Historical Calls
+        </h2>
+        <p className="text-sm text-slate-600">Fetch all Zoom cloud recordings from <strong>April 1, 2026</strong> to today, transcribe each one, and add them to the sheet and call dashboard. Skips any already imported.</p>
+        <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">⚠️ This may take several minutes depending on the number of recordings. Do not close this page.</p>
+        <Button onClick={handleBackfill} disabled={backfilling} className="bg-blue-600 hover:bg-blue-700 text-white">
+          {backfilling ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Processing recordings...</> : "Run Backfill"}
+        </Button>
+        {backfillResult && (
+          <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex items-start gap-2 text-sm text-emerald-800">
+            <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <div>
+              <span className="font-medium">Done!</span> {backfillResult.processed} processed · {backfillResult.skipped} skipped · {backfillResult.total} total found
+              {backfillResult.errors?.length > 0 && <p className="text-xs text-amber-700 mt-1">Errors: {backfillResult.errors.join("; ")}</p>}
+            </div>
+          </div>
+        )}
+        {backfillError && (
+          <div className="flex items-center gap-2 text-sm text-red-700">
+            <AlertCircle className="w-4 h-4" /> {backfillError}
           </div>
         )}
       </Card>
