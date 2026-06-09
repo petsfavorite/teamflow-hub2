@@ -1,59 +1,23 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
+// Fixed column positions: G=6, H=7, I=8 (0-indexed)
 const WRITE_COLUMNS = [
-  { key: 'team_member',     header: 'Answered By' },
-  { key: 'caller_type',    header: 'Caller Type' },
-  { key: 'booking_outcome', header: 'Booking Status' },
+  { key: 'team_member',     col: 'G' },
+  { key: 'caller_type',     col: 'H' },
+  { key: 'booking_outcome', col: 'I' },
 ];
 
-async function ensureColumns(accessToken, spreadsheetId) {
-  const res = await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Sheet1!A1:Z1`,
-    { headers: { Authorization: `Bearer ${accessToken}` } }
-  );
-  const data = await res.json();
-  const headers = data.values?.[0] || [];
-
-  const colMap = {};
-  for (const col of WRITE_COLUMNS) {
-    const idx = headers.findIndex(h => h === col.header);
-    if (idx >= 0) {
-      colMap[col.key] = idx;
-    } else {
-      const newIdx = headers.length;
-      headers.push(col.header);
-      const colLetter = String.fromCharCode(65 + newIdx);
-      await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Sheet1!${colLetter}1:${colLetter}1?valueInputOption=USER_ENTERED`,
-        {
-          method: 'PUT',
-          headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ values: [[col.header]] })
-        }
-      );
-      colMap[col.key] = newIdx;
-    }
-  }
-  return colMap;
-}
-
 // Write many records in one batchUpdate call (one range per column, using sparse updates)
-async function batchWriteRecords(records, accessToken, spreadsheetId, colMap) {
+async function batchWriteRecords(records, accessToken, spreadsheetId) {
   if (records.length === 0) return { written: 0 };
 
-  // Build one range per column covering all rows individually
-  const colLetter = (idx) => String.fromCharCode(65 + idx);
-
-  // Group updates: for each column, send one entry per record
   const updateValues = [];
   for (const col of WRITE_COLUMNS) {
-    const colIdx = colMap[col.key];
-    if (colIdx === undefined) continue;
     for (const rec of records) {
       const rowIndex = parseInt(rec.zoom_meeting_id.split('_')[2]);
       if (isNaN(rowIndex)) continue;
       updateValues.push({
-        range: `Sheet1!${colLetter(colIdx)}${rowIndex}`,
+        range: `Sheet1!${col.col}${rowIndex}`,
         values: [[rec[col.key] || '']]
       });
     }
@@ -93,13 +57,11 @@ Deno.serve(async (req) => {
     const { accessToken } = await base44.asServiceRole.connectors.getConnection("googlesheets");
     const spreadsheetId = Deno.env.get("GOOGLE_SHEET_ID");
 
-    const colMap = await ensureColumns(accessToken, spreadsheetId);
-
     // --- BACKFILL MODE ---
     if (backfillAll) {
       const allRecords = await base44.asServiceRole.entities.CallRecord.list('-created_date', 2000);
       const sheetRecords = allRecords.filter(r => r.zoom_meeting_id?.startsWith('sheet_row_'));
-      const { written } = await batchWriteRecords(sheetRecords, accessToken, spreadsheetId, colMap);
+      const { written } = await batchWriteRecords(sheetRecords, accessToken, spreadsheetId);
       return Response.json({ written, total: sheetRecords.length });
     }
 
@@ -115,7 +77,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Call record not found or not from sheet' }, { status: 404 });
     }
 
-    const { written } = await batchWriteRecords([record], accessToken, spreadsheetId, colMap);
+    const { written } = await batchWriteRecords([record], accessToken, spreadsheetId);
     return Response.json({ message: 'Call data written to sheet', written });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
