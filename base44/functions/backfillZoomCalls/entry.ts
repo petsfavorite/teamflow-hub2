@@ -295,10 +295,9 @@ Deno.serve(async (req) => {
         ];
         const sheetRowNumber = await appendToSheet(rowValues, sheetName, sheetsToken, spreadsheetId);
 
-        // Save to DB
-        const zoom_call_id = sheetRowNumber ? `sheet_row_${sheetRowNumber}` : callId;
+        // Save to DB — always use the real Zoom call ID for dedup
         await base44.asServiceRole.entities.CallRecord.create({
-          zoom_meeting_id: zoom_call_id,
+          zoom_meeting_id: callId,
           call_date: startTime,
           call_duration_seconds: duration,
           call_direction: callDirection,

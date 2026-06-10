@@ -8,15 +8,15 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Fetch all CallRecords
-    const allRecords = await base44.asServiceRole.entities.CallRecord.list('-created_date', 5000);
-    
-    // Delete each one
+    // Fetch and delete in pages to avoid rate limits
     let deleted = 0;
-    for (const record of allRecords) {
-      await base44.asServiceRole.entities.CallRecord.delete(record.id);
-      deleted++;
-    }
+    let page;
+    do {
+      page = await base44.asServiceRole.entities.CallRecord.list('-created_date', 100);
+      if (page.length === 0) break;
+      await Promise.all(page.map(r => base44.asServiceRole.entities.CallRecord.delete(r.id)));
+      deleted += page.length;
+    } while (page.length === 100);
 
     return Response.json({ deleted, message: `Cleared ${deleted} call records` });
   } catch (error) {
