@@ -43,55 +43,59 @@ async function fetchAllCallLogs(zoomToken, from, to) {
   return allCalls;
 }
 
-// ── Download and transcribe recording ──────────────────────────────────────────
-async function getRecordingTranscript(recordingId, zoomToken, openai) {
+// ── Fetch Zoom Phone transcript (302 redirect → JSON timeline) ───────────────
+async function getRecordingTranscript(recordingId, zoomToken) {
   if (!recordingId) {
-    console.warn(`[WARN] No recording_id available for download`);
+    console.warn(`[WARN] No recording_id — skipping transcript`);
     return null;
   }
 
   try {
-    // Download the recording MP3 from Zoom Phone API
-    const downloadRes = await fetch(
-      `https://api.zoom.us/v2/phone/recordings/${recordingId}/download`,
-      { headers: { Authorization: `Bearer ${zoomToken}` } }
+    // Correct endpoint: /phone/recording_transcript/download/{recordingId}
+    // Returns 302 redirect to a JSON file
+    const res = await fetch(
+      `https://api.zoom.us/v2/phone/recording_transcript/download/${recordingId}`,
+      {
+        headers: { Authorization: `Bearer ${zoomToken}` },
+        redirect: "follow"
+      }
     );
 
-    if (!downloadRes.ok) {
-      const errorBody = await downloadRes.text();
-      console.warn(`[WARN] Recording download failed (${downloadRes.status}) for ${recordingId}: ${errorBody}`);
+    if (!res.ok) {
+      const body = await res.text();
+      console.warn(`[WARN] Transcript download ${res.status} for ${recordingId}: ${body}`);
       return null;
     }
 
-    const audioBuffer = await downloadRes.arrayBuffer();
-    console.log(`[INFO] Downloaded recording ${recordingId} (${audioBuffer.byteLength} bytes)`);
-
-    // Transcribe with Whisper
-    const transcription = await openai.audio.transcriptions.create({
-      file: new File([audioBuffer], `recording.mp3`, { type: "audio/mpeg" }),
-      model: "whisper-1"
-    });
-
-    const transcript = transcription.text || "";
-    if (transcript) {
-      console.log(`[INFO] Transcribed recording ${recordingId} (${transcript.length} chars)`);
+    const contentType = res.headers.get("content-type") || "";
+    let transcriptData;
+    if (contentType.includes("application/json") || contentType.includes("text/plain")) {
+      transcriptData = await res.json();
+    } else {
+      // Try JSON parse anyway
+      const raw = await res.text();
+      try { transcriptData = JSON.parse(raw); } catch { 
+        console.warn(`[WARN] Unexpected transcript format for ${recordingId}: ${raw.slice(0, 200)}`);
+        return null;
+      }
     }
-    return transcript;
+
+    // Parse timeline array into plain text
+    const timeline = transcriptData?.timeline || [];
+    if (timeline.length === 0) {
+      console.warn(`[WARN] Empty timeline for ${recordingId}`);
+      return null;
+    }
+
+    const text = timeline.map(t => t.text || t.raw_text || "").filter(Boolean).join(" ");
+    console.log(`[INFO] Got Zoom transcript for ${recordingId} — ${timeline.length} segments, ${text.length} chars`);
+    return text || null;
   } catch (err) {
-    console.warn(`[WARN] Recording transcription failed for ${recordingId}: ${err.message}`);
+    console.warn(`[WARN] Transcript fetch failed for ${recordingId}: ${err.message}`);
     return null;
   }
 }
 
-// ── Transcribe via Whisper ────────────────────────────────────────────────────
-async function transcribeAudio(audioBuffer, fileType, openai) {
-  const mimeType = fileType === "M4A" ? "audio/mp4" : "video/mp4";
-  const ext      = fileType === "M4A" ? "m4a" : "mp4";
-  const blob = new Blob([audioBuffer], { type: mimeType });
-  const file = new File([blob], `recording.${ext}`, { type: mimeType });
-  const transcription = await openai.audio.transcriptions.create({ file, model: "whisper-1" });
-  return transcription.text || "";
-}
 
 // ── AI analysis ───────────────────────────────────────────────────────────────
 async function analyzeTranscript(transcript, callDirection, userList, openai) {
@@ -258,7 +262,7 @@ Deno.serve(async (req) => {
         // Download and transcribe recording MP3
         let transcript = "";
         try {
-          const fetchedTranscript = await getRecordingTranscript(callLog.recording_id, zoomToken, openai);
+          const fetchedTranscript = await getRecordingTranscript(callLog.recording_id, zoomToken);
           transcript = fetchedTranscript || "";
           if (!transcript) {
             console.warn(`[WARN] No transcript available for recording ${callLog.recording_id || 'N/A'} - AI will analyze call metadata only`);
