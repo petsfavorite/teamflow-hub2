@@ -97,56 +97,67 @@ async function getRecordingTranscript(recordingId, zoomToken) {
 }
 
 
-// ── Valid staff list and fuzzy resolver ───────────────────────────────────────
-const VALID_STAFF = [
-  "Caroline Cofer", "Rebecca Evatt", "Skye Means", "Jody Miranda",
-  "Jen Rising", "Katie DeJesus", "Hailey Laughter", "Support Staff"
-];
-
-const STAFF_ALIASES = {
-  "caroline": "Caroline Cofer",
-  "dr cofer": "Caroline Cofer",
-  "dr. cofer": "Caroline Cofer",
-  "dr caroline": "Caroline Cofer",
-  "dr. caroline": "Caroline Cofer",
-  "caroline cofer": "Caroline Cofer",
-  "rebecca": "Rebecca Evatt",
-  "rebecca evatt": "Rebecca Evatt",
-  "becky": "Rebecca Evatt",
-  "skye": "Skye Means",
-  "skye means": "Skye Means",
-  "sky": "Skye Means",
-  "jody": "Jody Miranda",
-  "jody miranda": "Jody Miranda",
-  "jen": "Jen Rising",
-  "jen rising": "Jen Rising",
-  "jennifer": "Jen Rising",
-  "jennifer rising": "Jen Rising",
-  "katie": "Katie DeJesus",
-  "katie dejesus": "Katie DeJesus",
-  "kate": "Katie DeJesus",
-  "hailey": "Hailey Laughter",
-  "hailey laughter": "Hailey Laughter",
-  "haley": "Hailey Laughter",
-  "hayley": "Hailey Laughter",
-  "support staff": "Support Staff",
+// ── Nickname → first name fragment aliases (shared by both resolve functions) ──
+// Keys are lowercase nickname variants; values are the canonical first name (lowercase)
+// that should match a user's full_name.split(" ")[0].toLowerCase()
+const NICKNAME_ALIASES = {
+  // Rebecca Evatt
+  "becca": "rebecca", "becky": "rebecca", "bec": "rebecca",
+  // Aryana Vizcano
+  "arianna": "aryana", "ariana": "aryana", "ary": "aryana", "anna": "aryana",
+  // Amanda Sandor
+  "mandy": "amanda", "aman": "amanda",
+  // Katie DeJesus
+  "kate": "katie", "katelyn": "katie", "kaitlyn": "katie", "caitlin": "katie",
+  // Jen Rising
+  "jennifer": "jen", "jenny": "jen",
+  // Skye Means
+  "sky": "skye",
+  // Hailey Laughter
+  "haley": "hailey", "hayley": "hailey",
 };
 
-function resolveStaffName(rawName) {
+// Caroline is the vet — mentioned on calls but never the answerer
+const NEVER_ASSIGN_AS_ANSWERER = ["caroline", "dr cofer", "dr. cofer", "dr caroline", "dr. caroline"];
+
+function resolveStaffName(rawName, userList) {
   if (!rawName || rawName === "null" || rawName === "Please Check") return null;
-  const key = rawName.toLowerCase().trim().replace(/\s+/g, " ");
-  if (STAFF_ALIASES[key]) return STAFF_ALIASES[key];
-  const exactMatch = VALID_STAFF.find(s => s.toLowerCase() === key);
-  if (exactMatch) return exactMatch;
-  for (const [alias, full] of Object.entries(STAFF_ALIASES)) {
-    if (key.includes(alias)) return full;
+  let key = rawName.toLowerCase().trim().replace(/\s+/g, " ");
+
+  // Hard block: never assign Caroline as answerer
+  if (NEVER_ASSIGN_AS_ANSWERER.some(blocked => key === blocked || key.includes(blocked))) return null;
+
+  // Normalize nickname to canonical first name
+  const normalized = NICKNAME_ALIASES[key] || key;
+
+  if (userList && userList.length) {
+    // 1. Exact full name
+    const exact = userList.find(u => u.full_name.toLowerCase() === normalized);
+    if (exact) return exact.full_name;
+
+    // 2. First name match (after nickname normalization)
+    const firstMatch = userList.find(u => u.full_name.toLowerCase().split(" ")[0] === normalized);
+    if (firstMatch) return firstMatch.full_name;
+
+    // 3. Word boundary match in full name
+    const wordMatch = userList.find(u => u.full_name.toLowerCase().split(" ").some(w => w === normalized));
+    if (wordMatch) return wordMatch.full_name;
   }
+
   return null;
 }
 
 // ── AI analysis ───────────────────────────────────────────────────────────────
-async function analyzeTranscript(transcript, callDirection, isMissedCall, openai) {
-  const staffList = VALID_STAFF.join(", ");
+async function analyzeTranscript(transcript, callDirection, isMissedCall, openai, userList) {
+  const staffLines = userList.map(u => `"${u.full_name}"`).join(", ");
+  const aliasLines = Object.entries(NICKNAME_ALIASES)
+    .map(([nick, first]) => {
+      const user = userList.find(u => u.full_name.toLowerCase().split(" ")[0] === first);
+      return user ? `  "${nick}" → "${user.full_name}"` : null;
+    })
+    .filter(Boolean)
+    .join("\n");
+
   const prompt = `You are an AI analyzing a phone call transcript for a veterinary clinic / pet boarding / doggie daycare facility.
 
 TRANSCRIPT:
@@ -156,24 +167,19 @@ CALL DIRECTION: ${callDirection}
 MISSED CALL (not answered): ${isMissedCall ? "YES" : "NO"}
 
 KNOWN STAFF MEMBERS (ONLY valid values for team_member):
-${staffList}
+${staffLines}
 
 TEAM MEMBER ATTRIBUTION RULES:
 - If MISSED CALL is YES: team_member = null (no one answered)
 - For OUTBOUND calls: team_member = null
-- For answered INBOUND calls: identify which staff member spoke, using fuzzy matching:
-  "Caroline"/"Dr. Cofer"/"Dr. Caroline" = "Caroline Cofer"
-  "Rebecca"/"Becky" = "Rebecca Evatt"
-  "Skye"/"Sky" = "Skye Means"
-  "Jen"/"Jennifer" = "Jen Rising"
-  "Katie"/"Kate" = "Katie DeJesus"
-  "Jody" = "Jody Miranda"
-  "Hailey"/"Haley"/"Hayley" = "Hailey Laughter"
-- Only assign a name if you are at least 90% confident. Otherwise return null.
-- Return ONLY the exact full name from the list above, or null. Never return "Please Check".
+- For answered INBOUND calls: identify which staff member answered using the first name they say.
+  Staff often only say their first name. Use these nickname mappings:
+${aliasLines}
+  Never assign Caroline/Dr. Cofer — she is the vet mentioned by callers, not the answerer.
+- Only assign a name if you are at least 90% confident. If unsure, return the first name only as a string and we will resolve it. Never return "Please Check".
 
 CALLER TYPE LOGIC:
-- "existing_client": caller mentions being here before or has an established history
+- "returning_client": caller mentions being here before or has an established history
 - "potential_client": wants boarding, daycare, or vet services, no prior relationship
 - "not_applicable": sales call, exotic/wildlife/livestock species, calling from another clinic, or voicemail/missed call
 
@@ -182,11 +188,11 @@ EXTRACTION RULES:
 - For phone numbers: extract explicit digits only, do not guess
 
 Return JSON with these fields:
-- team_member: string | null (exact match from KNOWN STAFF MEMBERS only, or null)
+- team_member: string | null (exact match from KNOWN STAFF MEMBERS, or a first name if uncertain — we will resolve it)
 - caller_name: string | "Unsure" | null
 - caller_phone: string | null
 - callee_phone: string | null
-- caller_type: "existing_client" | "potential_client" | "not_applicable" | "Unsure"
+- caller_type: "potential_client" | "returning_client" | "not_applicable" | "Unsure"
 - caller_intent: string (1-sentence summary)
 - bookable: "yes" | "no" | "unclear" | "Unsure"
 - booking_outcome: "appt_booked" | "appt_not_booked" | "appt_not_needed" | "Unsure"
@@ -317,7 +323,7 @@ Deno.serve(async (req) => {
         }
 
         const analysisInput = transcript || `CALL METADATA ONLY - No transcript available.\nCaller: ${callerName || callFromNumber || "Unknown"}\nDirection: ${callDirection}\nDuration: ${duration}s\nMissed Call: ${isMissedCall}\nCallee: ${callToNumber || "Unknown"}`;
-        const analysis = await analyzeTranscript(analysisInput, callDirection, isMissedCall, openai);
+        const analysis = await analyzeTranscript(analysisInput, callDirection, isMissedCall, openai, userList);
 
         // Use call log phone numbers, fallback to AI extraction
         const finalCallerPhone = callFromNumber || analysis.caller_phone || null;
@@ -341,7 +347,7 @@ Deno.serve(async (req) => {
         const sheetRowNumber = await appendToSheet(rowValues, sheetName, sheetsToken, spreadsheetId);
 
         // Resolve team member to a valid app user full name
-        const resolvedTeamMember = isMissedCall ? null : resolveStaffName(analysis.team_member);
+        const resolvedTeamMember = isMissedCall ? null : resolveStaffName(analysis.team_member, userList);
 
         // Save to DB — always use the real Zoom call ID for dedup
         await base44.asServiceRole.entities.CallRecord.create({

@@ -43,21 +43,25 @@ Return ONLY valid JSON, no markdown.`;
   return JSON.parse(response.choices[0].message.content);
 }
 
-// Aliases: maps common misspellings/variants → canonical first name fragment
+// Nickname → canonical first name (lowercase). Used for fuzzy matching.
 const NAME_ALIASES = {
-  "katelyn": "katie",
-  "kaitlyn": "katie",
-  "caitlyn": "katie",
-  "caitlin": "katie",
-  "kaitlin": "katie",
-  // OpenAI frequently transcribes "Aryana" as "Ariana"
-  "ariana": "aryana",
-  "arianna": "aryana",
+  // Rebecca Evatt
+  "becca": "rebecca", "becky": "rebecca", "bec": "rebecca",
+  // Aryana Vizcano
+  "arianna": "aryana", "ariana": "aryana", "ary": "aryana", "anna": "aryana",
+  // Amanda Sandor
+  "mandy": "amanda", "aman": "amanda",
+  // Katie DeJesus
+  "kate": "katie", "katelyn": "katie", "kaitlyn": "katie", "caitlin": "katie", "kaitlin": "katie",
+  // Jen Rising
+  "jennifer": "jen", "jenny": "jen",
+  // Skye Means
+  "sky": "skye",
+  // Hailey Laughter
+  "haley": "hailey", "hayley": "hailey",
 };
 
-// Caroline Cofer is the vet — she is often MENTIONED on calls but never the one who answered.
-// Never assign her as the team_member for an inbound call via the "Answered By" column.
-const NEVER_ASSIGN_AS_ANSWERER = ["caroline cofer", "dr. cofer", "dr cofer", "caroline"];
+const NEVER_ASSIGN_AS_ANSWERER = ["caroline cofer", "dr. cofer", "dr cofer", "caroline", "dr caroline", "dr. caroline"];
 
 function fuzzyMatchUser(detectedName, userList) {
   if (!detectedName || !userList.length) return null;
