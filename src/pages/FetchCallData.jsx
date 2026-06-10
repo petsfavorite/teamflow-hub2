@@ -23,18 +23,29 @@ export default function FetchCallData() {
     let totalProcessed = 0;
     let totalSkipped = 0;
     let allErrors = [];
+    let consecutiveFailures = 0;
 
     try {
       let done = false;
       while (!done) {
-        const res = await base44.functions.invoke("backfillZoomCalls", { from: "2026-04-01", batch_size: 5 });
-        const data = res.data;
-        totalProcessed += data.processed || 0;
-        totalSkipped = data.skipped || 0;
-        allErrors = allErrors.concat(data.errors || []);
-        done = data.done;
-        setBackfillProgress({ processed: totalProcessed, skipped: totalSkipped, remaining: data.remaining, total: data.total });
-        if (!done) await new Promise(r => setTimeout(r, 1000));
+        try {
+          const res = await base44.functions.invoke("backfillZoomCalls", { from: "2026-04-01", batch_size: 2 });
+          const data = res.data;
+          if (data?.error) throw new Error(data.error);
+          consecutiveFailures = 0;
+          totalProcessed += data.processed || 0;
+          totalSkipped = data.skipped || 0;
+          allErrors = allErrors.concat(data.errors || []);
+          done = data.done;
+          setBackfillProgress({ processed: totalProcessed, skipped: totalSkipped, remaining: data.remaining, total: data.total });
+          if (!done) await new Promise(r => setTimeout(r, 1500));
+        } catch (batchErr) {
+          consecutiveFailures++;
+          console.warn(`Batch error (attempt ${consecutiveFailures}):`, batchErr.message);
+          if (consecutiveFailures >= 3) throw new Error(`Failed 3 times in a row: ${batchErr.message}`);
+          // Wait longer before retrying after a timeout
+          await new Promise(r => setTimeout(r, 3000));
+        }
       }
       setBackfillResult({ processed: totalProcessed, skipped: totalSkipped, errors: allErrors });
       refetch();

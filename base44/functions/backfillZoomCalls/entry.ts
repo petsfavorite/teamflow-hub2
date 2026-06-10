@@ -321,7 +321,7 @@ Deno.serve(async (req) => {
         console.log(`[INFO] Processed call ${callId} (${startTime}) - from: ${finalCallerPhone}, to: ${finalCalleePhone}`);
 
         // Throttle to avoid rate limits
-        await new Promise(r => setTimeout(r, 500));
+        await new Promise(r => setTimeout(r, 200));
       } catch (err) {
         console.error(`[ERROR] Call ${callId}: ${err.message}`);
         errors.push(`${callId}: ${err.message}`);
