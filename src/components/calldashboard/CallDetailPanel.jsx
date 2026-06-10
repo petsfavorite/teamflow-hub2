@@ -10,10 +10,7 @@ import { base44 } from "@/api/base44Client";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 
-const VALID_STAFF = [
-  "Caroline Cofer", "Rebecca Evatt", "Skye Means", "Jody Miranda",
-  "Jen Rising", "Katie DeJesus", "Hailey Laughter", "Support Staff"
-];
+
 
 const DEFAULT_CALLER_TYPES = [
   { value: "potential_client", label: "Potential Client" },
@@ -102,9 +99,15 @@ export default function CallDetailPanel({ call, open, onClose, onUpdate, isAdmin
                   <SelectContent>
                     <SelectItem value={null}>— None —</SelectItem>
                     <SelectItem value="Please Check">⚠️ Please Check</SelectItem>
-                    {VALID_STAFF.map(name => (
-                      <SelectItem key={name} value={name}>{name}</SelectItem>
-                    ))}
+                    {[...users]
+                      .sort((a, b) => (a.full_name || "").localeCompare(b.full_name || ""))
+                      .map(u => (
+                        <SelectItem key={u.id} value={u.full_name}>{u.full_name}</SelectItem>
+                      ))
+                    }
+                    {teamMember && teamMember !== "Please Check" && !users.some(u => u.full_name === teamMember) && (
+                      <SelectItem value={teamMember}>{teamMember} (removed)</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               ) : (
