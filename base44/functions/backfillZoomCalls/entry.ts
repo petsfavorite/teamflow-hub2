@@ -97,9 +97,57 @@ async function getRecordingTranscript(recordingId, zoomToken) {
 }
 
 
+// ── Staff name fuzzy matcher ──────────────────────────────────────────────────
+const STAFF_ALIASES = {
+  "caroline": "Caroline Cofer",
+  "dr cofer": "Caroline Cofer",
+  "dr. cofer": "Caroline Cofer",
+  "dr caroline": "Caroline Cofer",
+  "dr. caroline": "Caroline Cofer",
+  "caroline cofer": "Caroline Cofer",
+  "rebecca": "Rebecca Evatt",
+  "rebecca evatt": "Rebecca Evatt",
+  "becky": "Rebecca Evatt",
+  "skye": "Skye Means",
+  "skye means": "Skye Means",
+  "sky": "Skye Means",
+  "jody": "Jody Miranda",
+  "jody miranda": "Jody Miranda",
+  "jen": "Jen Rising",
+  "jen rising": "Jen Rising",
+  "jennifer": "Jen Rising",
+  "jennifer rising": "Jen Rising",
+  "katie": "Katie DeJesus",
+  "katie dejesus": "Katie DeJesus",
+  "kate": "Katie DeJesus",
+  "hailey": "Hailey Laughter",
+  "hailey laughter": "Hailey Laughter",
+  "haley": "Hailey Laughter",
+  "hayley": "Hailey Laughter",
+  "support staff": "Support Staff",
+};
+
+const VALID_STAFF = [
+  "Caroline Cofer", "Rebecca Evatt", "Skye Means", "Jody Miranda",
+  "Jen Rising", "Katie DeJesus", "Hailey Laughter", "Support Staff"
+];
+
+function resolveStaffName(rawName) {
+  if (!rawName || rawName === "null") return "Please Check";
+  if (rawName === "Please Check") return "Please Check";
+  const key = rawName.toLowerCase().trim().replace(/\s+/g, " ");
+  if (STAFF_ALIASES[key]) return STAFF_ALIASES[key];
+  const exactMatch = VALID_STAFF.find(s => s.toLowerCase() === key);
+  if (exactMatch) return exactMatch;
+  for (const [alias, full] of Object.entries(STAFF_ALIASES)) {
+    if (key.includes(alias)) return full;
+  }
+  return "Please Check";
+}
+
 // ── AI analysis ───────────────────────────────────────────────────────────────
 async function analyzeTranscript(transcript, callDirection, userList, openai) {
-  const teamEntries = userList.map(u => `"${u.full_name}"`).join("\n");
+  const staffList = VALID_STAFF.map(n => `"${n}"`).join(", ");
   const prompt = `You are an AI analyzing a phone call transcript for a veterinary clinic / pet boarding / doggie daycare facility.
 
 TRANSCRIPT:
@@ -107,7 +155,17 @@ ${transcript}
 
 CALL DIRECTION: ${callDirection}
 
-${teamEntries ? `KNOWN STAFF MEMBERS:\n${teamEntries}\n\nTEAM MEMBER ATTRIBUTION RULES:\n- For OUTBOUND calls: team_member = null\n- For MISSED CALLS (no answer, voicemail): team_member = null\n- For INBOUND calls: identify the staff member who answered/spoke\n- MUST match exactly to a KNOWN STAFF MEMBER (case-insensitive OK)\n- Aliases: "Caroline", "Dr. Cofer", "Dr. Caroline Cofer" = "Caroline Cofer"; "Ariana" or "Arianna" = "Aryana"; "Rebecca" must refer to "Rebecca Evatt" (only Rebecca on staff)\n- If unsure or cannot determine: use "Please Check"\n- Return ONLY the exact full name from KNOWN STAFF MEMBERS, or null, or "Please Check"` : ""}
+KNOWN STAFF MEMBERS (the ONLY valid values for team_member):
+${staffList}
+
+TEAM MEMBER ATTRIBUTION RULES:
+- For OUTBOUND calls: team_member = null
+- For MISSED CALLS (no answer, voicemail only): team_member = null
+- For INBOUND calls: identify which staff member answered/spoke
+- Fuzzy match allowed: "Caroline"/"Dr. Cofer" = "Caroline Cofer", "Rebecca"/"Becky" = "Rebecca Evatt", "Skye"/"Sky" = "Skye Means", "Jen"/"Jennifer" = "Jen Rising", "Katie"/"Kate" = "Katie DeJesus", "Jody" = "Jody Miranda", "Hailey"/"Haley"/"Hayley" = "Hailey Laughter"
+- If you are at least 90% confident, return the exact full name from the list above
+- If you are less than 90% confident, return "Please Check"
+- NEVER return a name not in the list above
 
 CALLER TYPE LOGIC:
 - "existing_client": We have seen this animal/owner before at our clinic
@@ -274,11 +332,16 @@ Deno.serve(async (req) => {
         const analysisInput = transcript || `CALL METADATA ONLY - No transcript available.\nCaller: ${callerName || callFromNumber || "Unknown"}\nDirection: ${callDirection}\nDuration: ${duration}s\nCallee: ${callToNumber || "Unknown"}`;
         const analysis = await analyzeTranscript(analysisInput, callDirection, userList, openai);
 
+        // Resolve team member to a valid staff name or "Please Check"
+        const resolvedTeamMember = (callDirection === "outbound")
+          ? null
+          : resolveStaffName(analysis.team_member);
+
         // Use call log phone numbers, fallback to AI extraction
         const finalCallerPhone = callFromNumber || analysis.caller_phone || null;
         const finalCalleePhone = callToNumber || analysis.callee_phone || null;
 
-        // Append to sheet (headers: Date, Inbound/Outbound, Caller, Callee, Answered By, Booking Status, Team Member, Caller Type, Booking Outcome)
+        // Append to sheet
         const callDate = new Date(startTime);
         const dateStr = callDate.toLocaleDateString("en-US", { timeZone: "America/New_York" });
         const timeStr = callDate.toLocaleTimeString("en-US", { timeZone: "America/New_York", hour12: false });
@@ -287,7 +350,7 @@ Deno.serve(async (req) => {
           callDirection,
           finalCallerPhone || "",
           finalCalleePhone || "",
-          analysis.team_member  || "",
+          resolvedTeamMember || "",
           analysis.bookable || "unclear",
           analysis.caller_type  || "not_applicable",
           analysis.booking_outcome || "appt_not_booked",
@@ -303,7 +366,7 @@ Deno.serve(async (req) => {
           call_direction: callDirection,
           caller_phone: finalCallerPhone,
           caller_name:  callerName || analysis.caller_name || null,
-          team_member:  analysis.team_member  || null,
+          team_member:  resolvedTeamMember || null,
           transcript,
           transcript_summary: analysis.transcript_summary || null,
           recording_url: recording_url || null,
