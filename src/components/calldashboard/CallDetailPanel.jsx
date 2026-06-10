@@ -10,7 +10,10 @@ import { base44 } from "@/api/base44Client";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 
-const CLIENT_CARE_EMAILS = ['drcaroline@petsfavoritevet.com', 'jen@petsfavoritevet.com', 'rebecca@petsfavoritevet.com'];
+const VALID_STAFF = [
+  "Caroline Cofer", "Rebecca Evatt", "Skye Means", "Jody Miranda",
+  "Jen Rising", "Katie DeJesus", "Hailey Laughter", "Support Staff"
+];
 
 const DEFAULT_CALLER_TYPES = [
   { value: "potential_client", label: "Potential Client" },
@@ -94,35 +97,18 @@ export default function CallDetailPanel({ call, open, onClose, onUpdate, isAdmin
             <div className="space-y-0.5">
               <div className="flex items-center gap-1 text-xs text-slate-400"><User className="w-3 h-3" />Team Member</div>
               {isAdmin ? (
-                <Select value={teamMember} onValueChange={(value) => { setTeamMember(value); handleUpdate({ team_member: value }); }}>
-                  <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                <Select value={teamMember || ""} onValueChange={(value) => { setTeamMember(value); handleUpdate({ team_member: value || null }); }}>
+                  <SelectTrigger className="w-full"><SelectValue placeholder="— None —" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value={null}>— None —</SelectItem>
-                    {[...users]
-                      .sort((a, b) => {
-                        const aCC = CLIENT_CARE_EMAILS.includes(a.email);
-                        const bCC = CLIENT_CARE_EMAILS.includes(b.email);
-                        if (aCC && !bCC) return -1;
-                        if (!aCC && bCC) return 1;
-                        const aName = [a.first_name, a.last_name].filter(Boolean).join(" ") || a.full_name || "";
-                        const bName = [b.first_name, b.last_name].filter(Boolean).join(" ") || b.full_name || "";
-                        return aName.localeCompare(bName);
-                      })
-                      .map((u, i, arr) => {
-                        const displayName = [u.first_name, u.last_name].filter(Boolean).join(" ") || u.full_name;
-                        const isLastCC = CLIENT_CARE_EMAILS.includes(u.email) && (i === arr.length - 1 || !CLIENT_CARE_EMAILS.includes(arr[i + 1].email));
-                        return (
-                          <>
-                            <SelectItem key={u.id} value={u.full_name}>{displayName}</SelectItem>
-                            {isLastCC && <div key="divider" className="my-1 border-t border-slate-200" />}
-                          </>
-                        );
-                      })
-                    }
+                    <SelectItem value="Please Check">⚠️ Please Check</SelectItem>
+                    {VALID_STAFF.map(name => (
+                      <SelectItem key={name} value={name}>{name}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               ) : (
-                <p className="text-sm font-medium text-slate-700">{teamMember || "Unknown"}</p>
+                <p className="text-sm font-medium text-slate-700">{teamMember || "—"}</p>
               )}
             </div>
             <MetaItem icon={Clock} label="Date & Time" value={date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) + " · " + date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })} />
