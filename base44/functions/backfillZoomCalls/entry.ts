@@ -97,7 +97,12 @@ async function getRecordingTranscript(recordingId, zoomToken) {
 }
 
 
-// ── Staff name fuzzy matcher ──────────────────────────────────────────────────
+// ── Valid staff list and fuzzy resolver ───────────────────────────────────────
+const VALID_STAFF = [
+  "Caroline Cofer", "Rebecca Evatt", "Skye Means", "Jody Miranda",
+  "Jen Rising", "Katie DeJesus", "Hailey Laughter", "Support Staff"
+];
+
 const STAFF_ALIASES = {
   "caroline": "Caroline Cofer",
   "dr cofer": "Caroline Cofer",
@@ -127,14 +132,8 @@ const STAFF_ALIASES = {
   "support staff": "Support Staff",
 };
 
-const VALID_STAFF = [
-  "Caroline Cofer", "Rebecca Evatt", "Skye Means", "Jody Miranda",
-  "Jen Rising", "Katie DeJesus", "Hailey Laughter", "Support Staff"
-];
-
 function resolveStaffName(rawName) {
-  if (!rawName || rawName === "null") return "Please Check";
-  if (rawName === "Please Check") return "Please Check";
+  if (!rawName || rawName === "null" || rawName === "Please Check") return null;
   const key = rawName.toLowerCase().trim().replace(/\s+/g, " ");
   if (STAFF_ALIASES[key]) return STAFF_ALIASES[key];
   const exactMatch = VALID_STAFF.find(s => s.toLowerCase() === key);
@@ -142,71 +141,59 @@ function resolveStaffName(rawName) {
   for (const [alias, full] of Object.entries(STAFF_ALIASES)) {
     if (key.includes(alias)) return full;
   }
-  return "Please Check";
+  return null;
 }
 
 // ── AI analysis ───────────────────────────────────────────────────────────────
-async function analyzeTranscript(transcript, callDirection, userList, openai) {
-  const staffList = VALID_STAFF.map(n => `"${n}"`).join(", ");
+async function analyzeTranscript(transcript, callDirection, isMissedCall, openai) {
+  const staffList = VALID_STAFF.join(", ");
   const prompt = `You are an AI analyzing a phone call transcript for a veterinary clinic / pet boarding / doggie daycare facility.
 
 TRANSCRIPT:
 ${transcript}
 
 CALL DIRECTION: ${callDirection}
+MISSED CALL (not answered): ${isMissedCall ? "YES" : "NO"}
 
-KNOWN STAFF MEMBERS (the ONLY valid values for team_member):
+KNOWN STAFF MEMBERS (ONLY valid values for team_member):
 ${staffList}
 
 TEAM MEMBER ATTRIBUTION RULES:
+- If MISSED CALL is YES: team_member = null (no one answered)
 - For OUTBOUND calls: team_member = null
-- For MISSED CALLS (no answer, voicemail only): team_member = null
-- For INBOUND calls: identify which staff member answered/spoke
-- Fuzzy match allowed: "Caroline"/"Dr. Cofer" = "Caroline Cofer", "Rebecca"/"Becky" = "Rebecca Evatt", "Skye"/"Sky" = "Skye Means", "Jen"/"Jennifer" = "Jen Rising", "Katie"/"Kate" = "Katie DeJesus", "Jody" = "Jody Miranda", "Hailey"/"Haley"/"Hayley" = "Hailey Laughter"
-- If you are at least 90% confident, return the exact full name from the list above
-- If you are less than 90% confident, return "Please Check"
-- NEVER return a name not in the list above
+- For answered INBOUND calls: identify which staff member spoke, using fuzzy matching:
+  "Caroline"/"Dr. Cofer"/"Dr. Caroline" = "Caroline Cofer"
+  "Rebecca"/"Becky" = "Rebecca Evatt"
+  "Skye"/"Sky" = "Skye Means"
+  "Jen"/"Jennifer" = "Jen Rising"
+  "Katie"/"Kate" = "Katie DeJesus"
+  "Jody" = "Jody Miranda"
+  "Hailey"/"Haley"/"Hayley" = "Hailey Laughter"
+- Only assign a name if you are at least 90% confident. Otherwise return null.
+- Return ONLY the exact full name from the list above, or null. Never return "Please Check".
 
 CALLER TYPE LOGIC:
-- "existing_client": We have seen this animal/owner before at our clinic
-- "potential_client": Wants a service we provide AND we have NOT seen them before
-- "not_applicable": Sales call, asking for a service we don't provide (e.g., exotic animals we don't see), calling from another clinic, or voicemail
+- "existing_client": caller mentions being here before or has an established history
+- "potential_client": wants boarding, daycare, or vet services, no prior relationship
+- "not_applicable": sales call, exotic/wildlife/livestock species, calling from another clinic, or voicemail/missed call
 
-CLASSIFICATION RULES:
-- NOT_APPLICABLE if: sales pitch, asking for species/services we don't offer (like exotics, wildlife, livestock), calling from another clinic, or it's a voicemail
-- EXISTING_CLIENT if: they mention they've been here before, you recognize their pet's name, they reference past visits, or they have an established history
-- POTENTIAL_CLIENT if: they want boarding, doggie daycare, or vet services, AND we have no prior relationship
-
-EXTRACTION RULES - BE STRICT AND EXPLICIT:
-- Extract EVERY field from the transcript
+EXTRACTION RULES:
 - If you are NOT 95%+ confident about a value, use "Unsure" (for strings) or null (for optional fields)
-- Do NOT guess or assume - only extract what you can clearly identify
-- For phone numbers (CRITICAL - extract call_from and call_to): 
-  * Look for 10-digit sequences (including parentheses/dashes like (555) 123-4567 or 555-123-4567)
-  * Look for caller reading numbers aloud (e.g., "my number is 5 5 5 1 2 3 4 5 6 7")
-  * Look for clinic/staff reading back a number to confirm it
-  * For caller_phone (CALL FROM): the phone number the caller is calling FROM - explicit digits from transcript
-  * For callee_phone (CALL TO): the phone number the caller is calling TO (clinic number) - explicit digits from transcript or staff mentioning their own number
-  * If transcript mentions ANY phone numbers in ANY format (digits, spoken aloud, dashes, parentheses), PARSE and EXTRACT them
-  * Only use null if NO phone numbers appear AT ALL in the entire transcript
-  * Priority: capture both call_from and call_to if available - these are essential call metadata
-- For caller_name: only if explicitly stated in transcript. Otherwise "Unsure".
-- For team_member: only exact matches to KNOWN STAFF MEMBERS. Otherwise use "Please Check" or null.
-- For caller_type/booking_outcome: use "Unsure" if unclear, never guess.
+- For phone numbers: extract explicit digits only, do not guess
 
 Return JSON with these fields:
-- team_member: string | null | "Please Check" (KNOWN STAFF MEMBER exact match, null for outbound/missed, "Please Check" if unsure)
-- caller_name: string | "Unsure" | null (only if clearly stated in transcript)
-- caller_phone: string | null (explicit digits from transcript - not guessed)
-- callee_phone: string | null (explicit clinic phone from transcript - not guessed)
-- caller_type: "existing_client" | "potential_client" | "not_applicable" | "Unsure" (only assign if 95%+ confident)
-- caller_intent: string (explicit 1-sentence summary of what they said they wanted)
-- bookable: "yes" | "no" | "unclear" | "Unsure" (only "yes" if booking clearly discussed/offered)
+- team_member: string | null (exact match from KNOWN STAFF MEMBERS only, or null)
+- caller_name: string | "Unsure" | null
+- caller_phone: string | null
+- callee_phone: string | null
+- caller_type: "existing_client" | "potential_client" | "not_applicable" | "Unsure"
+- caller_intent: string (1-sentence summary)
+- bookable: "yes" | "no" | "unclear" | "Unsure"
 - booking_outcome: "appt_booked" | "appt_not_booked" | "appt_not_needed" | "Unsure"
-- booked_date: "YYYY-MM-DDTHH:MM:00" | null (only if appointment explicitly booked with date)
-- appointment_offered: boolean (true only if appointment was explicitly offered during call)
-- transcript_summary: string (2-3 sentences, or "Unclear" if transcript is too short/unintelligible)
-- ai_notes: string | null (flag any "Unsure" fields, confidence concerns, or unclear moments)
+- booked_date: "YYYY-MM-DDTHH:MM:00" | null
+- appointment_offered: boolean
+- transcript_summary: string (2-3 sentences, or "Unclear" if unintelligible)
+- ai_notes: string | null
 
 Return ONLY valid JSON, no markdown.`;
 
@@ -310,38 +297,33 @@ Deno.serve(async (req) => {
         const callToNumber = callLog.callee_did_number || callLog.callee_number || null; // e.g., "+18646868583" or "1378"
         
         const callDirection = callLog.direction || "inbound";
-        const startTime     = callLog.date_time || new Date().toISOString(); // Zoom uses 'date_time'
-        const duration      = callLog.duration || 0; // already in seconds
+        const startTime     = callLog.date_time || new Date().toISOString();
+        const duration      = callLog.duration || 0;
         const callerName    = callLog.caller_name || null;
-        // Zoom recording URL: https://api.zoom.us/v2/call_records/{recordingId}/download
-        // Some recordings may not have IDs or may be blocked
+        // "not_answered" result = missed call
+        const isMissedCall  = callLog.result === "not_answered" || (!callLog.result && duration === 0 && !callLog.recording_id);
         const recording_url = callLog.recording_id ? `https://zoom.us/recording/download/${callLog.recording_id}` : null;
 
-        // Download and transcribe recording MP3
+        // Download transcript
         let transcript = "";
         try {
           const fetchedTranscript = await getRecordingTranscript(callLog.recording_id, zoomToken);
           transcript = fetchedTranscript || "";
           if (!transcript) {
-            console.warn(`[WARN] No transcript available for recording ${callLog.recording_id || 'N/A'} - AI will analyze call metadata only`);
+            console.warn(`[WARN] No transcript available for recording ${callLog.recording_id || 'N/A'}`);
           }
         } catch (transcriptErr) {
           console.warn(`[WARN] Could not download/transcribe recording ${callLog.recording_id}: ${transcriptErr.message}`);
         }
 
-        const analysisInput = transcript || `CALL METADATA ONLY - No transcript available.\nCaller: ${callerName || callFromNumber || "Unknown"}\nDirection: ${callDirection}\nDuration: ${duration}s\nCallee: ${callToNumber || "Unknown"}`;
-        const analysis = await analyzeTranscript(analysisInput, callDirection, userList, openai);
-
-        // Resolve team member to a valid staff name or "Please Check"
-        const resolvedTeamMember = (callDirection === "outbound")
-          ? null
-          : resolveStaffName(analysis.team_member);
+        const analysisInput = transcript || `CALL METADATA ONLY - No transcript available.\nCaller: ${callerName || callFromNumber || "Unknown"}\nDirection: ${callDirection}\nDuration: ${duration}s\nMissed Call: ${isMissedCall}\nCallee: ${callToNumber || "Unknown"}`;
+        const analysis = await analyzeTranscript(analysisInput, callDirection, isMissedCall, openai);
 
         // Use call log phone numbers, fallback to AI extraction
         const finalCallerPhone = callFromNumber || analysis.caller_phone || null;
         const finalCalleePhone = callToNumber || analysis.callee_phone || null;
 
-        // Append to sheet
+        // Append to sheet (headers: Date, Inbound/Outbound, Caller, Callee, Answered By, Booking Status, Team Member, Caller Type, Booking Outcome)
         const callDate = new Date(startTime);
         const dateStr = callDate.toLocaleDateString("en-US", { timeZone: "America/New_York" });
         const timeStr = callDate.toLocaleTimeString("en-US", { timeZone: "America/New_York", hour12: false });
@@ -350,13 +332,16 @@ Deno.serve(async (req) => {
           callDirection,
           finalCallerPhone || "",
           finalCalleePhone || "",
-          resolvedTeamMember || "",
+          analysis.team_member  || "",
           analysis.bookable || "unclear",
           analysis.caller_type  || "not_applicable",
           analysis.booking_outcome || "appt_not_booked",
           analysis.appointment_offered ? "yes" : "no",
         ];
         const sheetRowNumber = await appendToSheet(rowValues, sheetName, sheetsToken, spreadsheetId);
+
+        // Resolve team member to a valid app user full name
+        const resolvedTeamMember = isMissedCall ? null : resolveStaffName(analysis.team_member);
 
         // Save to DB — always use the real Zoom call ID for dedup
         await base44.asServiceRole.entities.CallRecord.create({
@@ -366,7 +351,7 @@ Deno.serve(async (req) => {
           call_direction: callDirection,
           caller_phone: finalCallerPhone,
           caller_name:  callerName || analysis.caller_name || null,
-          team_member:  resolvedTeamMember || null,
+          team_member:  resolvedTeamMember,
           transcript,
           transcript_summary: analysis.transcript_summary || null,
           recording_url: recording_url || null,
@@ -376,6 +361,7 @@ Deno.serve(async (req) => {
           booking_outcome: analysis.booking_outcome || "appt_not_booked",
           was_booked: analysis.booking_outcome === "appt_booked",
           booked_date: analysis.booked_date || null,
+          missed_call: isMissedCall,
           ai_notes: analysis.ai_notes || null,
           status: "pending_review",
         });
