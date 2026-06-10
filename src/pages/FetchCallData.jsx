@@ -29,7 +29,7 @@ export default function FetchCallData() {
       let done = false;
       while (!done) {
         try {
-          const res = await base44.functions.invoke("backfillZoomCalls", { from: "2026-04-01", batch_size: 2 });
+          const res = await base44.functions.invoke("backfillZoomCalls", { from: "2026-04-01", batch_size: 5 });
           const data = res.data;
           if (data?.error) throw new Error(data.error);
           consecutiveFailures = 0;
