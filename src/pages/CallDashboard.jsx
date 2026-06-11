@@ -44,7 +44,7 @@ export default function CallDashboard() {
     queryFn: () => base44.entities.User.list(),
   });
 
-  const staffList = useMemo(() => users.map(u => u.full_name).filter(Boolean).sort(), [users]);
+  const staffList = useMemo(() => [...new Set(calls.map(c => c.team_member).filter(Boolean))].sort(), [calls]);
 
   // Map full_name → "First Last" display name
   const nameMap = useMemo(() => {
