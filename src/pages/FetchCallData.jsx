@@ -2,7 +2,9 @@ import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { AlertCircle, CheckCircle, Loader2, Zap, Download } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { AlertCircle, CheckCircle, Loader2, Zap, Download, Trash2 } from "lucide-react";
 
 export default function FetchCallData() {
   const [resetting, setResetting] = useState(false);
@@ -13,6 +15,26 @@ export default function FetchCallData() {
   const [backfillResult, setBackfillResult] = useState(null);
   const [backfillError, setBackfillError] = useState(null);
   const [backfillProgress, setBackfillProgress] = useState(null);
+  const [backfillFrom, setBackfillFrom] = useState("2026-04-01");
+
+  const [cleanupMonths, setCleanupMonths] = useState(1);
+  const [cleaning, setCleaning] = useState(false);
+  const [cleanupResult, setCleanupResult] = useState(null);
+  const [cleanupError, setCleanupError] = useState(null);
+
+  const handleCleanup = async () => {
+    setCleaning(true);
+    setCleanupResult(null);
+    setCleanupError(null);
+    try {
+      const res = await base44.functions.invoke("cleanupOldCallRecords", { months: cleanupMonths });
+      setCleanupResult(res.data);
+    } catch (err) {
+      setCleanupError(err.message);
+    } finally {
+      setCleaning(false);
+    }
+  };
 
   const handleBackfill = async () => {
     setBackfilling(true);
@@ -28,7 +50,7 @@ export default function FetchCallData() {
       let done = false;
       while (!done) {
         try {
-          const res = await base44.functions.invoke("backfillZoomCalls", { from: "2026-04-01", batch_size: 5 });
+          const res = await base44.functions.invoke("backfillZoomCalls", { from: backfillFrom, batch_size: 5 });
           const data = res.data;
           if (data?.error) throw new Error(data.error);
           consecutiveFailures = 0;
@@ -81,7 +103,11 @@ export default function FetchCallData() {
         <h2 className="font-semibold text-slate-800 flex items-center gap-2">
           <Download className="w-4 h-4 text-blue-600" /> Backfill Historical Calls
         </h2>
-        <p className="text-sm text-slate-600">Fetch all Zoom cloud recordings from <strong>April 1, 2026</strong> to today, transcribe each one, and add them to the sheet and call dashboard. Skips any already imported.</p>
+        <div className="flex items-center gap-3">
+          <Label htmlFor="backfill-from" className="text-sm text-slate-600 whitespace-nowrap">Fetch from date:</Label>
+          <Input id="backfill-from" type="date" value={backfillFrom} onChange={e => setBackfillFrom(e.target.value)} className="w-44" />
+        </div>
+        <p className="text-sm text-slate-600">Fetch all Zoom cloud recordings from the selected date to today, transcribe each one, and add them to the sheet and call dashboard. Skips any already imported.</p>
         <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">⚠️ This may take several minutes depending on the number of recordings. Do not close this page.</p>
         <Button onClick={handleBackfill} disabled={backfilling} className="bg-blue-600 hover:bg-blue-700 text-white">
           {backfilling ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Processing...</> : "Run Backfill"}
@@ -109,6 +135,32 @@ export default function FetchCallData() {
       </Card>
 
 
+      {/* Cleanup old call records */}
+      <Card className="p-6 space-y-3">
+        <h2 className="font-semibold text-slate-800 flex items-center gap-2">
+          <Trash2 className="w-4 h-4 text-red-500" /> Delete Old Call Records
+        </h2>
+        <p className="text-sm text-slate-600">Runs automatically on the 1st of each month. You can also run it manually here. Deletes all call records older than the specified age.</p>
+        <div className="flex items-center gap-3">
+          <Label htmlFor="cleanup-months" className="text-sm text-slate-600 whitespace-nowrap">Delete records older than:</Label>
+          <Input id="cleanup-months" type="number" min={1} max={24} value={cleanupMonths} onChange={e => setCleanupMonths(Number(e.target.value))} className="w-24" />
+          <span className="text-sm text-slate-600">month{cleanupMonths !== 1 ? 's' : ''}</span>
+        </div>
+        <Button onClick={handleCleanup} disabled={cleaning} variant="destructive">
+          {cleaning ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Deleting...</> : "Run Cleanup Now"}
+        </Button>
+        {cleanupResult && (
+          <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center gap-2 text-sm text-emerald-800">
+            <CheckCircle className="w-4 h-4 flex-shrink-0" />
+            Deleted <strong>{cleanupResult.deleted}</strong> records older than {cleanupMonths} month{cleanupMonths !== 1 ? 's' : ''}.
+          </div>
+        )}
+        {cleanupError && (
+          <div className="flex items-center gap-2 text-sm text-red-700">
+            <AlertCircle className="w-4 h-4" /> {cleanupError}
+          </div>
+        )}
+      </Card>
     </div>
   );
 }

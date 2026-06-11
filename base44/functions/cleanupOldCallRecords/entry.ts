@@ -4,9 +4,12 @@ Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
 
-        // Calculate cutoff: one month ago
+        const body = req.method === 'POST' ? await req.json().catch(() => ({})) : {};
+        const months = (typeof body.months === 'number' && body.months >= 1) ? body.months : 1;
+
+        // Calculate cutoff based on configured months
         const cutoff = new Date();
-        cutoff.setMonth(cutoff.getMonth() - 1);
+        cutoff.setMonth(cutoff.getMonth() - months);
         const cutoffISO = cutoff.toISOString();
 
         // Fetch all call records older than one month
