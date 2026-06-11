@@ -157,14 +157,87 @@ export default function Checklists() {
     }
   };
 
-  // Draft templates - visible to creator, or all drafts for managers/admins/super_admins
+  // Draft templates (status=draft): all visible to managers/admins/super_admins, otherwise only creator
   const draftTemplates = useMemo(() => {
     return allTemplates.filter(t => {
-      if (t.status !== 'draft' && t.status !== 'pending_approval') return false;
+      if (t.status !== 'draft') return false;
       if (isManager || isAdmin || isSuperAdmin) return true;
       return t.created_by === user?.email;
     });
   }, [allTemplates, user, isManager, isAdmin, isSuperAdmin]);
+
+  // Pending approval templates: managers see ones they submitted, admins/super_admins see all
+  const pendingApprovalTemplates = useMemo(() => {
+    return allTemplates.filter(t => {
+      if (t.status !== 'pending_approval') return false;
+      if (isAdmin || isSuperAdmin) return true;
+      if (isManager) return t.pending_submitted_by === user?.email || t.created_by === user?.email;
+      return false;
+    });
+  }, [allTemplates, user, isManager, isAdmin, isSuperAdmin]);
+
+  // Submit a draft for approval (managers) — sets status to pending_approval and emails admins
+  const submitForApprovalMutation = useMutation({
+    mutationFn: async (template) => {
+      await base44.entities.ChecklistTemplate.update(template.id, {
+        status: 'pending_approval',
+        pending_submitted_by: user?.email,
+        pending_submitted_by_name: user?.full_name,
+      });
+      // Get all admins/super_admins to notify
+      const res = await base44.functions.invoke('listUsers', {});
+      const admins = (res.data?.users || []).filter(u => u.role === 'admin' || u.role === 'super_admin');
+      await Promise.all(admins.map(admin =>
+        base44.integrations.Core.SendEmail({
+          to: admin.email,
+          subject: `Checklist Pending Approval: ${template.title}`,
+          body: `Hi ${admin.full_name || admin.email},\n\n${user?.full_name || user?.email} has submitted the checklist template "${template.title}" for approval.\n\nPlease log in and go to Checklists → Draft Checklists to review and approve or reject it.\n\nThanks!`
+        }).catch(() => {})
+      ));
+    },
+    onSuccess: () => {
+      toast.success('Submitted for approval! Admins have been notified.');
+      queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
+    },
+  });
+
+  // Approve a pending template (admins/super_admins) — sets status to published
+  const approveTemplateMutation = useMutation({
+    mutationFn: async (template) => {
+      await base44.entities.ChecklistTemplate.update(template.id, {
+        status: 'published',
+        pending_submitted_by: null,
+        pending_submitted_by_name: null,
+      });
+    },
+    onSuccess: () => {
+      toast.success('Checklist approved and published!');
+      queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
+    },
+  });
+
+  // Reject a pending template (admins/super_admins) — sends back to draft
+  const rejectTemplateMutation = useMutation({
+    mutationFn: async (template) => {
+      await base44.entities.ChecklistTemplate.update(template.id, {
+        status: 'draft',
+        pending_submitted_by: null,
+        pending_submitted_by_name: null,
+      });
+      // Notify the submitter
+      if (template.pending_submitted_by) {
+        await base44.integrations.Core.SendEmail({
+          to: template.pending_submitted_by,
+          subject: `Checklist Returned to Draft: ${template.title}`,
+          body: `Hi,\n\nYour checklist template "${template.title}" has been returned to draft by an admin. Please log in to review and make any needed changes before resubmitting.\n\nThanks!`
+        }).catch(() => {});
+      }
+    },
+    onSuccess: () => {
+      toast.success('Checklist returned to draft.');
+      queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
+    },
+  });
 
   const isLoading = isLoadingTemplates || isLoadingRecurring;
 
@@ -792,42 +865,119 @@ export default function Checklists() {
             </div>
           )}
 
-          {/* My Draft Templates - managers and above */}
-          {canManage && draftTemplates.length > 0 && (
+          {/* Draft Checklists - managers and above */}
+          {canManage && (draftTemplates.length > 0 || pendingApprovalTemplates.length > 0) && (
             <div>
-              <h2 className="text-lg font-semibold text-slate-900 mb-4">{(isAdmin || isSuperAdmin || isManager) ? 'Draft Templates' : 'My Draft Templates'}</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {draftTemplates.map(t => (
-                  <Card key={t.id} className="border-0 shadow-sm">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
+              <h2 className="text-lg font-semibold text-slate-900 mb-1">Draft Checklists</h2>
+              <p className="text-sm text-slate-500 mb-4">
+                {isAdmin || isSuperAdmin
+                  ? 'Review drafts and pending approvals before they appear in Template Checklists'
+                  : 'Submit drafts for admin approval to make them available as templates'}
+              </p>
+
+              {/* Pending Approval sub-section */}
+              {pendingApprovalTemplates.length > 0 && (
+                <div className="mb-4">
+                  <h3 className="text-sm font-semibold text-amber-700 mb-2 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
+                    Pending Approval ({pendingApprovalTemplates.length})
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {pendingApprovalTemplates.map(t => (
+                      <Card key={t.id} className="border border-amber-200 shadow-sm bg-amber-50">
+                        <CardContent className="p-4">
                           <p className="font-medium text-sm text-slate-800">{t.title}</p>
-                          <p className="text-xs text-slate-400">{t.items?.length} items · {t.status}</p>
-                        </div>
-                        <div className="flex gap-1">
-                          <Link to={createPageUrl('ChecklistEditor') + `?id=${t.id}`}>
-                            <Button variant="ghost" size="sm" className="text-slate-600 hover:text-slate-700 hover:bg-slate-50">Edit</Button>
-                          </Link>
-                          {(isSuperAdmin || isAdmin) && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                              onClick={() => {
-                                setTemplateToDelete(t);
-                                setDeleteDialogOpen(true);
-                              }}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
+                          <p className="text-xs text-slate-500 mb-1">{t.items?.length} items</p>
+                          {t.pending_submitted_by_name && (
+                            <p className="text-xs text-amber-700 mb-3">Submitted by {t.pending_submitted_by_name}</p>
                           )}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                          <div className="flex gap-1.5 flex-wrap">
+                            {(isAdmin || isSuperAdmin) && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                                  disabled={approveTemplateMutation.isPending}
+                                  onClick={() => approveTemplateMutation.mutate(t)}
+                                >
+                                  Approve
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-red-600 border-red-300 hover:bg-red-50"
+                                  disabled={rejectTemplateMutation.isPending}
+                                  onClick={() => rejectTemplateMutation.mutate(t)}
+                                >
+                                  Reject
+                                </Button>
+                              </>
+                            )}
+                            <Link to={createPageUrl('ChecklistEditor') + `?id=${t.id}`}>
+                              <Button variant="ghost" size="sm" className="text-slate-600">View</Button>
+                            </Link>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Draft sub-section */}
+              {draftTemplates.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-500 mb-2 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-slate-400 inline-block" />
+                    Drafts ({draftTemplates.length})
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {draftTemplates.filter(t => t.title.toLowerCase().includes(searchTerm.toLowerCase())).map(t => (
+                      <Card key={t.id} className="border-0 shadow-sm">
+                        <CardContent className="p-4">
+                          <p className="font-medium text-sm text-slate-800">{t.title}</p>
+                          <p className="text-xs text-slate-400 mb-3">{t.items?.length} items · draft</p>
+                          <div className="flex gap-1.5 flex-wrap">
+                            {isManager && !isAdmin && !isSuperAdmin && (
+                              <Button
+                                size="sm"
+                                className="bg-indigo-600 hover:bg-indigo-700"
+                                disabled={submitForApprovalMutation.isPending}
+                                onClick={() => submitForApprovalMutation.mutate(t)}
+                              >
+                                Submit for Approval
+                              </Button>
+                            )}
+                            {(isAdmin || isSuperAdmin) && (
+                              <Button
+                                size="sm"
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                                disabled={approveTemplateMutation.isPending}
+                                onClick={() => approveTemplateMutation.mutate(t)}
+                              >
+                                Approve
+                              </Button>
+                            )}
+                            <Link to={createPageUrl('ChecklistEditor') + `?id=${t.id}`}>
+                              <Button variant="ghost" size="sm" className="text-slate-600">Edit</Button>
+                            </Link>
+                            {(isSuperAdmin || isAdmin) && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                onClick={() => { setTemplateToDelete(t); setDeleteDialogOpen(true); }}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
