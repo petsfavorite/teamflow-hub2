@@ -46,9 +46,9 @@ export default function CallCard({ call, onClick, nameMap = {} }) {
                   <span className="text-xs font-medium text-rose-600">Missed Call</span>
                 </div>
               ) : call.call_direction === "inbound" ? (
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50">
-                  <User className="w-3 h-3 text-amber-400" />
-                  <span className="text-xs font-medium text-amber-600">Not Answered</span>
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-50">
+                  <PhoneMissed className="w-3 h-3 text-rose-400" />
+                  <span className="text-xs font-medium text-rose-600">Missed Call</span>
                 </div>
               ) : null}
             </div>
