@@ -32,31 +32,29 @@ export default function SOPDetail() {
     enabled: !!id,
   });
 
+  // All acks for this SOP (all versions) — used for history log and status
   const { data: acknowledgements = [] } = useQuery({
     queryKey: ['ack', id],
     queryFn: () => base44.entities.SOPAcknowledgement.filter({ sop_id: id }),
     enabled: !!id && canManage,
   });
 
-  const { data: myAck } = useQuery({
+  const { data: myAcks = [] } = useQuery({
     queryKey: ['my-ack', id, user?.email],
-    queryFn: async () => {
-      const list = await base44.entities.SOPAcknowledgement.filter({ sop_id: id, user_email: user?.email });
-      return list[0];
-    },
+    queryFn: () => base44.entities.SOPAcknowledgement.filter({ sop_id: id, user_email: user?.email }),
     enabled: !!id && !!user?.email,
   });
 
   const { data: allUsers = [] } = useQuery({
     queryKey: ['users-for-ack'],
     queryFn: () => base44.entities.User.list('full_name', 200),
-    enabled: canManage,
+    enabled: !!(id && sop?.requires_acknowledgement),
   });
 
   const { data: teams = [] } = useQuery({
     queryKey: ['teams'],
     queryFn: () => base44.entities.Team.list('name', 100),
-    enabled: canManage,
+    enabled: !!(id && sop?.requires_acknowledgement),
   });
 
   const approveMutation = useMutation({
@@ -138,11 +136,38 @@ export default function SOPDetail() {
     );
   }
 
-  const myCurrentAck = myAck?.version_number === sop.version;
+  const myCurrentAck = myAcks.find(a => a.version_number === sop.version);
+
+  // Determine the scoped user pool for this SOP's acknowledgement requirement
+  // If specific teams or individuals are assigned, use only those; otherwise all users
+  const assignedEmails = sop.acknowledgement_assigned_emails || [];
+  const assignedTeamIds = sop.acknowledgement_assigned_teams || [];
+  const assignedTeamMemberEmails = assignedTeamIds.length > 0
+    ? [...new Set(teams.filter(t => assignedTeamIds.includes(t.id)).flatMap(t => t.member_emails || []))]
+    : [];
+  const scopedEmails = assignedEmails.length > 0 || assignedTeamIds.length > 0
+    ? [...new Set([...assignedEmails, ...assignedTeamMemberEmails])]
+    : null; // null = all users
+
+  const scopedUsers = scopedEmails
+    ? allUsers.filter(u => scopedEmails.includes(u.email))
+    : allUsers;
+
+  // Is the current user in scope (should they see the ack prompt)?
+  const isUserInScope = sop.requires_acknowledgement && (
+    scopedEmails === null || scopedEmails.includes(user?.email)
+  );
+
+  // Current version status
   const currentAcks = acknowledgements.filter(a => a.version_number === sop?.version);
   const acknowledgedEmails = currentAcks.map(a => a.user_email);
-  const notAcknowledged = allUsers.filter(u => !acknowledgedEmails.includes(u.email));
-  const acknowledged = allUsers.filter(u => acknowledgedEmails.includes(u.email));
+  const acknowledged = scopedUsers.filter(u => acknowledgedEmails.includes(u.email));
+  const notAcknowledged = scopedUsers.filter(u => !acknowledgedEmails.includes(u.email));
+
+  // Full history log: all acks across all versions, sorted newest first
+  const allAcksSorted = [...acknowledgements].sort((a, b) =>
+    new Date(b.acknowledged_at) - new Date(a.acknowledged_at)
+  );
 
   // Verification
   const verificationDaysLeft = sop.verification_due_date
@@ -360,8 +385,8 @@ export default function SOPDetail() {
         </Card>
       )}
 
-      {/* Acknowledgement section */}
-      {sop.requires_acknowledgement && (
+      {/* Acknowledgement prompt — only show to in-scope users */}
+      {isUserInScope && (
         <Card className="border-0 shadow-sm mb-4">
           <CardContent className="p-6">
             {!myCurrentAck ? (
@@ -378,21 +403,21 @@ export default function SOPDetail() {
             ) : (
               <div className="flex items-center gap-3">
                 <CheckCircle className="w-5 h-5 text-emerald-600" />
-                <p className="text-sm font-medium text-emerald-700">You acknowledged this version on {new Date(myAck.acknowledged_at).toLocaleDateString()}</p>
+                <p className="text-sm font-medium text-emerald-700">You acknowledged this version on {new Date(myCurrentAck.acknowledged_at).toLocaleDateString()}</p>
               </div>
             )}
           </CardContent>
         </Card>
       )}
 
-      {/* Manager: acknowledgement status */}
-      {canManage && sop.requires_acknowledgement && allUsers.length > 0 && (
-        <Card className="border-0 shadow-sm">
+      {/* Manager: current version acknowledgement status */}
+      {canManage && sop.requires_acknowledgement && scopedUsers.length > 0 && (
+        <Card className="border-0 shadow-sm mb-4">
           <CardContent className="p-6">
             <div className="flex items-center gap-2 mb-4">
               <Users className="w-4 h-4 text-slate-600" />
               <p className="font-semibold text-slate-800">Acknowledgement Status — v{sop.version}</p>
-              <span className="ml-auto text-xs text-slate-500">{acknowledgedEmails.length}/{allUsers.length} read</span>
+              <span className="ml-auto text-xs text-slate-500">{acknowledged.length}/{scopedUsers.length} read</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {acknowledged.length > 0 && (
@@ -424,6 +449,30 @@ export default function SOPDetail() {
                   </div>
                 </div>
               )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Full acknowledgement history log — all versions, indefinite, managers+ only */}
+      {canManage && sop.requires_acknowledgement && allAcksSorted.length > 0 && (
+        <Card className="border-0 shadow-sm mb-4">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <History className="w-4 h-4 text-slate-500" />
+              <p className="font-semibold text-slate-800">Acknowledgement History</p>
+              <span className="ml-auto text-xs text-slate-400">{allAcksSorted.length} total</span>
+            </div>
+            <div className="space-y-1 max-h-64 overflow-y-auto">
+              {allAcksSorted.map(ack => (
+                <div key={ack.id} className="flex items-center justify-between px-3 py-1.5 bg-slate-50 rounded-lg">
+                  <span className="text-xs font-medium text-slate-700">{ack.user_name || ack.user_email}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-slate-400">v{ack.version_number}</span>
+                    <span className="text-xs text-slate-400">{new Date(ack.acknowledged_at).toLocaleDateString()}</span>
+                  </div>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
