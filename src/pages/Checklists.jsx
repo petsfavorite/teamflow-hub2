@@ -157,10 +157,14 @@ export default function Checklists() {
     }
   };
 
-  // Draft templates - only visible to creator
+  // Draft templates - visible to creator, or all drafts for managers/admins/super_admins
   const draftTemplates = useMemo(() => {
-    return allTemplates.filter(t => (t.status === 'draft' || t.status === 'pending_approval') && t.created_by === user?.email);
-  }, [allTemplates, user]);
+    return allTemplates.filter(t => {
+      if (t.status !== 'draft' && t.status !== 'pending_approval') return false;
+      if (isManager || isAdmin || isSuperAdmin) return true;
+      return t.created_by === user?.email;
+    });
+  }, [allTemplates, user, isManager, isAdmin, isSuperAdmin]);
 
   const isLoading = isLoadingTemplates || isLoadingRecurring;
 
@@ -791,7 +795,7 @@ export default function Checklists() {
           {/* My Draft Templates - managers and above */}
           {canManage && draftTemplates.length > 0 && (
             <div>
-              <h2 className="text-lg font-semibold text-slate-900 mb-4">My Draft Templates</h2>
+              <h2 className="text-lg font-semibold text-slate-900 mb-4">{(isAdmin || isSuperAdmin || isManager) ? 'Draft Templates' : 'My Draft Templates'}</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {draftTemplates.map(t => (
                   <Card key={t.id} className="border-0 shadow-sm">
