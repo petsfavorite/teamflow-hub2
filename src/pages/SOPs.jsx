@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { BookOpen, Plus, Search, Tag, Clock, Trash2, AlertCircle } from 'lucide-react';
+import { BookOpen, Plus, Search, Tag, Clock, Trash2, AlertCircle, Mic } from 'lucide-react';
 
 export default function SOPs() {
   const { user, isAdmin, isSuperAdmin, canManage, isManager } = useCurrentUser();
@@ -212,6 +212,18 @@ export default function SOPs() {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Floating mic button for admins/managers → Create New SOP */}
+      {(isAdmin || isSuperAdmin || isManager) && (
+        <Link
+          to={createPageUrl('SOPEditor')}
+          className="fixed bottom-24 right-4 md:bottom-10 md:right-8 z-50 flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-3 rounded-full shadow-lg transition-all hover:scale-105"
+          title="Create New SOP"
+        >
+          <Mic className="w-5 h-5" />
+          <span className="text-sm font-semibold hidden sm:inline">New SOP</span>
+        </Link>
       )}
 
       <AlertDialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>

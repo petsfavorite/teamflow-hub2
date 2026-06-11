@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import ReactQuill from 'react-quill';
 import { ArrowLeft, Save, Loader2, History, Users, User, Video, AlertTriangle, UserCheck, CheckCircle2, CalendarCheck, X, Plus, Tag, Trash2 } from 'lucide-react';
+import SOPAIImporter from '../components/sop/SOPAIImporter';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
@@ -205,6 +206,17 @@ export default function SOPEditor() {
       </div>
 
       <h1 className="text-2xl font-bold text-slate-900 mb-6">{id ? 'Edit SOP' : 'Create New SOP'}</h1>
+
+      {/* AI Importer — only for new SOPs */}
+      {!id && (
+        <SOPAIImporter
+          sopTags={sopTags}
+          onFill={(data) => {
+            setForm(f => ({ ...f, ...data }));
+            if (data.tags) setTagsInput(data.tags.join(', '));
+          }}
+        />
+      )}
 
       {/* Header Info */}
       <Card className="border-0 shadow-sm mb-8">
