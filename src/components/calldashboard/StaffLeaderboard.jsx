@@ -2,26 +2,24 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// Build a lookup: any stored name variant → canonical "First Last"
+// Build a lookup: stored full_name → "First Last" display name
 function buildNormalizer(users) {
   const map = {};
   users.forEach(u => {
-    const canonical = u.full_name;
-    if (!canonical) return;
-    map[canonical.toLowerCase()] = canonical;
+    if (!u.full_name) return;
+    const display = [u.first_name, u.last_name].filter(Boolean).join(" ") || u.full_name;
+    map[u.full_name.toLowerCase()] = display;
   });
   return (name) => {
     if (!name) return null;
-    // Exact match first
     const lower = name.toLowerCase();
     if (map[lower]) return map[lower];
-    // Fuzzy: find a user whose full_name words all appear in the raw name or vice versa
-    for (const [key, canonical] of Object.entries(map)) {
+    // Fuzzy fallback
+    for (const [key, display] of Object.entries(map)) {
       const keyWords = key.split(/\s+/).filter(w => w.length > 2);
-      if (keyWords.length >= 2 && keyWords.every(w => lower.includes(w))) return canonical;
-      if (keyWords.length >= 2 && lower.split(/\s+/).filter(w => w.length > 2).every(w => key.includes(w))) return canonical;
+      if (keyWords.length >= 2 && keyWords.every(w => lower.includes(w))) return display;
     }
-    return name; // fallback: use as-is
+    return name;
   };
 }
 

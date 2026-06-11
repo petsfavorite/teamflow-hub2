@@ -145,7 +145,7 @@ export default function CallDashboard() {
 
         <div className="space-y-3">
           <DateRangePicker preset={datePreset} onPresetChange={setDatePreset} customStart={customStart} customEnd={customEnd} onCustomChange={(s, e) => { setCustomStart(s); setCustomEnd(e); }} />
-          <DashboardFilters filters={filters} onChange={setFilters} staffList={staffList} />
+          <DashboardFilters filters={filters} onChange={setFilters} staffList={staffList} nameMap={nameMap} />
         </div>
 
         <div className="space-y-3">

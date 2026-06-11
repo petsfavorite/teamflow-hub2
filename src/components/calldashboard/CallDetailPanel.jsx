@@ -101,9 +101,10 @@ export default function CallDetailPanel({ call, open, onClose, onUpdate, isAdmin
                     <SelectItem value="Please Check">⚠️ Please Check</SelectItem>
                     {[...users]
                       .sort((a, b) => (a.full_name || "").localeCompare(b.full_name || ""))
-                      .map(u => (
-                        <SelectItem key={u.id} value={u.full_name}>{u.full_name}</SelectItem>
-                      ))
+                      .map(u => {
+                        const display = [u.first_name, u.last_name].filter(Boolean).join(" ") || u.full_name;
+                        return <SelectItem key={u.id} value={u.full_name}>{display}</SelectItem>;
+                      })
                     }
                     {teamMember && teamMember !== "Please Check" && !users.some(u => u.full_name === teamMember) && (
                       <SelectItem value={teamMember}>{teamMember} (removed)</SelectItem>

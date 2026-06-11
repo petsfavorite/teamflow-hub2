@@ -2,7 +2,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 
-export default function DashboardFilters({ filters, onChange, staffList }) {
+export default function DashboardFilters({ filters, onChange, staffList, nameMap = {} }) {
   const update = (key, value) => onChange({ ...filters, [key]: value });
   return (
     <div className="flex flex-wrap items-center gap-3">
@@ -32,7 +32,7 @@ export default function DashboardFilters({ filters, onChange, staffList }) {
         <SelectTrigger className="w-[160px] border-slate-200"><SelectValue placeholder="Team Member" /></SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All Team</SelectItem>
-          {staffList.map(name => <SelectItem key={name} value={name}>{name}</SelectItem>)}
+          {staffList.map(name => <SelectItem key={name} value={name}>{nameMap[name] || name}</SelectItem>)}
         </SelectContent>
       </Select>
       <Select value={filters.status} onValueChange={(v) => update("status", v)}>

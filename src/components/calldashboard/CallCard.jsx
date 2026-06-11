@@ -33,7 +33,7 @@ export default function CallCard({ call, onClick, nameMap = {} }) {
               {call.team_member && call.team_member !== "Please Check" ? (
                 <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50">
                   <User className="w-3 h-3 text-slate-400" />
-                  <span className="text-xs font-medium text-slate-600">{call.team_member}</span>
+                  <span className="text-xs font-medium text-slate-600">{nameMap[call.team_member] || call.team_member}</span>
                 </div>
               ) : call.team_member === "Please Check" ? (
                 <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50">
