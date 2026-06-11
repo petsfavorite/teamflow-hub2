@@ -115,10 +115,10 @@ export default function SOPDetail() {
       last_verified_by: user.email,
       last_verified_by_name: displayName(user),
       last_verified_at: new Date().toISOString(),
-      verification_due_date: format(addDays(new Date(), 30), 'yyyy-MM-dd'),
+      verification_due_date: format(addDays(new Date(), 90), 'yyyy-MM-dd'),
     }),
     onSuccess: () => {
-      toast.success('SOP verified! Next verification set for 30 days out.');
+      toast.success('SOP verified! Next verification set for 90 days out.');
       queryClient.invalidateQueries({ queryKey: ['sop', id] });
       queryClient.invalidateQueries({ queryKey: ['sops'] });
     },
