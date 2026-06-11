@@ -344,7 +344,7 @@ export default function UserManagement() {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-medium text-slate-900 truncate">
-                          {(u.first_name || u.last_name) ? `${u.first_name || ''} ${u.last_name || ''}`.trim() : (u.full_name || 'No name set')}
+                          {u.full_name || ((u.first_name || u.last_name) ? `${u.first_name || ''} ${u.last_name || ''}`.trim() : 'No name set')}
                         </p>
                       </div>
                       <p className="text-xs text-slate-400 truncate">{u.email}</p>
