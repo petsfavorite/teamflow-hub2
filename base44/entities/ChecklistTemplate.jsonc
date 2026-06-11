@@ -101,8 +101,7 @@
         "draft",
         "pending_approval",
         "published",
-        "archived",
-        "active"
+        "archived"
       ],
       "default": "draft",
       "description": "Publishing status of the checklist"
