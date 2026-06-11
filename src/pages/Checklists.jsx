@@ -99,7 +99,7 @@ export default function Checklists() {
   // "My Checklists" - checklists assigned to user or their teams (active status)
   const myChecklists = useMemo(() => {
     return allTemplates.filter(t => {
-      if (t.status !== 'active') return false;
+      if (t.status !== 'published') return false;
       const assignedToMe = t.assigned_to_emails?.includes(user?.email);
       const assignedToMyTeam = t.assigned_teams?.some(teamId => teams.some(team => team.id === teamId && team.member_emails?.includes(user?.email)));
       return assignedToMe || assignedToMyTeam;
@@ -124,7 +124,7 @@ export default function Checklists() {
   const teamChecklists = useMemo(() => {
     if (!canManage) return [];
     const activeAssigned = allTemplates.filter(t =>
-      (t.status === 'active' || t.status === 'published') &&
+      t.status === 'published' &&
       ((t.assigned_to_emails && t.assigned_to_emails.length > 0) ||
        (t.assigned_teams && t.assigned_teams.length > 0))
     );
@@ -289,7 +289,7 @@ export default function Checklists() {
           recurrence_days_of_week: data.recurrence_days_of_week,
           recurrence_day_of_month: data.recurrence_day_of_month,
           recurrence_interval_months: data.recurrence_interval_months,
-          status: 'active',
+          status: 'published',
           visible_time: data.visible_time || null,
         });
 
@@ -1156,7 +1156,7 @@ export default function Checklists() {
                   recurrence_days_of_week: useForm.recurrence_days_of_week,
                   recurrence_day_of_month: useForm.recurrence_day_of_month,
                   recurrence_interval_months: useForm.recurrence_interval_months,
-                  status: 'active'
+                  status: 'published'
                 });
               }}
               disabled={assignChecklistMutation.isPending}
