@@ -120,7 +120,7 @@ export default function CallDetailPanel({ call, open, onClose, onUpdate, isAdmin
 
           <Separator />
 
-          <div className="space-y-1.5">
+          {!missedCall && <div className="space-y-1.5">
             <p className="text-xs font-medium uppercase tracking-wider text-slate-400">Caller Type</p>
             {isAdmin ? (
               <Select value={callerType} onValueChange={(value) => { setCallerType(value); handleUpdate({ caller_type: value }); }}>
@@ -136,16 +136,16 @@ export default function CallDetailPanel({ call, open, onClose, onUpdate, isAdmin
                 {callerType === "not_applicable" && <Badge variant="outline">Not a Client</Badge>}
               </div>
             )}
-          </div>
+          </div>}
 
-          {call.caller_intent && (
+          {!missedCall && call.caller_intent && (
             <div className="space-y-1.5">
               <p className="text-xs font-medium uppercase tracking-wider text-slate-400">Caller Intent</p>
               <p className="text-sm text-slate-700 leading-relaxed">{call.caller_intent}</p>
             </div>
           )}
 
-          <div className="space-y-1.5">
+          {!missedCall && <div className="space-y-1.5">
             <p className="text-xs font-medium uppercase tracking-wider text-slate-400">Booking Outcome</p>
             {isAdmin ? (
               <Select value={bookingOutcome} onValueChange={(value) => { setBookingOutcome(value); handleUpdate({ booking_outcome: value }); }}>
@@ -167,7 +167,7 @@ export default function CallDetailPanel({ call, open, onClose, onUpdate, isAdmin
                 <CalendarCheck className="w-3 h-3" />Booked for {new Date(call.booked_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
               </p>
             )}
-          </div>
+          </div>}
 
           <Separator />
 
