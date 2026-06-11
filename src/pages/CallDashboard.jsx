@@ -139,7 +139,7 @@ export default function CallDashboard() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
-          <CallerTypeChart calls={filteredCalls} />
+          <CallerTypeChart calls={filteredCalls.filter(c => c.call_direction === "inbound")} />
           <StaffLeaderboard calls={filteredCalls} users={users} nameMap={nameMap} />
         </div>
 
