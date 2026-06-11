@@ -20,6 +20,7 @@ export default function SOPDetail() {
   const params = new URLSearchParams(window.location.search);
   const id = params.get('id');
   const { user, canManage, isAdmin, isSuperAdmin, isManager } = useCurrentUser();
+  const displayName = (u) => (u?.first_name || u?.last_name) ? `${u?.first_name || ''} ${u?.last_name || ''}`.trim() : (u?.full_name || u?.email || 'Unknown');
   const canApprove = isAdmin || isSuperAdmin;
   const queryClient = useQueryClient();
 
@@ -99,7 +100,7 @@ export default function SOPDetail() {
   const ackMutation = useMutation({
     mutationFn: () => base44.entities.SOPAcknowledgement.create({
       sop_id: id, sop_title: sop.title, version_number: sop.version,
-      user_email: user.email, user_name: user.full_name,
+      user_email: user.email, user_name: displayName(user),
       acknowledged_at: new Date().toISOString(),
     }),
     onSuccess: () => {
@@ -112,7 +113,7 @@ export default function SOPDetail() {
   const verifyMutation = useMutation({
     mutationFn: () => base44.entities.SOP.update(id, {
       last_verified_by: user.email,
-      last_verified_by_name: user.full_name,
+      last_verified_by_name: displayName(user),
       last_verified_at: new Date().toISOString(),
       verification_due_date: format(addDays(new Date(), 30), 'yyyy-MM-dd'),
     }),
@@ -426,10 +427,10 @@ export default function SOPDetail() {
                   <div className="space-y-1">
                     {acknowledged.map(u => {
                       const ack = currentAcks.find(a => a.user_email === u.email);
-                      const displayName = u.full_name || ack?.user_name || u.email;
+                      const userName = (u.first_name || u.last_name) ? `${u.first_name || ''} ${u.last_name || ''}`.trim() : (u.full_name || ack?.user_name || u.email);
                       return (
                         <div key={u.id} className="flex items-center justify-between px-3 py-1.5 bg-emerald-50 rounded-lg">
-                          <span className="text-xs font-medium text-slate-700">{displayName}</span>
+                          <span className="text-xs font-medium text-slate-700">{userName}</span>
                           {ack?.acknowledged_at && <span className="text-xs text-slate-400">{new Date(ack.acknowledged_at).toLocaleDateString()}</span>}
                         </div>
                       );
@@ -443,7 +444,7 @@ export default function SOPDetail() {
                   <div className="space-y-1">
                     {notAcknowledged.map(u => (
                       <div key={u.id} className="flex items-center px-3 py-1.5 bg-amber-50 rounded-lg">
-                        <span className="text-xs font-medium text-slate-700">{u.full_name || u.email}</span>
+                        <span className="text-xs font-medium text-slate-700">{(u.first_name || u.last_name) ? `${u.first_name || ''} ${u.last_name || ''}`.trim() : (u.full_name || u.email)}</span>
                       </div>
                     ))}
                   </div>
