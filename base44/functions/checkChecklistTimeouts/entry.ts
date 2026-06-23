@@ -1,10 +1,14 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
+import moment from 'npm:moment-timezone@0.5.45';
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
     const now = new Date();
+    const settings = await base44.asServiceRole.entities.AppSettings.filter({ key: 'global' });
+    const tz = settings[0]?.global_timezone || 'America/New_York';
+    const todayStr = now.toLocaleDateString('en-CA', { timeZone: tz });
 
     // Find all active checklist templates with a due_date and due_time that have passed
     const activeTemplates = await base44.asServiceRole.entities.ChecklistTemplate.filter({ status: 'active' });
@@ -12,7 +16,7 @@ Deno.serve(async (req) => {
     const overdueTemplates = activeTemplates.filter(t => {
       if (!t.due_date) return false;
       const dueTimeStr = t.due_time || '21:00';
-      const dueDateTime = new Date(`${t.due_date}T${dueTimeStr}:00`);
+      const dueDateTime = moment.tz(`${t.due_date}T${dueTimeStr}:00`, tz).toDate();
       return now >= dueDateTime;
     });
 
@@ -50,7 +54,7 @@ Deno.serve(async (req) => {
         completed_by: 'system',
         completed_by_name: 'Auto-submitted (due time reached)',
         completed_items: completedItems,
-        completion_date: now.toISOString().split('T')[0],
+        completion_date: todayStr,
         status: 'completed'
       });
 

@@ -4,9 +4,15 @@ Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
         const now = new Date();
-        const todayStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
-        const todayDow = now.getDay(); // 0=Sun, 6=Sat
-        const todayDom = now.getDate(); // 1-31
+
+        const settings = await base44.asServiceRole.entities.AppSettings.filter({ key: 'global' });
+        const tz = settings[0]?.global_timezone || 'America/New_York';
+
+        const todayStr = now.toLocaleDateString('en-CA', { timeZone: tz });
+        const todayDow = new Date(todayStr + 'T12:00:00Z').getDay(); // 0=Sun, 6=Sat
+        const todayDom = parseInt(todayStr.split('-')[2]); // 1-31
+        const todayMonth = parseInt(todayStr.split('-')[1]) - 1; // 0-indexed
+        const todayYear = parseInt(todayStr.split('-')[0]);
 
         // Get all recurring template tasks (not once, not manual, not cancelled)
         const allTasks = await base44.asServiceRole.entities.Task.list('-created_date', 500);
@@ -20,7 +26,6 @@ Deno.serve(async (req) => {
         let created = 0;
 
         for (const template of recurringTemplates) {
-            // Check if today matches the recurrence schedule
             let shouldCreate = false;
             const rt = template.recurrence_type;
 
@@ -33,22 +38,21 @@ Deno.serve(async (req) => {
             } else if (rt === 'monthly') {
                 shouldCreate = todayDom === (template.recurrence_day_of_month || 1);
             } else if (rt === 'every_x_months') {
-                // Check if today is the right day of month
                 if (todayDom === (template.recurrence_day_of_month || 1) && template.due_date) {
-                    const ref = new Date(template.due_date);
-                    const monthsDiff = (now.getFullYear() - ref.getFullYear()) * 12 + (now.getMonth() - ref.getMonth());
+                    const ref = new Date(template.due_date + 'T12:00:00Z');
+                    const monthsDiff = (todayYear - ref.getUTCFullYear()) * 12 + (todayMonth - ref.getUTCMonth());
                     shouldCreate = monthsDiff % (template.recurrence_interval_months || 1) === 0;
                 }
             } else if (rt === 'annually') {
                 if (template.due_date) {
-                    const ref = new Date(template.due_date);
-                    shouldCreate = now.getMonth() === ref.getMonth() && todayDom === ref.getDate();
+                    const ref = new Date(template.due_date + 'T12:00:00Z');
+                    shouldCreate = todayMonth === ref.getUTCMonth() && todayDom === ref.getUTCDate();
                 }
             }
 
             if (!shouldCreate) continue;
 
-            // Check if an instance was already created today for this template (same title + recurrence_type=once)
+            // Check if an instance was already created today for this template
             const alreadyExists = allTasks.some(t =>
                 t.title === template.title &&
                 t.recurrence_type === 'once' &&
@@ -58,7 +62,6 @@ Deno.serve(async (req) => {
 
             if (alreadyExists) continue;
 
-            // Create a new task instance for today
             await base44.asServiceRole.entities.Task.create({
                 title: template.title,
                 description: template.description,

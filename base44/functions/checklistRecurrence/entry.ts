@@ -5,6 +5,10 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
     const now = new Date();
 
+    const settings = await base44.asServiceRole.entities.AppSettings.filter({ key: 'global' });
+    const tz = settings[0]?.global_timezone || 'America/New_York';
+    const todayStr = now.toLocaleDateString('en-CA', { timeZone: tz });
+
     const recurringSchedules = await base44.asServiceRole.entities.RecurringChecklist.filter({
       is_active: true
     });
@@ -15,15 +19,11 @@ Deno.serve(async (req) => {
     for (const schedule of recurringSchedules) {
       const visibleDayOffset = schedule.visible_day_offset || 0;
 
-      // The due date for the next instance
-      const dueDate = getNextDueDate(schedule, now);
+      const dueDate = getNextDueDate(schedule, now, tz);
       if (!dueDate) { skipped++; continue; }
 
-      // The date on which this instance should become visible (due_date minus offset days)
       const visibleDate = subtractDays(dueDate, visibleDayOffset);
-      const todayStr = now.toISOString().split('T')[0];
 
-      // Only create the instance when today IS the visibleDate (or we've passed it and it hasn't been created yet)
       if (visibleDate > todayStr) { skipped++; continue; }
 
       // DEDUPLICATION: skip if an active instance for this due_date already exists
@@ -35,8 +35,7 @@ Deno.serve(async (req) => {
 
       if (existing.length > 0) { skipped++; continue; }
 
-      // Determine whether to show immediately or hide until visible_time
-      const isVisibleNow = shouldBeVisibleNow(schedule, now, visibleDate, todayStr);
+      const isVisibleNow = shouldBeVisibleNow(schedule, now, visibleDate, todayStr, tz);
 
       await base44.asServiceRole.entities.ChecklistTemplate.create({
         title: schedule.template_title,
@@ -66,49 +65,49 @@ Deno.serve(async (req) => {
   }
 });
 
-// Returns YYYY-MM-DD string for the next due date of this schedule
-function getNextDueDate(schedule, now) {
-  const today = now.toISOString().split('T')[0];
-  const tomorrow = new Date(now.getTime() + 86400000).toISOString().split('T')[0];
+function getNextDueDate(schedule, now, tz) {
+  const today = now.toLocaleDateString('en-CA', { timeZone: tz });
+  const tomorrow = new Date(now.getTime() + 86400000).toLocaleDateString('en-CA', { timeZone: tz });
 
   switch (schedule.recurrence_type) {
     case 'daily':
     case 'weekdays':
     case 'specific_days': {
-      // Create instance for tomorrow (standard daily-style: created one day ahead)
       if (schedule.recurrence_type === 'weekdays') {
-        const dow = new Date(tomorrow + 'T00:00:00').getDay();
+        const dow = new Date(tomorrow + 'T12:00:00Z').getDay();
         if (dow < 1 || dow > 5) return null;
       }
       if (schedule.recurrence_type === 'specific_days') {
-        const dow = new Date(tomorrow + 'T00:00:00').getDay();
+        const dow = new Date(tomorrow + 'T12:00:00Z').getDay();
         if (!(schedule.recurrence_days_of_week || []).includes(dow)) return null;
       }
       return tomorrow;
     }
     case 'monthly': {
-      // Next occurrence of recurrence_day_of_month
       const target = schedule.recurrence_day_of_month || 1;
-      const d = new Date(now.getFullYear(), now.getMonth(), target);
+      const [ty, tm] = today.split('-').map(Number);
+      const d = new Date(Date.UTC(ty, tm - 1, target));
       if (d.toISOString().split('T')[0] <= today) {
-        d.setMonth(d.getMonth() + 1);
+        d.setUTCMonth(d.getUTCMonth() + 1);
       }
       return d.toISOString().split('T')[0];
     }
     case 'every_x_months': {
       const target = schedule.recurrence_day_of_month || 1;
       const interval = schedule.recurrence_interval_months || 1;
-      const d = new Date(now.getFullYear(), now.getMonth(), target);
+      const [ty, tm] = today.split('-').map(Number);
+      const d = new Date(Date.UTC(ty, tm - 1, target));
       if (d.toISOString().split('T')[0] <= today) {
-        d.setMonth(d.getMonth() + interval);
+        d.setUTCMonth(d.getUTCMonth() + interval);
       }
       return d.toISOString().split('T')[0];
     }
     case 'annually': {
       const target = schedule.recurrence_day_of_month || 1;
-      const d = new Date(now.getFullYear(), 0, target);
+      const [ty] = today.split('-').map(Number);
+      const d = new Date(Date.UTC(ty, 0, target));
       if (d.toISOString().split('T')[0] <= today) {
-        d.setFullYear(d.getFullYear() + 1);
+        d.setUTCFullYear(d.getUTCFullYear() + 1);
       }
       return d.toISOString().split('T')[0];
     }
@@ -118,18 +117,17 @@ function getNextDueDate(schedule, now) {
 }
 
 function subtractDays(dateStr, days) {
-  const d = new Date(dateStr + 'T00:00:00');
-  d.setDate(d.getDate() - days);
+  const d = new Date(dateStr + 'T12:00:00Z');
+  d.setUTCDate(d.getUTCDate() - days);
   return d.toISOString().split('T')[0];
 }
 
-function shouldBeVisibleNow(schedule, now, visibleDate, todayStr) {
+function shouldBeVisibleNow(schedule, now, visibleDate, todayStr, tz) {
   if (visibleDate > todayStr) return false;
-  if (visibleDate < todayStr) return true; // past visible date → show now
-  // visibleDate === todayStr: check visible_time
+  if (visibleDate < todayStr) return true;
   if (!schedule.visible_time) return true;
   const [vh, vm] = schedule.visible_time.split(':').map(Number);
   const visibleMinutes = vh * 60 + (vm || 0);
-  const nowMinutes = now.getHours() * 60 + now.getMinutes();
-  return nowMinutes >= visibleMinutes;
+  const [tzH, tzM] = now.toLocaleTimeString('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit' }).split(':').map(Number);
+  return (tzH * 60 + tzM) >= visibleMinutes;
 }

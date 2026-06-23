@@ -3,7 +3,9 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const today = new Date().toISOString().split('T')[0];
+    const settings = await base44.asServiceRole.entities.AppSettings.filter({ key: 'global' });
+    const tz = settings[0]?.global_timezone || 'America/New_York';
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: tz });
 
     // Find all pending/in_progress one-time tasks that are past their due date
     const allTasks = await base44.asServiceRole.entities.Task.list('-due_date', 500);

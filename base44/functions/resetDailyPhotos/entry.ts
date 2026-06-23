@@ -4,8 +4,9 @@ import moment from 'npm:moment-timezone@0.5.45';
 Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
 
-  // Get yesterday's date in ET (the day that just ended at midnight)
-  const yesterday = moment().tz('America/New_York').subtract(1, 'day').format('YYYY-MM-DD');
+  const settings = await base44.asServiceRole.entities.AppSettings.filter({ key: 'global' });
+  const tz = settings[0]?.global_timezone || 'America/New_York';
+  const yesterday = moment().tz(tz).subtract(1, 'day').format('YYYY-MM-DD');
 
   // Fetch all currently checked-in boarding visits
   const visits = await base44.asServiceRole.entities.Visit.filter({

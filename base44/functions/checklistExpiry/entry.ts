@@ -4,8 +4,10 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const now = new Date();
-    const today = now.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
-    const currentTime = now.toLocaleTimeString('en-GB', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit' });
+    const settings = await base44.asServiceRole.entities.AppSettings.filter({ key: 'global' });
+    const tz = settings[0]?.global_timezone || 'America/New_York';
+    const today = now.toLocaleDateString('en-CA', { timeZone: tz });
+    const currentTime = now.toLocaleTimeString('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit' });
 
     // Get all published checklists (not templates - those with due_date set)
     const publishedChecklists = await base44.asServiceRole.entities.ChecklistTemplate.filter({ status: 'published' });

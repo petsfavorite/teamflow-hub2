@@ -10,9 +10,11 @@ Deno.serve(async (req) => {
         }
 
         const now = new Date();
-        const dayOfWeek = now.getDay(); // 0=Sun, 6=Sat
+        const settings = await base44.asServiceRole.entities.AppSettings.filter({ key: 'global' });
+        const tz = settings[0]?.global_timezone || 'America/New_York';
+        const today = now.toLocaleDateString('en-CA', { timeZone: tz });
+        const dayOfWeek = new Date(today + 'T12:00:00Z').getDay();
         const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
-        const today = now.toISOString().split('T')[0];
 
         if (!isWeekday) {
             return Response.json({ success: true, message: 'Weekend - no sessions to generate' });
