@@ -4,8 +4,8 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const now = new Date();
-    const today = now.toISOString().split('T')[0];
-    const currentTime = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+    const today = now.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+    const currentTime = now.toLocaleTimeString('en-GB', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit' });
 
     // Get all published checklists (not templates - those with due_date set)
     const publishedChecklists = await base44.asServiceRole.entities.ChecklistTemplate.filter({ status: 'published' });
