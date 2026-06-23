@@ -11,7 +11,9 @@ Deno.serve(async (req) => {
             return Response.json({ message: 'No checked-in visits found' });
         }
         
-        const today = new Date().toISOString().split('T')[0];
+        // Use America/New_York date — this function runs at 11:59 PM EST (04:59 UTC),
+        // so UTC date is already the next day. We must delete tasks for the EST "today".
+        const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
         let updatedCount = 0;
         
         for (const visit of visits) {
