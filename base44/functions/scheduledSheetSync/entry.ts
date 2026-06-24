@@ -235,39 +235,24 @@ Deno.serve(async (req) => {
     const errors = [];
     let maxProcessedRow = lastProcessedRow;
 
+    const recordsToCreate = [];
+
     for (const row of rowsToProcess) {
       try {
         const directionRaw = (row["Inbound/Outbound"] || "").toLowerCase();
         const call_direction = directionRaw.includes("out") ? "outbound" : "inbound";
 
-        // Derive caller_phone and caller_name from Caller/Callee columns
-        // For inbound: Caller is the external party; for outbound: Callee is the external party
-        const callerField = row["Caller"] || "";
-        const calleeField = row["Callee"] || "";
-        let caller_phone = null;
-        let caller_name = null;
+        // Columns: "Caller Phone" (inbound external) and "Callee Phone" (outbound external)
+        const callerPhoneField = row["Caller Phone"] || "";
+        const calleePhoneField = row["Callee Phone"] || "";
+        const caller_phone = call_direction === "inbound"
+          ? (callerPhoneField || null)
+          : (calleePhoneField || null);
 
-        if (call_direction === "inbound") {
-          // Caller is the person calling in
-          if (/\d{7,}/.test(callerField)) {
-            caller_phone = callerField;
-          } else {
-            caller_name = callerField || null;
-          }
-        } else {
-          // Outbound: Callee is who we called
-          if (/\d{7,}/.test(calleeField)) {
-            caller_phone = calleeField;
-          } else {
-            caller_name = calleeField || null;
-          }
-        }
-
-        // team_member from "Answered By" column — must resolve to a known user or null
+        // team_member from "Team Member" column
         let team_member = null;
-        if (call_direction === "inbound" && row["Answered By"] && userList.length) {
-          team_member = fuzzyMatchUser(row["Answered By"], userList);
-          // fuzzyMatchUser returns null if no confident match, so we never store raw sheet text
+        if (call_direction === "inbound" && row["Team Member"] && userList.length) {
+          team_member = fuzzyMatchUser(row["Team Member"], userList);
         }
 
         // caller_type from "Caller Type" column
@@ -276,37 +261,62 @@ Deno.serve(async (req) => {
         if (callerTypeRaw.includes("potential") || callerTypeRaw.includes("new")) caller_type = "potential_client";
         else if (callerTypeRaw.includes("return") || callerTypeRaw.includes("existing")) caller_type = "returning_client";
 
-        // booking_outcome from "Booking Status" column
-        const bookingRaw = (row["Booking Status"] || "").toLowerCase();
+        // booking_outcome from "Booking Outcome" column
+        const bookingRaw = (row["Booking Outcome"] || "").toLowerCase();
         let booking_outcome = "appt_not_booked";
         if (bookingRaw.includes("booked") || bookingRaw.includes("scheduled") || bookingRaw.includes("yes")) booking_outcome = "appt_booked";
-        else if (bookingRaw.includes("not needed") || bookingRaw.includes("n/a") || bookingRaw.includes("not applicable")) booking_outcome = "appt_not_needed";
+        else if (bookingRaw.includes("not needed") || bookingRaw.includes("n/a") || bookingRaw.includes("not applicable") || bookingRaw.includes("unsure")) booking_outcome = "appt_not_needed";
 
+        // Parse date: Google Sheets serial number (days since Dec 30, 1899) or ISO string
+        let callDateISO = new Date().toISOString();
+        const dateRaw = row["Date"] || "";
+        if (dateRaw) {
+          const serial = parseFloat(dateRaw);
+          if (!isNaN(serial) && serial > 40000) {
+            // Google Sheets serial date → JS date
+            const msFromEpoch = (serial - 25569) * 86400 * 1000;
+            callDateISO = new Date(msFromEpoch).toISOString();
+          } else if (dateRaw.includes("/") || dateRaw.includes("-")) {
+            const parsed = new Date(dateRaw);
+            if (!isNaN(parsed)) callDateISO = parsed.toISOString();
+          }
+        }
+
+        const transcript = row["Transcript"] || "";
         const zoom_meeting_id = `sheet_row_${row.__rowIndex}`;
-        const callDateISO = new Date().toISOString(); // no date column available
 
-        await base44.asServiceRole.entities.CallRecord.create({
+        recordsToCreate.push({
           zoom_meeting_id,
           call_date: callDateISO,
           call_direction,
           caller_phone,
-          caller_name,
           team_member,
           caller_type,
           booking_outcome,
           was_booked: booking_outcome === "appt_booked",
+          transcript: transcript || null,
           status: "pending_review",
+          __rowIndex: row.__rowIndex,
         });
-
-        imported++;
-        if (row.__rowIndex > maxProcessedRow) maxProcessedRow = row.__rowIndex;
-        // Small pause to avoid entity rate limits
-        await new Promise(r => setTimeout(r, 200));
       } catch (err) {
         errors.push(`Row ${row.__rowIndex}: ${err.message}`);
         skipped++;
-        // Still advance past this row so we don't get stuck on it forever
-        if (row.__rowIndex > maxProcessedRow) maxProcessedRow = row.__rowIndex;
+      }
+    }
+
+    // Bulk-create in batches of 50 to avoid rate limits
+    const BATCH_SIZE = 50;
+    for (let i = 0; i < recordsToCreate.length; i += BATCH_SIZE) {
+      const batch = recordsToCreate.slice(i, i + BATCH_SIZE);
+      const payloads = batch.map(({ __rowIndex, ...r }) => r);
+      try {
+        await base44.asServiceRole.entities.CallRecord.bulkCreate(payloads);
+        imported += batch.length;
+        const batchMax = Math.max(...batch.map(r => r.__rowIndex));
+        if (batchMax > maxProcessedRow) maxProcessedRow = batchMax;
+      } catch (err) {
+        errors.push(`Batch ${i}-${i + BATCH_SIZE}: ${err.message}`);
+        skipped += batch.length;
       }
     }
 
