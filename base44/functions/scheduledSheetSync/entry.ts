@@ -226,9 +226,20 @@ Deno.serve(async (req) => {
     }
     const rowsToProcess = records.filter(row => {
       const hasAnyData = Object.entries(row).some(([k, v]) => k !== '__rowIndex' && v !== '');
-      return hasAnyData;
+      if (!hasAnyData) return false;
+      // Skip rows with no real caller info, no team member, and no transcript
+      const phone = (row["Caller Phone"] || row["Callee Phone"] || "").toLowerCase().trim();
+      const teamMember = (row["Team Member"] || "").trim();
+      const transcript = (row["Transcript"] || "").trim();
+      const isAnonymousOnly = (phone === "anonymous" || phone === "") && !teamMember && !transcript;
+      return !isAnonymousOnly;
     });
     const remaining = rawRows.length === 500 ? "possibly more" : 0;
+
+    // Build a set of already-existing zoom_meeting_ids for this batch to avoid duplicates
+    const zoomIds = rowsToProcess.map(r => `sheet_row_${r.__rowIndex}`);
+    const existingCalls = await base44.asServiceRole.entities.CallRecord.filter({ zoom_meeting_id: { $in: zoomIds } });
+    const existingIds = new Set(existingCalls.map(c => c.zoom_meeting_id));
 
     let imported = 0;
     let skipped = 0;
@@ -238,6 +249,12 @@ Deno.serve(async (req) => {
     const recordsToCreate = [];
 
     for (const row of rowsToProcess) {
+      // Skip if already imported
+      if (existingIds.has(`sheet_row_${row.__rowIndex}`)) {
+        skipped++;
+        if (row.__rowIndex > maxProcessedRow) maxProcessedRow = row.__rowIndex;
+        continue;
+      }
       try {
         const directionRaw = (row["Inbound/Outbound"] || "").toLowerCase();
         const call_direction = directionRaw.includes("out") ? "outbound" : "inbound";
@@ -245,9 +262,9 @@ Deno.serve(async (req) => {
         // Columns: "Caller Phone" (inbound external) and "Callee Phone" (outbound external)
         const callerPhoneField = row["Caller Phone"] || "";
         const calleePhoneField = row["Callee Phone"] || "";
-        const caller_phone = call_direction === "inbound"
-          ? (callerPhoneField || null)
-          : (calleePhoneField || null);
+        const rawPhone = call_direction === "inbound" ? callerPhoneField : calleePhoneField;
+        // Treat "Anonymous" or empty as null
+        const caller_phone = (rawPhone && rawPhone.toLowerCase() !== "anonymous") ? rawPhone : null;
 
         // team_member from "Team Member" column
         let team_member = null;
