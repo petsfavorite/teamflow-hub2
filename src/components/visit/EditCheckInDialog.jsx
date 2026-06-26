@@ -28,6 +28,7 @@ export default function EditCheckInDialog({ pet, visit, open, onClose, onSave })
         ];
 
         await onSave({
+            ...visit,
             scheduled_checkout_date: newData.scheduled_checkout_date,
             feeding_frequency: newData.feeding_frequency,
             what_was_brought: newData.what_was_brought,
