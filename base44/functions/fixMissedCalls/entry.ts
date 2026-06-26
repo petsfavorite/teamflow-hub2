@@ -12,10 +12,8 @@ Deno.serve(async (req) => {
     // Mark as missed: inbound, zero duration, no transcript (regardless of team_member value)
     const toFix = all.filter(c =>
       !c.missed_call &&
-      (c.call_duration_seconds === 0 || !c.call_duration_seconds) &&
       !c.transcript &&
-      c.call_direction === 'inbound' &&
-      !c.team_member
+      c.call_direction === 'inbound'
     );
 
     let updated = 0;
