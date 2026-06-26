@@ -15,7 +15,7 @@ import DashboardFilters from "@/components/calldashboard/DashboardFilters";
 export default function CallDashboard() {
   const [selectedCall, setSelectedCall] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
-  const [filters, setFilters] = useState({ search: "", callerType: "all", bookingStatus: "all", teamMember: "all", status: "all" });
+  const [filters, setFilters] = useState({ search: "", callerType: "all", bookingStatus: "all", teamMember: "all", status: "all", missedCall: "all" });
   const [datePreset, setDatePreset] = useState("all");
   const [customStart, setCustomStart] = useState(null);
   const [customEnd, setCustomEnd] = useState(null);
@@ -83,6 +83,8 @@ export default function CallDashboard() {
       if (filters.callerType !== "all" && call.caller_type !== filters.callerType) return false;
       if (filters.teamMember !== "all" && call.team_member !== filters.teamMember) return false;
       if (filters.status !== "all" && call.status !== filters.status) return false;
+      if (filters.missedCall === "missed" && !call.missed_call) return false;
+      if (filters.missedCall === "not_missed" && call.missed_call) return false;
       if (filters.bookingStatus !== "all") {
         const isBooked = call.booking_outcome === "appt_booked" || call.was_booked;
         if (filters.bookingStatus === "booked" && !isBooked) return false;

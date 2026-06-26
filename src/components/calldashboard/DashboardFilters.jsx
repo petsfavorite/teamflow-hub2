@@ -44,6 +44,14 @@ export default function DashboardFilters({ filters, onChange, staffList, nameMap
           <SelectItem value="flagged">Flagged</SelectItem>
         </SelectContent>
       </Select>
+      <Select value={filters.missedCall} onValueChange={(v) => update("missedCall", v)}>
+        <SelectTrigger className="w-[160px] border-slate-200"><SelectValue placeholder="Missed Calls" /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Calls</SelectItem>
+          <SelectItem value="missed">Missed Only</SelectItem>
+          <SelectItem value="not_missed">Not Missed</SelectItem>
+        </SelectContent>
+      </Select>
     </div>
   );
 }

@@ -45,11 +45,6 @@ export default function CallCard({ call, onClick, nameMap = {} }) {
                   <PhoneMissed className="w-3 h-3 text-rose-400" />
                   <span className="text-xs font-medium text-rose-600">Missed Call</span>
                 </div>
-              ) : call.call_direction === "inbound" ? (
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-50">
-                  <PhoneMissed className="w-3 h-3 text-rose-400" />
-                  <span className="text-xs font-medium text-rose-600">Missed Call</span>
-                </div>
               ) : null}
             </div>
             {call.caller_intent && <p className="text-sm text-slate-600 line-clamp-1"><span className="text-slate-400 font-medium">Intent:</span> {call.caller_intent}</p>}
