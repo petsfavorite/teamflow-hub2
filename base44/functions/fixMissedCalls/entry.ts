@@ -14,7 +14,8 @@ Deno.serve(async (req) => {
       !c.missed_call &&
       (c.call_duration_seconds === 0 || !c.call_duration_seconds) &&
       !c.transcript &&
-      c.call_direction === 'inbound'
+      c.call_direction === 'inbound' &&
+      !c.team_member
     );
 
     let updated = 0;
