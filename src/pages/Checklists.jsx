@@ -365,14 +365,15 @@ export default function Checklists() {
         if (item.notes) notesMap[idx] = item.notes;
       });
       setNotes(notesMap);
+      prevAllCheckedRef.current = existingCompletion.completed_items.every(i => i.checked);
     } else {
       setItems(template.items.map(item => ({ ...item, checked: false })));
       setNotes({});
+      prevAllCheckedRef.current = false;
     }
     
     setActiveChecklist({ ...template, completionId: existingCompletion?.id });
     setCanSubmitWithIncomplete(!template.due_date && !template.due_time);
-    autoSubmitFiredRef.current = false;
   };
 
   // Called from Template Checklists — always creates a new record
@@ -509,14 +510,15 @@ export default function Checklists() {
     });
   };
 
-  // Auto-submit when all items are checked
-  const autoSubmitFiredRef = useRef(false);
+  // Auto-submit only when items transition from "not all checked" → "all checked"
+  const prevAllCheckedRef = useRef(false);
   useEffect(() => {
     if (!activeChecklist || items.length === 0) return;
-    if (items.every(i => i.checked) && !autoSubmitFiredRef.current && !submitMutation.isPending) {
-      autoSubmitFiredRef.current = true;
+    const allChecked = items.every(i => i.checked);
+    if (allChecked && !prevAllCheckedRef.current && !submitMutation.isPending) {
       submitChecklist();
     }
+    prevAllCheckedRef.current = allChecked;
   }, [items, activeChecklist]);
 
   if (activeChecklist) {
