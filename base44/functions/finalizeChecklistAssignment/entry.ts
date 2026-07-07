@@ -17,9 +17,9 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Completion or template not found' }, { status: 404 });
     }
 
-    // Only archive active (assigned) instances — never touch published master templates
-    // A published template is the master template; leave it alone.
-    if (template.status === 'active') {
+    // Only archive assigned instances — never touch unassigned master templates
+    const hasAssignments = (template.assigned_to_emails?.length > 0) || (template.assigned_teams?.length > 0);
+    if (hasAssignments) {
       await base44.asServiceRole.entities.ChecklistTemplate.update(checklist_template_id, {
         assigned_to_emails: [],
         assigned_to_names: [],
