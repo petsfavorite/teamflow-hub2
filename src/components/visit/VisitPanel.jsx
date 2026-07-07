@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import PreliminaryReportDialog from './PreliminaryReportDialog';
 import EditCheckInDialog from './EditCheckInDialog';
 import { base44 } from "@/api/base44Client";
@@ -63,6 +63,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
     const [addingPlayCamp, setAddingPlayCamp] = useState(false);
     const [playCampDuration, setPlayCampDuration] = useState('half_day');
     const [editCheckInOpen, setEditCheckInOpen] = useState(false);
+    const editFormRef = useRef(null);
 
     const [recurrenceType, setRecurrenceType] = useState('none');
     const [customTaskType, setCustomTaskType] = useState('');
@@ -437,15 +438,29 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
          setAddingTask(false);
      };
 
+     const EDITABLE_TASK_TYPES = ['Collect Feces', 'Collect Urine', 'Bath', 'Extra walk', 'Nail trim'];
+
      const handleEditTask = (idx) => {
          const task = visit.scheduled_tasks[idx];
+         if (!task) return;
          setEditingTaskIdx(idx);
-         setNewTaskType(task.type);
-         setNewTaskTime(task.time);
+         // If the task type isn't in the dropdown, use "Other" and pre-fill the custom type
+         if (EDITABLE_TASK_TYPES.includes(task.type)) {
+             setNewTaskType(task.type);
+             setCustomTaskType('');
+         } else {
+             setNewTaskType('Other');
+             setCustomTaskType(task.type);
+         }
+         setNewTaskTime(task.time || '');
          setNewTaskNotes(task.notes || '');
-         setNewTaskDate(task.date);
+         setNewTaskDate(task.date || viewDate);
          setRecurrenceType('none'); // editing a single instance, no recurrence expansion
          setAddingTask(true);
+         // Scroll the edit form into view after it renders
+         setTimeout(() => {
+             editFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+         }, 100);
      };
 
      const handleCancelEdit = () => {
@@ -856,7 +871,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                             )}
 
                                             {/* Add Custom Task */}
-                                            <Card className="border-0 shadow-sm rounded-2xl border-2 border-dashed border-[#82bb32]/40">
+                                            <Card ref={editFormRef} className={`border-0 shadow-sm rounded-2xl border-2 border-dashed ${editingTaskIdx !== null ? 'border-[#82bb32]' : 'border-[#82bb32]/40'}`}>
                         <CardHeader className="pb-2">
                             <CardTitle className="text-sm flex items-center gap-2">
                                 <Plus className="w-4 h-4 text-[#82bb32]" />
