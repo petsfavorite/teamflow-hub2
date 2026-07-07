@@ -425,39 +425,35 @@ export default function Checklists() {
     });
   };
 
-  const updateItem = async (index, updates) => {
-    setItems(prev => {
-      const updated = prev.map((item, i) => {
-        if (i === index) {
-          const isChecking = updates.checked !== undefined ? updates.checked : item.checked;
-          const wasChecked = item.checked;
-          
-          return {
-            ...item,
-            ...updates,
-            checked: isChecking,
-            checked_at: isChecking && !wasChecked ? new Date().toISOString() : item.checked_at,
-            checked_by_email: isChecking && !wasChecked ? user?.email : item.checked_by_email,
-            checked_by_name: isChecking && !wasChecked ? user?.full_name : item.checked_by_name,
-          };
-        }
-        return item;
-      });
-      saveChecklistProgress(updated);
-      return updated;
+  const updateItem = (index, updates) => {
+    const updated = items.map((item, i) => {
+      if (i === index) {
+        const isChecking = updates.checked !== undefined ? updates.checked : item.checked;
+        const wasChecked = item.checked;
+        
+        return {
+          ...item,
+          ...updates,
+          checked: isChecking,
+          checked_at: isChecking && !wasChecked ? new Date().toISOString() : item.checked_at,
+          checked_by_email: isChecking && !wasChecked ? user?.email : item.checked_by_email,
+          checked_by_name: isChecking && !wasChecked ? user?.full_name : item.checked_by_name,
+        };
+      }
+      return item;
     });
+    setItems(updated);
+    saveChecklistProgress(updated);
   };
 
-  const updateNotes = async (index, value) => {
-    setNotes(prev => {
-      const updated = { ...prev, [index]: value };
-      const itemsWithNotes = items.map((item, i) => ({
-        ...item,
-        notes: updated[i] || ''
-      }));
-      saveChecklistProgress(itemsWithNotes);
-      return updated;
-    });
+  const updateNotes = (index, value) => {
+    const updatedNotes = { ...notes, [index]: value };
+    const itemsWithNotes = items.map((item, i) => ({
+      ...item,
+      notes: updatedNotes[i] || ''
+    }));
+    setNotes(updatedNotes);
+    saveChecklistProgress(itemsWithNotes);
   };
 
   const saveChecklistProgress = async (currentItems) => {
