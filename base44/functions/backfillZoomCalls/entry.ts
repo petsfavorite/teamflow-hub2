@@ -176,15 +176,17 @@ MISSED CALL RULES (if MISSED CALL is YES):
 - bookable = "no"
 
 TEAM MEMBER ATTRIBUTION RULES:
-- For OUTBOUND calls: team_member = null
-- For answered INBOUND calls: identify which staff member answered using the first name they say.
+- For INBOUND calls: identify which staff member ANSWERED the call using the first name they say.
   Staff often only say their first name. Use these nickname mappings:
 ${aliasLines}
   Never assign Caroline/Dr. Cofer — she is the vet mentioned by callers, not the answerer.
-- Only assign a name if you are at least 90% confident. If unsure, return the first name only as a string and we will resolve it. Never return "Please Check".
+- For OUTBOUND calls: identify which staff member MADE the call (the staff caller, not the receiver) using the first name they say when introducing themselves. Use the same nickname mappings. Never assign Caroline/Dr. Cofer.
+- Only assign a name if they actually state their name and you are at least 90% confident. If they do not say their name, return null. If unsure but a name is spoken, return the first name only as a string and we will resolve it. Never return "Please Check".
 
 CALLER TYPE LOGIC:
-- "returning_client": caller mentions being here before or has an established history
+- For INBOUND calls: classify the CALLER (the external person calling in).
+- For OUTBOUND calls: classify the RECEIVER (the external person being called), NOT the staff member.
+- "returning_client": mentions being here before or has an established history
 - "potential_client": wants boarding, daycare, or vet services, no prior relationship
 - "not_applicable": sales call, exotic/wildlife/livestock species, calling from another clinic, or voicemail/missed call
 

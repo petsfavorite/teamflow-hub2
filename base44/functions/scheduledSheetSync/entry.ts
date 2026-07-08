@@ -19,11 +19,12 @@ ${teamEntries ? `KNOWN STAFF MEMBERS:\n${teamEntries}\n\nNotes:\n- "Caroline", "
 Return a JSON object with these fields:
 - team_member: string or null
   RULES:
-  * If call_direction is "outbound", always set team_member to null — do not assign a team member.
-  * For inbound calls: the team member is usually the FIRST staff name mentioned in the transcript, as they introduce themselves (e.g. "Thank you for calling, this is Sarah"). Match that name to the exact name from the KNOWN STAFF MEMBERS list above. If no match, return null.
+  * For inbound calls: the staff member who ANSWERED — usually the FIRST staff name mentioned, as they introduce themselves (e.g. "Thank you for calling, this is Sarah"). Match to the exact name from KNOWN STAFF MEMBERS. If no match, return null.
+  * For outbound calls: the staff member who MADE the call (they introduce themselves). Match to KNOWN STAFF MEMBERS. If they do not say their name, return null. Never assign Caroline/Dr. Cofer.
 - caller_name: string or null
 - caller_phone: string or null
 - caller_type: "potential_client" | "returning_client" | "not_applicable"
+  For inbound: classify the caller. For outbound: classify the RECEIVER (external person called), not the staff member.
 - caller_intent: string (1-sentence)
 - bookable: "yes" | "no" | "unclear"
 - booking_outcome: "appt_booked" | "appt_not_booked" | "appt_not_needed"
@@ -268,7 +269,7 @@ Deno.serve(async (req) => {
 
         // team_member from "Team Member" column
         let team_member = null;
-        if (call_direction === "inbound" && row["Team Member"] && userList.length) {
+        if (row["Team Member"] && userList.length) {
           team_member = fuzzyMatchUser(row["Team Member"], userList);
         }
 
@@ -305,7 +306,10 @@ Deno.serve(async (req) => {
         // Missed call: inbound with no transcript (no one spoke to the client)
         const missed_call = call_direction === "inbound" && !transcript;
         // A missed call has no answerer — clear any team member from the sheet
-        if (missed_call) team_member = null;
+        if (missed_call) {
+          team_member = null;
+          caller_type = "not_applicable";
+        }
 
         recordsToCreate.push({
           zoom_meeting_id,

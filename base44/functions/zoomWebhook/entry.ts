@@ -51,10 +51,11 @@ ${teamEntries ? `KNOWN STAFF MEMBERS:\n${teamEntries}\n\nNotes:\n- "Caroline", "
 
 Return a JSON object with these fields:
 - team_member: string or null
-  RULES: If outbound call, always null. For inbound: the first staff name mentioned (e.g. "this is Sarah"). Match to KNOWN STAFF MEMBERS exactly. If no match, return null.
+  RULES: For inbound: the staff member who ANSWERED (first staff name mentioned, e.g. "this is Sarah"). For outbound: the staff member who MADE the call (they introduce themselves). Match to KNOWN STAFF MEMBERS exactly. If they do not say their name, return null. Never assign Caroline/Dr. Cofer.
 - caller_name: string or null (the customer/external caller's name)
 - caller_phone: string or null
 - caller_type: "potential_client" | "returning_client" | "not_applicable"
+  For inbound: classify the caller. For outbound: classify the RECEIVER (external person called), not the staff member.
 - caller_intent: string (1-sentence summary of why they called)
 - bookable: "yes" | "no" | "unclear"
 - booking_outcome: "appt_booked" | "appt_not_booked" | "appt_not_needed"

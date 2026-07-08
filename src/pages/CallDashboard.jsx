@@ -101,10 +101,11 @@ export default function CallDashboard() {
     const notBooked = filteredCalls.filter(c => c.booking_outcome === "appt_not_booked").length;
     const bookableTotal = booked + notBooked;
     const missedBookings = notBooked;
-    const potential = filteredCalls.filter(c => c.caller_type === "potential_client").length;
+    const inboundCalls = filteredCalls.filter(c => c.call_direction === "inbound");
+    const potential = inboundCalls.filter(c => c.caller_type === "potential_client").length;
     const missed = filteredCalls.filter(c => c.missed_call).length;
     const bookingRate = bookableTotal > 0 ? Math.round((booked / bookableTotal) * 100) : 0;
-    return { total, booked, bookable: bookableTotal, missedBookings, potential, bookingRate, missed };
+    return { total, booked, bookable: bookableTotal, missedBookings, potential, bookingRate, missed, inboundTotal: inboundCalls.length };
   }, [filteredCalls]);
 
   if (isLoading) return (
@@ -135,7 +136,7 @@ export default function CallDashboard() {
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 items-stretch">
           <StatCard label="Total Calls" value={stats.total} icon={Phone} accentColor="bg-blue-500" />
           <StatCard label="Booking Rate" value={`${stats.bookingRate}%`} subtitle={`${stats.booked} of ${stats.bookable} bookable`} icon={CalendarCheck} accentColor="bg-emerald-500" />
-          <StatCard label="Potential Clients" value={stats.potential} subtitle={`${filteredCalls.length > 0 ? Math.round((stats.potential / filteredCalls.length) * 100) : 0}% of calls`} icon={UserPlus} accentColor="bg-amber-500" />
+          <StatCard label="Potential Clients" value={stats.potential} subtitle={`${stats.inboundTotal > 0 ? Math.round((stats.potential / stats.inboundTotal) * 100) : 0}% of inbound`} icon={UserPlus} accentColor="bg-amber-500" />
           <StatCard label="Missed Bookings" value={stats.missedBookings} subtitle="Could have booked" icon={AlertTriangle} accentColor="bg-red-500" />
           <StatCard label="Missed Calls" value={stats.missed} subtitle="No one answered" icon={PhoneMissed} accentColor="bg-rose-400" />
         </div>
