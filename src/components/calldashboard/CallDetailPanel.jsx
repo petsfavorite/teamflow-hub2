@@ -24,7 +24,6 @@ const DEFAULT_BOOKING_OUTCOMES = [
 ];
 
 export default function CallDetailPanel({ call, open, onClose, onUpdate, isAdmin, users = [] }) {
-  const [pendingChanges, setPendingChanges] = useState({});
   const [status, setStatus] = useState(call?.status || "pending_review");
   const [teamMember, setTeamMember] = useState(call?.team_member || "");
   const [callerType, setCallerType] = useState(call?.caller_type || "");
@@ -48,17 +47,8 @@ export default function CallDetailPanel({ call, open, onClose, onUpdate, isAdmin
       setCallerType(call.caller_type || "");
       setBookingOutcome(call.booking_outcome || "");
       setMissedCall(call.missed_call || false);
-      setPendingChanges({});
     }
   }, [call?.id]);
-
-  useEffect(() => {
-    if (!open && call && Object.keys(pendingChanges).length > 0) {
-      base44.entities.CallRecord.update(call.id, pendingChanges);
-      setPendingChanges({});
-      onUpdate?.();
-    }
-  }, [open]);
 
   if (!call) return null;
 
@@ -73,15 +63,15 @@ export default function CallDetailPanel({ call, open, onClose, onUpdate, isAdmin
     onUpdate?.();
   };
 
-  const handleUpdate = (updates) => setPendingChanges(prev => ({ ...prev, ...updates }));
+  const handleUpdate = async (updates) => {
+    setSaving(true);
+    await base44.entities.CallRecord.update(call.id, updates);
+    setSaving(false);
+    onUpdate?.();
+  };
 
   return (
-    <Sheet open={open} onOpenChange={(isOpen) => {
-      if (!isOpen && Object.keys(pendingChanges).length > 0) {
-        base44.entities.CallRecord.update(call.id, pendingChanges).then(() => { onUpdate?.(); setPendingChanges({}); });
-      }
-      onClose();
-    }}>
+    <Sheet open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
       <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
         <SheetHeader className="space-y-3 pb-4">
           <SheetTitle className="text-lg font-bold text-slate-900">Call Details</SheetTitle>
