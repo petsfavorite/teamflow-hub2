@@ -46,7 +46,7 @@ export default function CallCard({ call, onClick, nameMap = {} }) {
                   <User className="w-3 h-3 text-slate-400" />
                   <span className="text-xs font-medium text-slate-600">{nameMap[call.team_member] || call.team_member}</span>
                 </div>
-              ) : (
+              ) : (call.call_direction === "outbound" && (!call.transcript || !call.transcript.trim() || call.transcript === "No transcript")) ? null : (
                 <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50">
                   <User className="w-3 h-3 text-amber-400" />
                   <span className="text-xs font-medium text-amber-600">Unassigned</span>
@@ -54,11 +54,7 @@ export default function CallCard({ call, onClick, nameMap = {} }) {
               ))}
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              {call.missed_call ? (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-600">
-                  <PhoneMissed className="w-3 h-3" /> Missed
-                </span>
-              ) : call.call_direction === "outbound" && (!call.transcript || !call.transcript.trim() || call.transcript === "No transcript") ? null : (
+              {call.missed_call ? null : call.call_direction === "outbound" && (!call.transcript || !call.transcript.trim() || call.transcript === "No transcript") ? null : (
                 <>
                   <CallerTypeBadge type={call.caller_type} />
                   <BookingStatus bookable={call.bookable} wasBooked={call.was_booked} bookedDate={call.booked_date} bookingOutcome={call.booking_outcome} />
