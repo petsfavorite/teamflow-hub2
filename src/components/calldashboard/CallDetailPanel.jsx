@@ -85,7 +85,13 @@ export default function CallDetailPanel({ call, open, onClose, onUpdate, isAdmin
       <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
         <SheetHeader className="space-y-3 pb-4">
           <SheetTitle className="text-lg font-bold text-slate-900">Call Details</SheetTitle>
-          <div className="flex flex-wrap items-center gap-2"><CallerTypeBadge type={call.caller_type} /></div>
+          <div className="flex flex-wrap items-center gap-2">
+            {call.missed_call ? (
+              <Badge className="bg-rose-100 text-rose-600">Missed Call</Badge>
+            ) : (
+              <CallerTypeBadge type={call.caller_type} />
+            )}
+          </div>
         </SheetHeader>
 
         <div className="space-y-5 pt-2">

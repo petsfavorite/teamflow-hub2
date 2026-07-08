@@ -49,13 +49,16 @@ export default function CallCard({ call, onClick, nameMap = {} }) {
             </div>
             {call.caller_intent && <p className="text-sm text-slate-600 line-clamp-1"><span className="text-slate-400 font-medium">Intent:</span> {call.caller_intent}</p>}
             <div className="flex flex-wrap items-center gap-2">
-              {call.missed_call && (
+              {call.missed_call ? (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-600">
                   <PhoneMissed className="w-3 h-3" /> Missed
                 </span>
+              ) : (
+                <>
+                  <CallerTypeBadge type={call.caller_type} />
+                  <BookingStatus bookable={call.bookable} wasBooked={call.was_booked} bookedDate={call.booked_date} bookingOutcome={call.booking_outcome} />
+                </>
               )}
-              <CallerTypeBadge type={call.caller_type} />
-              <BookingStatus bookable={call.bookable} wasBooked={call.was_booked} bookedDate={call.booked_date} bookingOutcome={call.booking_outcome} />
             </div>
           </div>
           <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition-colors mt-1 flex-shrink-0" />
