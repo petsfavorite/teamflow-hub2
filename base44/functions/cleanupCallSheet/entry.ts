@@ -3,10 +3,6 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (user?.role !== 'admin') {
-      return Response.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
-    }
 
     const { accessToken } = await base44.asServiceRole.connectors.getConnection("googlesheets");
     const sheetId = Deno.env.get("GOOGLE_SHEET_ID");
@@ -29,9 +25,9 @@ Deno.serve(async (req) => {
     const rangeData = await rangeRes.json();
     const allValues = rangeData.values || [];
 
-    // Step 3: Find rows older than 2 months (skip row 1 = header)
+    // Step 3: Find rows older than 60 days (skip row 1 = header)
     const twoMonthsAgo = new Date();
-    twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+    twoMonthsAgo.setDate(twoMonthsAgo.getDate() - 60);
     twoMonthsAgo.setHours(0, 0, 0, 0);
 
     // Collect 1-based row indices to delete (oldest first so deletions don't shift indices)
