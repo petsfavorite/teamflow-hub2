@@ -141,7 +141,7 @@ export default function CallDashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 items-stretch">
-          <StatCard label="Total Calls" value={stats.total} icon={Phone} accentColor="bg-blue-500" />
+          <StatCard label="Total Incoming Calls" value={stats.inboundTotal} icon={Phone} accentColor="bg-blue-500" />
           <StatCard label="Booking Rate" value={`${stats.bookingRate}%`} subtitle={`${stats.booked} of ${stats.bookable} bookable`} icon={CalendarCheck} accentColor="bg-emerald-500" />
           <StatCard label="Potential Clients" value={stats.potential} subtitle={`${stats.inboundTotal > 0 ? Math.round((stats.potential / stats.inboundTotal) * 100) : 0}% of inbound`} icon={UserPlus} accentColor="bg-amber-500" />
           <StatCard label="Missed Bookings" value={stats.missedBookings} subtitle="Could have booked" icon={AlertTriangle} accentColor="bg-red-500" />
