@@ -57,7 +57,7 @@ export default function CallCard({ call, onClick, nameMap = {} }) {
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-600">
                   <PhoneMissed className="w-3 h-3" /> Missed
                 </span>
-              ) : (
+              ) : call.call_direction === "outbound" && (!call.transcript || !call.transcript.trim() || call.transcript === "No transcript") ? null : (
                 <>
                   <CallerTypeBadge type={call.caller_type} />
                   <BookingStatus bookable={call.bookable} wasBooked={call.was_booked} bookedDate={call.booked_date} bookingOutcome={call.booking_outcome} />
