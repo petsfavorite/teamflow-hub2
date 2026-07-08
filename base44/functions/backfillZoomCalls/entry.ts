@@ -250,13 +250,15 @@ Deno.serve(async (req) => {
   try {
     console.log("[DEBUG] Starting backfillZoomCalls");
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
+    // Auth check: verify admin for manual calls; skip for scheduled runs (no user context)
+    const user = await base44.auth.me().catch(() => null);
+    if (user && user.role !== 'admin' && user.role !== 'super_admin') {
       return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const body = await req.json().catch(() => ({}));
-    const from       = body.from       || "2026-04-01";
+    // Default to last 2 days for scheduled runs; dedup handles already-processed calls
+    const from       = body.from       || new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     const to         = body.to         || new Date().toISOString().slice(0, 10);
     const batchSize  = body.batch_size || 5;
 
