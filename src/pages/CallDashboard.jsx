@@ -29,12 +29,19 @@ export default function CallDashboard() {
       const pageSize = 500;
       let allCalls = [];
       let skip = 0;
+      const seenIds = new Set();
       while (true) {
         const page = await base44.entities.CallRecord.list("-call_date", pageSize, skip);
-        allCalls = allCalls.concat(page);
+        for (const call of page) {
+          if (!seenIds.has(call.id)) {
+            seenIds.add(call.id);
+            allCalls.push(call);
+          }
+        }
         if (page.length < pageSize) break;
         skip += pageSize;
       }
+      allCalls.sort((a, b) => new Date(b.call_date) - new Date(a.call_date));
       return allCalls;
     },
   });
