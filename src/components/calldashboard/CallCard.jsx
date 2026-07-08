@@ -29,13 +29,14 @@ export default function CallCard({ call, onClick, nameMap = {} }) {
               <div>
                 <p className="text-sm font-semibold text-slate-900 truncate">{call.caller_name || call.caller_phone || "Unknown Caller"}</p>
                 {call.caller_phone && call.caller_name && <p className="text-xs text-slate-400">{call.caller_phone}</p>}
+                {call.missed_call && (
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-50 mt-1.5 w-fit">
+                    <PhoneMissed className="w-3 h-3 text-rose-400" />
+                    <span className="text-xs font-medium text-rose-600">Missed Call</span>
+                  </div>
+                )}
               </div>
-              {call.missed_call ? (
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-50">
-                  <PhoneMissed className="w-3 h-3 text-rose-400" />
-                  <span className="text-xs font-medium text-rose-600">Missed Call</span>
-                </div>
-              ) : call.team_member === "Please Check" ? (
+              {!call.missed_call && (call.team_member === "Please Check" ? (
                 <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50">
                   <User className="w-3 h-3 text-amber-400" />
                   <span className="text-xs font-medium text-amber-600">Please Check</span>
@@ -50,7 +51,7 @@ export default function CallCard({ call, onClick, nameMap = {} }) {
                   <User className="w-3 h-3 text-amber-400" />
                   <span className="text-xs font-medium text-amber-600">Unassigned</span>
                 </div>
-              )}
+              ))}
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {call.missed_call ? (
