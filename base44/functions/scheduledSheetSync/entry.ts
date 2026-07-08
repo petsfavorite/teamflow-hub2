@@ -304,6 +304,8 @@ Deno.serve(async (req) => {
 
         // Missed call: inbound with no transcript (no one spoke to the client)
         const missed_call = call_direction === "inbound" && !transcript;
+        // A missed call has no answerer — clear any team member from the sheet
+        if (missed_call) team_member = null;
 
         recordsToCreate.push({
           zoom_meeting_id,
