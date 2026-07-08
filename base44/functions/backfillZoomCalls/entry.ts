@@ -169,8 +169,13 @@ MISSED CALL (not answered): ${isMissedCall ? "YES" : "NO"}
 KNOWN STAFF MEMBERS (ONLY valid values for team_member):
 ${staffLines}
 
+MISSED CALL RULES (if MISSED CALL is YES):
+- team_member = null (no one answered)
+- caller_intent = null (do not guess intent from a voicemail/ringless call)
+- caller_type = "not_applicable"
+- bookable = "no"
+
 TEAM MEMBER ATTRIBUTION RULES:
-- If MISSED CALL is YES: team_member = null (no one answered)
 - For OUTBOUND calls: team_member = null
 - For answered INBOUND calls: identify which staff member answered using the first name they say.
   Staff often only say their first name. Use these nickname mappings:
