@@ -30,22 +30,27 @@ export default function CallCard({ call, onClick, nameMap = {} }) {
                 <p className="text-sm font-semibold text-slate-900 truncate">{call.caller_name || call.caller_phone || "Unknown Caller"}</p>
                 {call.caller_phone && call.caller_name && <p className="text-xs text-slate-400">{call.caller_phone}</p>}
               </div>
-              {call.team_member && call.team_member !== "Please Check" ? (
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50">
-                  <User className="w-3 h-3 text-slate-400" />
-                  <span className="text-xs font-medium text-slate-600">{nameMap[call.team_member] || call.team_member}</span>
+              {call.missed_call ? (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-50">
+                  <PhoneMissed className="w-3 h-3 text-rose-400" />
+                  <span className="text-xs font-medium text-rose-600">Missed Call</span>
                 </div>
               ) : call.team_member === "Please Check" ? (
                 <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50">
                   <User className="w-3 h-3 text-amber-400" />
                   <span className="text-xs font-medium text-amber-600">Please Check</span>
                 </div>
-              ) : call.missed_call ? (
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-50">
-                  <PhoneMissed className="w-3 h-3 text-rose-400" />
-                  <span className="text-xs font-medium text-rose-600">Missed Call</span>
+              ) : call.team_member ? (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50">
+                  <User className="w-3 h-3 text-slate-400" />
+                  <span className="text-xs font-medium text-slate-600">{nameMap[call.team_member] || call.team_member}</span>
                 </div>
-              ) : null}
+              ) : (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50">
+                  <User className="w-3 h-3 text-amber-400" />
+                  <span className="text-xs font-medium text-amber-600">Unassigned</span>
+                </div>
+              )}
             </div>
             {call.caller_intent && <p className="text-sm text-slate-600 line-clamp-1"><span className="text-slate-400 font-medium">Intent:</span> {call.caller_intent}</p>}
             <div className="flex flex-wrap items-center gap-2">
