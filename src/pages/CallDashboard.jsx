@@ -1,7 +1,8 @@
 import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { Phone, CalendarCheck, UserPlus, AlertTriangle, Loader2, Settings, PhoneMissed } from "lucide-react";
+import { Phone, CalendarCheck, UserPlus, AlertTriangle, Loader2, Settings, PhoneMissed, Store } from "lucide-react";
+import moment from "moment-timezone";
 import { Button } from "@/components/ui/button";
 import CallDashboardSettings from "@/components/calldashboard/CallDashboardSettings";
 import DateRangePicker, { getDateRange } from "@/components/calldashboard/DateRangePicker";
@@ -111,8 +112,16 @@ export default function CallDashboard() {
     const inboundCalls = filteredCalls.filter(c => c.call_direction === "inbound");
     const potential = inboundCalls.filter(c => c.caller_type === "potential_client").length;
     const missed = filteredCalls.filter(c => c.missed_call).length;
+    const missedWhenOpen = filteredCalls.filter(c => {
+      if (!c.missed_call || c.clinic_closed) return false;
+      const m = moment(c.call_date).tz("America/New_York");
+      const day = m.day();
+      const hour = m.hour();
+      const isWeekend = day === 0 || day === 6;
+      return isWeekend ? (hour >= 8 && hour < 18) : (hour >= 7 && hour < 19);
+    }).length;
     const bookingRate = bookableTotal > 0 ? Math.round((booked / bookableTotal) * 100) : 0;
-    return { total, booked, bookable: bookableTotal, missedBookings, potential, bookingRate, missed, inboundTotal: inboundCalls.length };
+    return { total, booked, bookable: bookableTotal, missedBookings, potential, bookingRate, missed, missedWhenOpen, inboundTotal: inboundCalls.length };
   }, [filteredCalls]);
 
   if (isLoading) return (
@@ -140,12 +149,13 @@ export default function CallDashboard() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 items-stretch">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 items-stretch">
           <StatCard label="Total Incoming Calls" value={stats.inboundTotal} icon={Phone} accentColor="bg-blue-500" />
           <StatCard label="Booking Rate" value={`${stats.bookingRate}%`} subtitle={`${stats.booked} of ${stats.bookable} bookable`} icon={CalendarCheck} accentColor="bg-emerald-500" />
           <StatCard label="Potential Clients" value={stats.potential} subtitle={`${stats.inboundTotal > 0 ? Math.round((stats.potential / stats.inboundTotal) * 100) : 0}% of inbound`} icon={UserPlus} accentColor="bg-amber-500" />
           <StatCard label="Missed Bookings" value={stats.missedBookings} subtitle="Could have booked" icon={AlertTriangle} accentColor="bg-red-500" />
           <StatCard label="Missed Calls" value={stats.missed} subtitle="No one answered" icon={PhoneMissed} accentColor="bg-rose-400" />
+          <StatCard label="Missed Calls when Open" value={stats.missedWhenOpen} subtitle="During business hours" icon={Store} accentColor="bg-orange-500" />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">

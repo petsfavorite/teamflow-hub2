@@ -81,6 +81,11 @@
       "default": false,
       "description": "True if no one at the clinic answered this call"
     },
+    "clinic_closed": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if the clinic was closed when this missed call occurred (holiday, weather closure, etc.) \u2014 excluded from 'Missed Calls when Open' metric"
+    },
     "ai_notes": {
       "type": "string"
     },

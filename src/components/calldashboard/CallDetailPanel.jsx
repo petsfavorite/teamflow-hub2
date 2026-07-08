@@ -29,6 +29,7 @@ export default function CallDetailPanel({ call, open, onClose, onUpdate, isAdmin
   const [callerType, setCallerType] = useState(call?.caller_type || "");
   const [bookingOutcome, setBookingOutcome] = useState(call?.booking_outcome || "");
   const [missedCall, setMissedCall] = useState(call?.missed_call || false);
+  const [clinicClosed, setClinicClosed] = useState(call?.clinic_closed || false);
   const [saving, setSaving] = useState(false);
   const [transcriptOpen, setTranscriptOpen] = useState(false);
 
@@ -47,6 +48,7 @@ export default function CallDetailPanel({ call, open, onClose, onUpdate, isAdmin
       setCallerType(call.caller_type || "");
       setBookingOutcome(call.booking_outcome || "");
       setMissedCall(call.missed_call || false);
+      setClinicClosed(call.clinic_closed || false);
     }
   }, [call?.id]);
 
@@ -213,6 +215,13 @@ export default function CallDetailPanel({ call, open, onClose, onUpdate, isAdmin
                 Missed Call <span className="text-xs font-normal text-slate-400">(no one answered)</span>
               </label>
             </div>
+            {missedCall && <div className="flex items-center gap-3 ml-6">
+              <Checkbox id="clinic-closed-checkbox" checked={clinicClosed} disabled={!isAdmin || saving}
+                onCheckedChange={(checked) => { setClinicClosed(!!checked); handleUpdate({ clinic_closed: !!checked }); }} />
+              <label htmlFor="clinic-closed-checkbox" className={cn("text-sm font-medium cursor-pointer", isAdmin ? "text-slate-700" : "text-slate-500 cursor-default")}>
+                Clinic Closed <span className="text-xs font-normal text-slate-400">(holiday, weather, etc. — excluded from "Missed Calls when Open")</span>
+              </label>
+            </div>}
             <div className="flex items-center gap-3">
               <Checkbox id="flagged-checkbox" checked={status === "flagged"} disabled={!isAdmin || saving}
                 onCheckedChange={async (checked) => handleStatusChange(checked ? "flagged" : "pending_review")} />
