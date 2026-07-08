@@ -52,7 +52,6 @@ export default function CallCard({ call, onClick, nameMap = {} }) {
                 </div>
               )}
             </div>
-            {call.caller_intent && <p className="text-sm text-slate-600 line-clamp-1"><span className="text-slate-400 font-medium">Intent:</span> {call.caller_intent}</p>}
             <div className="flex flex-wrap items-center gap-2">
               {call.missed_call ? (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-600">
