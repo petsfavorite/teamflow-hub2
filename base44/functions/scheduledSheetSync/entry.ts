@@ -135,6 +135,19 @@ function extractRecordingUrl(rawLink) {
   return null;
 }
 
+// Returns the Eastern timezone offset in ms to ADD to a "local-as-UTC" timestamp
+// to get the correct UTC time. EDT (Mar–early Nov) = +4h, EST = +5h.
+function easternOffsetMs(msFromEpoch) {
+  const d = new Date(msFromEpoch);
+  const year = d.getUTCFullYear();
+  const dstStart = new Date(Date.UTC(year, 2, 8, 2, 0, 0));
+  while (dstStart.getUTCDay() !== 0) dstStart.setUTCDate(dstStart.getUTCDate() + 1);
+  const dstEnd = new Date(Date.UTC(year, 10, 1, 2, 0, 0));
+  while (dstEnd.getUTCDay() !== 0) dstEnd.setUTCDate(dstEnd.getUTCDate() + 1);
+  const isDST = msFromEpoch >= dstStart.getTime() && msFromEpoch < dstEnd.getTime();
+  return isDST ? 4 * 3600 * 1000 : 5 * 3600 * 1000;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -242,6 +255,21 @@ Deno.serve(async (req) => {
     const existingCalls = await base44.asServiceRole.entities.CallRecord.filter({ zoom_meeting_id: { $in: zoomIds } });
     const existingIds = new Set(existingCalls.map(c => c.zoom_meeting_id));
 
+    // Fetch recent Zoom-imported calls for cross-source dedup (same call may exist
+    // from both the Zoom webhook and the Google Sheet — skip the sheet duplicate)
+    const weekAgo = new Date(Date.now() - 7 * 86400 * 1000).toISOString();
+    const recentZoomCalls = await base44.asServiceRole.entities.CallRecord.filter({
+      call_date: { $gte: weekAgo }
+    }, "-call_date", 500);
+    const zoomByDirection = {};
+    for (const c of recentZoomCalls) {
+      if (c.zoom_meeting_id && !c.zoom_meeting_id.startsWith("sheet_row_")) {
+        const key = c.call_direction || "inbound";
+        if (!zoomByDirection[key]) zoomByDirection[key] = [];
+        zoomByDirection[key].push(new Date(c.call_date).getTime());
+      }
+    }
+
     let imported = 0;
     let skipped = 0;
     const errors = [];
@@ -292,19 +320,31 @@ Deno.serve(async (req) => {
         if (bookingRaw.includes("booked") || bookingRaw.includes("scheduled") || bookingRaw.includes("yes")) booking_outcome = "appt_booked";
         else if (bookingRaw.includes("not needed") || bookingRaw.includes("n/a") || bookingRaw.includes("not applicable") || bookingRaw.includes("unsure")) booking_outcome = "appt_not_needed";
 
-        // Parse date: Google Sheets serial number (days since Dec 30, 1899) or ISO string
+        // Parse date: Google Sheets serial number (days since Dec 30, 1899) or ISO string.
+        // The spreadsheet is in Eastern time (America/New_York), so the serial date
+        // represents a local wall-clock time. The raw conversion treats it as UTC,
+        // which shifts every call 4-5 hours too early. We correct by adding the
+        // Eastern timezone offset (EDT = +4h, EST = +5h).
         let callDateISO = new Date().toISOString();
         const dateRaw = row["Date"] || "";
         if (dateRaw) {
           const serial = parseFloat(dateRaw);
           if (!isNaN(serial) && serial > 40000) {
-            // Google Sheets serial date → JS date
             const msFromEpoch = (serial - 25569) * 86400 * 1000;
-            callDateISO = new Date(msFromEpoch).toISOString();
+            callDateISO = new Date(msFromEpoch + easternOffsetMs(msFromEpoch)).toISOString();
           } else if (dateRaw.includes("/") || dateRaw.includes("-")) {
             const parsed = new Date(dateRaw);
             if (!isNaN(parsed)) callDateISO = parsed.toISOString();
           }
+        }
+
+        // Skip if this call was already imported from Zoom (same direction, within ±2 min)
+        const callTimeMs = new Date(callDateISO).getTime();
+        const zoomTimes = zoomByDirection[call_direction];
+        if (zoomTimes && zoomTimes.some(t => Math.abs(t - callTimeMs) < 2 * 60 * 1000)) {
+          skipped++;
+          if (row.__rowIndex > maxProcessedRow) maxProcessedRow = row.__rowIndex;
+          continue;
         }
 
         const zoom_meeting_id = `sheet_row_${row.__rowIndex}`;
