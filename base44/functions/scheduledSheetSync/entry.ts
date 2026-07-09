@@ -284,15 +284,9 @@ Deno.serve(async (req) => {
         if (row.__rowIndex > maxProcessedRow) maxProcessedRow = row.__rowIndex;
         continue;
       }
-      // Don't pull inbound calls until transcript is available — skip without advancing high-water mark
-      // Outbound calls (e.g. when closed) may never have a transcript and should still be imported
       const directionRaw = (row["Inbound/Outbound"] || "").toLowerCase();
       const call_direction = directionRaw.includes("out") ? "outbound" : "inbound";
       const transcript = (row["Transcript"] || "").trim();
-      if (!transcript && call_direction === "inbound") {
-        skipped++;
-        continue;
-      }
       try {
 
         // Columns: "Caller Phone" (inbound external) and "Callee Phone" (outbound external)

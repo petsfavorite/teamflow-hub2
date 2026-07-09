@@ -3,7 +3,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PhoneIncoming, PhoneOutgoing, Clock, User, FileText, MessageSquare, CalendarCheck, Music, ChevronDown } from "lucide-react";
+import { PhoneIncoming, PhoneOutgoing, Clock, User, FileText, MessageSquare, CalendarCheck, ChevronDown } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import CallerTypeBadge from "./CallerTypeBadge";
 import { base44 } from "@/api/base44Client";
@@ -181,13 +181,6 @@ export default function CallDetailPanel({ call, open, onClose, onUpdate, isAdmin
             <div className="space-y-1.5">
               <p className="text-xs font-medium uppercase tracking-wider text-slate-400">AI Notes</p>
               <p className="text-sm text-slate-600 leading-relaxed">{call.ai_notes}</p>
-            </div>
-          )}
-
-          {call.recording_url && (
-            <div className="space-y-1.5">
-              <p className="text-xs font-medium uppercase tracking-wider text-slate-400 flex items-center gap-1.5"><Music className="w-3 h-3" />Call Recording</p>
-              <a href={call.recording_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 hover:underline"><Music className="w-4 h-4" />Open Recording</a>
             </div>
           )}
 

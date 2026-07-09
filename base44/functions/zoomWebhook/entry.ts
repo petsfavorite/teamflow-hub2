@@ -206,7 +206,6 @@ Deno.serve(async (req) => {
       team_member: missed_call ? null : (analysis.team_member || null),
       transcript,
       transcript_summary: analysis.transcript_summary || null,
-      recording_url: audioFile.play_url || audioFile.download_url || null,
       caller_type: missed_call ? "not_applicable" : (analysis.caller_type || "not_applicable"),
       caller_intent: missed_call ? null : (analysis.caller_intent || null),
       bookable: missed_call ? "no" : (analysis.bookable || "unclear"),
