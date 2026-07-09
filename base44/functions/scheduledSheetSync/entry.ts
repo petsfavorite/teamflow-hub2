@@ -256,15 +256,16 @@ Deno.serve(async (req) => {
         if (row.__rowIndex > maxProcessedRow) maxProcessedRow = row.__rowIndex;
         continue;
       }
-      // Don't pull until transcript is available — skip without advancing high-water mark
+      // Don't pull inbound calls until transcript is available — skip without advancing high-water mark
+      // Outbound calls (e.g. when closed) may never have a transcript and should still be imported
+      const directionRaw = (row["Inbound/Outbound"] || "").toLowerCase();
+      const call_direction = directionRaw.includes("out") ? "outbound" : "inbound";
       const transcript = (row["Transcript"] || "").trim();
-      if (!transcript) {
+      if (!transcript && call_direction === "inbound") {
         skipped++;
         continue;
       }
       try {
-        const directionRaw = (row["Inbound/Outbound"] || "").toLowerCase();
-        const call_direction = directionRaw.includes("out") ? "outbound" : "inbound";
 
         // Columns: "Caller Phone" (inbound external) and "Callee Phone" (outbound external)
         const callerPhoneField = row["Caller Phone"] || "";
@@ -306,7 +307,6 @@ Deno.serve(async (req) => {
           }
         }
 
-        const transcript = row["Transcript"] || "";
         const zoom_meeting_id = `sheet_row_${row.__rowIndex}`;
 
         // Missed call: inbound with no transcript (no one spoke to the client)
