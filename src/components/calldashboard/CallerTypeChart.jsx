@@ -6,8 +6,9 @@ const COLORS = { potential_client: "#f59e0b", returning_client: "#10b981", not_a
 const LABELS = { potential_client: "Potential", returning_client: "Returning", not_applicable: "N/A" };
 
 export default function CallerTypeChart({ calls }) {
+  const answeredCalls = calls.filter(c => !c.missed_call);
   const counts = { potential_client: 0, returning_client: 0, not_applicable: 0 };
-  calls.forEach(c => { const t = c.caller_type || "not_applicable"; counts[t] = (counts[t] || 0) + 1; });
+  answeredCalls.forEach(c => { const t = c.caller_type || "not_applicable"; counts[t] = (counts[t] || 0) + 1; });
   const data = Object.entries(counts).filter(([, v]) => v > 0).map(([key, value]) => ({ name: LABELS[key], value, key }));
   const total = data.reduce((s, d) => s + d.value, 0);
 
