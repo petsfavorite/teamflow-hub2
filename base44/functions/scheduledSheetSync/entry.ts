@@ -256,6 +256,12 @@ Deno.serve(async (req) => {
         if (row.__rowIndex > maxProcessedRow) maxProcessedRow = row.__rowIndex;
         continue;
       }
+      // Don't pull until transcript is available — skip without advancing high-water mark
+      const transcript = (row["Transcript"] || "").trim();
+      if (!transcript) {
+        skipped++;
+        continue;
+      }
       try {
         const directionRaw = (row["Inbound/Outbound"] || "").toLowerCase();
         const call_direction = directionRaw.includes("out") ? "outbound" : "inbound";
