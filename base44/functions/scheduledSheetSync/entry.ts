@@ -349,9 +349,8 @@ Deno.serve(async (req) => {
 
         const zoom_meeting_id = `sheet_row_${row.__rowIndex}`;
 
-        // Missed call: inbound with no transcript (no one spoke to the client)
-        const missed_call = call_direction === "inbound" && !transcript;
-        // A missed call has no answerer — clear any team member from the sheet
+        // Missed call: inbound where no team member spoke (no one at the clinic answered)
+        const missed_call = call_direction === "inbound" && !team_member;
         if (missed_call) {
           team_member = null;
           caller_type = "not_applicable";

@@ -9,28 +9,38 @@ Deno.serve(async (req) => {
     }
 
     const all = await base44.asServiceRole.entities.CallRecord.list('-call_date', 5000);
-    // Fix missed calls: inbound with no transcript (no one spoke to the caller)
-    // Also re-fix records already flagged missed but with stale AI fields
-    const toFix = all.filter(c =>
+    // New logic: missed call = inbound where no team member spoke
+    // Case 1: should be missed but isn't (inbound, no team_member, not flagged or has stale fields)
+    const shouldBeMissed = all.filter(c =>
       c.call_direction === 'inbound' &&
-      !c.transcript &&
+      !c.team_member &&
       (
         !c.missed_call ||
         c.caller_intent !== null ||
         c.caller_type !== 'not_applicable' ||
-        c.bookable !== 'no' ||
-        c.team_member !== null
+        c.bookable !== 'no'
       )
+    );
+    // Case 2: should NOT be missed but is (inbound, has team_member, flagged as missed)
+    const shouldNotBeMissed = all.filter(c =>
+      c.call_direction === 'inbound' &&
+      c.team_member &&
+      c.missed_call
     );
 
     let updated = 0;
-    for (const c of toFix) {
+    for (const c of shouldBeMissed) {
       await base44.asServiceRole.entities.CallRecord.update(c.id, { missed_call: true, team_member: null, caller_intent: null, caller_type: "not_applicable", bookable: "no" });
       updated++;
       await new Promise(r => setTimeout(r, 150));
     }
+    for (const c of shouldNotBeMissed) {
+      await base44.asServiceRole.entities.CallRecord.update(c.id, { missed_call: false });
+      updated++;
+      await new Promise(r => setTimeout(r, 150));
+    }
 
-    return Response.json({ updated, total: all.length });
+    return Response.json({ updated, flaggedMissed: shouldBeMissed.length, unflagged: shouldNotBeMissed.length, total: all.length });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

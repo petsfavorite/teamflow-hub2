@@ -191,6 +191,9 @@ Deno.serve(async (req) => {
     const sheetRowNumber = await appendToSheet({ rowValues, sheetName }, sheetsToken, spreadsheetId);
     console.log(`[INFO] Appended to sheet row: ${sheetRowNumber}`);
 
+    // Missed call: inbound where no team member spoke (no one at the clinic answered)
+    const missed_call = callDirection === "inbound" && !analysis.team_member;
+
     // Save CallRecord to DB
     const zoom_meeting_id = sheetRowNumber ? `sheet_row_${sheetRowNumber}` : meetingId;
     await base44.asServiceRole.entities.CallRecord.create({
@@ -200,17 +203,18 @@ Deno.serve(async (req) => {
       call_direction: callDirection,
       caller_phone: analysis.caller_phone || null,
       caller_name: analysis.caller_name || null,
-      team_member: analysis.team_member || null,
+      team_member: missed_call ? null : (analysis.team_member || null),
       transcript,
       transcript_summary: analysis.transcript_summary || null,
       recording_url: audioFile.play_url || audioFile.download_url || null,
-      caller_type: analysis.caller_type || "not_applicable",
-      caller_intent: analysis.caller_intent || null,
-      bookable: analysis.bookable || "unclear",
+      caller_type: missed_call ? "not_applicable" : (analysis.caller_type || "not_applicable"),
+      caller_intent: missed_call ? null : (analysis.caller_intent || null),
+      bookable: missed_call ? "no" : (analysis.bookable || "unclear"),
       booking_outcome: analysis.booking_outcome || "appt_not_booked",
       was_booked: analysis.booking_outcome === "appt_booked",
       booked_date: analysis.booked_date || null,
       ai_notes: analysis.ai_notes || null,
+      missed_call,
       status: "pending_review",
     });
 
