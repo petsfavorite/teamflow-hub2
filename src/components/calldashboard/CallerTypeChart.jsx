@@ -2,8 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { UserPlus } from "lucide-react";
 
-const COLORS = { potential_client: "#f59e0b", returning_client: "#10b981", not_applicable: "#94a3b8" };
-const LABELS = { potential_client: "Potential", returning_client: "Returning", not_applicable: "N/A" };
+const COLORS = { potential_client: "#f59e0b", returning_client: "#10b981", not_applicable: "#94a3b8", existing_client: "#3b82f6", Unsure: "#a855f7" };
+const LABELS = { potential_client: "Potential", returning_client: "Returning", not_applicable: "N/A", existing_client: "Existing", Unsure: "Unsure" };
 
 export default function CallerTypeChart({ calls }) {
   const answeredCalls = calls.filter(c => !c.missed_call);
