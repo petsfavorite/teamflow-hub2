@@ -11,6 +11,7 @@ import { PinProvider } from '@/lib/PinContext';
 import PinLockScreen from '@/components/PinLockScreen';
 import Reports from './pages/Reports';
 import DataExport from './pages/DataExport';
+import TrainingManuals from './pages/TrainingManuals';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -70,6 +71,11 @@ const AuthenticatedApp = () => {
       <Route path="/DataExport" element={
         <LayoutWrapper currentPageName="DataExport">
           <DataExport />
+        </LayoutWrapper>
+      } />
+      <Route path="/TrainingManuals" element={
+        <LayoutWrapper currentPageName="TrainingManuals">
+          <TrainingManuals />
         </LayoutWrapper>
       } />
       <Route path="*" element={<PageNotFound />} />

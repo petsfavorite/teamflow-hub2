@@ -7,7 +7,8 @@ import {
     AlertTriangle, BarChart2, MessageSquare, Link as LinkIcon, Package, PawPrint,
     ChevronDown, ChevronRight, ShieldCheck, History, Upload, Phone, FileSpreadsheet, FileText,
     LogOut,
-    Download
+    Download,
+    BookMarked
 } from 'lucide-react';
 import { useCurrentUser } from './components/hooks/useCurrentUser';
 import { base44 } from '@/api/base44Client';
@@ -33,6 +34,7 @@ const mainNavItems = [
     { name: 'Assets', icon: Package, label: 'Assets' },
     { name: 'SOPAssistant', icon: MessageSquare, label: 'SOP AI' },
     { name: 'ExternalLinks', icon: LinkIcon, label: 'Links' },
+    { name: 'TrainingManuals', icon: BookMarked, label: 'Training Manuals' },
     { name: 'Settings', icon: Settings, label: 'Settings' },
 ];
 

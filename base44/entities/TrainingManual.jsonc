@@ -1,0 +1,42 @@
+{
+  "name": "TrainingManual",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Title of the training manual"
+    },
+    "description": {
+      "type": "string",
+      "description": "Brief description of what the manual covers"
+    },
+    "file_url": {
+      "type": "string",
+      "description": "URL to the uploaded PDF file"
+    },
+    "file_name": {
+      "type": "string",
+      "description": "Original file name of the uploaded PDF"
+    },
+    "file_size": {
+      "type": "number",
+      "description": "Size of the uploaded file in bytes"
+    },
+    "category": {
+      "type": "string",
+      "description": "Optional grouping category"
+    },
+    "uploaded_by": {
+      "type": "string",
+      "description": "Email of the user who uploaded the manual"
+    },
+    "uploaded_by_name": {
+      "type": "string",
+      "description": "Display name of the uploader"
+    }
+  },
+  "required": [
+    "title",
+    "file_url"
+  ]
+}
