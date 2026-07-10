@@ -28,7 +28,8 @@ export default function TrainingManuals() {
 
   const [showForm, setShowForm] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [form, setForm] = useState({ title: '', description: '', category: '', file_url: '', file_name: '', file_size: 0 });
+  const [extracting, setExtracting] = useState(false);
+  const [form, setForm] = useState({ title: '', description: '', category: '', file_url: '', file_name: '', file_size: 0, file_content: '', file_summary: '' });
 
   const { data: manuals = [], isLoading } = useQuery({
     queryKey: ['training-manuals'],
@@ -56,7 +57,7 @@ export default function TrainingManuals() {
 
   const resetForm = () => {
     setShowForm(false);
-    setForm({ title: '', description: '', category: '', file_url: '', file_name: '', file_size: 0 });
+    setForm({ title: '', description: '', category: '', file_url: '', file_name: '', file_size: 0, file_content: '', file_summary: '' });
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -79,9 +80,33 @@ export default function TrainingManuals() {
         file_size: file.size,
         title: f.title || file.name.replace(/\.pdf$/i, ''),
       }));
+      setUploading(false);
+      setExtracting(true);
+      try {
+        const extracted = await base44.integrations.Core.ExtractDataFromUploadedFile({
+          file_url: res.file_url,
+          json_schema: {
+            type: 'object',
+            properties: {
+              content: { type: 'string', description: 'The full readable text content of the document' },
+              summary: { type: 'string', description: 'A concise summary of the document, including key topics and procedures' },
+            },
+          },
+        });
+        if (extracted.status === 'success' && extracted.output) {
+          setForm(f => ({
+            ...f,
+            file_content: (extracted.output.content || '').slice(0, 15000),
+            file_summary: extracted.output.summary || '',
+          }));
+        }
+      } catch {
+        toast.warning('Saved file, but could not extract its text for AI search.');
+      } finally {
+        setExtracting(false);
+      }
     } catch {
       toast.error('Failed to upload file');
-    } finally {
       setUploading(false);
     }
   };
@@ -96,6 +121,8 @@ export default function TrainingManuals() {
       file_url: form.file_url,
       file_name: form.file_name,
       file_size: form.file_size,
+      file_content: form.file_content,
+      file_summary: form.file_summary,
       uploaded_by: user?.email,
       uploaded_by_name: user?.full_name || '',
     });
@@ -197,6 +224,7 @@ export default function TrainingManuals() {
                   onChange={handleFileChange}
                 />
                 {form.file_name && <span className="text-sm text-slate-600 truncate">{form.file_name}</span>}
+                {extracting && <span className="text-xs text-indigo-600 flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Reading PDF...</span>}
               </div>
             </div>
             <div className="space-y-2">
@@ -216,7 +244,7 @@ export default function TrainingManuals() {
             <Button variant="outline" onClick={resetForm}>Cancel</Button>
             <Button
               onClick={handleSave}
-              disabled={createMutation.isPending || uploading || !form.file_url}
+              disabled={createMutation.isPending || uploading || extracting || !form.file_url}
               className="bg-indigo-600 hover:bg-indigo-700 gap-2"
             >
               {createMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Upload Manual

@@ -22,6 +22,14 @@
       "type": "number",
       "description": "Size of the uploaded file in bytes"
     },
+    "file_content": {
+      "type": "string",
+      "description": "Extracted text content of the PDF, used as knowledge for the SOP AI"
+    },
+    "file_summary": {
+      "type": "string",
+      "description": "AI-generated concise summary of the manual"
+    },
     "category": {
       "type": "string",
       "description": "Optional grouping category"

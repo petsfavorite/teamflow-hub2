@@ -20,6 +20,11 @@ export default function SOPAssistant() {
     queryFn: () => base44.entities.SOP.filter({ status: 'published' }, '-updated_date', 500),
   });
 
+  const { data: manuals = [] } = useQuery({
+    queryKey: ['training-manuals-for-ai'],
+    queryFn: () => base44.entities.TrainingManual.filter({}, '-created_date', 100),
+  });
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -36,21 +41,32 @@ export default function SOPAssistant() {
       `SOP: "${s.title}" (ID: ${s.id}, Category: ${s.category})\nSummary: ${s.summary || 'N/A'}\nTags: ${s.tags?.join(', ') || 'N/A'}\nContent preview: ${s.content?.replace(/<[^>]*>/g, '').substring(0, 300)}`
     ).join('\n\n---\n\n');
 
+    const manualContext = manuals
+      .filter(m => m.file_summary || m.file_content)
+      .map(m =>
+        `Training Manual: "${m.title}"${m.category ? ` (Category: ${m.category})` : ''}\nSummary: ${m.file_summary || 'N/A'}\nKey content: ${(m.file_content || '').substring(0, 1200)}`
+      ).join('\n\n---\n\n');
+
     const response = await base44.integrations.Core.InvokeLLM({
-      prompt: `You are an SOP assistant for a business. You help users find the right Standard Operating Procedure for their situation.
+      prompt: `You are an SOP assistant for a business. You help users find the right Standard Operating Procedure for their situation, and you can also answer using training manuals.
 
 Here are all available SOPs:
 
 ${sopContext}
 
+Here are available training manuals (reference documents with extracted content):
+
+${manualContext || 'None available.'}
+
 The user is asking: "${input}"
 
-Based on the SOPs available:
-1. Identify which SOP(s) are most relevant to the user's question
-2. Provide a clear, helpful response explaining which SOP to follow
+Based on the SOPs and training manuals available:
+1. Identify which SOP(s) or training manual(s) are most relevant to the user's question
+2. Provide a clear, helpful response; you may use details from training manuals to answer directly
 3. When referencing an SOP title, format it as a markdown link using the SOP's ID like this: [SOP Title](/SOPDetail?id=SOP_ID)
-4. If multiple SOPs are relevant, list them in order of relevance
-5. If no SOP matches, say so and suggest what they might look for
+4. When referencing a training manual, mention its title in plain text and suggest the user view it in the Training Manuals section
+5. If multiple resources are relevant, list them in order of relevance
+6. If nothing matches, say so and suggest what they might look for
 
 Be conversational, helpful, and concise. Format your response in markdown.`,
     });
