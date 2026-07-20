@@ -1,6 +1,7 @@
 import { createHmac } from 'node:crypto';
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import OpenAI from 'npm:openai';
+import { fuzzyMatchUser } from '../../shared/staffMatching.ts';
 
 // ── Zoom OAuth: get a short-lived access token ──────────────────────────────
 async function getZoomToken() {
@@ -51,7 +52,7 @@ ${teamEntries ? `KNOWN STAFF MEMBERS:\n${teamEntries}\n\nNotes:\n- "Caroline", "
 
 Return a JSON object with these fields:
 - team_member: string or null
-  RULES: For inbound: the staff member who ANSWERED (first staff name mentioned, e.g. "this is Sarah"). For outbound: the staff member who MADE the call (they introduce themselves). Match to KNOWN STAFF MEMBERS exactly. If they do not say their name, return null. Never assign Caroline/Dr. Cofer.
+  RULES: For inbound: the staff member who ANSWERED (first staff name mentioned, e.g. "this is Sarah"). For outbound: the staff member who MADE the call (they introduce themselves). Return the name exactly as spoken in the transcript (first name, nickname, or full name) — do NOT match it to the KNOWN STAFF MEMBERS list; matching is handled separately. If no staff name is spoken, return null. Never assign Caroline/Dr. Cofer. Never assign Caroline/Dr. Cofer.
 - caller_name: string or null (the customer/external caller's name)
 - caller_phone: string or null
 - caller_type: "potential_client" | "returning_client" | "not_applicable"
@@ -194,7 +195,8 @@ Deno.serve(async (req) => {
     // Missed call: inbound where no team member spoke (no one at the clinic answered),
     // or the AI explicitly flagged it as a missed call in ai_notes.
     const aiSaysMissed = /call was missed/i.test(analysis.ai_notes || "");
-    const missed_call = callDirection === "inbound" && (!analysis.team_member || aiSaysMissed);
+    const teamMember = fuzzyMatchUser(analysis.team_member, userList);
+    const missed_call = callDirection === "inbound" && (!teamMember || aiSaysMissed);
 
     // Save CallRecord to DB
     const zoom_meeting_id = sheetRowNumber ? `sheet_row_${sheetRowNumber}` : meetingId;
@@ -205,7 +207,7 @@ Deno.serve(async (req) => {
       call_direction: callDirection,
       caller_phone: analysis.caller_phone || null,
       caller_name: analysis.caller_name || null,
-      team_member: missed_call ? null : (analysis.team_member || null),
+      team_member: missed_call ? null : teamMember,
       transcript,
       transcript_summary: analysis.transcript_summary || null,
       caller_type: missed_call ? "not_applicable" : (analysis.caller_type || "not_applicable"),
