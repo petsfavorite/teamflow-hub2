@@ -1,7 +1,7 @@
 import { createHmac } from 'node:crypto';
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import OpenAI from 'npm:openai';
-import { fuzzyMatchUser } from '../../shared/staffMatching.ts';
+import { fuzzyMatchUser, aiNotesIndicatesMissed } from '../../shared/staffMatching.ts';
 
 // ── Zoom OAuth: get a short-lived access token ──────────────────────────────
 async function getZoomToken() {
@@ -52,7 +52,7 @@ ${teamEntries ? `KNOWN STAFF MEMBERS:\n${teamEntries}\n\nNotes:\n- "Caroline", "
 
 Return a JSON object with these fields:
 - team_member: string or null
-  RULES: For inbound: the staff member who ANSWERED (first staff name mentioned, e.g. "this is Sarah"). For outbound: the staff member who MADE the call (they introduce themselves). Return the name exactly as spoken in the transcript (first name, nickname, or full name) — do NOT match it to the KNOWN STAFF MEMBERS list; matching is handled separately. If no staff name is spoken, return null. Never assign Caroline/Dr. Cofer. Never assign Caroline/Dr. Cofer.
+  RULES: For inbound: the staff member who ANSWERED (first staff name mentioned, e.g. "this is Sarah"). For outbound: the staff member who MADE the call (they introduce themselves). Return the name exactly as spoken in the transcript (first name, nickname, or full name) — do NOT match it to the KNOWN STAFF MEMBERS list; matching is handled separately. If no staff name is spoken, return null. Never assign Caroline/Dr. Cofer.
 - caller_name: string or null (the customer/external caller's name)
 - caller_phone: string or null
 - caller_type: "potential_client" | "returning_client" | "not_applicable"
@@ -194,7 +194,7 @@ Deno.serve(async (req) => {
 
     // Missed call: inbound where no team member spoke (no one at the clinic answered),
     // or the AI explicitly flagged it as a missed call in ai_notes.
-    const aiSaysMissed = /call was missed/i.test(analysis.ai_notes || "");
+    const aiSaysMissed = aiNotesIndicatesMissed(analysis.ai_notes);
     const teamMember = fuzzyMatchUser(analysis.team_member, userList);
     const missed_call = callDirection === "inbound" && (!teamMember || aiSaysMissed);
 

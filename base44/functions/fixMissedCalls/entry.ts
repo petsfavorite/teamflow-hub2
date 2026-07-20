@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { aiNotesIndicatesMissed } from '../../shared/staffMatching.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -13,7 +14,7 @@ Deno.serve(async (req) => {
     // Case 1: should be missed but isn't (inbound, no team_member, not flagged or has stale fields)
     const shouldBeMissed = all.filter(c =>
       c.call_direction === 'inbound' &&
-      !c.team_member &&
+      (!c.team_member || aiNotesIndicatesMissed(c.ai_notes)) &&
       (
         !c.missed_call ||
         c.caller_intent !== null ||
@@ -25,7 +26,8 @@ Deno.serve(async (req) => {
     const shouldNotBeMissed = all.filter(c =>
       c.call_direction === 'inbound' &&
       c.team_member &&
-      c.missed_call
+      c.missed_call &&
+      !aiNotesIndicatesMissed(c.ai_notes)
     );
 
     let updated = 0;

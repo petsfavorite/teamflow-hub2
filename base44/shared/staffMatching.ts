@@ -80,3 +80,20 @@ export function fuzzyMatchUser(detectedName, userList) {
   // No confident match — return null so we don't assign a wrong person
   return null;
 }
+
+// Returns true if free-form AI notes indicate an INBOUND call was missed
+// (voicemail / no one answered / 0-second call). Negation ("not missed") wins.
+// Callers are responsible for only applying this to inbound calls.
+export function aiNotesIndicatesMissed(notes) {
+  if (!notes) return false;
+  const n = notes.toLowerCase();
+  // Explicit negation wins
+  if (/\bnot (a )?missed\b/.test(n) || /\bwas not missed\b/.test(n) || /\bwasn'?t missed\b/.test(n)) return false;
+  if (/call was missed/.test(n)) return true;
+  if (/\bmissed (call|connection)\b/.test(n)) return true;
+  if (/\bvoicemail\b/.test(n)) return true;
+  if (/no (one )?answered|did not answer|went unanswered|no answered interaction/.test(n)) return true;
+  if (/no conversation took place|no interaction|did not result in any interaction/.test(n)) return true;
+  if (/0 seconds/.test(n)) return true;
+  return false;
+}
