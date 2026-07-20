@@ -153,6 +153,19 @@ export default function BoardingCheckIn({ pet, visit, onConfirm, onCancel, editM
         currentDate.add(1, 'day');
     }
 
+    // Add "Clean kennel" every day except the first (check-in) and last (checkout) day — no due time
+    const totalStayDays = moment(checkoutDate).diff(moment(checkInDate), 'days');
+    for (let i = 1; i < totalStayDays; i++) {
+        tasks.push({
+            type: 'Clean kennel',
+            time: '',
+            date: moment(checkInDate).add(i, 'days').format('YYYY-MM-DD'),
+            is_template: true,
+            completed: false,
+            completed_at: null
+        });
+    }
+
     // Add last day task: Billing at 9 AM
     tasks.push({ 
         type: 'Billing', 
@@ -707,6 +720,7 @@ export default function BoardingCheckIn({ pet, visit, onConfirm, onCancel, editM
                                     <li>• Ate (daily, no set time)</li>
                                     </>
                                     )}
+                            <li>• Clean kennel (daily, no set time — except check-in and checkout day)</li>
                             <li>• Feeding: {feedingFrequency === 'Just Breakfast' && 'Breakfast at 9 AM'} {feedingFrequency === 'Just Dinner' && 'Dinner at 5:30 PM'} {feedingFrequency === 'Two Meals' && 'Breakfast at 9 AM & Dinner at 5:30 PM'} {feedingFrequency === 'Three Meals' && 'Breakfast at 9 AM, Lunch at 12 PM & Dinner at 5:30 PM'}</li>
                             {pet.medications?.length > 0 && <li>• Medications as scheduled</li>}
                             {addCBDChews && <li>• Twice Daily CBD (with each meal)</li>}
