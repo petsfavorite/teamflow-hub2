@@ -96,13 +96,24 @@ export default function Checklists() {
       .map(team => team.id);
   }, [teams, user]);
 
-  // "My Checklists" - checklists assigned to user or their teams (active status)
+  const RECURRING_TYPES = ['daily','weekdays','specific_days','monthly','every_x_months','annually'];
+  // Recurring "master" templates are published source records with no due date — they never
+  // expire on their own and would show forever. They're replaced by daily spawned instances
+  // (status 'active', with a due date) that disappear after their due time.
+  const isRecurringMaster = (t) => t.status === 'published' && RECURRING_TYPES.includes(t.recurrence_type) && !t.due_date;
+
+  // "My Checklists" - checklists assigned to user or their teams.
+  // Show spawned recurring instances (visible today) + one-off/dated published checklists.
+  // Hide recurring master templates (they persist forever; the spawned instances replace them).
   const myChecklists = useMemo(() => {
     return allTemplates.filter(t => {
-      if (t.status !== 'published') return false;
       const assignedToMe = t.assigned_to_emails?.includes(user?.email);
       const assignedToMyTeam = t.assigned_teams?.some(teamId => teams.some(team => team.id === teamId && team.member_emails?.includes(user?.email)));
-      return assignedToMe || assignedToMyTeam;
+      if (!(assignedToMe || assignedToMyTeam)) return false;
+      if (isRecurringMaster(t)) return false;
+      if (t.status === 'active') return t.is_visible !== false;
+      if (t.status === 'published') return true;
+      return false;
     });
   }, [allTemplates, user, teams]);
 
@@ -124,9 +135,10 @@ export default function Checklists() {
   const teamChecklists = useMemo(() => {
     if (!canManage) return [];
     const activeAssigned = allTemplates.filter(t =>
-      t.status === 'published' &&
+      !isRecurringMaster(t) &&
       ((t.assigned_to_emails && t.assigned_to_emails.length > 0) ||
-       (t.assigned_teams && t.assigned_teams.length > 0))
+       (t.assigned_teams && t.assigned_teams.length > 0)) &&
+      ((t.status === 'active' && t.is_visible !== false) || t.status === 'published')
     );
     if (isAdmin || isSuperAdmin) return activeAssigned;
     // Managers: only checklists assigned to people on their teams

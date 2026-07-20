@@ -24,8 +24,6 @@ Deno.serve(async (req) => {
 
       const visibleDate = subtractDays(dueDate, visibleDayOffset);
 
-      if (visibleDate > todayStr) { skipped++; continue; }
-
       // DEDUPLICATION: skip if an active instance for this due_date already exists
       const existing = await base44.asServiceRole.entities.ChecklistTemplate.filter({
         title: schedule.template_title,
@@ -67,21 +65,19 @@ Deno.serve(async (req) => {
 
 function getNextDueDate(schedule, now, tz) {
   const today = now.toLocaleDateString('en-CA', { timeZone: tz });
-  const tomorrow = new Date(now.getTime() + 86400000).toLocaleDateString('en-CA', { timeZone: tz });
 
   switch (schedule.recurrence_type) {
     case 'daily':
-    case 'weekdays':
+      return today;
+    case 'weekdays': {
+      const dow = new Date(today + 'T12:00:00Z').getDay();
+      if (dow < 1 || dow > 5) return null;
+      return today;
+    }
     case 'specific_days': {
-      if (schedule.recurrence_type === 'weekdays') {
-        const dow = new Date(tomorrow + 'T12:00:00Z').getDay();
-        if (dow < 1 || dow > 5) return null;
-      }
-      if (schedule.recurrence_type === 'specific_days') {
-        const dow = new Date(tomorrow + 'T12:00:00Z').getDay();
-        if (!(schedule.recurrence_days_of_week || []).includes(dow)) return null;
-      }
-      return tomorrow;
+      const dow = new Date(today + 'T12:00:00Z').getDay();
+      if (!(schedule.recurrence_days_of_week || []).includes(dow)) return null;
+      return today;
     }
     case 'monthly': {
       const target = schedule.recurrence_day_of_month || 1;
