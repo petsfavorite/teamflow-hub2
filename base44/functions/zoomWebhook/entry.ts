@@ -62,7 +62,7 @@ Return a JSON object with these fields:
   NOTE: Use "appt_not_needed" for voicemails or appointment confirmations. "appt_not_booked" only when we spoke live and failed to book.
 - booked_date: "YYYY-MM-DDTHH:MM:00" if appt_booked, else null
 - transcript_summary: 2-3 sentence summary
-- ai_notes: brief flags or follow-up notes
+- ai_notes: brief flags or follow-up notes. If no one at the clinic answered (voicemail / missed call), set this to exactly "Call was missed".
 
 Return ONLY valid JSON, no markdown.`;
 
@@ -191,8 +191,10 @@ Deno.serve(async (req) => {
     const sheetRowNumber = await appendToSheet({ rowValues, sheetName }, sheetsToken, spreadsheetId);
     console.log(`[INFO] Appended to sheet row: ${sheetRowNumber}`);
 
-    // Missed call: inbound where no team member spoke (no one at the clinic answered)
-    const missed_call = callDirection === "inbound" && !analysis.team_member;
+    // Missed call: inbound where no team member spoke (no one at the clinic answered),
+    // or the AI explicitly flagged it as a missed call in ai_notes.
+    const aiSaysMissed = /call was missed/i.test(analysis.ai_notes || "");
+    const missed_call = callDirection === "inbound" && (!analysis.team_member || aiSaysMissed);
 
     // Save CallRecord to DB
     const zoom_meeting_id = sheetRowNumber ? `sheet_row_${sheetRowNumber}` : meetingId;
