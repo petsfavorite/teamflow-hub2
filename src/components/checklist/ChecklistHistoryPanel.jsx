@@ -11,10 +11,13 @@ export default function ChecklistHistoryPanel({ checklist, onClose }) {
   // ChecklistTemplate instance each day (different ids), so filtering by
   // checklist_template_id only ever returns the current day's completion.
   // All instances share the same checklist_title, so this surfaces the full history.
+  // Only show finished records: 'completed' (all items checked OR auto-submitted
+  // at due time) and 'edited' (manager stopped it). In-progress partial saves
+  // are kept for resuming but are not history.
   const { data: completions = [], isLoading } = useQuery({
     queryKey: ['checklist-history-panel', title],
     queryFn: () => base44.entities.ChecklistCompletion.filter(
-      { checklist_title: title },
+      { checklist_title: title, status: { $in: ['completed', 'edited'] } },
       '-updated_date',
       100
     ),
