@@ -7,14 +7,18 @@ import { CheckSquare, Clock, User, CheckCircle2, XCircle, Loader2 } from 'lucide
 export default function ChecklistHistoryPanel({ checklist, onClose }) {
   const title = checklist?.title || checklist?.template_title;
 
+  // Match by title, not template id: recurring checklists spawn a new
+  // ChecklistTemplate instance each day (different ids), so filtering by
+  // checklist_template_id only ever returns the current day's completion.
+  // All instances share the same checklist_title, so this surfaces the full history.
   const { data: completions = [], isLoading } = useQuery({
-    queryKey: ['checklist-history-panel', checklist?.id],
+    queryKey: ['checklist-history-panel', title],
     queryFn: () => base44.entities.ChecklistCompletion.filter(
-      { checklist_template_id: checklist?.id },
-      '-completion_date',
-      50
+      { checklist_title: title },
+      '-updated_date',
+      100
     ),
-    enabled: !!checklist?.id,
+    enabled: !!title,
   });
 
   return (
