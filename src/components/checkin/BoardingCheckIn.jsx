@@ -378,16 +378,16 @@ export default function BoardingCheckIn({ pet, visit, onConfirm, onCancel, editM
         }
     }
 
-    // Add "Give Feeding Enrichment Toy" once daily if selected (3 PM)
+    // Add "Give Feeding Enrichment Toy" once daily with dinner (5:30 PM) if selected
     if (addFeedingEnrichment) {
-        const enrichStartDate = (nowHour < 15)
+        const enrichStartDate = (feedingCheckInHour < 17 || (feedingCheckInHour === 17 && feedingCheckInMinute < 30))
             ? checkInDate
             : moment(checkInDate).add(1, 'day').format('YYYY-MM-DD');
         let currentDate = moment(enrichStartDate);
         while (currentDate.format('YYYY-MM-DD') <= checkoutDate) {
             tasks.push({
                 type: 'Give Feeding Enrichment Toy',
-                time: '3:00 PM',
+                time: '5:30 PM',
                 date: currentDate.format('YYYY-MM-DD'),
                 is_template: true,
                 completed: false,
@@ -727,7 +727,7 @@ export default function BoardingCheckIn({ pet, visit, onConfirm, onCancel, editM
                             {addProbiotic && <li>• Daily Probiotic (with each meal)</li>}
                             {addCBDStorming && <li>• CBD if needed for storms (daily, no set time)</li>}
                             {addProbioticDiarrhea && <li>• Probiotic if Diarrhea Seen (daily, no set time)</li>}
-                            {addFeedingEnrichment && <li>• Give Feeding Enrichment Toy (3:00 PM daily)</li>}
+                            {addFeedingEnrichment && <li>• Give Feeding Enrichment Toy (with dinner, 5:30 PM daily)</li>}
                             {addBath && <li>• Schedule Bath</li>}
                         </ul>
                     </div>
