@@ -182,6 +182,8 @@ export default function SOPDetail() {
   const userTeams = teams.filter(t => (t.member_emails || []).includes(user?.email));
   const isOnApplicableTeam = applicableTeams.length === 0 || userTeams.some(ut => (sop.applicable_teams || []).includes(ut.id));
   const canVerify = canManage && isOnApplicableTeam;
+  // Verification is needed when the SOP has never been verified (initial) or reverification is due/overdue
+  const needsVerification = !sop.last_verified_at || verificationOverdue || verificationSoon;
 
   // Display instructions (prefer structured field, fallback to legacy content)
   const displayInstructions = sop.instructions || sop.content;
@@ -195,6 +197,20 @@ export default function SOPDetail() {
           <Button variant="ghost" className="gap-2 text-slate-600"><ArrowLeft className="w-4 h-4" /> Back to SOPs</Button>
         </Link>
         <div className="flex gap-2">
+          {canVerify && needsVerification && (
+            <Button
+              onClick={() => verifyMutation.mutate()}
+              disabled={verifyMutation.isPending}
+              className={`gap-2 text-white ${
+                verificationOverdue ? 'bg-red-600 hover:bg-red-700'
+                  : verificationSoon ? 'bg-amber-600 hover:bg-amber-700'
+                  : 'bg-indigo-600 hover:bg-indigo-700'
+              }`}
+            >
+              {verifyMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+              {!sop.last_verified_at ? 'Verify SOP' : 'Mark Verified'}
+            </Button>
+          )}
           {canManage && (
             <Link to={createPageUrl('SOPVersions') + `?id=${sop.id}`}>
               <Button variant="outline" className="gap-2"><History className="w-4 h-4" /> History</Button>
