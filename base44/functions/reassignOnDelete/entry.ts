@@ -35,8 +35,21 @@ Deno.serve(async (req) => {
     }
   }
 
+  // Really delete them: remove from all team member lists so they don't linger.
+  const allTeams = await base44.asServiceRole.entities.Team.list('name', 200);
+  const teamsWithUser = allTeams.filter(t => (t.member_emails || []).includes(deleted_user_email));
+  for (const t of teamsWithUser) {
+    const idx = (t.member_emails || []).indexOf(deleted_user_email);
+    const newEmails = (t.member_emails || []).filter(e => e !== deleted_user_email);
+    const newNames = (t.member_names || []).filter((_, i) => i !== idx);
+    await base44.asServiceRole.entities.Team.update(t.id, {
+      member_emails: newEmails,
+      member_names: newNames,
+    });
+  }
+
   if (assignees.length === 0) {
-    return Response.json({ reassigned: 0, message: 'No suitable assignees found' });
+    return Response.json({ reassigned: 0, message: 'No suitable assignees found; user removed from teams.' });
   }
 
   // Pick the first assignee (or spread round-robin — keep it simple: first admin/manager)
@@ -84,7 +97,7 @@ Deno.serve(async (req) => {
   // --- Checklist Templates assigned to this user ---
   const checklists = await base44.asServiceRole.entities.ChecklistTemplate.list('title', 500);
   const myChecklists = checklists.filter(c =>
-    c.status === 'active' && c.assigned_to_emails?.includes(deleted_user_email)
+    c.status === 'published' && c.assigned_to_emails?.includes(deleted_user_email)
   );
   for (const c of myChecklists) {
     const newEmails = c.assigned_to_emails.map(e => e === deleted_user_email ? primary.email : e);
@@ -92,6 +105,26 @@ Deno.serve(async (req) => {
       c.assigned_to_emails[i] === deleted_user_email ? (primary.full_name || primary.email) : n
     );
     await base44.asServiceRole.entities.ChecklistTemplate.update(c.id, {
+      assigned_to_emails: newEmails,
+      assigned_to_names: newNames,
+    });
+    reassigned++;
+  }
+
+  // --- Recurring checklist schedules assigned to this user ---
+  // Reassign so future spawned instances go to a live person. Past
+  // ChecklistCompletion records are intentionally left untouched so the
+  // deleted user's name remains on the history of checklists they completed.
+  const recurring = await base44.asServiceRole.entities.RecurringChecklist.list('template_title', 500);
+  const myRecurring = recurring.filter(r =>
+    r.is_active !== false && r.assigned_to_emails?.includes(deleted_user_email)
+  );
+  for (const r of myRecurring) {
+    const newEmails = r.assigned_to_emails.map(e => e === deleted_user_email ? primary.email : e);
+    const newNames = (r.assigned_to_names || []).map((n, i) =>
+      r.assigned_to_emails[i] === deleted_user_email ? (primary.full_name || primary.email) : n
+    );
+    await base44.asServiceRole.entities.RecurringChecklist.update(r.id, {
       assigned_to_emails: newEmails,
       assigned_to_names: newNames,
     });
