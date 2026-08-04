@@ -24,6 +24,7 @@ export default function BoardingCheckIn({ pet, visit, onConfirm, onCancel, editM
      const [addCBDStorming, setAddCBDStorming] = useState(hasTaskType('CBD if needed for storms'));
      const [addProbioticDiarrhea, setAddProbioticDiarrhea] = useState(hasTaskType('Probiotic if Diarrhea Seen'));
      const [addFeedingEnrichment, setAddFeedingEnrichment] = useState(hasTaskType('Give Feeding Enrichment Toy'));
+     const [addDentalChew, setAddDentalChew] = useState(hasTaskType('Give Daily Dental Chew'));
      const [addBath, setAddBath] = useState(hasTaskType('Schedule Bath'));
     const inferMealTimesFromFrequency = (freq) => {
         const f = (freq || '').toLowerCase();
@@ -397,6 +398,25 @@ export default function BoardingCheckIn({ pet, visit, onConfirm, onCancel, editM
         }
     }
 
+    // Add "Give Daily Dental Chew" once daily with dinner (5:30 PM) if selected
+    if (addDentalChew) {
+        const dentalStartDate = (feedingCheckInHour < 17 || (feedingCheckInHour === 17 && feedingCheckInMinute < 30))
+            ? checkInDate
+            : moment(checkInDate).add(1, 'day').format('YYYY-MM-DD');
+        let currentDate = moment(dentalStartDate);
+        while (currentDate.format('YYYY-MM-DD') <= checkoutDate) {
+            tasks.push({
+                type: 'Give Daily Dental Chew',
+                time: '5:30 PM',
+                date: currentDate.format('YYYY-MM-DD'),
+                is_template: true,
+                completed: false,
+                completed_at: null
+            });
+            currentDate.add(1, 'day');
+        }
+    }
+
     // Add "Schedule Bath" on first day if selected
     if (addBath) {
         tasks.push({
@@ -612,8 +632,18 @@ export default function BoardingCheckIn({ pet, visit, onConfirm, onCancel, editM
                              <Label htmlFor="feedingenrichment" className="cursor-pointer">
                                  Add Daily Feeding Enrichment Toy
                              </Label>
-                         </div>
-                         <div className="flex items-center space-x-2">
+                             </div>
+                             <div className="flex items-center space-x-2">
+                             <Checkbox 
+                                 id="dentalchew" 
+                                 checked={addDentalChew}
+                                 onCheckedChange={setAddDentalChew}
+                             />
+                             <Label htmlFor="dentalchew" className="cursor-pointer">
+                                 Add Daily Dental Chew
+                             </Label>
+                             </div>
+                             <div className="flex items-center space-x-2">
                              <Checkbox 
                                  id="bath" 
                                  checked={addBath}
@@ -728,6 +758,7 @@ export default function BoardingCheckIn({ pet, visit, onConfirm, onCancel, editM
                             {addCBDStorming && <li>• CBD if needed for storms (daily, no set time)</li>}
                             {addProbioticDiarrhea && <li>• Probiotic if Diarrhea Seen (daily, no set time)</li>}
                             {addFeedingEnrichment && <li>• Give Feeding Enrichment Toy (with dinner, 5:30 PM daily)</li>}
+                            {addDentalChew && <li>• Give Daily Dental Chew (with dinner, 5:30 PM daily)</li>}
                             {addBath && <li>• Schedule Bath</li>}
                         </ul>
                     </div>
