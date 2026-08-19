@@ -48,9 +48,29 @@ export default function Checklists() {
   });
   const queryClient = useQueryClient();
 
+  // Fetch only the statuses the page actually uses. Spawned instances get marked
+  // 'closed'/'archived' after their due time but are never deleted, so a plain
+  // list() would hit its record cap and truncate active instances — making
+  // checklists disappear for assigned users. Filter by status to skip the
+  // accumulated stale records entirely.
   const { data: allTemplates = [], isLoading: isLoadingTemplates } = useQuery({
     queryKey: ['checklist-templates-all'],
-    queryFn: () => base44.entities.ChecklistTemplate.list('title', 200),
+    queryFn: async () => {
+      const [active, published, drafts, pending] = await Promise.all([
+        base44.entities.ChecklistTemplate.filter({ status: 'active' }, '-updated_date', 500),
+        base44.entities.ChecklistTemplate.filter({ status: 'published' }, '-updated_date', 500),
+        base44.entities.ChecklistTemplate.filter({ status: 'draft' }, '-updated_date', 500),
+        base44.entities.ChecklistTemplate.filter({ status: 'pending_approval' }, '-updated_date', 500),
+      ]);
+      const seen = new Set();
+      const combined = [];
+      for (const arr of [active, published, drafts, pending]) {
+        for (const t of arr || []) {
+          if (!seen.has(t.id)) { seen.add(t.id); combined.push(t); }
+        }
+      }
+      return combined;
+    },
   });
 
   const { data: recurringSchedules = [], isLoading: isLoadingRecurring } = useQuery({
