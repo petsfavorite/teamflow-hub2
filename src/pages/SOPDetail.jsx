@@ -11,7 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   ArrowLeft, Pencil, Tag, Clock, User, CheckCircle, History, Users, Loader2,
   ShieldAlert, CheckCircle2, XCircle, Video, AlertTriangle, UserCheck,
-  CalendarCheck, Wrench, BookOpen, PlayCircle
+  CalendarCheck, CalendarClock, Wrench, BookOpen, PlayCircle
 } from 'lucide-react';
 import { toast } from "sonner";
 import { addDays, format, differenceInDays, parseISO } from 'date-fns';
@@ -124,6 +124,17 @@ export default function SOPDetail() {
     },
   });
 
+  const postponeVerificationMutation = useMutation({
+    mutationFn: () => base44.entities.SOP.update(id, {
+      verification_due_date: format(addDays(new Date(), 90), 'yyyy-MM-dd'),
+    }),
+    onSuccess: () => {
+      toast.success('Verification postponed 90 days.');
+      queryClient.invalidateQueries({ queryKey: ['sop', id] });
+      queryClient.invalidateQueries({ queryKey: ['sops'] });
+    },
+  });
+
   if (isLoading) {
     return <div className="flex items-center justify-center py-20"><div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" /></div>;
   }
@@ -197,6 +208,18 @@ export default function SOPDetail() {
           <Button variant="ghost" className="gap-2 text-slate-600"><ArrowLeft className="w-4 h-4" /> Back to SOPs</Button>
         </Link>
         <div className="flex gap-2">
+          {canApprove && (verificationOverdue || verificationSoon) && (
+            <Button
+              onClick={() => postponeVerificationMutation.mutate()}
+              disabled={postponeVerificationMutation.isPending}
+              variant="outline"
+              className="gap-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+              title="Push the verification due date out 90 days"
+            >
+              {postponeVerificationMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CalendarClock className="w-4 h-4" />}
+              Postpone 90 Days
+            </Button>
+          )}
           {canVerify && needsVerification && (
             <Button
               onClick={() => verifyMutation.mutate()}
