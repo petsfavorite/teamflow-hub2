@@ -15,16 +15,31 @@ export default function EditCheckInDialog({ pet, visit, open, onClose, onSave })
         if (saving) return;
         setSaving(true);
 
+        // The "Billing" task is tied to the checkout day. When the checkout day
+        // changes, the regenerated schedule includes a fresh Billing task on the
+        // new day — so drop any old Billing tasks here and carry over their
+        // completion state (move, don't duplicate or leave the stale one).
+        const oldBilling = (visit.scheduled_tasks || []).find(t => t.type === 'Billing');
+        const billingWasCompleted = !!(oldBilling && oldBilling.completed);
+
         // Keep any tasks that are NOT templates (custom tasks added mid-stay)
         // and any already-completed template tasks (so history is preserved).
+        // Exclude old Billing tasks — they are replaced by the regenerated one.
         const existingNonTemplateTasks = (visit.scheduled_tasks || []).filter(t =>
-            !t.is_template || t.completed
+            t.type !== 'Billing' && (!t.is_template || t.completed)
+        );
+
+        // Carry the old Billing task's completion state onto the new one.
+        const newTasks = (newData.scheduled_tasks || []).map(t =>
+            t.type === 'Billing' && billingWasCompleted
+                ? { ...t, completed: true, completed_at: oldBilling.completed_at, completed_by: oldBilling.completed_by }
+                : t
         );
 
         // Merge: new template tasks from the re-check-in form + existing non-template/completed
         const mergedTasks = [
             ...existingNonTemplateTasks,
-            ...(newData.scheduled_tasks || [])
+            ...newTasks
         ];
 
         await onSave({
