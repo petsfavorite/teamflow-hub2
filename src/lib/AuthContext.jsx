@@ -91,10 +91,23 @@ export const AuthProvider = ({ children }) => {
     try {
       // Now check if the user is authenticated
       setIsLoadingAuth(true);
-      const currentUser = await base44.auth.me();
+      let currentUser = await base44.auth.me();
       setUser(currentUser);
       setIsAuthenticated(true);
       setIsLoadingAuth(false);
+
+      // Consume any pending invite for this user (applies role/teams/PIN from
+      // the admin's invite, then clears the "Pending User" card). Re-fetch the
+      // user so the new role/teams are reflected in-app.
+      try {
+        const res = await base44.functions.invoke('applyPendingInvite', {});
+        if (res?.data?.applied) {
+          currentUser = await base44.auth.me();
+          setUser(currentUser);
+        }
+      } catch (e) {
+        console.warn('Pending invite apply failed:', e?.message);
+      }
     } catch (error) {
       console.error('User auth check failed:', error);
       setIsLoadingAuth(false);
