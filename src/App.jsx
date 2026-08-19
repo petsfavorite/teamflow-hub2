@@ -7,6 +7,7 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import NotInvitedError from '@/components/NotInvitedError';
 import { PinProvider } from '@/lib/PinContext';
 import PinLockScreen from '@/components/PinLockScreen';
 import Reports from './pages/Reports';
@@ -37,6 +38,8 @@ const AuthenticatedApp = () => {
   if (authError) {
     if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
+    } else if (authError.type === 'not_invited') {
+      return <NotInvitedError />;
     } else if (authError.type === 'auth_required') {
       // Redirect to login automatically
       navigateToLogin();

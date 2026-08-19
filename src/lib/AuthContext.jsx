@@ -105,6 +105,18 @@ export const AuthProvider = ({ children }) => {
           currentUser = await base44.auth.me();
           setUser(currentUser);
         }
+        // Deny access to anyone who wasn't invited (no invite consumed and not
+        // already marked invited / not an admin). Keep them signed in on the
+        // platform so they can see the denial screen and sign out manually.
+        if (res?.data && res.data.authorized === false) {
+          setUser(null);
+          setIsAuthenticated(false);
+          setAuthError({
+            type: 'not_invited',
+            message: 'This app is invite-only'
+          });
+          return;
+        }
       } catch (e) {
         console.warn('Pending invite apply failed:', e?.message);
       }
