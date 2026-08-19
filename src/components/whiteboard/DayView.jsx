@@ -99,6 +99,7 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
     };
 
     const today2 = nowTick.format('YYYY-MM-DD');
+    const tomorrow2 = nowTick.clone().add(1, 'day').format('YYYY-MM-DD');
     const hasCollectFeces = (visit) => visit.scheduled_tasks?.some(t => t.type === 'Collect Feces' && t.date === today2 && !t.completed) || false;
     const hasCollectUrine = (visit) => visit.scheduled_tasks?.some(t => t.type === 'Collect Urine' && t.date === today2 && !t.completed) || false;
 
@@ -140,6 +141,9 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
         );
     };
 
+    const hasBathDueOnDate = (visit, date) =>
+        (visit.scheduled_tasks || []).some(t => t.type === 'Bath' && t.date === date && !t.completed);
+
     const needsPhoto = (pet, visit) => {
         if (!pet.daily_picture) return false;
         const todayStr = today2;
@@ -160,6 +164,8 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
             if (activeFilter === 'play_sessions' && !hasPlaySessionsLeft(visit)) return false;
             if (activeFilter === 'due_soon' && !hasTaskDueWithinHour(visit)) return false;
             if (activeFilter === 'photos_needed' && !needsPhoto(pet, visit)) return false;
+            if (activeFilter === 'bath_today' && !hasBathDueOnDate(visit, today2)) return false;
+            if (activeFilter === 'bath_tomorrow' && !hasBathDueOnDate(visit, tomorrow2)) return false;
         }
         if (searchLower) {
             const petName = (pet.name || '').toLowerCase();
@@ -182,6 +188,8 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
         play_sessions: allPetsWithVisits.filter(({ visit }) => hasPlaySessionsLeft(visit)).length,
         due_soon: allPetsWithVisits.filter(({ visit }) => hasTaskDueWithinHour(visit)).length,
         photos_needed: allPetsWithVisits.filter(({ pet, visit }) => needsPhoto(pet, visit)).length,
+        bath_today: allPetsWithVisits.filter(({ visit }) => hasBathDueOnDate(visit, today2)).length,
+        bath_tomorrow: allPetsWithVisits.filter(({ visit }) => hasBathDueOnDate(visit, tomorrow2)).length,
     };
 
 
@@ -268,6 +276,8 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
                     { key: 'play_sessions', label: '🎾 Play Sessions Left' },
                     { key: 'due_soon', label: '⏰ Due in 1hr' },
                     { key: 'photos_needed', label: '📸 Photos Needed' },
+                    { key: 'bath_today', label: '🛁 Bath Today' },
+                    { key: 'bath_tomorrow', label: '🛁 Bath Tomorrow' },
                 ].map(({ key, label }) => (
                     <button
                         key={key}
