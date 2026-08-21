@@ -66,6 +66,8 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
         
         // Get tasks for this date
         const dateTasks = visit.scheduled_tasks?.filter(task => {
+            // "Schedule Bath" is a persistent service — show every day until completed/cancelled
+            if (task.type === 'Schedule Bath') return true;
             if (task.date) return task.date === date;
             if (task.is_template) {
                 // Daily observation tasks: hide if completed today
@@ -142,7 +144,11 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
     };
 
     const hasBathDueOnDate = (visit, date) =>
-        (visit.scheduled_tasks || []).some(t => t.type === 'Bath' && t.date === date && !t.completed);
+        (visit.scheduled_tasks || []).some(t => {
+            if (t.completed) return false;
+            if (t.type === 'Schedule Bath') return true; // persistent — due every day until done
+            return t.type === 'Bath' && t.date === date;
+        });
 
     const needsPhoto = (pet, visit) => {
         if (!pet.daily_picture) return false;

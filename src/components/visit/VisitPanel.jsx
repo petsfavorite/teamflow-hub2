@@ -84,6 +84,9 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                  return task.date === date;
              }
 
+             // "Schedule Bath" is a persistent service — show every day until completed/cancelled
+             if (!task.completed && task.type === 'Schedule Bath') return true;
+
              // For completed tasks, only show if completed on this date (so Undo is accessible)
              if (task.completed) {
                  return task.completed_date === date;
