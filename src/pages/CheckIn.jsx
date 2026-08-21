@@ -83,7 +83,7 @@ export default function CheckIn() {
         await Promise.all([
             updatePetMutation.mutateAsync({
                 id: selectedPet.id,
-                data: { is_checked_in: true, picture_sent_today: false }
+                data: { is_checked_in: true, feeding_frequency: visitData.feeding_frequency }
             }),
             createVisitMutation.mutateAsync({
             pet_id: selectedPet.id,

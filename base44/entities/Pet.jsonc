@@ -64,6 +64,17 @@
     "feeding_instructions": {
       "type": "string"
     },
+    "feeding_frequency": {
+      "type": "string",
+      "enum": [
+        "Just Breakfast",
+        "Just Dinner",
+        "Two Meals",
+        "Three Meals"
+      ],
+      "default": "Two Meals",
+      "description": "Default feeding frequency for boarding stays"
+    },
     "medication_notes": {
       "type": "string",
       "description": "General medication notes for the pet's profile"
