@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, Save, Loader2, Sparkles, Users, MessageSquare } from "lucide-react";
 import { base44 } from "@/api/base44Client";
+import { useCurrentUser } from "@/components/hooks/useCurrentUser";
 
 const DEFAULT_OPTIONS = {
   caller_types: [
@@ -46,6 +47,17 @@ Return false if:
 - No appointment was offered at all
 - The caller hung up before booking was discussed
 - The call was a voicemail or missed call with no live conversation`;
+
+const DEFAULT_MISSED_CALL_PROMPT = `Determine if this inbound call was a "missed call" — meaning no one at the clinic answered the phone.
+Return true if:
+- The call went to voicemail (no one picked up)
+- The phone rang but no staff member spoke
+- The call duration is 0 seconds or extremely short with no conversation
+- The caller hung up before anyone answered
+Return false if:
+- A staff member answered and had a conversation with the caller
+- The call was answered even briefly
+- This is an outbound call (outbound calls are never "missed calls")`;
 
 function OptionList({ title, items, onChange }) {
   const addItem = () => onChange([...items, { value: "", label: "" }]);
@@ -151,7 +163,10 @@ export default function CallDashboardSettings({ open, onClose, users = [] }) {
   const [callerTypePrompt, setCallerTypePrompt] = useState("");
   const [bookingPrompt, setBookingPrompt] = useState("");
   const [bookingOfferedPrompt, setBookingOfferedPrompt] = useState("");
+  const [missedCallPrompt, setMissedCallPrompt] = useState("");
   const [nameAliases, setNameAliases] = useState([]);
+  const { user } = useCurrentUser();
+  const isAdmin = user && ["admin", "super_admin"].includes(user.role);
 
   useEffect(() => {
     if (!open) return;
@@ -168,6 +183,7 @@ export default function CallDashboardSettings({ open, onClose, users = [] }) {
         setCallerTypePrompt(cdOpts.ai_caller_type_prompt || "");
         setBookingPrompt(cdOpts.ai_booking_prompt || "");
         setBookingOfferedPrompt(cdOpts.ai_booking_offered_prompt || "");
+        setMissedCallPrompt(cdOpts.ai_missed_call_prompt || "");
         setNameAliases(cdOpts.name_aliases || []);
       } else {
         setSettingsId(null);
@@ -175,6 +191,7 @@ export default function CallDashboardSettings({ open, onClose, users = [] }) {
         setCallerTypePrompt("");
         setBookingPrompt("");
         setBookingOfferedPrompt("");
+        setMissedCallPrompt("");
         setNameAliases([]);
       }
     });
@@ -182,13 +199,19 @@ export default function CallDashboardSettings({ open, onClose, users = [] }) {
 
   const handleSave = async () => {
     setSaving(true);
+    // Managers can only edit name aliases — preserve existing admin-only fields
+    const existing = await base44.entities.AppSettings.filter({ key: "global" });
+    const existingOpts = existing?.[0]?.call_dashboard_options || {};
     const data = {
       key: "global",
       call_dashboard_options: {
-        ...options,
-        ai_caller_type_prompt: callerTypePrompt,
-        ai_booking_prompt: bookingPrompt,
-        ai_booking_offered_prompt: bookingOfferedPrompt,
+        caller_types: isAdmin ? (options?.caller_types || DEFAULT_OPTIONS.caller_types) : (existingOpts.caller_types || DEFAULT_OPTIONS.caller_types),
+        booking_outcomes: isAdmin ? (options?.booking_outcomes || DEFAULT_OPTIONS.booking_outcomes) : (existingOpts.booking_outcomes || DEFAULT_OPTIONS.booking_outcomes),
+        call_statuses: isAdmin ? (options?.call_statuses || DEFAULT_OPTIONS.call_statuses) : (existingOpts.call_statuses || DEFAULT_OPTIONS.call_statuses),
+        ai_caller_type_prompt: isAdmin ? callerTypePrompt : (existingOpts.ai_caller_type_prompt || ""),
+        ai_booking_prompt: isAdmin ? bookingPrompt : (existingOpts.ai_booking_prompt || ""),
+        ai_booking_offered_prompt: isAdmin ? bookingOfferedPrompt : (existingOpts.ai_booking_offered_prompt || ""),
+        ai_missed_call_prompt: isAdmin ? missedCallPrompt : (existingOpts.ai_missed_call_prompt || ""),
         name_aliases: nameAliases,
       },
     };
@@ -218,78 +241,95 @@ export default function CallDashboardSettings({ open, onClose, users = [] }) {
             <div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-slate-400" /></div>
           ) : (
             <>
-              {/* AI Prompts */}
-              <div className="space-y-3">
-                <Label className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
-                  <MessageSquare className="w-3.5 h-3.5" /> AI Analysis Prompts
-                </Label>
+              {/* AI Prompts — admin/super_admin only */}
+              {isAdmin && (
+                <div className="space-y-3">
+                  <Label className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+                    <MessageSquare className="w-3.5 h-3.5" /> AI Analysis Prompts
+                  </Label>
 
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-slate-600">Caller Type Classification</Label>
-                  <p className="text-xs text-slate-500">How the AI determines if a caller is a returning client, potential client, N/A, or a missed call.</p>
-                  <Textarea
-                    placeholder={DEFAULT_CALLER_TYPE_PROMPT}
-                    value={callerTypePrompt}
-                    onChange={(e) => setCallerTypePrompt(e.target.value)}
-                    className="min-h-[80px] text-sm"
-                  />
-                  {!callerTypePrompt && <p className="text-xs text-slate-400 italic">Using default prompt</p>}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-slate-600">Caller Type Classification</Label>
+                    <p className="text-xs text-slate-500">How the AI determines if a caller is a returning client, potential client, N/A, or a missed call.</p>
+                    <Textarea
+                      placeholder={DEFAULT_CALLER_TYPE_PROMPT}
+                      value={callerTypePrompt}
+                      onChange={(e) => setCallerTypePrompt(e.target.value)}
+                      className="min-h-[80px] text-sm"
+                    />
+                    {!callerTypePrompt && <p className="text-xs text-slate-400 italic">Using default prompt</p>}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-slate-600">Booking Outcome</Label>
+                    <p className="text-xs text-slate-500">How the AI determines if a call was booked, not bookable, or a missed booking.</p>
+                    <Textarea
+                      placeholder={DEFAULT_BOOKING_PROMPT}
+                      value={bookingPrompt}
+                      onChange={(e) => setBookingPrompt(e.target.value)}
+                      className="min-h-[80px] text-sm"
+                    />
+                    {!bookingPrompt && <p className="text-xs text-slate-400 italic">Using default prompt</p>}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-slate-600">Booking Offered Check</Label>
+                    <p className="text-xs text-slate-500">For each missed booking, the AI checks if an appointment was offered but the caller declined. Runs only on calls classified as "not booked."</p>
+                    <Textarea
+                      placeholder={DEFAULT_BOOKING_OFFERED_PROMPT}
+                      value={bookingOfferedPrompt}
+                      onChange={(e) => setBookingOfferedPrompt(e.target.value)}
+                      className="min-h-[80px] text-sm"
+                    />
+                    {!bookingOfferedPrompt && <p className="text-xs text-slate-400 italic">Using default prompt</p>}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-slate-600">Missed Call Definition</Label>
+                    <p className="text-xs text-slate-500">How the AI determines if an inbound call was missed (no one answered, voicemail, 0-second call). Only applies to inbound calls.</p>
+                    <Textarea
+                      placeholder={DEFAULT_MISSED_CALL_PROMPT}
+                      value={missedCallPrompt}
+                      onChange={(e) => setMissedCallPrompt(e.target.value)}
+                      className="min-h-[80px] text-sm"
+                    />
+                    {!missedCallPrompt && <p className="text-xs text-slate-400 italic">Using default prompt</p>}
+                  </div>
                 </div>
+              )}
 
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-slate-600">Booking Outcome</Label>
-                  <p className="text-xs text-slate-500">How the AI determines if a call was booked, not bookable, or a missed booking.</p>
-                  <Textarea
-                    placeholder={DEFAULT_BOOKING_PROMPT}
-                    value={bookingPrompt}
-                    onChange={(e) => setBookingPrompt(e.target.value)}
-                    className="min-h-[80px] text-sm"
-                  />
-                  {!bookingPrompt && <p className="text-xs text-slate-400 italic">Using default prompt</p>}
-                </div>
+              {isAdmin && <Separator />}
 
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-slate-600">Booking Offered Check</Label>
-                  <p className="text-xs text-slate-500">For each missed booking, the AI checks if an appointment was offered but the caller declined. Runs only on calls classified as "not booked."</p>
-                  <Textarea
-                    placeholder={DEFAULT_BOOKING_OFFERED_PROMPT}
-                    value={bookingOfferedPrompt}
-                    onChange={(e) => setBookingOfferedPrompt(e.target.value)}
-                    className="min-h-[80px] text-sm"
-                  />
-                  {!bookingOfferedPrompt && <p className="text-xs text-slate-400 italic">Using default prompt</p>}
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Name Aliases */}
+              {/* Name Aliases — visible to all managers+ */}
               <NameAliasList
                 aliases={nameAliases}
                 users={users}
                 onChange={setNameAliases}
               />
 
-              <Separator />
-
-              {/* Dropdown Options */}
-              <OptionList
-                title="Caller Type Options"
-                items={options.caller_types || []}
-                onChange={(val) => update("caller_types", val)}
-              />
-              <Separator />
-              <OptionList
-                title="Booking Outcome Options"
-                items={options.booking_outcomes || []}
-                onChange={(val) => update("booking_outcomes", val)}
-              />
-              <Separator />
-              <OptionList
-                title="Call Status Options"
-                items={options.call_statuses || []}
-                onChange={(val) => update("call_statuses", val)}
-              />
+              {/* Dropdown Options — admin/super_admin only */}
+              {isAdmin && (
+                <>
+                  <Separator />
+                  <OptionList
+                    title="Caller Type Options"
+                    items={options.caller_types || []}
+                    onChange={(val) => update("caller_types", val)}
+                  />
+                  <Separator />
+                  <OptionList
+                    title="Booking Outcome Options"
+                    items={options.booking_outcomes || []}
+                    onChange={(val) => update("booking_outcomes", val)}
+                  />
+                  <Separator />
+                  <OptionList
+                    title="Call Status Options"
+                    items={options.call_statuses || []}
+                    onChange={(val) => update("call_statuses", val)}
+                  />
+                </>
+              )}
             </>
           )}
         </div>
