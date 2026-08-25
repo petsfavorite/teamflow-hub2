@@ -18,7 +18,7 @@ export default function ExternalLinks() {
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [editingLink, setEditingLink] = useState(null);
-  const [form, setForm] = useState({ title: '', url: '', description: '', icon: '🔗', category: '' });
+  const [form, setForm] = useState({ title: '', url: '', description: '', icon: '🔗', category: '', admin_only: false });
 
   const { data: links = [], isLoading } = useQuery({
     queryKey: ['external-links'],
@@ -47,19 +47,24 @@ export default function ExternalLinks() {
   const resetForm = () => {
     setShowForm(false);
     setEditingLink(null);
-    setForm({ title: '', url: '', description: '', icon: '🔗', category: '' });
+    setForm({ title: '', url: '', description: '', icon: '🔗', category: '', admin_only: false });
   };
 
   const startEdit = (link) => {
     setEditingLink(link);
-    setForm(link);
+    setForm({ ...link, admin_only: link.category === 'Admin Only' });
     setShowForm(true);
   };
 
-  const categories = [...new Set(links.map(l => l.category).filter(Boolean))];
+  const ADMIN_ONLY_CATEGORY = 'Admin Only';
+  const visibleLinks = canEdit ? links : links.filter(l => l.category !== ADMIN_ONLY_CATEGORY);
+  const adminOnlyLinks = links.filter(l => l.category === ADMIN_ONLY_CATEGORY);
+  const regularLinks = visibleLinks.filter(l => l.category !== ADMIN_ONLY_CATEGORY);
+
+  const categories = [...new Set(regularLinks.map(l => l.category).filter(Boolean))];
   const grouped = categories.length > 0
-    ? categories.map(cat => ({ category: cat, links: links.filter(l => l.category === cat) }))
-    : [{ category: null, links }];
+    ? categories.map(cat => ({ category: cat, links: regularLinks.filter(l => l.category === cat) }))
+    : [{ category: null, links: regularLinks }];
 
   return (
     <div>
@@ -116,6 +121,43 @@ export default function ExternalLinks() {
               </div>
             </div>
           ))}
+
+          {canEdit && adminOnlyLinks.length > 0 && (
+            <div>
+              <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                Admin Only
+                <span className="text-xs font-normal text-slate-400 bg-slate-100 px-2 py-0.5 rounded">Admin &amp; Super Admin only</span>
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {adminOnlyLinks.map(link => (
+                  <Card key={link.id} className="border-0 shadow-sm hover:shadow-lg transition-all group border-l-4 border-l-indigo-300">
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between">
+                        <a href={link.url} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 flex-1 min-w-0">
+                          <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-2xl flex-shrink-0">
+                            {link.icon || '🔗'}
+                          </div>
+                          <div className="min-w-0">
+                            <h3 className="font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors flex items-center gap-1.5">
+                              {link.title}
+                              <ExternalLink className="w-3.5 h-3.5 text-slate-300 group-hover:text-indigo-400" />
+                            </h3>
+                            {link.description && <p className="text-sm text-slate-500 mt-1 line-clamp-2">{link.description}</p>}
+                          </div>
+                        </a>
+                        {canEdit && (
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+                            <button onClick={() => startEdit(link)} className="p-1.5 rounded hover:bg-slate-100"><Pencil className="w-3.5 h-3.5 text-slate-400" /></button>
+                            <button onClick={() => deleteMutation.mutate(link.id)} className="p-1.5 rounded hover:bg-red-50"><Trash2 className="w-3.5 h-3.5 text-red-400" /></button>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -135,11 +177,22 @@ export default function ExternalLinks() {
             </div>
             <div className="space-y-2"><Label>URL</Label><Input value={form.url} onChange={e => setForm({ ...form, url: e.target.value })} placeholder="https://..." /></div>
             <div className="space-y-2"><Label>Description</Label><Input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Brief description" /></div>
-            <div className="space-y-2"><Label>Category</Label><Input value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} placeholder="e.g. Communication, Accounting" /></div>
+            <div className="space-y-2"><Label>Category</Label><Input value={form.admin_only ? 'Admin Only' : form.category} disabled={form.admin_only} onChange={e => setForm({ ...form, category: e.target.value })} placeholder="e.g. Communication, Accounting" /></div>
+            {canEdit && (
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.admin_only}
+                  onChange={e => setForm({ ...form, admin_only: e.target.checked, category: e.target.checked ? 'Admin Only' : '' })}
+                  className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                />
+                <span className="text-sm text-slate-700">Only visible to admins and super admins</span>
+              </label>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={resetForm}>Cancel</Button>
-            <Button onClick={() => saveMutation.mutate(form)} disabled={saveMutation.isPending} className="bg-indigo-600 hover:bg-indigo-700 gap-2">
+            <Button onClick={() => saveMutation.mutate({ ...form, category: form.admin_only ? 'Admin Only' : form.category })} disabled={saveMutation.isPending} className="bg-indigo-600 hover:bg-indigo-700 gap-2">
               {saveMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />} {editingLink ? 'Update' : 'Add'} Link
             </Button>
           </DialogFooter>
