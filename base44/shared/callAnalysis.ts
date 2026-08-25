@@ -10,7 +10,8 @@ When in doubt between potential and returning, prefer "returning_client" if the 
 export const DEFAULT_BOOKING_PROMPT = `Determine the booking outcome:
 - "appt_booked": an appointment or boarding reservation was successfully scheduled during this call
 - "appt_not_booked": a missed booking — the caller wanted to schedule something but no appointment was booked (ONLY when staff spoke live and failed to book)
-- "appt_not_needed": no booking was needed — confirming existing appointment, prescription refill, payment, general question, or voicemail with no live conversation`;
+- "appt_not_needed": no booking was needed — confirming existing appointment, prescription refill, payment, general question, voicemail with no live conversation, OR the caller is not a client (vendor, solicitor, wrong number, personal call for staff, etc.)
+IMPORTANT: If the caller_type is "not_applicable", the booking_outcome MUST be "appt_not_needed" — a non-client can never be a "missed booking".`;
 
 export const DEFAULT_BOOKING_OFFERED_PROMPT = `For calls where a booking was NOT made, determine if staff OFFERED an appointment:
 - true: staff suggested a specific time/date or asked if the caller wanted to book, but the caller declined or did not commit

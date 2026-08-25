@@ -1,7 +1,10 @@
 import { Badge } from "@/components/ui/badge";
-import { CalendarCheck, CalendarX, CalendarMinus, Handshake, HandshakeIcon } from "lucide-react";
+import { CalendarCheck, CalendarX, CalendarMinus, Handshake, CalendarOff } from "lucide-react";
 
-export default function BookingStatus({ bookable, wasBooked, bookedDate, bookingOutcome, bookingOffered }) {
+export default function BookingStatus({ bookable, wasBooked, bookedDate, bookingOutcome, bookingOffered, callerType }) {
+  if (callerType === "not_applicable" || bookingOutcome === "appt_not_needed") {
+    return <Badge variant="outline" className="bg-slate-50 text-slate-500 border-slate-200 gap-1 text-xs"><CalendarOff className="w-3 h-3" />No Booking Needed</Badge>;
+  }
   if (bookingOutcome === "appt_not_booked") {
     return (
       <div className="flex flex-wrap items-center gap-1.5">
