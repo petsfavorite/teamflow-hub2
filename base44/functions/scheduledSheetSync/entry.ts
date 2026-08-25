@@ -5,7 +5,7 @@ import { analyzeCall, checkBookingOffered, buildExtraAliases } from '../../share
 
 function extractRecordingUrl(rawLink) {
   if (!rawLink) return null;
-  const trimmed = rawLink.trim();
+  const trimmed = String(rawLink).trim();
   if (trimmed.startsWith("{")) {
     try {
       const obj = JSON.parse(trimmed);
@@ -140,9 +140,9 @@ Deno.serve(async (req) => {
     const rowsToProcess = records.filter(row => {
       const hasAnyData = Object.entries(row).some(([k, v]) => k !== '__rowIndex' && v !== '');
       if (!hasAnyData) return false;
-      const phone = (row["Caller Phone"] || row["Callee Phone"] || "").toLowerCase().trim();
-      const teamMember = (row["Team Member"] || "").trim();
-      const transcript = (row["Transcript"] || "").trim();
+      const phone = String(row["Caller Phone"] || row["Callee Phone"] || "").toLowerCase().trim();
+      const teamMember = String(row["Team Member"] || "").trim();
+      const transcript = String(row["Transcript"] || "").trim();
       const isAnonymousOnly = (phone === "anonymous" || phone === "") && !teamMember && !transcript;
       return !isAnonymousOnly;
     });
@@ -181,12 +181,12 @@ Deno.serve(async (req) => {
         if (row.__rowIndex > maxProcessedRow) maxProcessedRow = row.__rowIndex;
         continue;
       }
-      const directionRaw = (row["Inbound/Outbound"] || "").toLowerCase();
+      const directionRaw = String(row["Inbound/Outbound"] || "").toLowerCase();
       const call_direction = directionRaw.includes("out") ? "outbound" : "inbound";
-      const transcript = (row["Transcript"] || "").trim();
+      const transcript = String(row["Transcript"] || "").trim();
       try {
-        const callerPhoneField = row["Caller Phone"] || "";
-        const calleePhoneField = row["Callee Phone"] || "";
+        const callerPhoneField = String(row["Caller Phone"] || "");
+        const calleePhoneField = String(row["Callee Phone"] || "");
         const rawPhone = call_direction === "inbound" ? callerPhoneField : calleePhoneField;
         const caller_phone = (rawPhone && rawPhone.toLowerCase() !== "anonymous") ? rawPhone : null;
 
@@ -218,18 +218,18 @@ Deno.serve(async (req) => {
           ai_notes = analysis.ai_notes || null;
         } else {
           // Fallback: read from columns when no transcript
-          const callerTypeRaw = (row["Caller Type"] || "").toLowerCase();
+          const callerTypeRaw = String(row["Caller Type"] || "").toLowerCase();
           if (callerTypeRaw.includes("potential") || callerTypeRaw.includes("new")) caller_type = "potential_client";
           else if (callerTypeRaw.includes("return") || callerTypeRaw.includes("existing")) caller_type = "returning_client";
 
-          const bookingRaw = (row["Booking Outcome"] || "").toLowerCase();
+          const bookingRaw = String(row["Booking Outcome"] || "").toLowerCase();
           if (bookingRaw.includes("booked") || bookingRaw.includes("scheduled") || bookingRaw.includes("yes")) booking_outcome = "appt_booked";
           else if (bookingRaw.includes("not needed") || bookingRaw.includes("n/a") || bookingRaw.includes("not applicable") || bookingRaw.includes("unsure")) booking_outcome = "appt_not_needed";
         }
 
         // Team member: AI raw name → fuzzy match with extra aliases
         let team_member = null;
-        const teamMemberSource = team_member_raw || (row["Team Member"] || "").trim();
+        const teamMemberSource = team_member_raw || String(row["Team Member"] || "").trim();
         if (teamMemberSource && userList.length) {
           team_member = fuzzyMatchUser(teamMemberSource, userList, extraAliases);
         }
@@ -254,7 +254,7 @@ Deno.serve(async (req) => {
 
         // Parse date
         let callDateISO = new Date().toISOString();
-        const dateRaw = row["Date"] || "";
+        const dateRaw = String(row["Date"] || "");
         if (dateRaw) {
           const serial = parseFloat(dateRaw);
           if (!isNaN(serial) && serial > 40000) {

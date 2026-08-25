@@ -24,7 +24,7 @@ export const NEVER_ASSIGN_AS_ANSWERER = ["caroline cofer", "dr. cofer", "dr cofe
 
 export function fuzzyMatchUser(detectedName, userList, extraAliases = {}) {
   if (!detectedName || !userList.length) return null;
-  let lower = detectedName.toLowerCase().trim();
+  let lower = String(detectedName).toLowerCase().trim();
 
   // Merge built-in aliases with user-configured extra aliases
   const allAliases = { ...NAME_ALIASES, ...extraAliases };
