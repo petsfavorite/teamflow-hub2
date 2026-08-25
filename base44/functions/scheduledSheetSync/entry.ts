@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
 
     // Only fetch rows we haven't seen yet (start from lastProcessedRow + 1)
     const startRow = lastProcessedRow + 1;
-    const endRow = startRow + 499;
+    const endRow = startRow + 49;
 
     // First, get the actual sheet name from spreadsheet metadata
     const metaRes = await fetch(
@@ -146,7 +146,7 @@ Deno.serve(async (req) => {
       const isAnonymousOnly = (phone === "anonymous" || phone === "") && !teamMember && !transcript;
       return !isAnonymousOnly;
     });
-    const remaining = rawRows.length === 500 ? "possibly more" : 0;
+    const remaining = rawRows.length === 50 ? "possibly more" : 0;
 
     // Build a set of already-existing zoom_meeting_ids for this batch
     const zoomIds = rowsToProcess.map(r => `sheet_row_${r.__rowIndex}`);

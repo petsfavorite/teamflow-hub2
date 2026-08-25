@@ -5,7 +5,7 @@ Deno.serve(async (req) => {
         const base44 = createClientFromRequest(req);
 
         const body = req.method === 'POST' ? await req.json().catch(() => ({})) : {};
-        const months = (typeof body.months === 'number' && body.months >= 1) ? body.months : 1;
+        const months = (typeof body.months === 'number' && body.months >= 1) ? body.months : 3;
 
         // Calculate cutoff based on configured months
         const cutoff = new Date();
