@@ -65,6 +65,15 @@
       "type": "string",
       "description": "Time in HH:MM format \u2014 when the checklist becomes visible to assignees. If not set, visible immediately when due_date arrives."
     },
+    "visible_day_offset": {
+      "type": "integer",
+      "default": 0,
+      "description": "How many days before the due date the checklist becomes visible (0 = same day, 1 = day before, etc.). Copied from RecurringChecklist for spawned instances."
+    },
+    "recurring_checklist_id": {
+      "type": "string",
+      "description": "ID of the RecurringChecklist schedule that spawned this instance. Used for deduplication so multiple schedules with the same title don't block each other."
+    },
     "recurrence_type": {
       "type": "string",
       "enum": [
@@ -101,10 +110,12 @@
         "draft",
         "pending_approval",
         "published",
+        "active",
+        "closed",
         "archived"
       ],
       "default": "draft",
-      "description": "Publishing status of the checklist"
+      "description": "Publishing status of the checklist. Spawned recurring instances use 'active' (visible/awaiting completion) and 'closed' (past due, auto-submitted)."
     },
     "version": {
       "type": "number",

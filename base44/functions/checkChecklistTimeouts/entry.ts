@@ -42,21 +42,30 @@ Deno.serve(async (req) => {
         status: 'in_progress'
       });
 
-      const completedItems = inProgress[0]?.completed_items ||
-        (template.items || []).map(item => ({ ...item, checked: false }));
+      const incompleteItems = (inProgress[0]?.completed_items || (template.items || []).map(item => ({ ...item, checked: false })))
+        .filter(item => !item.checked);
 
-      const incompleteItems = completedItems.filter(item => !item.checked);
-
-      // Create the completion record (force-submit)
-      const completion = await base44.asServiceRole.entities.ChecklistCompletion.create({
-        checklist_template_id: template.id,
-        checklist_title: template.title,
-        completed_by: 'system',
-        completed_by_name: 'Auto-submitted (due time reached)',
-        completed_items: completedItems,
-        completion_date: todayStr,
-        status: 'completed'
-      });
+      // Update the existing in-progress completion in place (prevents orphaned duplicate records).
+      // If no in-progress record exists, create a new completed one for history.
+      let completion;
+      if (inProgress[0]) {
+        completion = await base44.asServiceRole.entities.ChecklistCompletion.update(inProgress[0].id, {
+          status: 'completed',
+          completion_date: todayStr,
+          completed_by: 'system',
+          completed_by_name: 'Auto-submitted (due time reached)'
+        });
+      } else {
+        completion = await base44.asServiceRole.entities.ChecklistCompletion.create({
+          checklist_template_id: template.id,
+          checklist_title: template.title,
+          completed_by: 'system',
+          completed_by_name: 'Auto-submitted (due time reached)',
+          completed_items: (template.items || []).map(item => ({ ...item, checked: false })),
+          completion_date: todayStr,
+          status: 'completed'
+        });
+      }
 
       // Mark template closed
       await base44.asServiceRole.entities.ChecklistTemplate.update(template.id, {

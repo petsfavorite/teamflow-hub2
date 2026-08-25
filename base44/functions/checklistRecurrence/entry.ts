@@ -24,14 +24,22 @@ Deno.serve(async (req) => {
 
       const visibleDate = subtractDays(dueDate, visibleDayOffset);
 
-      // DEDUPLICATION: skip if an active instance for this due_date already exists
+      // DEDUPLICATION: skip if an active instance for this schedule + due_date already exists.
+      // Dedup by recurring_checklist_id (not title) so multiple schedules with the same
+      // title don't silently block each other. Fall back to title for legacy instances
+      // that were spawned before recurring_checklist_id was added.
       const existing = await base44.asServiceRole.entities.ChecklistTemplate.filter({
+        recurring_checklist_id: schedule.id,
+        due_date: dueDate,
+        status: 'active'
+      });
+      const legacyExisting = await base44.asServiceRole.entities.ChecklistTemplate.filter({
         title: schedule.template_title,
         due_date: dueDate,
         status: 'active'
       });
 
-      if (existing.length > 0) { skipped++; continue; }
+      if (existing.length > 0 || legacyExisting.length > 0) { skipped++; continue; }
 
       const isVisibleNow = shouldBeVisibleNow(schedule, now, visibleDate, todayStr, tz);
 
@@ -46,6 +54,8 @@ Deno.serve(async (req) => {
         due_date: dueDate,
         due_time: schedule.due_time || '21:00',
         visible_time: schedule.visible_time || null,
+        visible_day_offset: schedule.visible_day_offset || 0,
+        recurring_checklist_id: schedule.id,
         recurrence_type: schedule.recurrence_type,
         recurrence_days_of_week: schedule.recurrence_days_of_week,
         recurrence_day_of_month: schedule.recurrence_day_of_month,
