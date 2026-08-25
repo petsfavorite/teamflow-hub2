@@ -62,7 +62,7 @@ export default function CallCard({ call, onClick, nameMap = {} }) {
               {call.missed_call ? null : call.call_direction === "outbound" && (!call.transcript || !call.transcript.trim() || call.transcript === "No transcript") ? null : (
                 <>
                   <CallerTypeBadge type={call.caller_type} />
-                  <BookingStatus bookable={call.bookable} wasBooked={call.was_booked} bookedDate={call.booked_date} bookingOutcome={call.booking_outcome} />
+                  <BookingStatus bookable={call.bookable} wasBooked={call.was_booked} bookedDate={call.booked_date} bookingOutcome={call.booking_outcome} bookingOffered={call.booking_offered} />
                 </>
               )}
             </div>

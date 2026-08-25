@@ -157,10 +157,10 @@ Deno.serve(async (req) => {
     const rowsToProcess = records.filter(row => {
       const hasAnyData = Object.entries(row).some(([k, v]) => k !== '__rowIndex' && k !== '__raw' && v !== '');
       if (!hasAnyData) return false;
-      // Skip calls shorter than 5 seconds
+      // Skip calls shorter than 10 seconds
       if (durationHeader) {
         const durSec = parseDurationSeconds(row[durationHeader]);
-        if (durSec !== null && durSec < 5) return false;
+        if (durSec !== null && durSec < 10) return false;
       }
       return true;
     });
