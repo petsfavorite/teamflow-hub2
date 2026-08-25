@@ -85,8 +85,8 @@ Deno.serve(async (req) => {
       const row = rowMap[rowNum];
       if (!row) continue;
 
-      const directionRaw = (row["Inbound/Outbound"] || "").toLowerCase();
-      const call_direction = directionRaw.includes("out") ? "outbound" : "inbound";
+      const directionRaw = String(row["Inbound/Outbound"] || row["Direction"] || row["Call Direction"] || row["Call Type"] || row["Type"] || row["Incoming/Outgoing"] || "").toLowerCase().trim();
+      const call_direction = directionRaw.startsWith("out") || directionRaw === "out" ? "outbound" : "inbound";
 
       const callerField = row["Caller"] || "";
       const calleeField = row["Callee"] || "";

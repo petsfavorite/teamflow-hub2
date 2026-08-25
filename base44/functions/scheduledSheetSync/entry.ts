@@ -181,8 +181,11 @@ Deno.serve(async (req) => {
         if (row.__rowIndex > maxProcessedRow) maxProcessedRow = row.__rowIndex;
         continue;
       }
-      const directionRaw = String(row["Inbound/Outbound"] || "").toLowerCase();
-      const call_direction = directionRaw.includes("out") ? "outbound" : "inbound";
+      const directionRaw = String(
+        row["Inbound/Outbound"] || row["Direction"] || row["Call Direction"] ||
+        row["Call Type"] || row["Type"] || row["Incoming/Outgoing"] || ""
+      ).toLowerCase().trim();
+      const call_direction = directionRaw.startsWith("out") || directionRaw === "out" ? "outbound" : "inbound";
       const transcript = String(row["Transcript"] || "").trim();
       try {
         const callerPhoneField = String(row["Caller Phone"] || "");
