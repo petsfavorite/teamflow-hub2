@@ -26,20 +26,14 @@ Deno.serve(async (req) => {
 
       // DEDUPLICATION: skip if an active instance for this schedule + due_date already exists.
       // Dedup by recurring_checklist_id (not title) so multiple schedules with the same
-      // title don't silently block each other. Fall back to title for legacy instances
-      // that were spawned before recurring_checklist_id was added.
+      // title don't silently block each other.
       const existing = await base44.asServiceRole.entities.ChecklistTemplate.filter({
         recurring_checklist_id: schedule.id,
         due_date: dueDate,
         status: 'active'
       });
-      const legacyExisting = await base44.asServiceRole.entities.ChecklistTemplate.filter({
-        title: schedule.template_title,
-        due_date: dueDate,
-        status: 'active'
-      });
 
-      if (existing.length > 0 || legacyExisting.length > 0) { skipped++; continue; }
+      if (existing.length > 0) { skipped++; continue; }
 
       const isVisibleNow = shouldBeVisibleNow(schedule, now, visibleDate, todayStr, tz);
 
