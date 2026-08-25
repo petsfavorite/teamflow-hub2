@@ -180,18 +180,18 @@ export default function CallDashboardSettings({ open, onClose, users = [] }) {
           booking_outcomes: cdOpts.booking_outcomes || DEFAULT_OPTIONS.booking_outcomes,
           call_statuses: cdOpts.call_statuses || DEFAULT_OPTIONS.call_statuses,
         });
-        setCallerTypePrompt(cdOpts.ai_caller_type_prompt || "");
-        setBookingPrompt(cdOpts.ai_booking_prompt || "");
-        setBookingOfferedPrompt(cdOpts.ai_booking_offered_prompt || "");
-        setMissedCallPrompt(cdOpts.ai_missed_call_prompt || "");
+        setCallerTypePrompt(cdOpts.ai_caller_type_prompt || DEFAULT_CALLER_TYPE_PROMPT);
+        setBookingPrompt(cdOpts.ai_booking_prompt || DEFAULT_BOOKING_PROMPT);
+        setBookingOfferedPrompt(cdOpts.ai_booking_offered_prompt || DEFAULT_BOOKING_OFFERED_PROMPT);
+        setMissedCallPrompt(cdOpts.ai_missed_call_prompt || DEFAULT_MISSED_CALL_PROMPT);
         setNameAliases(cdOpts.name_aliases || []);
       } else {
         setSettingsId(null);
         setOptions({ ...DEFAULT_OPTIONS });
-        setCallerTypePrompt("");
-        setBookingPrompt("");
-        setBookingOfferedPrompt("");
-        setMissedCallPrompt("");
+        setCallerTypePrompt(DEFAULT_CALLER_TYPE_PROMPT);
+        setBookingPrompt(DEFAULT_BOOKING_PROMPT);
+        setBookingOfferedPrompt(DEFAULT_BOOKING_OFFERED_PROMPT);
+        setMissedCallPrompt(DEFAULT_MISSED_CALL_PROMPT);
         setNameAliases([]);
       }
     });

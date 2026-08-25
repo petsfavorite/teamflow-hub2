@@ -23,6 +23,19 @@ const AUDIO_LINK_HEADERS = [
   "call recording", "recording link url", "audio recording", "call audio link",
 ];
 
+function parseDurationSeconds(raw) {
+  if (!raw) return null;
+  const s = String(raw).trim().toLowerCase();
+  if (!s) return null;
+  if (s.includes(":")) {
+    const parts = s.split(":").map(Number);
+    if (parts.length === 2 && !parts.some(isNaN)) return parts[0] * 60 + parts[1];
+    if (parts.length === 3 && !parts.some(isNaN)) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  }
+  const num = parseFloat(s.replace(/[^0-9.]/g, ""));
+  return isNaN(num) ? null : num;
+}
+
 function findAudioLinkHeader(headers) {
   return headers.find(h => {
     if (!h || !h.trim()) return false;
@@ -107,6 +120,9 @@ Deno.serve(async (req) => {
     // Detect the audio link column (if present)
     const audioLinkHeader = findAudioLinkHeader(headers);
 
+    // Detect the duration column by header name
+    const durationHeader = headers.find(h => h && h.trim().toLowerCase().includes("duration"));
+
     // Fetch the window of new rows
     const dataRange = `${sheetName}!${startRow}:${endRow}`;
     const dataRes = await fetch(
@@ -130,7 +146,7 @@ Deno.serve(async (req) => {
 
     // Map rows to objects using actual sheet row numbers
     const records = rawRows.map((row, idx) => {
-      const obj = { __rowIndex: startRow + idx };
+      const obj = { __rowIndex: startRow + idx, __raw: row };
       headers.forEach((h, i) => {
         if (h && h.trim()) obj[h.trim()] = row[i] ?? "";
       });
@@ -138,13 +154,14 @@ Deno.serve(async (req) => {
     });
 
     const rowsToProcess = records.filter(row => {
-      const hasAnyData = Object.entries(row).some(([k, v]) => k !== '__rowIndex' && v !== '');
+      const hasAnyData = Object.entries(row).some(([k, v]) => k !== '__rowIndex' && k !== '__raw' && v !== '');
       if (!hasAnyData) return false;
-      const phone = String(row["Caller Phone"] || row["Callee Phone"] || "").toLowerCase().trim();
-      const teamMember = String(row["Team Member"] || "").trim();
-      const transcript = String(row["Transcript"] || "").trim();
-      const isAnonymousOnly = (phone === "anonymous" || phone === "") && !teamMember && !transcript;
-      return !isAnonymousOnly;
+      // Skip calls shorter than 5 seconds
+      if (durationHeader) {
+        const durSec = parseDurationSeconds(row[durationHeader]);
+        if (durSec !== null && durSec < 5) return false;
+      }
+      return true;
     });
     const remaining = rawRows.length === 50 ? "possibly more" : 0;
 
@@ -181,26 +198,30 @@ Deno.serve(async (req) => {
         if (row.__rowIndex > maxProcessedRow) maxProcessedRow = row.__rowIndex;
         continue;
       }
-      const directionRaw = String(
-        row["Inbound/Outbound"] || row["Direction"] || row["Call Direction"] ||
-        row["Call Type"] || row["Type"] || row["Incoming/Outgoing"] || ""
-      ).toLowerCase().trim();
+      // Column B (index 1) = direction
+      const directionRaw = String(row.__raw[1] || "").toLowerCase().trim();
       const call_direction = directionRaw.startsWith("out") || directionRaw === "out" ? "outbound" : "inbound";
-      const transcript = String(row["Transcript"] || "").trim();
+      // Column L (index 11) = transcript
+      const transcript = String(row.__raw[11] || "").trim();
       try {
-        const callerPhoneField = String(row["Caller Phone"] || "");
-        const calleePhoneField = String(row["Callee Phone"] || "");
-        const rawPhone = call_direction === "inbound" ? callerPhoneField : calleePhoneField;
-        const caller_phone = (rawPhone && rawPhone.toLowerCase() !== "anonymous") ? rawPhone : null;
+        // Inbound: phone from C (index 2), name from D (index 3)
+        // Outbound: phone from E (index 4), name from F (index 5)
+        const phoneRaw = call_direction === "inbound" ? String(row.__raw[2] || "") : String(row.__raw[4] || "");
+        const nameRaw = call_direction === "inbound" ? String(row.__raw[3] || "") : String(row.__raw[5] || "");
+        const caller_phone = (phoneRaw && phoneRaw.toLowerCase() !== "anonymous") ? phoneRaw.trim() : null;
+        const caller_name_from_sheet = nameRaw.trim() || null;
 
-        // Audio link from the detected column
-        const recording_url = audioLinkHeader ? extractRecordingUrl(row[audioLinkHeader]) : null;
+        // Audio link from column J (index 9)
+        const recording_url = extractRecordingUrl(row.__raw[9]);
+
+        // Duration from the detected duration column
+        const call_duration_seconds = durationHeader ? parseDurationSeconds(row[durationHeader]) : null;
 
         // --- AI analysis of transcript (if available) ---
         let team_member_raw = null;
         let caller_type = "not_applicable";
         let booking_outcome = "appt_not_booked";
-        let caller_name = null;
+        let caller_name = caller_name_from_sheet;
         let caller_intent = null;
         let bookable = "unclear";
         let transcript_summary = null;
@@ -211,7 +232,7 @@ Deno.serve(async (req) => {
         if (transcript) {
           const analysis = await analyzeCall(transcript, call_direction, userList, openai, aiPrompts);
           team_member_raw = analysis.team_member || null;
-          caller_name = analysis.caller_name || null;
+          if (!caller_name) caller_name = analysis.caller_name || null;
           caller_type = analysis.caller_type || "not_applicable";
           caller_intent = analysis.caller_intent || null;
           bookable = analysis.bookable || "unclear";
@@ -257,7 +278,7 @@ Deno.serve(async (req) => {
 
         // Parse date
         let callDateISO = new Date().toISOString();
-        const dateRaw = String(row["Date"] || "");
+        const dateRaw = String(row.__raw[0] || "");
         if (dateRaw) {
           const serial = parseFloat(dateRaw);
           if (!isNaN(serial) && serial > 40000) {
@@ -284,6 +305,7 @@ Deno.serve(async (req) => {
           zoom_meeting_id,
           call_date: callDateISO,
           call_direction,
+          call_duration_seconds,
           caller_phone,
           caller_name,
           team_member,
