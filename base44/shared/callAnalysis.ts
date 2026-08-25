@@ -1,25 +1,25 @@
-// Shared AI call-analysis logic used by scheduledSheetSync and zoomWebhook.
+// Shared AI call-analysis logic used by scheduledSheetSync, rerunCallAnalysis, and zoomWebhook.
 // Uses configurable prompts from AppSettings.call_dashboard_options.
 
-export const DEFAULT_CALLER_TYPE_PROMPT = `Classify the caller as one of:
-- "potential_client": a new inquiry from someone who is not yet a client
-- "returning_client": an existing client who has used the facility before
-- "not_applicable": not a client (vendor, wrong number, solicitor, etc.)
-For inbound calls: classify the caller (the external person). For outbound calls: classify the RECEIVER (the external person called), NOT the staff member.`;
+export const DEFAULT_CALLER_TYPE_PROMPT = `Classify the CALLER (the external person, NOT the staff member) as one of:
+- "potential_client": a new inquiry from someone who has not used the facility before
+- "returning_client": an existing client who has used the facility before (they mention a pet by name, reference a previous visit, or are calling about an existing appointment/boarding stay)
+- "not_applicable": NOT a client — vendor, wrong number, solicitor, personal call for a staff member, etc.
+When in doubt between potential and returning, prefer "returning_client" if the caller seems familiar with the facility or mentions specific pets/services.`;
 
 export const DEFAULT_BOOKING_PROMPT = `Determine the booking outcome:
-- "appt_booked": an appointment was successfully scheduled before the call ended
-- "appt_not_booked": a missed booking — the caller wanted to schedule an appointment but one was not booked (ONLY when we spoke live and failed to book)
-- "appt_not_needed": no booking was needed (voicemail with no live conversation, confirming an existing appointment, prescription refill, general question)`;
+- "appt_booked": an appointment or boarding reservation was successfully scheduled during this call
+- "appt_not_booked": a missed booking — the caller wanted to schedule something but no appointment was booked (ONLY when staff spoke live and failed to book)
+- "appt_not_needed": no booking was needed — confirming existing appointment, prescription refill, payment, general question, or voicemail with no live conversation`;
 
-export const DEFAULT_BOOKING_OFFERED_PROMPT = `For this call where a booking was NOT made (a missed booking), determine whether the staff member OFFERED an appointment to the caller.
-Return true if:
-- The staff suggested or offered a specific appointment time/date but the caller declined or did not commit
-- The staff mentioned availability or asked if the caller wanted to book but the caller declined
-Return false if:
-- No appointment was offered at all
-- The caller hung up before booking was discussed
-- The call was a voicemail or missed call with no live conversation`;
+export const DEFAULT_BOOKING_OFFERED_PROMPT = `For calls where a booking was NOT made, determine if staff OFFERED an appointment:
+- true: staff suggested a specific time/date or asked if the caller wanted to book, but the caller declined or did not commit
+- false: no appointment was offered, the caller hung up before booking was discussed, or it was a voicemail/missed call`;
+
+export const DEFAULT_MISSED_CALL_PROMPT = `Determine if this INBOUND call was a "missed call" — no one at the clinic answered:
+- true: the call went to voicemail, no staff member spoke, or the caller hung up before anyone answered
+- false: a staff member answered and had a conversation (even briefly)
+Outbound calls are NEVER missed calls.`;
 
 // Convert name_aliases from AppSettings [{alias, full_name}] into the
 // {lowercase_alias: lowercase_first_name} format used by fuzzyMatchUser.
@@ -35,12 +35,15 @@ export function buildExtraAliases(nameAliases) {
   return map;
 }
 
-// Main transcript analysis — returns all call fields in one AI call.
-// prompts: { ai_caller_type_prompt?, ai_booking_prompt? }
+// Main transcript analysis — returns all call fields in one AI call,
+// including missed_call and booking_offered (no separate API calls needed).
+// prompts: { ai_caller_type_prompt?, ai_booking_prompt?, ai_booking_offered_prompt?, ai_missed_call_prompt? }
 export async function analyzeCall(transcript, callDirection, userList, openai, prompts = {}) {
   if (!transcript || !transcript.trim()) return {};
   const callerTypePrompt = prompts.ai_caller_type_prompt || DEFAULT_CALLER_TYPE_PROMPT;
   const bookingPrompt = prompts.ai_booking_prompt || DEFAULT_BOOKING_PROMPT;
+  const bookingOfferedPrompt = prompts.ai_booking_offered_prompt || DEFAULT_BOOKING_OFFERED_PROMPT;
+  const missedCallPrompt = prompts.ai_missed_call_prompt || DEFAULT_MISSED_CALL_PROMPT;
 
   const teamEntries = userList.map(u => `"${u.full_name}"`).join("\n");
 
@@ -64,9 +67,14 @@ Return a JSON object with these fields:
 - bookable: "yes" | "no" | "unclear"
 - booking_outcome: "appt_booked" | "appt_not_booked" | "appt_not_needed"
   ${bookingPrompt}
+- booking_offered: boolean
+  ${bookingOfferedPrompt}
+  (Only meaningful when booking_outcome is "appt_not_booked"; set to false otherwise.)
 - booked_date: "YYYY-MM-DDTHH:MM:00" if appt_booked, else null
+- missed_call: boolean
+  ${missedCallPrompt}
 - transcript_summary: 2-3 sentence summary
-- ai_notes: brief flags or follow-up notes. If no one at the clinic answered (voicemail / missed call), set this to exactly "Call was missed".
+- ai_notes: brief flags or follow-up notes
 
 Return ONLY valid JSON, no markdown.`;
 
@@ -78,7 +86,8 @@ Return ONLY valid JSON, no markdown.`;
   return JSON.parse(response.choices[0].message.content);
 }
 
-// Separate AI call for missed bookings — determines if booking was offered.
+// Legacy: kept for backward compatibility with zoomWebhook or other callers.
+// Prefer the integrated booking_offered field from analyzeCall instead.
 export async function checkBookingOffered(transcript, openai, customPrompt) {
   if (!transcript || !transcript.trim()) return { booking_offered: false };
   const prompt = customPrompt || DEFAULT_BOOKING_OFFERED_PROMPT;

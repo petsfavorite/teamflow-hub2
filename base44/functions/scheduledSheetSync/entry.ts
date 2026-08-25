@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.30';
 import OpenAI from 'npm:openai';
-import { fuzzyMatchUser, aiNotesIndicatesMissed } from '../../shared/staffMatching.ts';
-import { analyzeCall, checkBookingOffered, buildExtraAliases } from '../../shared/callAnalysis.ts';
+import { fuzzyMatchUser } from '../../shared/staffMatching.ts';
+import { analyzeCall, buildExtraAliases } from '../../shared/callAnalysis.ts';
 
 function extractRecordingUrl(rawLink) {
   if (!rawLink) return null;
@@ -79,8 +79,9 @@ Deno.serve(async (req) => {
     const aiPrompts = {
       ai_caller_type_prompt: cdOpts.ai_caller_type_prompt || null,
       ai_booking_prompt: cdOpts.ai_booking_prompt || null,
+      ai_booking_offered_prompt: cdOpts.ai_booking_offered_prompt || null,
+      ai_missed_call_prompt: cdOpts.ai_missed_call_prompt || null,
     };
-    const bookingOfferedPrompt = cdOpts.ai_booking_offered_prompt || null;
     const extraAliases = buildExtraAliases(cdOpts.name_aliases);
 
     // Only fetch rows we haven't seen yet (start from lastProcessedRow + 1)
@@ -227,7 +228,8 @@ Deno.serve(async (req) => {
         let transcript_summary = null;
         let ai_notes = null;
         let booked_date = null;
-        let booking_offered = null;
+        let booking_offered = false;
+        let ai_missed_call = false;
 
         if (transcript) {
           const analysis = await analyzeCall(transcript, call_direction, userList, openai, aiPrompts);
@@ -240,6 +242,10 @@ Deno.serve(async (req) => {
           booked_date = analysis.booked_date || null;
           transcript_summary = analysis.transcript_summary || null;
           ai_notes = analysis.ai_notes || null;
+          ai_missed_call = analysis.missed_call === true;
+          if (booking_outcome === "appt_not_booked" && !ai_missed_call) {
+            booking_offered = analysis.booking_offered === true;
+          }
         } else {
           // Fallback: read from columns when no transcript
           const callerTypeRaw = String(row["Caller Type"] || "").toLowerCase();
@@ -258,22 +264,14 @@ Deno.serve(async (req) => {
           team_member = fuzzyMatchUser(teamMemberSource, userList, extraAliases);
         }
 
-        // Missed call: inbound where no team member spoke, or AI flagged it
-        const aiSaysMissed = aiNotesIndicatesMissed(ai_notes);
-        const missed_call = call_direction === "inbound" && (!team_member || aiSaysMissed);
+        // Missed call: trust the AI's determination for calls with transcripts.
+        // For calls without transcripts, use duration as a proxy (short = likely missed).
+        const missed_call = call_direction === "inbound" && (
+          ai_missed_call ||
+          (!transcript && call_duration_seconds !== null && call_duration_seconds < 30)
+        );
         if (missed_call) {
           team_member = null;
-          caller_type = "not_applicable";
-        }
-
-        // Booking offered check (only for missed bookings)
-        if (booking_outcome === "appt_not_booked" && !missed_call && transcript) {
-          try {
-            const offeredResult = await checkBookingOffered(transcript, openai, bookingOfferedPrompt);
-            booking_offered = !!offeredResult.booking_offered;
-          } catch (err) {
-            console.error(`[WARN] booking offered check failed for row ${row.__rowIndex}: ${err.message}`);
-          }
         }
 
         // Parse date

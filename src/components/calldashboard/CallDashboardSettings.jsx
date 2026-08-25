@@ -28,36 +28,25 @@ const DEFAULT_OPTIONS = {
   ],
 };
 
-const DEFAULT_CALLER_TYPE_PROMPT = `Classify the caller as one of:
-- "potential_client": a new inquiry from someone who is not yet a client
-- "returning_client": an existing client who has used the facility before
-- "not_applicable": not a client (vendor, wrong number, solicitor, etc.)
-For inbound calls: classify the caller (the external person). For outbound calls: classify the RECEIVER (the external person called), NOT the staff member.`;
+const DEFAULT_CALLER_TYPE_PROMPT = `Classify the CALLER (the external person, NOT the staff member) as one of:
+- "potential_client": a new inquiry from someone who has not used the facility before
+- "returning_client": an existing client who has used the facility before (they mention a pet by name, reference a previous visit, or are calling about an existing appointment/boarding stay)
+- "not_applicable": NOT a client — vendor, wrong number, solicitor, personal call for a staff member, etc.
+When in doubt between potential and returning, prefer "returning_client" if the caller seems familiar with the facility or mentions specific pets/services.`;
 
 const DEFAULT_BOOKING_PROMPT = `Determine the booking outcome:
-- "appt_booked": an appointment was successfully scheduled before the call ended
-- "appt_not_booked": a missed booking — the caller wanted to schedule an appointment but one was not booked (ONLY when we spoke live and failed to book)
-- "appt_not_needed": no booking was needed (voicemail with no live conversation, confirming an existing appointment, prescription refill, general question)`;
+- "appt_booked": an appointment or boarding reservation was successfully scheduled during this call
+- "appt_not_booked": a missed booking — the caller wanted to schedule something but no appointment was booked (ONLY when staff spoke live and failed to book)
+- "appt_not_needed": no booking was needed — confirming existing appointment, prescription refill, payment, general question, or voicemail with no live conversation`;
 
-const DEFAULT_BOOKING_OFFERED_PROMPT = `For this call where a booking was NOT made (a missed booking), determine whether the staff member OFFERED an appointment to the caller.
-Return true if:
-- The staff suggested or offered a specific appointment time/date but the caller declined or did not commit
-- The staff mentioned availability or asked if the caller wanted to book but the caller declined
-Return false if:
-- No appointment was offered at all
-- The caller hung up before booking was discussed
-- The call was a voicemail or missed call with no live conversation`;
+const DEFAULT_BOOKING_OFFERED_PROMPT = `For calls where a booking was NOT made, determine if staff OFFERED an appointment:
+- true: staff suggested a specific time/date or asked if the caller wanted to book, but the caller declined or did not commit
+- false: no appointment was offered, the caller hung up before booking was discussed, or it was a voicemail/missed call`;
 
-const DEFAULT_MISSED_CALL_PROMPT = `Determine if this inbound call was a "missed call" — meaning no one at the clinic answered the phone.
-Return true if:
-- The call went to voicemail (no one picked up)
-- The phone rang but no staff member spoke
-- The call duration is 0 seconds or extremely short with no conversation
-- The caller hung up before anyone answered
-Return false if:
-- A staff member answered and had a conversation with the caller
-- The call was answered even briefly
-- This is an outbound call (outbound calls are never "missed calls")`;
+const DEFAULT_MISSED_CALL_PROMPT = `Determine if this INBOUND call was a "missed call" — no one at the clinic answered:
+- true: the call went to voicemail, no staff member spoke, or the caller hung up before anyone answered
+- false: a staff member answered and had a conversation (even briefly)
+Outbound calls are NEVER missed calls.`;
 
 function OptionList({ title, items, onChange }) {
   const addItem = () => onChange([...items, { value: "", label: "" }]);

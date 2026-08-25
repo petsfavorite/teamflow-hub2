@@ -41,6 +41,19 @@ export function fuzzyMatchUser(detectedName, userList, extraAliases = {}) {
   const exact = userList.find(u => u.full_name.toLowerCase() === lower);
   if (exact) return exact.full_name;
 
+  // 1b. If multi-word name (e.g. "rebecca hall" from a garbled transcript),
+  // try matching just the first word as a first name — speech-to-text often
+  // gets the first name right but mangles the last name.
+  const words = lower.split(/\s+/);
+  if (words.length > 1) {
+    const firstWord = words[0];
+    const firstWordMatch = userList.find(u => {
+      const firstName = u.full_name.toLowerCase().split(" ")[0];
+      return firstName === firstWord;
+    });
+    if (firstWordMatch) return firstWordMatch.full_name;
+  }
+
   // 2. Exact first name match (most common — sheet often has just first names)
   const firstNameMatch = userList.find(u => {
     const firstName = u.full_name.toLowerCase().split(" ")[0];
