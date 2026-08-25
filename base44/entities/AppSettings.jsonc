@@ -18,7 +18,7 @@
     },
     "call_dashboard_options": {
       "type": "object",
-      "description": "Configurable options for the Call Dashboard dropdowns",
+      "description": "Configurable options for the Call Dashboard dropdowns and AI prompts",
       "properties": {
         "caller_types": {
           "type": "array",
@@ -62,9 +62,38 @@
             }
           }
         },
+        "ai_caller_type_prompt": {
+          "type": "string",
+          "description": "Instructions for the AI on how to classify caller type (returning client, potential client, NA, or missed call)"
+        },
+        "ai_booking_prompt": {
+          "type": "string",
+          "description": "Instructions for the AI on how to classify booking outcomes (booked, not bookable, missed booking)"
+        },
+        "ai_booking_offered_prompt": {
+          "type": "string",
+          "description": "Instructions for the AI on how to determine if a booking was offered for missed bookings"
+        },
+        "name_aliases": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "alias": {
+                "type": "string",
+                "description": "Name as it appears in transcripts"
+              },
+              "full_name": {
+                "type": "string",
+                "description": "Canonical user full name to match to"
+              }
+            }
+          },
+          "description": "Name aliases to help match names from transcripts to users"
+        },
         "ai_booking_criteria": {
           "type": "string",
-          "description": "Instructions for the AI on how to classify booking outcomes"
+          "description": "Legacy field \u2014 superseded by ai_booking_prompt"
         }
       }
     },

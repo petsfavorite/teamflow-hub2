@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { Phone, CalendarCheck, UserPlus, AlertTriangle, Loader2, Settings, PhoneMissed, Store } from "lucide-react";
+import { Phone, CalendarCheck, UserPlus, AlertTriangle, Loader2, Settings, PhoneMissed, Store, Headphones } from "lucide-react";
 import moment from "moment-timezone";
 import { Button } from "@/components/ui/button";
 import CallDashboardSettings from "@/components/calldashboard/CallDashboardSettings";
@@ -23,6 +23,7 @@ export default function CallDashboard() {
 
   const { data: user } = useQuery({ queryKey: ["me"], queryFn: () => base44.auth.me() });
   const isAdmin = user?.role === "admin" || user?.role === "super_admin" || user?.role === "manager";
+  const canManageSettings = user?.role === "admin" || user?.role === "super_admin";
 
   const { data: calls = [], isLoading, refetch } = useQuery({
     queryKey: ["callRecords"],
@@ -139,7 +140,7 @@ export default function CallDashboard() {
               <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Call Dashboard</h1>
               <p className="text-sm text-slate-500 mt-1">{filteredCalls.length} total calls · {stats.booked} booked · {stats.missedBookings} missed opportunities</p>
             </div>
-            {isAdmin && (
+            {canManageSettings && (
               <Button variant="outline" size="sm" onClick={() => setShowSettings(true)} className="gap-2 flex-shrink-0">
                 <Settings className="w-4 h-4" /> Settings
               </Button>
@@ -182,7 +183,7 @@ export default function CallDashboard() {
       </div>
 
       <CallDetailPanel call={selectedCall} open={!!selectedCall} onClose={() => setSelectedCall(null)} onUpdate={refetch} isAdmin={isAdmin} users={users} />
-      {isAdmin && <CallDashboardSettings open={showSettings} onClose={() => setShowSettings(false)} />}
+      {canManageSettings && <CallDashboardSettings open={showSettings} onClose={() => setShowSettings(false)} users={users} />}
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { createHmac } from 'node:crypto';
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import OpenAI from 'npm:openai';
 import { fuzzyMatchUser, aiNotesIndicatesMissed } from '../../shared/staffMatching.ts';
+import { analyzeCall, checkBookingOffered, buildExtraAliases } from '../../shared/callAnalysis.ts';
 
 // ── Zoom OAuth: get a short-lived access token ──────────────────────────────
 async function getZoomToken() {
@@ -36,43 +37,6 @@ async function transcribeAudio(audioBuffer, openai) {
     model: "whisper-1",
   });
   return transcription.text || "";
-}
-
-// ── AI analysis of the transcript ────────────────────────────────────────────
-async function analyzeTranscript(transcript, callDirection, userList, openai) {
-  const teamEntries = userList.map(u => `"${u.full_name}"`).join("\n");
-  const prompt = `You are an AI analyzing a phone call transcript for a veterinary clinic / pet boarding / doggie daycare facility.
-
-TRANSCRIPT:
-${transcript}
-
-CALL DIRECTION: ${callDirection}
-
-${teamEntries ? `KNOWN STAFF MEMBERS:\n${teamEntries}\n\nNotes:\n- "Caroline", "Dr. Cofer", or "Dr. Caroline Cofer" refers to Caroline Cofer.\n- "Ariana" or "Arianna" almost certainly refers to Aryana — use the closest match from the list above.` : ""}
-
-Return a JSON object with these fields:
-- team_member: string or null
-  RULES: For inbound: the staff member who ANSWERED (first staff name mentioned, e.g. "this is Sarah"). For outbound: the staff member who MADE the call (they introduce themselves). Return the name exactly as spoken in the transcript (first name, nickname, or full name) — do NOT match it to the KNOWN STAFF MEMBERS list; matching is handled separately. If no staff name is spoken, return null. Never assign Caroline/Dr. Cofer.
-- caller_name: string or null (the customer/external caller's name)
-- caller_phone: string or null
-- caller_type: "potential_client" | "returning_client" | "not_applicable"
-  For inbound: classify the caller. For outbound: classify the RECEIVER (external person called), not the staff member.
-- caller_intent: string (1-sentence summary of why they called)
-- bookable: "yes" | "no" | "unclear"
-- booking_outcome: "appt_booked" | "appt_not_booked" | "appt_not_needed"
-  NOTE: Use "appt_not_needed" for voicemails or appointment confirmations. "appt_not_booked" only when we spoke live and failed to book.
-- booked_date: "YYYY-MM-DDTHH:MM:00" if appt_booked, else null
-- transcript_summary: 2-3 sentence summary
-- ai_notes: brief flags or follow-up notes. If no one at the clinic answered (voicemail / missed call), set this to exactly "Call was missed".
-
-Return ONLY valid JSON, no markdown.`;
-
-  const response = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [{ role: "user", content: prompt }],
-    response_format: { type: "json_object" }
-  });
-  return JSON.parse(response.choices[0].message.content);
 }
 
 // ── Append a row to Google Sheet ──────────────────────────────────────────────
@@ -147,14 +111,22 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
     const openai  = new OpenAI({ apiKey: Deno.env.get("OPENAI_API_KEY") });
 
-    const [zoomToken, sheetsConn, userList] = await Promise.all([
+    const [zoomToken, sheetsConn, userList, settingsList] = await Promise.all([
       getZoomToken(),
       base44.asServiceRole.connectors.getConnection("googlesheets"),
       base44.asServiceRole.entities.User.list(),
+      base44.asServiceRole.entities.AppSettings.filter({ key: "global" }),
     ]);
 
     const { accessToken: sheetsToken } = sheetsConn;
     const spreadsheetId = Deno.env.get("GOOGLE_SHEET_ID");
+    const cdOpts = settingsList?.[0]?.call_dashboard_options || {};
+    const aiPrompts = {
+      ai_caller_type_prompt: cdOpts.ai_caller_type_prompt || null,
+      ai_booking_prompt: cdOpts.ai_booking_prompt || null,
+    };
+    const bookingOfferedPrompt = cdOpts.ai_booking_offered_prompt || null;
+    const extraAliases = buildExtraAliases(cdOpts.name_aliases);
 
     console.log(`[INFO] Processing recording for meeting ${meetingId} - ${topic}`);
 
@@ -168,9 +140,20 @@ Deno.serve(async (req) => {
     // Determine call direction from topic or default inbound
     const callDirection = topic.toLowerCase().includes("outbound") ? "outbound" : "inbound";
 
-    // AI analysis
-    const analysis = await analyzeTranscript(transcript, callDirection, userList, openai);
+    // AI analysis (using configurable prompts)
+    const analysis = await analyzeCall(transcript, callDirection, userList, openai, aiPrompts);
     console.log(`[INFO] Analysis complete: ${JSON.stringify(analysis).substring(0, 200)}`);
+
+    // Booking offered check (only for missed bookings)
+    let booking_offered = null;
+    if (analysis.booking_outcome === "appt_not_booked" && transcript) {
+      try {
+        const offeredResult = await checkBookingOffered(transcript, openai, bookingOfferedPrompt);
+        booking_offered = !!offeredResult.booking_offered;
+      } catch (err) {
+        console.error(`[WARN] booking offered check failed: ${err.message}`);
+      }
+    }
 
     // Build sheet row:
     // A: Date | B: Duration (min) | C: Direction | D: Caller Name | E: Caller Phone
@@ -195,7 +178,7 @@ Deno.serve(async (req) => {
     // Missed call: inbound where no team member spoke (no one at the clinic answered),
     // or the AI explicitly flagged it as a missed call in ai_notes.
     const aiSaysMissed = aiNotesIndicatesMissed(analysis.ai_notes);
-    const teamMember = fuzzyMatchUser(analysis.team_member, userList);
+    const teamMember = fuzzyMatchUser(analysis.team_member, userList, extraAliases);
     const missed_call = callDirection === "inbound" && (!teamMember || aiSaysMissed);
 
     // Save CallRecord to DB
@@ -216,6 +199,7 @@ Deno.serve(async (req) => {
       booking_outcome: analysis.booking_outcome || "appt_not_booked",
       was_booked: analysis.booking_outcome === "appt_booked",
       booked_date: analysis.booked_date || null,
+      booking_offered: missed_call ? null : booking_offered,
       ai_notes: analysis.ai_notes || null,
       missed_call,
       status: "pending_review",

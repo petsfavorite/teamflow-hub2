@@ -22,9 +22,12 @@ export const NAME_ALIASES = {
 
 export const NEVER_ASSIGN_AS_ANSWERER = ["caroline cofer", "dr. cofer", "dr cofer", "caroline", "dr caroline", "dr. caroline"];
 
-export function fuzzyMatchUser(detectedName, userList) {
+export function fuzzyMatchUser(detectedName, userList, extraAliases = {}) {
   if (!detectedName || !userList.length) return null;
   let lower = detectedName.toLowerCase().trim();
+
+  // Merge built-in aliases with user-configured extra aliases
+  const allAliases = { ...NAME_ALIASES, ...extraAliases };
 
   // Hard block: never assign Caroline Cofer as the answerer
   if (NEVER_ASSIGN_AS_ANSWERER.some(blocked => lower === blocked || lower.includes(blocked))) {
@@ -32,7 +35,7 @@ export function fuzzyMatchUser(detectedName, userList) {
   }
 
   // Apply alias normalization before matching
-  if (NAME_ALIASES[lower]) lower = NAME_ALIASES[lower];
+  if (allAliases[lower]) lower = allAliases[lower];
 
   // 1. Exact full name match
   const exact = userList.find(u => u.full_name.toLowerCase() === lower);
@@ -46,7 +49,7 @@ export function fuzzyMatchUser(detectedName, userList) {
   if (firstNameMatch) return firstNameMatch.full_name;
 
   // 3. Partial alias: check if the detected name is an alias fragment of a user
-  for (const [alias, canonical] of Object.entries(NAME_ALIASES)) {
+  for (const [alias, canonical] of Object.entries(allAliases)) {
     if (lower.includes(alias)) {
       lower = lower.replace(alias, canonical);
       break;

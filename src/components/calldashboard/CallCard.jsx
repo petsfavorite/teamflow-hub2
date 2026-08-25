@@ -1,5 +1,5 @@
 import { Card } from "@/components/ui/card";
-import { PhoneIncoming, PhoneOutgoing, Clock, User, ChevronRight, PhoneMissed } from "lucide-react";
+import { PhoneIncoming, PhoneOutgoing, Clock, User, ChevronRight, PhoneMissed, Headphones } from "lucide-react";
 import CallerTypeBadge from "./CallerTypeBadge";
 import BookingStatus from "./BookingStatus";
 import { cn } from "@/lib/utils";
@@ -24,6 +24,11 @@ export default function CallCard({ call, onClick, nameMap = {} }) {
                 <span className="font-medium text-slate-400">{dateStr} · {timeStr}</span>
               </div>
               <div className="flex items-center gap-1.5 text-xs text-slate-400"><Clock className="w-3 h-3" /><span>{duration}</span></div>
+              {call.recording_url && (
+                <div className="flex items-center gap-1.5 text-xs text-indigo-500" title="Audio recording available">
+                  <Headphones className="w-3 h-3" /><span>Audio</span>
+                </div>
+              )}
             </div>
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
               <div>

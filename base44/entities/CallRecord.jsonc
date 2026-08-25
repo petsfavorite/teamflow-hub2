@@ -40,7 +40,8 @@
       "description": "AI-generated summary"
     },
     "recording_url": {
-      "type": "string"
+      "type": "string",
+      "description": "Link to the call audio recording"
     },
     "caller_type": {
       "type": "string",
@@ -75,6 +76,10 @@
     "booked_date": {
       "type": "string",
       "format": "date-time"
+    },
+    "booking_offered": {
+      "type": "boolean",
+      "description": "True if staff offered an appointment but the caller did not commit (for missed bookings only)"
     },
     "missed_call": {
       "type": "boolean",

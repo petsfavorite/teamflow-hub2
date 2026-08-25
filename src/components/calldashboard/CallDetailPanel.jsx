@@ -3,7 +3,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PhoneIncoming, PhoneOutgoing, Clock, User, FileText, MessageSquare, CalendarCheck, ChevronDown } from "lucide-react";
+import { PhoneIncoming, PhoneOutgoing, Clock, User, FileText, MessageSquare, CalendarCheck, ChevronDown, Headphones, CheckCircle2, XCircle } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import CallerTypeBadge from "./CallerTypeBadge";
 import { base44 } from "@/api/base44Client";
@@ -119,6 +119,15 @@ export default function CallDetailPanel({ call, open, onClose, onUpdate, isAdmin
 
           <Separator />
 
+          {call.recording_url && (
+            <div className="space-y-1.5">
+              <p className="text-xs font-medium uppercase tracking-wider text-slate-400 flex items-center gap-1.5"><Headphones className="w-3 h-3" />Call Recording</p>
+              <a href={call.recording_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors text-sm font-medium">
+                <Headphones className="w-4 h-4" /> Listen to Recording
+              </a>
+            </div>
+          )}
+
           {!missedCall && <div className="space-y-1.5">
             <p className="text-xs font-medium uppercase tracking-wider text-slate-400">Caller Type</p>
             {isAdmin ? (
@@ -164,6 +173,12 @@ export default function CallDetailPanel({ call, open, onClose, onUpdate, isAdmin
             {bookingOutcome === "appt_booked" && call.booked_date && (
               <p className="text-xs text-emerald-600 font-medium flex items-center gap-1">
                 <CalendarCheck className="w-3 h-3" />Booked for {new Date(call.booked_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+              </p>
+            )}
+            {bookingOutcome === "appt_not_booked" && call.booking_offered !== null && call.booking_offered !== undefined && (
+              <p className={cn("text-xs font-medium flex items-center gap-1", call.booking_offered ? "text-amber-600" : "text-slate-500")}>
+                {call.booking_offered ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+                {call.booking_offered ? "Booking was offered but caller declined" : "Booking was not offered"}
               </p>
             )}
           </div>}
