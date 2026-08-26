@@ -35,6 +35,19 @@ Deno.serve(async (req) => {
 
       if (existing.length > 0) { skipped++; continue; }
 
+      // PAST-DUE GUARD: if the due date is today and the due time has already passed,
+      // skip creating the instance — it would be immediately auto-closed as "missed",
+      // producing a spurious completion record. (Normal 5 AM runs land before any due
+      // time; this guard only matters for late/manual re-runs.)
+      if (dueDate === todayStr) {
+        const dueTime = schedule.due_time || '21:00';
+        const [dh, dm] = dueTime.split(':').map(Number);
+        const dueMinutes = dh * 60 + (dm || 0);
+        const [tzH, tzM] = now.toLocaleTimeString('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit' }).split(':').map(Number);
+        const nowMinutes = tzH * 60 + tzM;
+        if (nowMinutes > dueMinutes) { skipped++; continue; }
+      }
+
       const isVisibleNow = shouldBeVisibleNow(schedule, now, visibleDate, todayStr, tz);
 
       await base44.asServiceRole.entities.ChecklistTemplate.create({
