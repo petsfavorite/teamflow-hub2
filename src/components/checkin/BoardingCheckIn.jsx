@@ -99,6 +99,11 @@ export default function BoardingCheckIn({ pet, visit, onConfirm, onCancel, editM
         return;
     }
 
+    if (moment(checkoutDate).isBefore(moment().format('YYYY-MM-DD'))) {
+        alert('Checkout date cannot be before today');
+        return;
+    }
+
     // Build core daily tasks locally (no API call needed)
     const checkInDate = moment().format('YYYY-MM-DD');
     let tasks = [];

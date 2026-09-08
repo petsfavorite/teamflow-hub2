@@ -14,6 +14,7 @@ Deno.serve(async (req) => {
         const settings = await base44.asServiceRole.entities.AppSettings.filter({ key: 'global' });
         const tz = settings[0]?.global_timezone || 'America/New_York';
         const today = new Date().toLocaleDateString('en-CA', { timeZone: tz });
+        const nowTime = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: tz });
         let updatedCount = 0;
         
         for (const visit of visits) {
@@ -40,7 +41,8 @@ Deno.serve(async (req) => {
             
             undoneTasks.forEach(task => {
                 activityLog.push({
-                    time: timestamp,
+                    time: nowTime,
+                    date: today,
                     activity: `Task: ${task.type}`,
                     notes: 'Not Done',
                     staff: 'System'

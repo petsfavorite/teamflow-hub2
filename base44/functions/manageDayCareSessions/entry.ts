@@ -38,11 +38,17 @@ Deno.serve(async (req) => {
 
             // Check if play sessions already exist for today
             const existingToday = tasks.filter(t => t.type === 'Play Session' && t.date === today);
-            if (existingToday.length > 0) continue;
-
             const totalSessions = visit.play_camp_duration === 'half_day' ? 2 : 4;
 
-            const newSessionTasks = Array.from({ length: totalSessions }, (_, i) => ({
+            // If the correct number already exists, nothing to do.
+            // If fewer exist than expected (e.g. duration changed from half to full),
+            // top up the missing sessions rather than skipping.
+            if (existingToday.length >= totalSessions) continue;
+
+            const needed = totalSessions - existingToday.length;
+
+            const startFrom = existingToday.length;
+            const newSessionTasks = Array.from({ length: needed }, (_, i) => ({
                 type: 'Play Session',
                 time: '',
                 date: today,
@@ -50,7 +56,7 @@ Deno.serve(async (req) => {
                 completed: false,
                 completed_at: null,
                 completed_by: null,
-                notes: `Session ${i + 1}`
+                notes: `Session ${startFrom + i + 1}`
             }));
 
             await base44.asServiceRole.entities.Visit.update(visit.id, {

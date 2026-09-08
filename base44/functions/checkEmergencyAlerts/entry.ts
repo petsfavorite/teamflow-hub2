@@ -36,6 +36,7 @@ Deno.serve(async (req) => {
       // Check care log for actual observed feces/urine in last 48 hours
       // Care log entries store time as "h:mm A" string and date as "YYYY-MM-DD"
       // Fall back to completed_iso on scheduled_tasks if care log timestamps are missing
+      const visitCheckInTime = new Date(visit.check_in_time);
       const recentCareLog = (visit.care_log || []).filter(log => {
         // Try ISO timestamp first (some entries may have it)
         if (log.timestamp) {
@@ -43,11 +44,11 @@ Deno.serve(async (req) => {
         }
         // Use date field (YYYY-MM-DD) if available
         if (log.date) {
-          const logDate = new Date(log.date + 'T23:59:59');
-          return logDate > fortyEightHoursAgo;
+          const parsed = new Date(log.date + 'T23:59:59');
+          if (!isNaN(parsed.getTime())) return parsed > fortyEightHoursAgo;
         }
-        // If only time string (no date), assume it's from today
-        return true;
+        // Fall back to the visit's check-in time if no usable date on the log
+        return visitCheckInTime > fortyEightHoursAgo;
       });
 
       // Only count logged activities (not auto-removed tasks at 11:59 PM)

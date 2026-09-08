@@ -79,37 +79,42 @@ export default function CheckIn() {
     const handleConfirmCheckIn = async (visitData) => {
         setCheckingIn(true);
         
-        // Create the visit record FIRST — only mark the pet as checked in once the
-        // visit exists. If these run in parallel and the visit creation fails, the
-        // pet gets stuck with is_checked_in=true but no visit (invisible on the
-        // whiteboard, can't be re-checked-in).
-        await createVisitMutation.mutateAsync({
-            pet_id: selectedPet.id,
-            pet_name: selectedPet.name,
-            check_in_date: moment().format('YYYY-MM-DD'),
-            check_in_time: new Date().toISOString(),
-            location: 'Lobby',
-            status: 'checked_in',
-            care_log: [{
-                time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-                activity: 'Check In',
-                notes: `${selectedPet.name} checked in for ${visitData.visit_type === 'boarding' ? 'boarding' : 'play camp'}`
-            }],
-            picture_sent: false,
-            ...visitData
-        });
+        try {
+            // Create the visit record FIRST — only mark the pet as checked in once the
+            // visit exists. If these run in parallel and the visit creation fails, the
+            // pet gets stuck with is_checked_in=true but no visit (invisible on the
+            // whiteboard, can't be re-checked-in).
+            await createVisitMutation.mutateAsync({
+                pet_id: selectedPet.id,
+                pet_name: selectedPet.name,
+                check_in_date: moment().format('YYYY-MM-DD'),
+                check_in_time: new Date().toISOString(),
+                location: 'Lobby',
+                status: 'checked_in',
+                care_log: [{
+                    time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+                    activity: 'Check In',
+                    notes: `${selectedPet.name} checked in for ${visitData.visit_type === 'boarding' ? 'boarding' : 'play camp'}`
+                }],
+                picture_sent: false,
+                ...visitData
+            });
 
-        await updatePetMutation.mutateAsync({
-            id: selectedPet.id,
-            data: { is_checked_in: true, feeding_frequency: visitData.feeding_frequency }
-        });
+            await updatePetMutation.mutateAsync({
+                id: selectedPet.id,
+                data: { is_checked_in: true, feeding_frequency: visitData.feeding_frequency }
+            });
 
-        setCheckingIn(false);
-        setShowSuccess(true);
-        
-        setTimeout(() => {
-            navigate(createPageUrl('Whiteboard'));
-        }, 1500);
+            setShowSuccess(true);
+            
+            setTimeout(() => {
+                navigate(createPageUrl('Whiteboard'));
+            }, 1500);
+        } catch (error) {
+            alert('Check-in failed. Please try again.');
+        } finally {
+            setCheckingIn(false);
+        }
     };
 
     const availablePets = pets.filter(p => !p.is_checked_in);

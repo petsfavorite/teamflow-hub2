@@ -31,11 +31,18 @@ export default function Whiteboard() {
         base44.auth.me().then(setCurrentUser).catch(() => {});
     }, []);
 
-    // Auto-refresh every 5 seconds when on Day View (but not when panel is open)
+    // Auto-refresh every 5 seconds when on Day View (but not when panel is open
+    // or when a user is actively editing an input — prevents losing in-progress edits)
     useEffect(() => {
         if (activeTab !== 'day' || selectedVisit) return;
         
+        const isInputFocused = () => {
+            const el = document.activeElement;
+            return el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
+        };
+
         const interval = setInterval(() => {
+            if (isInputFocused()) return; // don't refetch mid-edit
             queryClient.invalidateQueries(['visits']);
             queryClient.invalidateQueries(['pets']);
         }, 5000); // 5 seconds
@@ -60,6 +67,15 @@ export default function Whiteboard() {
         mutationFn: ({ id, data }) => base44.entities.Visit.update(id, data),
         onSuccess: () => {
             queryClient.invalidateQueries(['visits']);
+        },
+        onError: () => {
+            // Rollback optimistic update — revert to freshest server state
+            const freshVisits = queryClient.getQueryData(['visits']);
+            if (selectedVisit && freshVisits) {
+                const fresh = freshVisits.find(v => v.id === selectedVisit.id);
+                if (fresh) setSelectedVisit({ ...fresh });
+            }
+            alert('Failed to save changes. Please try again.');
         }
     });
 
@@ -106,6 +122,14 @@ export default function Whiteboard() {
     
     const handleConfirmCheckout = async (pdfUrl, pdfExpiry) => {
         const checkoutTime = new Date().toISOString();
+        // Update the pet flag FIRST — only mark the visit as checked out once the
+        // pet is no longer flagged. If these run in the opposite order and the pet
+        // update fails, the pet is stuck: is_checked_in=true but visit=checked_out
+        // (invisible on the whiteboard, can't be re-checked-in).
+        await updatePetMutation.mutateAsync({ 
+            id: selectedPet.id, 
+            data: { is_checked_in: false }
+        });
         await updateVisitMutation.mutateAsync({ 
             id: selectedVisit.id, 
             data: { 
@@ -115,10 +139,6 @@ export default function Whiteboard() {
                 pdf_expiry: pdfExpiry,
                 what_was_brought: ''
             }
-        });
-        await updatePetMutation.mutateAsync({ 
-            id: selectedPet.id, 
-            data: { is_checked_in: false }
         });
         
         setCheckoutDialogOpen(false);

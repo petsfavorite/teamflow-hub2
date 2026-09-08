@@ -685,7 +685,9 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                          const taskIsToday = viewDate === today;
                                          const isLocked = taskIsToday && isAfter9PM;
                                          const isOverdue = taskIsToday && !task.completed && !isAfter9PM && moment().isAfter(taskTime);
-                                        const actualIdx = visit.scheduled_tasks?.findIndex(t => t === task);
+                                        const actualIdx = visit.scheduled_tasks?.findIndex(t =>
+                                            t.type === task.type && t.time === task.time && t.date === task.date
+                                        );
                                         const recurrenceLabel = '';
                                         
                                         return (
