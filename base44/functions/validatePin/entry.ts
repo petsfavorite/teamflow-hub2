@@ -21,6 +21,11 @@ Deno.serve(async (req) => {
       return Response.json({ valid: false });
     }
 
+    // PIN collision — multiple users share this PIN, refuse to authenticate
+    if (users.length > 1) {
+      return Response.json({ valid: false, error: 'PIN collision — multiple users share this PIN. Contact an admin.' });
+    }
+
     const matched = users[0];
     return Response.json({
       valid: true,

@@ -10,7 +10,7 @@ Deno.serve(async (req) => {
     }
 
     // Get all users
-    const allUsers = await base44.asServiceRole.entities.User.list('created_date', 500);
+    const allUsers = await base44.asServiceRole.entities.User.list('created_date', 5000);
     let updated = 0;
 
     for (const u of allUsers) {

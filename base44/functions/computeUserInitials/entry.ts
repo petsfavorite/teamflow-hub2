@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
     const baseInitials = (firstName.charAt(0) + lastName.charAt(0)).toUpperCase();
 
     // Get all users
-    const allUsers = await base44.asServiceRole.entities.User.list('created_date', 500);
+    const allUsers = await base44.asServiceRole.entities.User.list('created_date', 5000);
 
     // Find all users with the same initials
     const usersWithSameInitials = allUsers.filter(u => {

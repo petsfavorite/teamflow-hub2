@@ -41,8 +41,19 @@ Deno.serve(async (req) => {
       updates.role = role;
     }
 
-    // PIN changes — managers+ can update
+    // PIN changes — managers+ can update, check uniqueness
     if (pin !== undefined) {
+      if (pin && pin.length !== 6) {
+        return Response.json({ error: 'PIN must be exactly 6 digits' }, { status: 400 });
+      }
+      // Check PIN uniqueness if a non-empty PIN is being set
+      if (pin) {
+        const existingPinUsers = await base44.asServiceRole.entities.User.filter({ pin });
+        const conflict = existingPinUsers.find(u => u.id !== userId);
+        if (conflict) {
+          return Response.json({ error: 'PIN already in use by another user' }, { status: 400 });
+        }
+      }
       updates.pin = pin || null;
     }
 
@@ -60,43 +71,25 @@ Deno.serve(async (req) => {
     // Recompute initials if name changed
     if (updates.full_name) {
       await base44.functions.invoke('computeUserInitials', { user_id: userId });
-
-      // Also update the user's name in all Team.member_names arrays
-      const existingTeamIds = targetUser.team_ids || [];
-      if (existingTeamIds.length > 0 && team_ids === undefined) {
-        const allTeams = await base44.asServiceRole.entities.Team.list('name', 500);
-        await Promise.all(allTeams.filter(t => existingTeamIds.includes(t.id)).map(async (team) => {
-          const idx = (team.member_emails || []).indexOf(targetUser.email);
-          if (idx >= 0) {
-            const newNames = [...(team.member_names || [])];
-            newNames[idx] = updates.full_name;
-            await base44.asServiceRole.entities.Team.update(team.id, { member_names: newNames });
-          }
-        }));
-      }
     }
 
-    // Sync Team.member_emails / member_names whenever team assignments change
-    if (team_ids !== undefined) {
-      const userEmail = updates.full_name
-        ? (targetUser.email)
-        : targetUser.email;
+    // Sync Team.member_emails / member_names whenever team assignments or name changes
+    if (updates.full_name || team_ids !== undefined) {
+      const userEmail = targetUser.email;
       const userName = updates.full_name || targetUser.full_name || targetUser.email || '';
+      const effectiveTeamIds = team_ids !== undefined ? team_ids : (targetUser.team_ids || []);
 
-      // Fetch all teams
       const allTeams = await base44.asServiceRole.entities.Team.list('name', 500);
 
       await Promise.all(allTeams.map(async (team) => {
-        const shouldBeMember = team_ids.includes(team.id);
+        const shouldBeMember = effectiveTeamIds.includes(team.id);
         const isMember = (team.member_emails || []).includes(userEmail);
 
         if (shouldBeMember && !isMember) {
           // Add user to team
-          const newEmails = [...(team.member_emails || []), userEmail];
-          const newNames = [...(team.member_names || []), userName];
           await base44.asServiceRole.entities.Team.update(team.id, {
-            member_emails: newEmails,
-            member_names: newNames,
+            member_emails: [...(team.member_emails || []), userEmail],
+            member_names: [...(team.member_names || []), userName],
           });
         } else if (!shouldBeMember && isMember) {
           // Remove user from team
@@ -107,6 +100,14 @@ Deno.serve(async (req) => {
             member_emails: newEmails,
             member_names: newNames,
           });
+        } else if (shouldBeMember && isMember && updates.full_name) {
+          // User stays on team but name changed — update member_names
+          const idx = (team.member_emails || []).indexOf(userEmail);
+          if (idx >= 0) {
+            const newNames = [...(team.member_names || [])];
+            newNames[idx] = userName;
+            await base44.asServiceRole.entities.Team.update(team.id, { member_names: newNames });
+          }
         }
       }));
     }

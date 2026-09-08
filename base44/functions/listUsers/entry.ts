@@ -13,6 +13,6 @@ Deno.serve(async (req) => {
     return Response.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const users = await base44.asServiceRole.entities.User.list('full_name', 500);
+  const users = await base44.asServiceRole.entities.User.list('full_name', 5000);
   return Response.json({ users });
 });

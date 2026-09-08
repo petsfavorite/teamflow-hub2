@@ -80,24 +80,6 @@ export default function UserManagement() {
     return false;
   };
 
-  const updateRoleMutation = useMutation({
-    mutationFn: ({ id, role }) => base44.entities.User.update(id, { role }),
-    onSuccess: () => {
-      toast.success('User role updated');
-      queryClient.invalidateQueries({ queryKey: ['all-users'] });
-      setEditingUser(null);
-    },
-  });
-
-  const updateTeamsMutation = useMutation({
-    mutationFn: ({ id, team_ids }) => base44.entities.User.update(id, { team_ids }),
-    onSuccess: () => {
-      toast.success('Teams updated');
-      queryClient.invalidateQueries({ queryKey: ['all-users'] });
-      setEditingUser(null);
-    },
-  });
-
   const createTeamMutation = useMutation({
     mutationFn: (name) => base44.entities.Team.create({ name, member_emails: [], member_names: [] }),
     onSuccess: () => {
@@ -135,39 +117,13 @@ export default function UserManagement() {
   const handleInvite = async () => {
     setInviting(true);
     try {
-      const pin = invitePin || generatePin();
-      const platformRole = ['admin', 'super_admin'].includes(inviteRole) ? 'admin' : 'user';
-
-      // Try platform invite — don't block if it fails (user may already exist)
-      try {
-        await base44.users.inviteUser(inviteEmail, platformRole);
-      } catch (platformErr) {
-        console.warn('Platform invite warning (may already exist):', platformErr?.message);
-      }
-      
-      // Send custom email with PIN — may fail if user not yet in system, that's OK
-      try {
-        await base44.functions.invoke('sendInviteEmail', {
-          email: inviteEmail,
-          firstName: inviteFirstName,
-          lastName: inviteLastName,
-          pin,
-        });
-      } catch (emailErr) {
-        console.warn('Email send warning (user may not be in system yet):', emailErr?.message);
-      }
-
-      // Create a PendingInvite record so it shows immediately in the list
-      await base44.entities.PendingInvite.create({
+      await base44.functions.invoke('createUserInvite', {
         email: inviteEmail,
-        first_name: inviteFirstName,
-        last_name: inviteLastName,
+        firstName: inviteFirstName,
+        lastName: inviteLastName,
+        pin: invitePin,
         role: inviteRole,
-        pin,
         team_ids: inviteTeamIds,
-        invited_by: user?.email,
-        invited_by_name: user?.full_name,
-        last_sent_at: new Date().toISOString(),
       });
 
       toast.success(`Invitation sent to ${inviteEmail}`);
@@ -181,8 +137,8 @@ export default function UserManagement() {
       queryClient.invalidateQueries({ queryKey: ['all-users'] });
       queryClient.invalidateQueries({ queryKey: ['pending-invites'] });
     } catch (e) {
-      console.error('Invite error:', e);
-      toast.error(`Failed to send invitation: ${e?.message || 'Unknown error'}`);
+      const errMsg = e?.response?.data?.error || e?.message || 'Unknown error';
+      toast.error(`Failed to send invitation: ${errMsg}`);
     } finally {
       setInviting(false);
     }
@@ -190,18 +146,19 @@ export default function UserManagement() {
 
   const handleResendInvite = async (invite) => {
     try {
-      const pin = invite.pin || generatePin();
-      await base44.functions.invoke('sendInviteEmail', {
+      await base44.functions.invoke('createUserInvite', {
         email: invite.email,
         firstName: invite.first_name,
         lastName: invite.last_name,
-        pin,
+        pin: invite.pin || '',
+        role: invite.role,
+        team_ids: invite.team_ids || [],
       });
-      await base44.entities.PendingInvite.update(invite.id, { last_sent_at: new Date().toISOString(), pin });
       toast.success(`Invitation resent to ${invite.email}`);
       queryClient.invalidateQueries({ queryKey: ['pending-invites'] });
     } catch (e) {
-      toast.error('Failed to resend invitation');
+      const errMsg = e?.response?.data?.error || e?.message || 'Unknown error';
+      toast.error(`Failed to resend: ${errMsg}`);
     }
   };
 
@@ -719,7 +676,7 @@ export default function UserManagement() {
               disabled={!!pinError}
               className="bg-indigo-600 hover:bg-indigo-700 gap-2"
               >
-              {(updateNameMutation.isPending || updateRoleMutation.isPending || updateTeamsMutation.isPending) && <Loader2 className="w-4 h-4 animate-spin" />} Save Changes
+              {updateNameMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Save Changes
               </Button>
           </DialogFooter>
         </DialogContent>
