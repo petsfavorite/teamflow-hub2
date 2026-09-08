@@ -79,13 +79,11 @@ export default function CheckIn() {
     const handleConfirmCheckIn = async (visitData) => {
         setCheckingIn(true);
         
-        // Update pet status and create visit record in parallel
-        await Promise.all([
-            updatePetMutation.mutateAsync({
-                id: selectedPet.id,
-                data: { is_checked_in: true, feeding_frequency: visitData.feeding_frequency }
-            }),
-            createVisitMutation.mutateAsync({
+        // Create the visit record FIRST — only mark the pet as checked in once the
+        // visit exists. If these run in parallel and the visit creation fails, the
+        // pet gets stuck with is_checked_in=true but no visit (invisible on the
+        // whiteboard, can't be re-checked-in).
+        await createVisitMutation.mutateAsync({
             pet_id: selectedPet.id,
             pet_name: selectedPet.name,
             check_in_date: moment().format('YYYY-MM-DD'),
@@ -99,8 +97,12 @@ export default function CheckIn() {
             }],
             picture_sent: false,
             ...visitData
-            })
-        ]);
+        });
+
+        await updatePetMutation.mutateAsync({
+            id: selectedPet.id,
+            data: { is_checked_in: true, feeding_frequency: visitData.feeding_frequency }
+        });
 
         setCheckingIn(false);
         setShowSuccess(true);
