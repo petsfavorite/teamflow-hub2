@@ -233,15 +233,16 @@ Deno.serve(async (req) => {
 
         if (transcript) {
           const analysis = await analyzeCall(transcript, call_direction, userList, openai, aiPrompts);
-          team_member_raw = analysis.team_member || null;
-          if (!caller_name) caller_name = analysis.caller_name || null;
+          const strOrNull = (v) => typeof v === 'string' && v.trim() ? v.trim() : null;
+          team_member_raw = strOrNull(analysis.team_member);
+          if (!caller_name) caller_name = strOrNull(analysis.caller_name);
           caller_type = analysis.caller_type || "not_applicable";
-          caller_intent = analysis.caller_intent || null;
+          caller_intent = strOrNull(analysis.caller_intent);
           bookable = analysis.bookable || "unclear";
           booking_outcome = analysis.booking_outcome || "appt_not_booked";
           booked_date = analysis.booked_date || null;
-          transcript_summary = analysis.transcript_summary || null;
-          ai_notes = analysis.ai_notes || null;
+          transcript_summary = strOrNull(analysis.transcript_summary);
+          ai_notes = strOrNull(analysis.ai_notes);
           ai_missed_call = analysis.missed_call === true;
           if (booking_outcome === "appt_not_booked" && !ai_missed_call) {
             booking_offered = analysis.booking_offered === true;
