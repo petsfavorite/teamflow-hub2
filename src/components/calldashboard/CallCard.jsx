@@ -6,8 +6,8 @@ import { cn } from "@/lib/utils";
 
 export default function CallCard({ call, onClick, nameMap = {} }) {
   const date = new Date(call.call_date);
-  const timeStr = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-  const dateStr = date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const timeStr = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York" });
+  const dateStr = date.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/New_York" });
   const duration = call.call_duration_seconds
     ? `${Math.floor(call.call_duration_seconds / 60)}m ${call.call_duration_seconds % 60}s` : "—";
 

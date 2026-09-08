@@ -113,7 +113,7 @@ export default function CallDetailPanel({ call, open, onClose, onUpdate, isAdmin
                 <p className="text-sm font-medium text-slate-700">{teamMember || "—"}</p>
               )}
             </div>
-            <MetaItem icon={Clock} label="Date & Time" value={date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) + " · " + date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })} />
+            <MetaItem icon={Clock} label="Date & Time" value={date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/New_York" }) + " · " + date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York" })} />
             <MetaItem icon={Clock} label="Duration" value={duration} />
           </div>
 
@@ -172,7 +172,7 @@ export default function CallDetailPanel({ call, open, onClose, onUpdate, isAdmin
             )}
             {bookingOutcome === "appt_booked" && call.booked_date && (
               <p className="text-xs text-emerald-600 font-medium flex items-center gap-1">
-                <CalendarCheck className="w-3 h-3" />Booked for {new Date(call.booked_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                <CalendarCheck className="w-3 h-3" />Booked for {new Date(call.booked_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/New_York" })}
               </p>
             )}
             {bookingOutcome === "appt_not_booked" && call.booking_offered !== null && call.booking_offered !== undefined && (
