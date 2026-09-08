@@ -85,9 +85,9 @@ Deno.serve(async (req) => {
     const extraAliases = buildExtraAliases(cdOpts.name_aliases);
 
     // Only fetch rows we haven't seen yet (start from lastProcessedRow + 1)
-    // Process 100 rows per run for faster catch-up
+    // Process 200 rows per run for faster catch-up
     const startRow = lastProcessedRow + 1;
-    const endRow = startRow + 99;
+    const endRow = startRow + 199;
 
     // First, get the actual sheet name from spreadsheet metadata
     const metaRes = await fetch(
@@ -307,7 +307,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Bulk-create in batches of 50
+    // Bulk-create in batches of 50, saving the high-water mark after each batch
+    // so progress survives if the function times out mid-run
     const BATCH_SIZE = 50;
     for (let i = 0; i < recordsToCreate.length; i += BATCH_SIZE) {
       const batch = recordsToCreate.slice(i, i + BATCH_SIZE);
@@ -317,13 +318,22 @@ Deno.serve(async (req) => {
         imported += batch.length;
         const batchMax = Math.max(...batch.map(r => r.__rowIndex));
         if (batchMax > maxProcessedRow) maxProcessedRow = batchMax;
+        // Save high-water mark after each successful batch
+        if (maxProcessedRow > lastProcessedRow) {
+          const updateData = { last_synced_sheet_row: maxProcessedRow };
+          if (settings?.id) {
+            await base44.asServiceRole.entities.AppSettings.update(settings.id, updateData);
+          } else {
+            await base44.asServiceRole.entities.AppSettings.create({ key: "global", ...updateData });
+          }
+        }
       } catch (err) {
         errors.push(`Batch ${i}-${i + BATCH_SIZE}: ${err.message}`);
         skipped += batch.length;
       }
     }
 
-    // --- Save the high-water mark ---
+    // Final high-water mark save (catches skipped/duplicate rows that advanced maxProcessedRow)
     if (maxProcessedRow > lastProcessedRow) {
       const updateData = { last_synced_sheet_row: maxProcessedRow };
       if (settings?.id) {
