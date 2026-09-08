@@ -28,7 +28,8 @@ Deno.serve(async (req) => {
             // Bath tasks are scheduled services — keep them on the list until done/cancelled.
             const undoneTasks = visit.scheduled_tasks.filter(task => {
                 const isBath = task.type && task.type.toLowerCase().includes('bath');
-                return task.date === today && !task.completed && !task.is_template && !isBath;
+                const isPlaySession = task.type === 'Play Session';
+                return task.date === today && !task.completed && !task.is_template && !isBath && !isPlaySession;
             });
             
             if (undoneTasks.length === 0) {
@@ -52,7 +53,8 @@ Deno.serve(async (req) => {
             // Remove only the day-specific undone tasks for today — leave template and bath tasks untouched
             const updatedTasks = visit.scheduled_tasks.filter(task => {
                 const isBath = task.type && task.type.toLowerCase().includes('bath');
-                return !(task.date === today && !task.completed && !task.is_template && !isBath);
+                const isPlaySession = task.type === 'Play Session';
+                return !(task.date === today && !task.completed && !task.is_template && !isBath && !isPlaySession);
             });
             
             // Remove uncompleted play sessions for today
