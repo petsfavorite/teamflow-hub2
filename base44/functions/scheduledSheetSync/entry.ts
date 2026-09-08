@@ -85,8 +85,9 @@ Deno.serve(async (req) => {
     const extraAliases = buildExtraAliases(cdOpts.name_aliases);
 
     // Only fetch rows we haven't seen yet (start from lastProcessedRow + 1)
+    // Process 100 rows per run for faster catch-up
     const startRow = lastProcessedRow + 1;
-    const endRow = startRow + 49;
+    const endRow = startRow + 99;
 
     // First, get the actual sheet name from spreadsheet metadata
     const metaRes = await fetch(
@@ -164,26 +165,12 @@ Deno.serve(async (req) => {
       }
       return true;
     });
-    const remaining = rawRows.length === 50 ? "possibly more" : 0;
+    const remaining = rawRows.length === 100 ? "possibly more" : 0;
 
     // Build a set of already-existing zoom_meeting_ids for this batch
     const zoomIds = rowsToProcess.map(r => `sheet_row_${r.__rowIndex}`);
     const existingCalls = await base44.asServiceRole.entities.CallRecord.filter({ zoom_meeting_id: { $in: zoomIds } });
     const existingIds = new Set(existingCalls.map(c => c.zoom_meeting_id));
-
-    // Fetch recent Zoom-imported calls for cross-source dedup
-    const weekAgo = new Date(Date.now() - 7 * 86400 * 1000).toISOString();
-    const recentZoomCalls = await base44.asServiceRole.entities.CallRecord.filter({
-      call_date: { $gte: weekAgo }
-    }, "-call_date", 500);
-    const zoomByDirection = {};
-    for (const c of recentZoomCalls) {
-      if (c.zoom_meeting_id && !c.zoom_meeting_id.startsWith("sheet_row_")) {
-        const key = c.call_direction || "inbound";
-        if (!zoomByDirection[key]) zoomByDirection[key] = [];
-        zoomByDirection[key].push(new Date(c.call_date).getTime());
-      }
-    }
 
     let imported = 0;
     let skipped = 0;
@@ -287,15 +274,6 @@ Deno.serve(async (req) => {
             const parsed = new Date(dateRaw);
             if (!isNaN(parsed)) callDateISO = parsed.toISOString();
           }
-        }
-
-        // Skip if this call was already imported from Zoom (same direction, within ±2 min)
-        const callTimeMs = new Date(callDateISO).getTime();
-        const zoomTimes = zoomByDirection[call_direction];
-        if (zoomTimes && zoomTimes.some(t => Math.abs(t - callTimeMs) < 2 * 60 * 1000)) {
-          skipped++;
-          if (row.__rowIndex > maxProcessedRow) maxProcessedRow = row.__rowIndex;
-          continue;
         }
 
         const zoom_meeting_id = `sheet_row_${row.__rowIndex}`;
