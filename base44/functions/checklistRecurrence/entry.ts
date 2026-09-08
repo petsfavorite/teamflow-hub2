@@ -25,8 +25,6 @@ Deno.serve(async (req) => {
       const visibleDate = subtractDays(dueDate, visibleDayOffset);
 
       // DEDUPLICATION: skip if an active instance for this schedule + due_date already exists.
-      // Dedup by recurring_checklist_id (not title) so multiple schedules with the same
-      // title don't silently block each other.
       const existing = await base44.asServiceRole.entities.ChecklistTemplate.filter({
         recurring_checklist_id: schedule.id,
         due_date: dueDate,
@@ -36,9 +34,7 @@ Deno.serve(async (req) => {
       if (existing.length > 0) { skipped++; continue; }
 
       // PAST-DUE GUARD: if the due date is today and the due time has already passed,
-      // skip creating the instance — it would be immediately auto-closed as "missed",
-      // producing a spurious completion record. (Normal 5 AM runs land before any due
-      // time; this guard only matters for late/manual re-runs.)
+      // skip creating the instance — it would be immediately auto-closed as "missed".
       if (dueDate === todayStr) {
         const dueTime = schedule.due_time || '21:00';
         const [dh, dm] = dueTime.split(':').map(Number);
@@ -80,28 +76,34 @@ Deno.serve(async (req) => {
   }
 });
 
-function getNextDueDate(schedule, now, tz) {
+// Clamp a day-of-month to the last valid day of the target month (e.g. 31 → 28 for February).
+function getClampedDate(year: number, monthIdx: number, day: number): Date {
+  const lastDay = new Date(Date.UTC(year, monthIdx + 1, 0)).getUTCDate();
+  return new Date(Date.UTC(year, monthIdx, Math.min(day, lastDay)));
+}
+
+function getNextDueDate(schedule, now: Date, tz: string): string | null {
   const today = now.toLocaleDateString('en-CA', { timeZone: tz });
 
   switch (schedule.recurrence_type) {
     case 'daily':
       return today;
     case 'weekdays': {
-      const dow = new Date(today + 'T12:00:00Z').getDay();
+      const dow = new Date(today + 'T12:00:00Z').getUTCDay();
       if (dow < 1 || dow > 5) return null;
       return today;
     }
     case 'specific_days': {
-      const dow = new Date(today + 'T12:00:00Z').getDay();
+      const dow = new Date(today + 'T12:00:00Z').getUTCDay();
       if (!(schedule.recurrence_days_of_week || []).includes(dow)) return null;
       return today;
     }
     case 'monthly': {
       const target = schedule.recurrence_day_of_month || 1;
       const [ty, tm] = today.split('-').map(Number);
-      const d = new Date(Date.UTC(ty, tm - 1, target));
+      let d = getClampedDate(ty, tm - 1, target);
       if (d.toISOString().split('T')[0] <= today) {
-        d.setUTCMonth(d.getUTCMonth() + 1);
+        d = getClampedDate(ty, tm, target); // next month (tm is 1-indexed, so tm as 0-indexed = next month)
       }
       return d.toISOString().split('T')[0];
     }
@@ -109,18 +111,18 @@ function getNextDueDate(schedule, now, tz) {
       const target = schedule.recurrence_day_of_month || 1;
       const interval = schedule.recurrence_interval_months || 1;
       const [ty, tm] = today.split('-').map(Number);
-      const d = new Date(Date.UTC(ty, tm - 1, target));
+      let d = getClampedDate(ty, tm - 1, target);
       if (d.toISOString().split('T')[0] <= today) {
-        d.setUTCMonth(d.getUTCMonth() + interval);
+        d = getClampedDate(ty, tm - 1 + interval, target);
       }
       return d.toISOString().split('T')[0];
     }
     case 'annually': {
       const target = schedule.recurrence_day_of_month || 1;
       const [ty] = today.split('-').map(Number);
-      const d = new Date(Date.UTC(ty, 0, target));
+      let d = getClampedDate(ty, 0, target);
       if (d.toISOString().split('T')[0] <= today) {
-        d.setUTCFullYear(d.getUTCFullYear() + 1);
+        d = getClampedDate(ty + 1, 0, target);
       }
       return d.toISOString().split('T')[0];
     }
@@ -129,13 +131,13 @@ function getNextDueDate(schedule, now, tz) {
   }
 }
 
-function subtractDays(dateStr, days) {
+function subtractDays(dateStr: string, days: number): string {
   const d = new Date(dateStr + 'T12:00:00Z');
   d.setUTCDate(d.getUTCDate() - days);
   return d.toISOString().split('T')[0];
 }
 
-function shouldBeVisibleNow(schedule, now, visibleDate, todayStr, tz) {
+function shouldBeVisibleNow(schedule, now: Date, visibleDate: string, todayStr: string, tz: string): boolean {
   if (visibleDate > todayStr) return false;
   if (visibleDate < todayStr) return true;
   if (!schedule.visible_time) return true;

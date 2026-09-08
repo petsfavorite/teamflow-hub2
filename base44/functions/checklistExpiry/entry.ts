@@ -12,6 +12,10 @@ Deno.serve(async (req) => {
     // Get all published checklists (not templates - those with due_date set)
     const publishedChecklists = await base44.asServiceRole.entities.ChecklistTemplate.filter({ status: 'published' });
 
+    // Fetch users and teams ONCE before the loop (avoid N+1 queries)
+    const allUsers = await base44.asServiceRole.entities.User.list();
+    const teams = await base44.asServiceRole.entities.Team.list();
+
     for (const checklist of publishedChecklists) {
       const dueTime = checklist.due_time || '21:00';
 
@@ -22,8 +26,13 @@ Deno.serve(async (req) => {
       const isPastDue = checklist.due_date < today || (checklist.due_date === today && currentTime >= dueTime);
       if (!isPastDue) continue;
 
-      // Archive the checklist
-      await base44.asServiceRole.entities.ChecklistTemplate.update(checklist.id, { status: 'archived' });
+      // Archive the checklist and clear assignments (consistent with finalizeChecklistAssignment)
+      await base44.asServiceRole.entities.ChecklistTemplate.update(checklist.id, {
+        status: 'archived',
+        assigned_to_emails: [],
+        assigned_to_names: [],
+        assigned_teams: []
+      });
 
       // Find any in-progress completion — finalize it as completed
       const completions = await base44.asServiceRole.entities.ChecklistCompletion.filter({
@@ -42,6 +51,8 @@ Deno.serve(async (req) => {
         await base44.asServiceRole.entities.ChecklistCompletion.update(completion.id, {
           status: 'completed',
           completion_date: today,
+          completed_by: 'system',
+          completed_by_name: 'Auto-closed (past due)'
         });
         completionId = completion.id;
       } else {
@@ -49,7 +60,8 @@ Deno.serve(async (req) => {
         const newCompletion = await base44.asServiceRole.entities.ChecklistCompletion.create({
           checklist_template_id: checklist.id,
           checklist_title: checklist.title,
-          completed_by: null,
+          recurring_checklist_id: checklist.recurring_checklist_id || null,
+          completed_by: 'system',
           completed_by_name: 'Auto-closed (past due)',
           completed_items: (checklist.items || []).map(item => ({ ...item, checked: false })),
           completion_date: today,
@@ -62,42 +74,60 @@ Deno.serve(async (req) => {
       // Only notify if there are incomplete items
       if (incompleteItems.length === 0) continue;
 
-      // Gather managers on assigned teams + all admins/super_admins
-      const managers = new Map(); // email -> user
+      // Gather managers to notify (consistent with checkChecklistTimeouts format)
+      const managerEmails = new Set();
+      const managerTeamMap = new Map(); // email -> { teamId, teamName }
 
-      if (checklist.assigned_teams?.length > 0) {
-        const teams = await base44.asServiceRole.entities.Team.filter({ id: { $in: checklist.assigned_teams } });
-        for (const team of teams) {
-          if (!team.member_emails?.length) continue;
-          const teamManagers = await base44.asServiceRole.entities.User.filter({
-            email: { $in: team.member_emails },
-            role: { $in: ['manager', 'admin', 'super_admin'] }
-          });
-          for (const m of teamManagers) managers.set(m.email, { user: m, teamId: team.id, teamName: team.name });
+      // Add all admins and super_admins
+      allUsers.forEach(u => {
+        if (u.role === 'super_admin' || u.role === 'admin') {
+          managerEmails.add(u.email);
+          managerTeamMap.set(u.email, { teamId: null, teamName: null });
         }
-      }
-
-      // Also notify all admins/super_admins not already in the list
-      const allPrivileged = await base44.asServiceRole.entities.User.filter({
-        role: { $in: ['admin', 'super_admin'] }
       });
-      for (const u of allPrivileged) {
-        if (!managers.has(u.email)) {
-          managers.set(u.email, { user: u, teamId: null, teamName: null });
-        }
+
+      // Add managers from assigned teams
+      if (checklist.assigned_teams?.length > 0) {
+        const assignedTeams = teams.filter(t => checklist.assigned_teams.includes(t.id));
+        assignedTeams.forEach(team => {
+          allUsers
+            .filter(u => u.role === 'manager' && team.member_emails?.includes(u.email))
+            .forEach(m => {
+              managerEmails.add(m.email);
+              managerTeamMap.set(m.email, { teamId: team.id, teamName: team.name });
+            });
+        });
       }
 
-      for (const [, { user, teamId, teamName }] of managers) {
+      // Add managers from teams of assigned users
+      if (checklist.assigned_to_emails?.length > 0) {
+        const relevantTeams = teams.filter(t =>
+          t.member_emails?.some(email => checklist.assigned_to_emails.includes(email))
+        );
+        relevantTeams.forEach(team => {
+          allUsers
+            .filter(u => u.role === 'manager' && team.member_emails?.includes(u.email))
+            .forEach(m => {
+              managerEmails.add(m.email);
+              managerTeamMap.set(m.email, { teamId: team.id, teamName: team.name });
+            });
+        });
+      }
+
+      for (const managerEmail of managerEmails) {
+        const manager = allUsers.find(u => u.email === managerEmail);
+        if (!manager) continue;
+        const teamInfo = managerTeamMap.get(managerEmail) || { teamId: null, teamName: null };
         await base44.asServiceRole.entities.ChecklistNotification.create({
           checklist_completion_id: completionId,
           checklist_title: checklist.title,
-          manager_email: user.email,
-          manager_name: user.full_name,
+          manager_email: manager.email,
+          manager_name: manager.full_name,
           incomplete_items: incompleteItems,
-          completed_by: null,
+          completed_by: 'system',
           completed_by_name: 'Auto-closed (past due)',
-          team_id: teamId,
-          team_name: teamName || 'Unknown',
+          team_id: teamInfo.teamId,
+          team_name: teamInfo.teamName,
           read: false
         });
       }

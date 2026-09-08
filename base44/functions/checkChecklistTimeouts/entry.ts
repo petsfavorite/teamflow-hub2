@@ -59,6 +59,7 @@ Deno.serve(async (req) => {
         completion = await base44.asServiceRole.entities.ChecklistCompletion.create({
           checklist_template_id: template.id,
           checklist_title: template.title,
+          recurring_checklist_id: template.recurring_checklist_id || null,
           completed_by: 'system',
           completed_by_name: 'Auto-submitted (due time reached)',
           completed_items: (template.items || []).map(item => ({ ...item, checked: false })),
@@ -108,6 +109,9 @@ Deno.serve(async (req) => {
         for (const managerEmail of managerEmails) {
           const manager = allUsers.find(u => u.email === managerEmail);
           if (!manager) continue;
+          const managerTeams = teams.filter(t => t.member_emails?.includes(managerEmail));
+          const teamId = managerTeams.length > 0 ? managerTeams[0].id : null;
+          const teamName = managerTeams.length > 0 ? managerTeams[0].name : null;
           await base44.asServiceRole.entities.ChecklistNotification.create({
             checklist_completion_id: completion.id,
             checklist_title: template.title,
@@ -116,6 +120,8 @@ Deno.serve(async (req) => {
             incomplete_items: incompleteItems,
             completed_by: 'system',
             completed_by_name: 'Auto-submitted (due time reached)',
+            team_id: teamId,
+            team_name: teamName,
             read: false
           });
         }

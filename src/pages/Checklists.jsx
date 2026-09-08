@@ -56,15 +56,16 @@ export default function Checklists() {
   const { data: allTemplates = [], isLoading: isLoadingTemplates } = useQuery({
     queryKey: ['checklist-templates-all'],
     queryFn: async () => {
-      const [active, published, drafts, pending] = await Promise.all([
+      const [active, published, drafts, pending, closed] = await Promise.all([
         base44.entities.ChecklistTemplate.filter({ status: 'active' }, '-updated_date', 500),
         base44.entities.ChecklistTemplate.filter({ status: 'published' }, '-updated_date', 500),
         base44.entities.ChecklistTemplate.filter({ status: 'draft' }, '-updated_date', 500),
         base44.entities.ChecklistTemplate.filter({ status: 'pending_approval' }, '-updated_date', 500),
+        base44.entities.ChecklistTemplate.filter({ status: 'closed' }, '-updated_date', 500),
       ]);
       const seen = new Set();
       const combined = [];
-      for (const arr of [active, published, drafts, pending]) {
+      for (const arr of [active, published, drafts, pending, closed]) {
         for (const t of arr || []) {
           if (!seen.has(t.id)) { seen.add(t.id); combined.push(t); }
         }
@@ -133,6 +134,7 @@ export default function Checklists() {
       if (isRecurringMaster(t)) return false;
       if (t.status === 'active') return t.is_visible !== false;
       if (t.status === 'published') return true;
+      if (t.status === 'closed') return true; // Show auto-submitted checklists with indicator
       return false;
     });
   }, [allTemplates, user, teams]);
@@ -275,10 +277,26 @@ export default function Checklists() {
 
   const submitMutation = useMutation({
     mutationFn: async (data) => {
-      const completion = await base44.entities.ChecklistCompletion.create(data);
-      return completion;
+      if (data.completionId) {
+        // Update existing in-progress completion to completed (prevents orphaned duplicate records)
+        return base44.entities.ChecklistCompletion.update(data.completionId, {
+          completed_items: data.completed_items,
+          status: 'completed',
+          completion_date: data.completion_date,
+        });
+      }
+      return base44.entities.ChecklistCompletion.create({
+        checklist_template_id: data.checklist_template_id,
+        checklist_title: data.checklist_title,
+        recurring_checklist_id: data.recurring_checklist_id || null,
+        completed_by: data.completed_by,
+        completed_by_name: data.completed_by_name,
+        completed_items: data.completed_items,
+        completion_date: data.completion_date,
+        status: 'completed',
+      });
     },
-    onSuccess: () => {
+    onSuccess: (completion, variables) => {
       toast.success('Checklist submitted!');
       setActiveChecklist(null);
       setItems([]);
@@ -286,6 +304,10 @@ export default function Checklists() {
       queryClient.invalidateQueries({ queryKey: ['completions'] });
       queryClient.invalidateQueries({ queryKey: ['checklist-templates-published'] });
       queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
+      base44.functions.invoke('finalizeChecklistAssignment', {
+        checklist_template_id: variables.checklist_template_id,
+        checklist_completion_id: completion.id
+      }).catch(() => {});
     },
   });
 
@@ -307,6 +329,7 @@ export default function Checklists() {
       if (isAssigningFromTemplate) {
         // 1. Always create a new active ChecklistTemplate instance (appears in "My Checklists")
         //    only if frequency is 'once' or the user wants an immediate instance
+        const hasVisibilityDelay = !!(data.visible_time) || (data.visible_day_offset || 0) > 0;
         await base44.entities.ChecklistTemplate.create({
           title: templateToUse.title,
           description: templateToUse.description,
@@ -323,6 +346,8 @@ export default function Checklists() {
           recurrence_interval_months: data.recurrence_interval_months,
           status: 'published',
           visible_time: data.visible_time || null,
+          visible_day_offset: data.visible_day_offset || 0,
+          is_visible: !hasVisibilityDelay,
         });
 
         // 2. If recurring, also create a RecurringChecklist schedule record (completely separate)
@@ -476,7 +501,7 @@ export default function Checklists() {
       return item;
     });
     setItems(updated);
-    saveChecklistProgress(updated);
+    saveChecklistProgress(updated, index);
   };
 
   const updateNotes = (index, value) => {
@@ -486,22 +511,40 @@ export default function Checklists() {
       notes: updatedNotes[i] || ''
     }));
     setNotes(updatedNotes);
-    saveChecklistProgress(itemsWithNotes);
+    saveChecklistProgress(itemsWithNotes, index);
   };
 
-  const saveChecklistProgress = async (currentItems) => {
+  const saveChecklistProgress = async (currentItems, changedIndex) => {
     if (!activeChecklist) return;
     
     try {
       if (activeChecklist.completionId) {
+        // Re-fetch to detect auto-submission and merge concurrent edits
+        const serverCompletion = await base44.entities.ChecklistCompletion.get(activeChecklist.completionId);
+        if (serverCompletion.status !== 'in_progress') {
+          // Was auto-submitted while user was editing — don't overwrite
+          toast.info('This checklist was auto-submitted at the due time.');
+          setActiveChecklist(null);
+          setItems([]);
+          setNotes({});
+          queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
+          return;
+        }
+        // Merge: keep local version for the changed item, server version for all others
+        const serverItems = serverCompletion.completed_items || [];
+        const mergedItems = currentItems.map((item, i) => {
+          if (i === changedIndex) return item;
+          return serverItems[i] || item;
+        });
         await base44.entities.ChecklistCompletion.update(activeChecklist.completionId, {
-          completed_items: currentItems,
+          completed_items: mergedItems,
           status: 'in_progress'
         });
       } else {
         const completion = await base44.entities.ChecklistCompletion.create({
           checklist_template_id: activeChecklist.id,
           checklist_title: activeChecklist.title,
+          recurring_checklist_id: activeChecklist.recurring_checklist_id || null,
           completed_by: user?.email,
           completed_by_name: user?.full_name,
           completed_items: currentItems,
@@ -522,23 +565,15 @@ export default function Checklists() {
       photo_url: item.photo_url || ''
     }));
 
-    const completion = {
+    submitMutation.mutate({
+      completionId: activeChecklist.completionId,
       checklist_template_id: activeChecklist.id,
       checklist_title: activeChecklist.title,
+      recurring_checklist_id: activeChecklist.recurring_checklist_id || null,
       completed_by: user?.email,
       completed_by_name: user?.full_name,
       completed_items: completedItems,
       completion_date: new Date().toISOString().split('T')[0],
-      status: 'completed',
-    };
-
-    submitMutation.mutate(completion, {
-      onSuccess: async (data) => {
-        await base44.functions.invoke('finalizeChecklistAssignment', {
-          checklist_template_id: activeChecklist.id,
-          checklist_completion_id: data.id
-        }).catch(() => {});
-      }
     });
   };
 
@@ -596,18 +631,30 @@ export default function Checklists() {
                 <div className="flex justify-end">
                   <Button
                     onClick={async () => {
-                      const completion = await base44.entities.ChecklistCompletion.create({
-                        checklist_template_id: activeChecklist.id,
-                        checklist_title: activeChecklist.title,
-                        completed_by: user.email,
-                        completed_by_name: user.full_name,
-                        completed_items: items,
-                        completion_date: new Date().toISOString().split('T')[0],
-                        status: 'edited'
-                      });
+                      let completionId = activeChecklist.completionId;
+                      if (completionId) {
+                        // Update existing in-progress completion to edited (prevents orphaned duplicate)
+                        await base44.entities.ChecklistCompletion.update(completionId, {
+                          completed_items: items,
+                          status: 'edited',
+                          completion_date: new Date().toISOString().split('T')[0],
+                        });
+                      } else {
+                        const completion = await base44.entities.ChecklistCompletion.create({
+                          checklist_template_id: activeChecklist.id,
+                          checklist_title: activeChecklist.title,
+                          recurring_checklist_id: activeChecklist.recurring_checklist_id || null,
+                          completed_by: user.email,
+                          completed_by_name: user.full_name,
+                          completed_items: items,
+                          completion_date: new Date().toISOString().split('T')[0],
+                          status: 'edited'
+                        });
+                        completionId = completion.id;
+                      }
                       await base44.functions.invoke('finalizeChecklistAssignment', {
                         checklist_template_id: activeChecklist.id,
-                        checklist_completion_id: completion.id
+                        checklist_completion_id: completionId
                       }).catch(() => {});
                       toast.success('Checklist stopped and moved to history');
                       setActiveChecklist(null);
@@ -682,15 +729,17 @@ export default function Checklists() {
                 {myChecklists.filter(t => t.title.toLowerCase().includes(searchTerm.toLowerCase())).map(template => (
                   <Card
                     key={template.id}
-                    className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
-                    onClick={() => startChecklist(template)}
+                    className={`border-0 shadow-sm transition-shadow ${template.status === 'closed' ? 'opacity-60' : 'cursor-pointer hover:shadow-md'}`}
+                    onClick={() => template.status === 'closed' ? setHistoryChecklist(template) : startChecklist(template)}
                   >
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between mb-3">
                         <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
                           <CheckSquare className="w-5 h-5 text-emerald-600" />
                         </div>
-                        {template.due_date && <StatusBadge status={template.recurrence_type} />}
+                        {template.status === 'closed' ? (
+                          <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">Auto-submitted</span>
+                        ) : (template.due_date && <StatusBadge status={template.recurrence_type} />)}
                       </div>
                       <h3 className="font-semibold text-slate-900 mb-2">{template.title}</h3>
                       {template.due_date && (
@@ -720,7 +769,7 @@ export default function Checklists() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {recurringChecklists.filter(r => r.template_title.toLowerCase().includes(searchTerm.toLowerCase())).map(schedule => (
                     <Card key={schedule.id} className="border-0 shadow-sm">
-                      <CardContent className="p-6 cursor-pointer" onClick={() => setHistoryChecklist({ id: schedule.id, title: schedule.template_title })}>
+                      <CardContent className="p-6 cursor-pointer" onClick={() => setHistoryChecklist({ id: schedule.id, title: schedule.template_title, recurringId: schedule.id })}>
                         <div className="flex items-start justify-between mb-3">
                           <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
                             <CheckSquare className="w-5 h-5 text-purple-600" />
@@ -745,7 +794,7 @@ export default function Checklists() {
                             size="sm"
                             variant="outline"
                             className="text-slate-600"
-                            onClick={() => setHistoryChecklist({ id: schedule.id, title: schedule.template_title })}
+                            onClick={() => setHistoryChecklist({ id: schedule.id, title: schedule.template_title, recurringId: schedule.id })}
                           >
                             <History className="w-3.5 h-3.5 mr-1" /> History
                           </Button>
@@ -792,7 +841,7 @@ export default function Checklists() {
               ) : (
                 <div className="space-y-2">
                   {teamChecklists.filter(t => t.title.toLowerCase().includes(searchTerm.toLowerCase())).map(t => (
-                    <Card key={t.id} className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => setHistoryChecklist(t)}>
+                    <Card key={t.id} className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => setHistoryChecklist({ id: t.id, title: t.title, recurringId: t.recurring_checklist_id })}>
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1 min-w-0">
@@ -1116,7 +1165,6 @@ export default function Checklists() {
                   <SelectItem value="monthly">Monthly</SelectItem>
                   <SelectItem value="every_x_months">Every X Months</SelectItem>
                   <SelectItem value="annually">Annually</SelectItem>
-                  <SelectItem value="manual">Manual</SelectItem>
                 </SelectContent>
               </Select>
             </div>

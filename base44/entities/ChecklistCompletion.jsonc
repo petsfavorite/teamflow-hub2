@@ -9,6 +9,10 @@
     "checklist_title": {
       "type": "string"
     },
+    "recurring_checklist_id": {
+      "type": "string",
+      "description": "ID of the RecurringChecklist schedule that spawned this instance. Used to group history across daily spawned instances."
+    },
     "completed_by": {
       "type": "string",
       "description": "Email of user who completed the checklist"

@@ -51,7 +51,7 @@ import Analytics from './pages/Analytics';
 import Assets from './pages/Assets';
 import CallDashboard from './pages/CallDashboard';
 import CheckIn from './pages/CheckIn';
-import ChecklistAssignmentEditor from './pages/ChecklistAssignmentEditor';
+
 import ChecklistEditor from './pages/ChecklistEditor';
 import ChecklistHistory from './pages/ChecklistHistory';
 import Checklists from './pages/Checklists';
@@ -84,7 +84,7 @@ export const PAGES = {
     "Assets": Assets,
     "CallDashboard": CallDashboard,
     "CheckIn": CheckIn,
-    "ChecklistAssignmentEditor": ChecklistAssignmentEditor,
+
     "ChecklistEditor": ChecklistEditor,
     "ChecklistHistory": ChecklistHistory,
     "Checklists": Checklists,

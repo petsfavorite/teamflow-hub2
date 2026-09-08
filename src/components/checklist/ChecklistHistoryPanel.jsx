@@ -6,22 +6,31 @@ import { CheckSquare, Clock, User, CheckCircle2, XCircle, Loader2 } from 'lucide
 
 export default function ChecklistHistoryPanel({ checklist, onClose }) {
   const title = checklist?.title || checklist?.template_title;
+  const recurringId = checklist?.recurringId;
+  const templateId = checklist?.id;
 
-  // Match by title, not template id: recurring checklists spawn a new
-  // ChecklistTemplate instance each day (different ids), so filtering by
-  // checklist_template_id only ever returns the current day's completion.
-  // All instances share the same checklist_title, so this surfaces the full history.
+  // For recurring checklists, filter by recurring_checklist_id to group all daily
+  // spawned instances. For one-off templates, filter by checklist_template_id.
   // Only show finished records: 'completed' (all items checked OR auto-submitted
   // at due time) and 'edited' (manager stopped it). In-progress partial saves
   // are kept for resuming but are not history.
   const { data: completions = [], isLoading } = useQuery({
-    queryKey: ['checklist-history-panel', title],
-    queryFn: () => base44.entities.ChecklistCompletion.filter(
-      { checklist_title: title, status: { $in: ['completed', 'edited'] } },
-      '-updated_date',
-      100
-    ),
-    enabled: !!title,
+    queryKey: ['checklist-history-panel', recurringId || templateId],
+    queryFn: async () => {
+      if (recurringId) {
+        return base44.entities.ChecklistCompletion.filter(
+          { recurring_checklist_id: recurringId, status: { $in: ['completed', 'edited'] } },
+          '-updated_date',
+          100
+        );
+      }
+      return base44.entities.ChecklistCompletion.filter(
+        { checklist_template_id: templateId, status: { $in: ['completed', 'edited'] } },
+        '-updated_date',
+        100
+      );
+    },
+    enabled: !!templateId,
   });
 
   return (
