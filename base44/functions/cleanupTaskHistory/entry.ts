@@ -9,7 +9,8 @@ Deno.serve(async (req) => {
     sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
     const cutoff = sixtyDaysAgo.toISOString(); // ISO timestamp for closed_at comparison
 
-    const allHistory = await base44.asServiceRole.entities.TaskHistory.list('closed_at', 2000);
+    // Fetch with a high limit to avoid missing older records
+    const allHistory = await base44.asServiceRole.entities.TaskHistory.list('closed_at', 5000);
     let deleted = 0;
 
     for (const record of allHistory) {

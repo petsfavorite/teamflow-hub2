@@ -60,30 +60,34 @@ export default function SOPDetail() {
 
   const approveMutation = useMutation({
     mutationFn: async (approve) => {
+      // Refetch latest SOP to avoid race condition with concurrent edits
+      const list = await base44.entities.SOP.filter({ id });
+      const latest = list[0];
+      if (!latest) throw new Error('SOP not found');
       if (approve) {
         return base44.entities.SOP.update(id, {
-          content: sop.pending_content,
-          instructions: sop.pending_content,
-          summary: sop.pending_summary,
-          tags: sop.pending_tags,
-          version: (sop.version || 1) + 1,
-          last_updated_by: sop.pending_submitted_by,
-          last_updated_by_name: sop.pending_submitted_by_name,
+          content: latest.pending_content,
+          instructions: latest.pending_content,
+          summary: latest.pending_summary,
+          tags: latest.pending_tags,
+          version: (latest.version || 1) + 1,
+          last_updated_by: latest.pending_submitted_by,
+          last_updated_by_name: latest.pending_submitted_by_name,
           status: 'published',
           pending_content: null, pending_summary: null, pending_tags: null,
           pending_change_summary: null, pending_submitted_by: null, pending_submitted_by_name: null,
         }).then(async (result) => {
           await base44.entities.SOPVersion.create({
-            sop_id: id, version_number: (sop.version || 1) + 1, title: sop.title,
-            content: sop.pending_content, summary: sop.pending_summary, tags: sop.pending_tags,
-            category: sop.category, change_summary: sop.pending_change_summary || 'Manager update (approved)',
-            created_by_name: sop.pending_submitted_by_name,
+            sop_id: id, version_number: (latest.version || 1) + 1, title: latest.title,
+            content: latest.pending_content, summary: latest.pending_summary, tags: latest.pending_tags,
+            category: latest.category, change_summary: latest.pending_change_summary || 'Manager update (approved)',
+            created_by_name: latest.pending_submitted_by_name,
           });
           return result;
         });
       } else {
         return base44.entities.SOP.update(id, {
-          status: sop.status === 'pending_approval' ? 'draft' : sop.status,
+          status: latest.status === 'pending_approval' ? 'draft' : latest.status,
           pending_content: null, pending_summary: null, pending_tags: null,
           pending_change_summary: null, pending_submitted_by: null, pending_submitted_by_name: null,
         });
@@ -94,6 +98,7 @@ export default function SOPDetail() {
       queryClient.invalidateQueries({ queryKey: ['sop', id] });
       queryClient.invalidateQueries({ queryKey: ['sops'] });
       queryClient.invalidateQueries({ queryKey: ['sop-versions'] });
+      queryClient.invalidateQueries({ queryKey: ['sops-pending-ack'] });
     },
   });
 
@@ -107,6 +112,7 @@ export default function SOPDetail() {
       toast.success('SOP acknowledged!');
       queryClient.invalidateQueries({ queryKey: ['my-ack'] });
       queryClient.invalidateQueries({ queryKey: ['ack'] });
+      queryClient.invalidateQueries({ queryKey: ['sops-pending-ack'] });
     },
   });
 
@@ -192,7 +198,7 @@ export default function SOPDetail() {
   const applicableTeams = teams.filter(t => (sop.applicable_teams || []).includes(t.id));
   const userTeams = teams.filter(t => (t.member_emails || []).includes(user?.email));
   const isOnApplicableTeam = applicableTeams.length === 0 || userTeams.some(ut => (sop.applicable_teams || []).includes(ut.id));
-  const canVerify = canManage && isOnApplicableTeam;
+  const canVerify = canManage && isOnApplicableTeam && sop.status === 'published';
   // Verification is needed when the SOP has never been verified (initial) or reverification is due/overdue
   const needsVerification = !sop.last_verified_at || verificationOverdue || verificationSoon;
 
@@ -208,7 +214,7 @@ export default function SOPDetail() {
           <Button variant="ghost" className="gap-2 text-slate-600"><ArrowLeft className="w-4 h-4" /> Back to SOPs</Button>
         </Link>
         <div className="flex gap-2">
-          {canApprove && (verificationOverdue || verificationSoon) && (
+          {canApprove && (verificationOverdue || verificationSoon) && sop.status === 'published' && (
             <Button
               onClick={() => postponeVerificationMutation.mutate()}
               disabled={postponeVerificationMutation.isPending}

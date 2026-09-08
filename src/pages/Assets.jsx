@@ -104,7 +104,21 @@ export default function Assets() {
 
   const startEdit = (asset) => {
     setEditingAsset(asset);
-    setForm(asset);
+    setForm({
+      name: asset.name || '',
+      category: asset.category || 'equipment',
+      location_detail: asset.location_detail || '',
+      serial_number: asset.serial_number || '',
+      purchase_date: asset.purchase_date || '',
+      last_maintenance_date: asset.last_maintenance_date || '',
+      next_maintenance_date: asset.next_maintenance_date || '',
+      maintenance_interval_days: asset.maintenance_interval_days ?? '',
+      manual_url: asset.manual_url || '',
+      notes: asset.notes || '',
+      status: asset.status || 'active',
+      sop_ids: asset.sop_ids || [],
+      task_ids: asset.task_ids || [],
+    });
     setShowForm(true);
   };
 
@@ -327,18 +341,22 @@ export default function Assets() {
                         }
                         const noteEntry = { 
                           note: newNote, 
-                          date: new Date().toISOString().split('T')[0],
+                          date: new Date().toISOString(),
                           added_by: user.email,
                           added_by_name: user.full_name || user.email,
                           ...(attachmentUrl && { attachment_url: attachmentUrl })
                         };
-                        await base44.entities.Asset.update(selectedAsset.id, {
-                          notes_log: [...(selectedAsset.notes_log || []), noteEntry]
-                        });
-                        queryClient.invalidateQueries({ queryKey: ['assets'] });
-                        setNewNote('');
-                        setNewNoteAttachment(null);
-                        toast.success('Note added');
+                        try {
+                          await base44.entities.Asset.update(selectedAsset.id, {
+                            notes_log: [...(selectedAsset.notes_log || []), noteEntry]
+                          });
+                          queryClient.invalidateQueries({ queryKey: ['assets'] });
+                          setNewNote('');
+                          setNewNoteAttachment(null);
+                          toast.success('Note added');
+                        } catch (err) {
+                          toast.error('Failed to save note');
+                        }
                       }
                     }}
                     disabled={!newNote.trim() || uploadingAttachment}
@@ -377,7 +395,7 @@ export default function Assets() {
                             <div className="flex-1 min-w-0">
                               <p className="text-slate-700">{log.note}</p>
                               <div className="text-xs text-slate-400 mt-1">
-                                {log.added_by_name} • {log.date}
+                                {log.added_by_name} • {log.date ? new Date(log.date).toLocaleString([], { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
                               </div>
                               {log.attachment_url && (
                                 <a href={log.attachment_url} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 hover:underline flex items-center gap-1 mt-1.5">

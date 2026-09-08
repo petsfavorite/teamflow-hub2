@@ -35,8 +35,9 @@ export default function Maintenance() {
   // Can user edit this ticket?
   const canEdit = (req) => {
     if (!req) return false;
-    if (!req.assigned_to) return true;
-    return req.assigned_to === user?.email || canManage;
+    if (canManage) return true;
+    if (!req.assigned_to) return req.requested_by === user?.email;
+    return req.assigned_to === user?.email;
   };
 
   const { data: allRequests = [], isLoading } = useQuery({
@@ -306,8 +307,14 @@ export default function Maintenance() {
                       let attachmentUrl = null;
                       if (newNoteAttachment) {
                         setUploadingAttachment(true);
-                        const { file_url } = await base44.integrations.Core.UploadFile({ file: newNoteAttachment });
-                        attachmentUrl = file_url;
+                        try {
+                          const { file_url } = await base44.integrations.Core.UploadFile({ file: newNoteAttachment });
+                          attachmentUrl = file_url;
+                        } catch (err) {
+                          toast.error('Failed to upload attachment');
+                          setUploadingAttachment(false);
+                          return;
+                        }
                         setUploadingAttachment(false);
                       }
                       const noteEntry = {
@@ -317,14 +324,18 @@ export default function Maintenance() {
                         added_by_name: user.full_name || user.email,
                         ...(attachmentUrl && { attachment_url: attachmentUrl })
                       };
-                      await base44.entities.MaintenanceRequest.update(selected.id, {
-                        notes_log: [...(selected.notes_log || []), noteEntry]
-                      });
-                      queryClient.invalidateQueries({ queryKey: ['maintenance-requests'] });
-                      setNewNote('');
-                      setNewNoteAttachment(null);
-                      setSelected({ ...selected, notes_log: [...(selected.notes_log || []), noteEntry] });
-                      toast.success('Note added');
+                      try {
+                        await base44.entities.MaintenanceRequest.update(selected.id, {
+                          notes_log: [...(selected.notes_log || []), noteEntry]
+                        });
+                        queryClient.invalidateQueries({ queryKey: ['maintenance-requests'] });
+                        setNewNote('');
+                        setNewNoteAttachment(null);
+                        setSelected({ ...selected, notes_log: [...(selected.notes_log || []), noteEntry] });
+                        toast.success('Note added');
+                      } catch (err) {
+                        toast.error('Failed to save note');
+                      }
                     }}
                     disabled={!newNote.trim() || uploadingAttachment}
                   >

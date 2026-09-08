@@ -57,9 +57,12 @@ Deno.serve(async (req) => {
 
   let reassigned = 0;
 
-  // --- Tasks ---
-  const tasks = await base44.asServiceRole.entities.Task.filter({ status: 'pending' });
-  const myTasks = tasks.filter(t =>
+  // --- Tasks (include both pending and in_progress) ---
+  const [pendingTasks, inProgressTasks] = await Promise.all([
+    base44.asServiceRole.entities.Task.filter({ status: 'pending' }),
+    base44.asServiceRole.entities.Task.filter({ status: 'in_progress' }),
+  ]);
+  const myTasks = [...pendingTasks, ...inProgressTasks].filter(t =>
     t.assigned_to_emails?.includes(deleted_user_email)
   );
   for (const task of myTasks) {

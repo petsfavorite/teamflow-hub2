@@ -96,6 +96,10 @@
       "type": "string",
       "description": "Optional Asset this task is linked to"
     },
+    "recurring_task_id": {
+      "type": "string",
+      "description": "ID of the recurring Task template that spawned this instance. Used for deduplication so multiple recurring tasks with the same title don't block each other."
+    },
     "dismissed_notifications": {
       "type": "array",
       "items": {

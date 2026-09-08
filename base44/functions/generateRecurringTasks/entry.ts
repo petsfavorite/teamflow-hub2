@@ -14,13 +14,22 @@ Deno.serve(async (req) => {
         const todayMonth = parseInt(todayStr.split('-')[1]) - 1; // 0-indexed
         const todayYear = parseInt(todayStr.split('-')[0]);
 
-        // Get all recurring template tasks (not once, not manual, not cancelled)
-        const allTasks = await base44.asServiceRole.entities.Task.list('-created_date', 500);
+        // Fetch all tasks with a high limit to avoid missing recurring templates
+        const allTasks = await base44.asServiceRole.entities.Task.list('-created_date', 5000);
+
+        // Recurring templates: not 'once', not 'manual', not cancelled
         const recurringTemplates = allTasks.filter(t =>
             t.recurrence_type &&
             t.recurrence_type !== 'once' &&
             t.recurrence_type !== 'manual' &&
             t.status !== 'cancelled'
+        );
+
+        // Build set of template IDs that already spawned an instance today (dedup by recurring_task_id)
+        const spawnedToday = new Set(
+            allTasks
+                .filter(t => t.recurring_task_id && t.created_date && t.created_date.startsWith(todayStr))
+                .map(t => t.recurring_task_id)
         );
 
         let created = 0;
@@ -52,15 +61,16 @@ Deno.serve(async (req) => {
 
             if (!shouldCreate) continue;
 
-            // Check if an instance was already created today for this template
-            const alreadyExists = allTasks.some(t =>
+            // Dedup by recurring_task_id (new) — falls back to title for legacy instances without the field
+            if (spawnedToday.has(template.id)) continue;
+            const legacyExists = allTasks.some(t =>
                 t.title === template.title &&
                 t.recurrence_type === 'once' &&
+                !t.recurring_task_id &&
                 t.created_date &&
                 t.created_date.startsWith(todayStr)
             );
-
-            if (alreadyExists) continue;
+            if (legacyExists) continue;
 
             await base44.asServiceRole.entities.Task.create({
                 title: template.title,
@@ -75,6 +85,7 @@ Deno.serve(async (req) => {
                 created_by_name: 'Auto-generated',
                 sop_id: template.sop_id,
                 asset_id: template.asset_id,
+                recurring_task_id: template.id,
             });
             created++;
         }

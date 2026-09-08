@@ -26,22 +26,23 @@ export default function SOPs() {
     queryKey: ['sops-pending-ack', user?.email],
     enabled: !!user?.email,
     queryFn: async () => {
-      // Get all published SOPs that require acknowledgement assigned to this user
-      const allPublished = await base44.entities.SOP.filter({ status: 'published' }, '-updated_date', 200);
-      const requiresAck = allPublished.filter(sop =>
-        sop.requires_acknowledgement &&
-        (
-          sop.acknowledgement_assigned_emails?.includes(user.email) ||
-          // Also check team membership — we just surface any SOP assigned to the user directly
-          false
-        )
-      );
-      if (requiresAck.length === 0) return [];
-
-      // Fetch this user's existing acknowledgements
-      const acks = await base44.entities.SOPAcknowledgement.filter({ user_email: user.email });
+      const [allPublished, acks, allTeams] = await Promise.all([
+        base44.entities.SOP.filter({ status: 'published' }, '-updated_date', 200),
+        base44.entities.SOPAcknowledgement.filter({ user_email: user.email }),
+        base44.entities.Team.list('name', 100),
+      ]);
       const ackedSopIds = new Set(acks.map(a => a.sop_id));
-
+      const requiresAck = allPublished.filter(sop => {
+        if (!sop.requires_acknowledgement) return false;
+        // Check direct email assignment
+        if (sop.acknowledgement_assigned_emails?.includes(user.email)) return true;
+        // Check team membership
+        const assignedTeamIds = sop.acknowledgement_assigned_teams || [];
+        if (assignedTeamIds.length > 0) {
+          return allTeams.some(t => assignedTeamIds.includes(t.id) && (t.member_emails || []).includes(user.email));
+        }
+        return false;
+      });
       return requiresAck.filter(sop => !ackedSopIds.has(sop.id));
     },
   });

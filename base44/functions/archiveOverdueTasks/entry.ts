@@ -7,12 +7,15 @@ Deno.serve(async (req) => {
     const tz = settings[0]?.global_timezone || 'America/New_York';
     const today = new Date().toLocaleDateString('en-CA', { timeZone: tz });
 
-    // Find all pending/in_progress one-time tasks that are past their due date
-    const allTasks = await base44.asServiceRole.entities.Task.list('-due_date', 500);
-    const overdue = allTasks.filter(t =>
+    // Fetch pending and in_progress tasks separately to avoid missing any due to list limits
+    const [pending, inProgress] = await Promise.all([
+      base44.asServiceRole.entities.Task.filter({ status: 'pending' }, '-due_date', 5000),
+      base44.asServiceRole.entities.Task.filter({ status: 'in_progress' }, '-due_date', 5000),
+    ]);
+
+    const overdue = [...pending, ...inProgress].filter(t =>
       t.due_date &&
       t.due_date < today &&
-      (t.status === 'pending' || t.status === 'in_progress') &&
       (t.recurrence_type === 'once' || !t.recurrence_type)
     );
 

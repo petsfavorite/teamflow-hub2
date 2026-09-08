@@ -149,7 +149,9 @@ export default function Tasks() {
         closed_by_name: user?.full_name || user?.email || 'Unknown',
         closed_at: new Date().toISOString(),
         completion_notes: task.completion_notes || null,
-      }).catch(() => {});
+      }).catch(() => {
+        toast.error('Failed to record task history');
+      });
     }
   };
 
