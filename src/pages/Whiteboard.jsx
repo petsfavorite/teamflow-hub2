@@ -112,6 +112,13 @@ export default function Whiteboard() {
         await updateVisitMutation.mutateAsync({ id: updatedVisit.id, data: updatedVisit });
         // Optimistically update selectedVisit immediately so the UI reacts right away
         setSelectedVisit({ ...updatedVisit });
+        // Update the visits cache directly so the whiteboard card reflects the
+        // change immediately — don't rely solely on invalidateQueries refetch,
+        // which can fail silently under read-rate-limiting (429).
+        queryClient.setQueryData(['visits'], (oldVisits) => {
+            if (!Array.isArray(oldVisits)) return oldVisits;
+            return oldVisits.map(v => v.id === updatedVisit.id ? { ...v, ...updatedVisit } : v);
+        });
         // Then refetch in background to sync with server
         queryClient.invalidateQueries({ queryKey: ['visits'] });
     };
