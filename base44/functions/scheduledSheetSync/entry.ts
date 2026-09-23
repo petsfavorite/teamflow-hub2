@@ -83,9 +83,14 @@ Deno.serve(async (req) => {
     };
     const extraAliases = buildExtraAliases(cdOpts.name_aliases);
 
-    // New calls are PREPENDED at the top of the sheet — always scan from row 2
+    // New calls are PREPENDED at the top of the sheet — always scan from row 2.
+    // Fetch a wide window so we can find new rows mixed in with already-synced ones.
     const startRow = 2;
-    const endRow = startRow + 199;
+    const endRow = startRow + 499; // 500-row window from the top
+
+    // Cap new calls per run to avoid timeout (AI transcript analysis is slow).
+    // The 3-minute schedule catches up over multiple runs.
+    const MAX_NEW_PER_RUN = 25;
 
     // First, get the actual sheet name from spreadsheet metadata
     const metaRes = await fetch(
@@ -184,6 +189,11 @@ Deno.serve(async (req) => {
     for (const row of rowsToProcess) {
       const rowKey = row.__callId || `sheet_row_${row.__rowIndex}`;
       if (existingIds.has(rowKey)) {
+        skipped++;
+        continue;
+      }
+      // Stop processing new calls once we hit the per-run cap (avoids timeout)
+      if (imported >= MAX_NEW_PER_RUN) {
         skipped++;
         continue;
       }
