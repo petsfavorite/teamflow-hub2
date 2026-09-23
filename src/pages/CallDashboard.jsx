@@ -28,24 +28,12 @@ export default function CallDashboard() {
   const { data: calls = [], isLoading, refetch } = useQuery({
     queryKey: ["callRecords"],
     queryFn: async () => {
-      const pageSize = 500;
-      let allCalls = [];
-      let skip = 0;
-      const seenIds = new Set();
-      while (true) {
-        const page = await base44.entities.CallRecord.list("-call_date", pageSize, skip);
-        for (const call of page) {
-          if (!seenIds.has(call.id)) {
-            seenIds.add(call.id);
-            allCalls.push(call);
-          }
-        }
-        if (page.length < pageSize) break;
-        skip += pageSize;
-      }
-      allCalls.sort((a, b) => new Date(b.call_date) - new Date(a.call_date));
-      return allCalls;
+      const records = await base44.entities.CallRecord.list("-call_date", 500, 0);
+      records.sort((a, b) => new Date(b.call_date) - new Date(a.call_date));
+      return records;
     },
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
   });
 
   const { data: users = [] } = useQuery({
