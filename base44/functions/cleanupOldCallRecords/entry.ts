@@ -5,37 +5,32 @@ Deno.serve(async (req) => {
         const base44 = createClientFromRequest(req);
 
         const body = req.method === 'POST' ? await req.json().catch(() => ({})) : {};
-        const months = (typeof body.months === 'number' && body.months >= 1) ? body.months : 3;
+        const days = (typeof body.days === 'number' && body.days >= 1) ? body.days : 60;
 
-        // Calculate cutoff based on configured months
+        // Calculate cutoff based on configured days
         const cutoff = new Date();
-        cutoff.setMonth(cutoff.getMonth() - months);
+        cutoff.setDate(cutoff.getDate() - days);
         const cutoffISO = cutoff.toISOString();
 
-        // Fetch all call records older than one month
+        // Delete all call records older than the cutoff in batches
+        let deleted = 0;
         const pageSize = 500;
-        let allOld = [];
-        let skip = 0;
         while (true) {
             const page = await base44.asServiceRole.entities.CallRecord.filter(
                 { call_date: { $lt: cutoffISO } },
                 "call_date",
                 pageSize,
-                skip
+                0
             );
-            allOld = allOld.concat(page);
+            if (page.length === 0) break;
+
+            const idsToDelete = page.map(r => r.id);
+            await base44.asServiceRole.entities.CallRecord.deleteMany({ id: { $in: idsToDelete } });
+            deleted += page.length;
             if (page.length < pageSize) break;
-            skip += pageSize;
         }
 
-        // Delete each old record
-        let deleted = 0;
-        for (const record of allOld) {
-            await base44.asServiceRole.entities.CallRecord.delete(record.id);
-            deleted++;
-        }
-
-        return Response.json({ success: true, deleted, cutoff: cutoffISO });
+        return Response.json({ success: true, deleted, cutoff: cutoffISO, days });
     } catch (error) {
         return Response.json({ error: error.message }, { status: 500 });
     }

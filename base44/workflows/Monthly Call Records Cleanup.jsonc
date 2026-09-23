@@ -1,13 +1,12 @@
 {
   "name": "Monthly Call Records Cleanup",
-  "description": "Daily cleanup of call records older than 90 days from the dashboard.",
+  "description": "Daily cleanup of call records older than 60 days from the dashboard.",
   "trigger": {
     "condition": null,
     "config": {
       "trigger_type": "scheduled",
-      "events": [],
-      "schedule_mode": "recurring",
       "cron_expression": "15 10 * * *",
+      "schedule_mode": "recurring",
       "one_time_date": null,
       "timezone": "UTC",
       "interval_value": null,
@@ -15,7 +14,8 @@
       "interval_anchor": null,
       "ends_type": "never",
       "ends_on_date": null,
-      "ends_after_count": null
+      "ends_after_count": null,
+      "events": []
     }
   },
   "definition": {
