@@ -59,15 +59,17 @@ export default function CallDashboard() {
     [datePreset, customStart, customEnd]
   );
 
+  const validDurationCalls = useMemo(() => calls.filter(c => c.call_duration_seconds != null && c.call_duration_seconds >= 30), [calls]);
+
   const dateFilteredCalls = useMemo(() => {
-    if (!dateStart && !dateEnd) return calls;
-    return calls.filter(call => {
+    if (!dateStart && !dateEnd) return validDurationCalls;
+    return validDurationCalls.filter(call => {
       const d = new Date(call.call_date);
       if (dateStart && d < dateStart) return false;
       if (dateEnd && d > dateEnd) return false;
       return true;
     });
-  }, [calls, dateStart, dateEnd]);
+  }, [validDurationCalls, dateStart, dateEnd]);
 
   const filteredCalls = useMemo(() => {
     return dateFilteredCalls.filter(call => {
