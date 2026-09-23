@@ -2,12 +2,13 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.30';
 import OpenAI from 'npm:openai';
 import { fuzzyMatchUser } from '../../shared/staffMatching.ts';
 import { analyzeCall, buildExtraAliases } from '../../shared/callAnalysis.ts';
+import { sendCallLogErrorEmail } from '../../shared/callLogErrorNotify.ts';
 
 // AI ENRICHER — picks up CallRecords with ai_enriched=false and runs
 // transcript analysis on a small batch per invocation to avoid timeouts.
 // The scheduled workflow calls this every 3 minutes; each run processes 5 records.
 
-const MAX_PER_RUN = 5;
+const MAX_PER_RUN = 15;
 
 Deno.serve(async (req) => {
   try {
@@ -25,7 +26,7 @@ Deno.serve(async (req) => {
     };
     const extraAliases = buildExtraAliases(cdOpts.name_aliases);
 
-    const userList = await base44.asServiceRole.entities.User.list();
+    const userList = await base44.asServiceRole.entities.User.list('-created_date', 500);
     const openai = new OpenAI({ apiKey: Deno.env.get("OPENAI_API_KEY") });
 
     // Fetch pending (non-enriched) records, oldest first
@@ -104,11 +105,17 @@ Deno.serve(async (req) => {
         enriched++;
       } catch (err) {
         errors.push(`${record.id}: ${err.message}`);
-        // Mark as enriched anyway so it doesn't block the queue forever
-        try {
-          await base44.asServiceRole.entities.CallRecord.update(record.id, { ai_enriched: true });
-        } catch {}
+        // Leave ai_enriched=false so the record is retried on the next run.
+        // If all records fail (systemic issue like out-of-credits), an email alert is sent below.
       }
+    }
+
+    // If every record in this batch failed, send an email alert (throttled to 1/hour)
+    if (pending.length > 0 && enriched === 0 && errors.length > 0) {
+      await sendCallLogErrorEmail(base44,
+        "AI Enrichment Failed",
+        `All ${pending.length} call records in this batch failed to enrich.\n\nErrors:\n${errors.slice(0, 5).join("\n")}\n\nThis usually means the OpenAI API is down or out of credits. The records will be retried automatically every 5 minutes.`
+      );
     }
 
     return Response.json({

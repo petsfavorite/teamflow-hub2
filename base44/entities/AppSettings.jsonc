@@ -100,6 +100,14 @@
     "last_synced_sheet_row": {
       "type": "number",
       "description": "The last Google Sheet row number that was successfully processed by scheduledSheetSync. Used as a high-water mark to avoid re-scanning all rows on every run."
+    },
+    "last_synced_call_date": {
+      "type": "string",
+      "description": "ISO timestamp of the most recent call_date seen in the sheet. Used as a high-water mark so the sync only processes rows newer than this, reducing the dedup query size."
+    },
+    "last_call_log_error_email_at": {
+      "type": "string",
+      "description": "ISO timestamp of the last call log error email sent. Used to throttle error emails to once per hour."
     }
   },
   "required": [
