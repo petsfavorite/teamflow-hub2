@@ -12,6 +12,7 @@ const PRESETS = [
   { label: "Yesterday", value: "yesterday" },
   { label: "Last 7 days", value: "last7" },
   { label: "Last 30 days", value: "last30" },
+  { label: "Last 60 days", value: "last60" },
   { label: "Custom range", value: "custom" },
 ];
 
@@ -22,6 +23,7 @@ export function getDateRange(preset, customStart, customEnd) {
     case "yesterday": { const y = subDays(now, 1); return { start: startOfDay(y), end: endOfDay(y) }; }
     case "last7": return { start: startOfDay(subDays(now, 6)), end: endOfToday() };
     case "last30": return { start: startOfDay(subDays(now, 29)), end: endOfToday() };
+    case "last60": return { start: startOfDay(subDays(now, 59)), end: endOfToday() };
     case "custom": return { start: customStart ? startOfDay(customStart) : null, end: customEnd ? endOfDay(customEnd) : null };
     default: return { start: null, end: null };
   }

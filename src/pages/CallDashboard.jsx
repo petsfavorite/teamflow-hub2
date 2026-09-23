@@ -17,7 +17,7 @@ export default function CallDashboard() {
   const [selectedCall, setSelectedCall] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
   const [filters, setFilters] = useState({ search: "", callerType: "all", bookingStatus: "all", teamMember: "all", status: "all", missedCall: "all" });
-  const [datePreset, setDatePreset] = useState("all");
+  const [datePreset, setDatePreset] = useState("60days");
   const [customStart, setCustomStart] = useState(null);
   const [customEnd, setCustomEnd] = useState(null);
 
