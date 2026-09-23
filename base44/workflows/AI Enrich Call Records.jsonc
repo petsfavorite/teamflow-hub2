@@ -1,0 +1,41 @@
+{
+  "name": "AI Enrich Call Records",
+  "description": "Runs AI transcript analysis on newly imported call records (ai_enriched=false). Processes 5 per run to avoid timeouts.",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "interval",
+      "cron_expression": null,
+      "one_time_date": null,
+      "timezone": "UTC",
+      "interval_value": 5,
+      "interval_unit": "minutes",
+      "interval_anchor": "2026-09-23T15:00:00",
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "ai_enrich_call_records",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "run_function": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "enrichCallRecords",
+            "args": {}
+          },
+          "then": "end"
+        }
+      }
+    ]
+  }
+}

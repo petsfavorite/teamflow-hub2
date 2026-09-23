@@ -94,6 +94,11 @@
     "ai_notes": {
       "type": "string"
     },
+    "ai_enriched": {
+      "type": "boolean",
+      "default": false,
+      "description": "True once AI transcript analysis has been run on this record"
+    },
     "status": {
       "type": "string",
       "enum": [

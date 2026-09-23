@@ -1,7 +1,8 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.30';
-import OpenAI from 'npm:openai';
-import { fuzzyMatchUser } from '../../shared/staffMatching.ts';
-import { analyzeCall, buildExtraAliases } from '../../shared/callAnalysis.ts';
+
+// FAST IMPORT ONLY — no AI analysis. Pulls raw sheet rows and creates
+// CallRecord entries marked pending_review with ai_enriched=false.
+// AI enrichment is handled separately by enrichCallRecords to avoid timeouts.
 
 function extractRecordingUrl(rawLink) {
   if (!rawLink) return null;
@@ -16,7 +17,6 @@ function extractRecordingUrl(rawLink) {
   return null;
 }
 
-// Flexible audio-link column detection — matches common header variations
 const AUDIO_LINK_HEADERS = [
   "audio link", "recording link", "recording url", "audio url",
   "call audio", "audio", "recording", "link to audio", "audio file",
@@ -45,7 +45,6 @@ function findAudioLinkHeader(headers) {
 }
 
 // Returns the Eastern timezone offset in ms to ADD to a "local-as-UTC" timestamp
-// to get the correct UTC time. EDT (Mar–early Nov) = +4h, EST = +5h.
 function easternOffsetMs(msFromEpoch) {
   const d = new Date(msFromEpoch);
   const year = d.getUTCFullYear();
@@ -65,32 +64,14 @@ Deno.serve(async (req) => {
     try {
       connResult = await base44.asServiceRole.connectors.getConnection("googlesheets");
     } catch (connErr) {
-      console.error("[ERROR] getConnection failed:", connErr.message);
       return Response.json({ error: "getConnection failed: " + connErr.message }, { status: 500 });
     }
     const { accessToken } = connResult;
     const spreadsheetId = Deno.env.get("GOOGLE_SHEET_ID");
 
-    // --- Load settings (prompts + name aliases) ---
-    const settingsList = await base44.asServiceRole.entities.AppSettings.filter({ key: "global" });
-    const settings = settingsList?.[0] || null;
-    const cdOpts = settings?.call_dashboard_options || {};
-    const aiPrompts = {
-      ai_caller_type_prompt: cdOpts.ai_caller_type_prompt || null,
-      ai_booking_prompt: cdOpts.ai_booking_prompt || null,
-      ai_booking_offered_prompt: cdOpts.ai_booking_offered_prompt || null,
-      ai_missed_call_prompt: cdOpts.ai_missed_call_prompt || null,
-    };
-    const extraAliases = buildExtraAliases(cdOpts.name_aliases);
-
     // New calls are PREPENDED at the top of the sheet — always scan from row 2.
-    // Fetch a wide window so we can find new rows mixed in with already-synced ones.
     const startRow = 2;
     const endRow = startRow + 499; // 500-row window from the top
-
-    // Cap new calls per run to avoid timeout (AI transcript analysis is slow).
-    // The 3-minute schedule catches up over multiple runs.
-    const MAX_NEW_PER_RUN = 5;
 
     // First, get the actual sheet name from spreadsheet metadata
     const metaRes = await fetch(
@@ -103,15 +84,11 @@ Deno.serve(async (req) => {
     }
     const metaJson = await metaRes.json();
     const sheetName = metaJson.sheets?.[0]?.properties?.title || "Sheet1";
-    console.log(`[INFO] Using sheet name: "${sheetName}"`);
 
-    const [headersRes, userList] = await Promise.all([
-      fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(`${sheetName}!1:1`)}`,
-        { headers: { Authorization: `Bearer ${accessToken}` } }
-      ),
-      base44.asServiceRole.entities.User.list(),
-    ]);
+    const headersRes = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(`${sheetName}!1:1`)}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
 
     if (!headersRes.ok) {
       const err = await headersRes.text();
@@ -120,18 +97,13 @@ Deno.serve(async (req) => {
 
     const headersData = await headersRes.json();
     const headers = headersData.values?.[0] || [];
-    if (!headers.length) return Response.json({ imported: 0, skipped: 0, remaining: 0 });
+    if (!headers.length) return Response.json({ imported: 0, skipped: 0 });
 
-    // Detect the audio link column (if present)
     const audioLinkHeader = findAudioLinkHeader(headers);
-
-    // Detect the duration column by header name
     const durationHeader = headers.find(h => h && h.trim().toLowerCase().includes("duration"));
-
-    // Detect the Call ID column (stable unique ID — row positions shift when new rows are prepended)
     const callIdHeader = headers.find(h => h && h.trim().toLowerCase() === "call id");
 
-    // Fetch the window of new rows
+    // Fetch the window of rows
     const dataRange = `${sheetName}!${startRow}:${endRow}`;
     const dataRes = await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(dataRange)}`,
@@ -146,10 +118,8 @@ Deno.serve(async (req) => {
     const dataJson = await dataRes.json();
     const rawRows = dataJson.values || [];
 
-    console.log(`[INFO] Fetching range ${dataRange}, got ${rawRows.length} rows`);
-
     if (rawRows.length === 0) {
-      return Response.json({ imported: 0, skipped: 0, remaining: 0, message: "No new rows found", debugRange: dataRange });
+      return Response.json({ imported: 0, skipped: 0, message: "No rows found" });
     }
 
     // Map rows to objects using actual sheet row numbers
@@ -158,7 +128,6 @@ Deno.serve(async (req) => {
       headers.forEach((h, i) => {
         if (h && h.trim()) obj[h.trim()] = row[i] ?? "";
       });
-      // Extract Call ID for stable dedup (row positions shift when new rows are prepended)
       obj.__callId = callIdHeader ? (row[headers.indexOf(callIdHeader)] || "").trim() : "";
       return obj;
     });
@@ -173,18 +142,15 @@ Deno.serve(async (req) => {
       }
       return true;
     });
-    // Build a set of already-existing zoom_meeting_ids for this batch
-    // Use Call ID when available (stable across row shifts), fall back to sheet_row_N
+
+    // Dedup check: use Call ID when available, fall back to sheet_row_N
     const zoomIds = rowsToProcess.map(r => r.__callId || `sheet_row_${r.__rowIndex}`);
     const existingCalls = await base44.asServiceRole.entities.CallRecord.filter({ zoom_meeting_id: { $in: zoomIds } });
     const existingIds = new Set(existingCalls.map(c => c.zoom_meeting_id));
 
     let imported = 0;
     let skipped = 0;
-    const errors = [];
-
     const recordsToCreate = [];
-    const openai = new OpenAI({ apiKey: Deno.env.get("OPENAI_API_KEY") });
 
     for (const row of rowsToProcess) {
       const rowKey = row.__callId || `sheet_row_${row.__rowIndex}`;
@@ -192,134 +158,52 @@ Deno.serve(async (req) => {
         skipped++;
         continue;
       }
-      // Stop processing new calls once we hit the per-run cap (avoids timeout)
-      if (imported >= MAX_NEW_PER_RUN) {
-        skipped++;
-        continue;
-      }
-      // Column B (index 1) = direction
+
       const directionRaw = String(row.__raw[1] || "").toLowerCase().trim();
       const call_direction = directionRaw.startsWith("out") || directionRaw === "out" ? "outbound" : "inbound";
-      // Column L (index 11) = transcript
       const transcript = String(row.__raw[11] || "").trim();
-      try {
-        // Inbound: phone from C (index 2), name from D (index 3)
-        // Outbound: phone from E (index 4), name from F (index 5)
-        const phoneRaw = call_direction === "inbound" ? String(row.__raw[2] || "") : String(row.__raw[4] || "");
-        const nameRaw = call_direction === "inbound" ? String(row.__raw[3] || "") : String(row.__raw[5] || "");
-        const caller_phone = (phoneRaw && phoneRaw.toLowerCase() !== "anonymous") ? phoneRaw.trim() : null;
-        const caller_name_from_sheet = nameRaw.trim() || null;
 
-        // Audio link from column J (index 9)
-        const recording_url = extractRecordingUrl(row.__raw[9]);
+      const phoneRaw = call_direction === "inbound" ? String(row.__raw[2] || "") : String(row.__raw[4] || "");
+      const nameRaw = call_direction === "inbound" ? String(row.__raw[3] || "") : String(row.__raw[5] || "");
+      const caller_phone = (phoneRaw && phoneRaw.toLowerCase() !== "anonymous") ? phoneRaw.trim() : null;
+      const caller_name = nameRaw.trim() || null;
 
-        // Duration from the detected duration column
-        const call_duration_seconds = durationHeader ? parseDurationSeconds(row[durationHeader]) : null;
+      const recording_url = extractRecordingUrl(row.__raw[9]);
+      const call_duration_seconds = durationHeader ? parseDurationSeconds(row[durationHeader]) : null;
 
-        // --- AI analysis of transcript (if available) ---
-        let team_member_raw = null;
-        let caller_type = "not_applicable";
-        let booking_outcome = "appt_not_booked";
-        let caller_name = caller_name_from_sheet;
-        let caller_intent = null;
-        let bookable = "unclear";
-        let transcript_summary = null;
-        let ai_notes = null;
-        let booked_date = null;
-        let booking_offered = false;
-        let ai_missed_call = false;
-
-        if (transcript) {
-          const analysis = await analyzeCall(transcript, call_direction, userList, openai, aiPrompts);
-          const strOrNull = (v) => typeof v === 'string' && v.trim() ? v.trim() : null;
-          team_member_raw = strOrNull(analysis.team_member);
-          if (!caller_name) caller_name = strOrNull(analysis.caller_name);
-          caller_type = analysis.caller_type || "not_applicable";
-          caller_intent = strOrNull(analysis.caller_intent);
-          bookable = analysis.bookable || "unclear";
-          booking_outcome = analysis.booking_outcome || "appt_not_booked";
-          booked_date = analysis.booked_date || null;
-          transcript_summary = strOrNull(analysis.transcript_summary);
-          ai_notes = strOrNull(analysis.ai_notes);
-          ai_missed_call = analysis.missed_call === true;
-          if (booking_outcome === "appt_not_booked" && !ai_missed_call) {
-            booking_offered = analysis.booking_offered === true;
-          }
-        } else {
-          // Fallback: read from columns when no transcript
-          const callerTypeRaw = String(row["Caller Type"] || "").toLowerCase();
-          if (callerTypeRaw.includes("potential") || callerTypeRaw.includes("new")) caller_type = "potential_client";
-          else if (callerTypeRaw.includes("return") || callerTypeRaw.includes("existing")) caller_type = "returning_client";
-
-          const bookingRaw = String(row["Booking Outcome"] || "").toLowerCase();
-          if (bookingRaw.includes("booked") || bookingRaw.includes("scheduled") || bookingRaw.includes("yes")) booking_outcome = "appt_booked";
-          else if (bookingRaw.includes("not needed") || bookingRaw.includes("n/a") || bookingRaw.includes("not applicable") || bookingRaw.includes("unsure")) booking_outcome = "appt_not_needed";
+      // Parse date
+      let callDateISO = new Date().toISOString();
+      const dateRaw = String(row.__raw[0] || "");
+      if (dateRaw) {
+        const serial = parseFloat(dateRaw);
+        if (!isNaN(serial) && serial > 40000) {
+          const msFromEpoch = (serial - 25569) * 86400 * 1000;
+          callDateISO = new Date(msFromEpoch + easternOffsetMs(msFromEpoch)).toISOString();
+        } else if (dateRaw.includes("/") || dateRaw.includes("-")) {
+          const parsed = new Date(dateRaw);
+          if (!isNaN(parsed)) callDateISO = parsed.toISOString();
         }
-
-        // Team member: AI raw name → fuzzy match with extra aliases
-        let team_member = null;
-        const teamMemberSource = team_member_raw || String(row["Team Member"] || "").trim();
-        if (teamMemberSource && userList.length) {
-          team_member = fuzzyMatchUser(teamMemberSource, userList, extraAliases);
-        }
-
-        // Missed call: trust the AI's determination for calls with transcripts.
-        // For calls without transcripts, use duration as a proxy (short = likely missed).
-        const missed_call = call_direction === "inbound" && (
-          ai_missed_call ||
-          (!transcript && call_duration_seconds !== null && call_duration_seconds < 30)
-        );
-        if (missed_call) {
-          team_member = null;
-        }
-
-        // Parse date
-        let callDateISO = new Date().toISOString();
-        const dateRaw = String(row.__raw[0] || "");
-        if (dateRaw) {
-          const serial = parseFloat(dateRaw);
-          if (!isNaN(serial) && serial > 40000) {
-            const msFromEpoch = (serial - 25569) * 86400 * 1000;
-            callDateISO = new Date(msFromEpoch + easternOffsetMs(msFromEpoch)).toISOString();
-          } else if (dateRaw.includes("/") || dateRaw.includes("-")) {
-            const parsed = new Date(dateRaw);
-            if (!isNaN(parsed)) callDateISO = parsed.toISOString();
-          }
-        }
-
-        const zoom_meeting_id = row.__callId || `sheet_row_${row.__rowIndex}`;
-
-        recordsToCreate.push({
-          zoom_meeting_id,
-          call_date: callDateISO,
-          call_direction,
-          call_duration_seconds,
-          caller_phone,
-          caller_name,
-          team_member,
-          caller_type,
-          caller_intent,
-          bookable,
-          booking_outcome,
-          was_booked: booking_outcome === "appt_booked",
-          booked_date,
-          booking_offered,
-          recording_url,
-          transcript: transcript || null,
-          transcript_summary,
-          ai_notes,
-          missed_call,
-          status: "pending_review",
-          __rowIndex: row.__rowIndex,
-        });
-      } catch (err) {
-        errors.push(`Row ${row.__rowIndex}: ${err.message}`);
-        skipped++;
       }
+
+      const zoom_meeting_id = row.__callId || `sheet_row_${row.__rowIndex}`;
+
+      recordsToCreate.push({
+        zoom_meeting_id,
+        call_date: callDateISO,
+        call_direction,
+        call_duration_seconds,
+        caller_phone,
+        caller_name,
+        transcript: transcript || null,
+        recording_url,
+        missed_call: false, // will be set by AI enricher
+        status: "pending_review",
+        ai_enriched: false,
+        __rowIndex: row.__rowIndex,
+      });
     }
 
-    // Bulk-create in batches of 50, saving the high-water mark after each batch
-    // so progress survives if the function times out mid-run
+    // Bulk-create in batches of 50
     const BATCH_SIZE = 50;
     for (let i = 0; i < recordsToCreate.length; i += BATCH_SIZE) {
       const batch = recordsToCreate.slice(i, i + BATCH_SIZE);
@@ -328,12 +212,11 @@ Deno.serve(async (req) => {
         await base44.asServiceRole.entities.CallRecord.bulkCreate(payloads);
         imported += batch.length;
       } catch (err) {
-        errors.push(`Batch ${i}-${i + BATCH_SIZE}: ${err.message}`);
-        skipped += batch.length;
+        console.error(`Batch ${i} create failed:`, err.message);
       }
     }
 
-    return Response.json({ imported, skipped, errors: errors.slice(0, 5) });
+    return Response.json({ imported, skipped, pendingEnrichment: imported });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
