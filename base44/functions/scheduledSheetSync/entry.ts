@@ -74,7 +74,6 @@ Deno.serve(async (req) => {
     // --- Load settings (prompts + name aliases) ---
     const settingsList = await base44.asServiceRole.entities.AppSettings.filter({ key: "global" });
     const settings = settingsList?.[0] || null;
-    const lastProcessedRow = settings?.last_synced_sheet_row || 1;
     const cdOpts = settings?.call_dashboard_options || {};
     const aiPrompts = {
       ai_caller_type_prompt: cdOpts.ai_caller_type_prompt || null,
