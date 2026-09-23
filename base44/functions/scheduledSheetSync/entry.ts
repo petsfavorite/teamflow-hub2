@@ -1,88 +1,10 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.30';
 import { sendCallLogErrorEmail } from '../../shared/callLogErrorNotify.ts';
+import { parseCallDate, parseDurationSeconds, resolveColumns } from '../../shared/sheetSyncHelpers.ts';
 
 // FAST IMPORT ONLY — no AI analysis. Pulls raw sheet rows and creates
 // CallRecord entries marked pending_review with ai_enriched=false.
 // AI enrichment is handled separately by enrichCallRecords to avoid timeouts.
-
-function extractRecordingUrl(rawLink) {
-  if (!rawLink) return null;
-  const trimmed = String(rawLink).trim();
-  if (trimmed.startsWith("{")) {
-    try {
-      const obj = JSON.parse(trimmed);
-      return obj.webViewLink || obj.webContentLink || obj.url || null;
-    } catch { return null; }
-  }
-  if (trimmed.startsWith("http")) return trimmed;
-  return null;
-}
-
-const AUDIO_LINK_HEADERS = [
-  "audio link", "recording link", "recording url", "audio url",
-  "call audio", "audio", "recording", "link to audio", "audio file",
-  "call recording", "recording link url", "audio recording", "call audio link",
-];
-
-function parseDurationSeconds(raw) {
-  if (!raw) return null;
-  const s = String(raw).trim().toLowerCase();
-  if (!s) return null;
-  if (s.includes(":")) {
-    const parts = s.split(":").map(Number);
-    if (parts.length === 2 && !parts.some(isNaN)) return parts[0] * 60 + parts[1];
-    if (parts.length === 3 && !parts.some(isNaN)) return parts[0] * 3600 + parts[1] * 60 + parts[2];
-  }
-  const num = parseFloat(s.replace(/[^0-9.]/g, ""));
-  return isNaN(num) ? null : num;
-}
-
-function findAudioLinkHeader(headers) {
-  return headers.find(h => {
-    if (!h || !h.trim()) return false;
-    const lower = h.trim().toLowerCase();
-    return AUDIO_LINK_HEADERS.some(ah => lower === ah);
-  });
-}
-
-// Find a column index by exact header name match, with fallback to hardcoded index.
-// Safe: if headers match, uses the correct column; if not, falls back to the
-// same positional indices the code has always used (no data change).
-function findCol(headers, candidates, fallback) {
-  for (const c of candidates) {
-    const idx = headers.findIndex(h => h && h.trim().toLowerCase() === c);
-    if (idx >= 0) return idx;
-  }
-  return fallback;
-}
-
-// Returns the Eastern timezone offset in ms to ADD to a "local-as-UTC" timestamp
-function easternOffsetMs(msFromEpoch) {
-  const d = new Date(msFromEpoch);
-  const year = d.getUTCFullYear();
-  const dstStart = new Date(Date.UTC(year, 2, 8, 2, 0, 0));
-  while (dstStart.getUTCDay() !== 0) dstStart.setUTCDate(dstStart.getUTCDate() + 1);
-  const dstEnd = new Date(Date.UTC(year, 10, 1, 2, 0, 0));
-  while (dstEnd.getUTCDay() !== 0) dstEnd.setUTCDate(dstEnd.getUTCDate() + 1);
-  const isDST = msFromEpoch >= dstStart.getTime() && msFromEpoch < dstEnd.getTime();
-  return isDST ? 4 * 3600 * 1000 : 5 * 3600 * 1000;
-}
-
-function parseCallDate(dateRaw) {
-  if (!dateRaw) return null;
-  const s = String(dateRaw).trim();
-  if (!s) return null;
-  const serial = parseFloat(s);
-  if (!isNaN(serial) && serial > 40000) {
-    const msFromEpoch = (serial - 25569) * 86400 * 1000;
-    return new Date(msFromEpoch + easternOffsetMs(msFromEpoch)).toISOString();
-  }
-  if (s.includes("/") || s.includes("-")) {
-    const parsed = new Date(s);
-    if (!isNaN(parsed)) return parsed.toISOString();
-  }
-  return null;
-}
 
 Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
@@ -144,21 +66,9 @@ Deno.serve(async (req) => {
     const headers = headersData.values?.[0] || [];
     if (!headers.length) return Response.json({ imported: 0, skipped: 0 });
 
-    // Find column indices by header name (with fallback to current hardcoded positions).
-    // This is safe: if headers match, uses the correct column; if not, falls back to
-    // the same positional indices the code has always used (no data change).
-    const colDate = findCol(headers, ["date", "start time", "call date", "start date", "time"], 0);
-    const colDirection = findCol(headers, ["direction", "call direction", "type"], 1);
-    const colFromPhone = findCol(headers, ["from number", "from phone", "caller number", "caller phone", "from"], 2);
-    const colFromName = findCol(headers, ["from name", "caller name"], 3);
-    const colToPhone = findCol(headers, ["to number", "to phone", "to"], 4);
-    const colToName = findCol(headers, ["to name"], 5);
-    const colTranscript = findCol(headers, ["transcript", "transcription"], 11);
-
-    const audioLinkHeader = findAudioLinkHeader(headers);
-    const colRecording = audioLinkHeader ? headers.indexOf(audioLinkHeader) : 9;
-    const durationHeader = headers.find(h => h && h.trim().toLowerCase().includes("duration"));
-    const callIdHeader = headers.find(h => h && h.trim().toLowerCase() === "call id");
+    // Resolve column indices by header name (with fallback to current hardcoded positions).
+    const cols = resolveColumns(headers);
+    const { colDate, colDirection, colFromPhone, colFromName, colToPhone, colToName, colTranscript, colRecording, colDuration, colCallId } = cols;
 
     // Fetch the window of rows
     const dataRange = `${sheetName}!${startRow}:${endRow}`;
@@ -189,7 +99,7 @@ Deno.serve(async (req) => {
       headers.forEach((h, i) => {
         if (h && h.trim()) obj[h.trim()] = row[i] ?? "";
       });
-      obj.__callId = callIdHeader ? (row[headers.indexOf(callIdHeader)] || "").trim() : "";
+      obj.__callId = colCallId >= 0 ? (row[colCallId] || "").trim() : "";
       obj.__parsedDate = parseCallDate(row[colDate]);
       return obj;
     });
@@ -198,8 +108,8 @@ Deno.serve(async (req) => {
     const rowsWithData = records.filter(row => {
       const hasAnyData = Object.entries(row).some(([k, v]) => k !== '__rowIndex' && k !== '__raw' && k !== '__parsedDate' && v !== '');
       if (!hasAnyData) return false;
-      if (durationHeader) {
-        const durSec = parseDurationSeconds(row[durationHeader]);
+      if (colDuration >= 0) {
+        const durSec = parseDurationSeconds(row.__raw[colDuration]);
         if (durSec === null || durSec < 30) return false;
       }
       return true;
@@ -243,7 +153,7 @@ Deno.serve(async (req) => {
       const caller_name = nameRaw.trim() || null;
 
       const recording_url = extractRecordingUrl(row.__raw[colRecording]);
-      const call_duration_seconds = durationHeader ? parseDurationSeconds(row[durationHeader]) : null;
+      const call_duration_seconds = colDuration >= 0 ? parseDurationSeconds(row.__raw[colDuration]) : null;
 
       const callDateISO = row.__parsedDate || new Date().toISOString();
       const zoom_meeting_id = row.__callId || `sheet_row_${row.__rowIndex}`;
