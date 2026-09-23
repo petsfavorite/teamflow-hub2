@@ -90,7 +90,7 @@ Deno.serve(async (req) => {
 
     // Cap new calls per run to avoid timeout (AI transcript analysis is slow).
     // The 3-minute schedule catches up over multiple runs.
-    const MAX_NEW_PER_RUN = 10;
+    const MAX_NEW_PER_RUN = 5;
 
     // First, get the actual sheet name from spreadsheet metadata
     const metaRes = await fetch(
