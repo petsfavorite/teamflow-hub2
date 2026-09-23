@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.30';
 import { sendCallLogErrorEmail } from '../../shared/callLogErrorNotify.ts';
-import { parseCallDate, parseDurationSeconds, resolveColumns } from '../../shared/sheetSyncHelpers.ts';
+import { parseCallDate, parseDurationSeconds, resolveColumns, buildCallRecord } from '../../shared/sheetSyncHelpers.ts';
 
 // FAST IMPORT ONLY — no AI analysis. Pulls raw sheet rows and creates
 // CallRecord entries marked pending_review with ai_enriched=false.
@@ -28,9 +28,11 @@ Deno.serve(async (req) => {
     const settings = settingsList?.[0] || null;
     const lastSyncedDate = settings?.last_synced_call_date || null;
 
-    // New calls are PREPENDED at the top of the sheet — always scan from row 2.
-    const startRow = 2;
-    const endRow = startRow + 499; // 500-row window from the top
+    // Scan back 60 days of calls (not a fixed row count). Calls are prepended
+    // at the top (newest first), so we read in chunks from row 2 and stop once
+    // a chunk's oldest row is older than the 60-day cutoff.
+    const cutoffDate = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString();
+    const CHUNK_SIZE = 500;
 
     // First, get the actual sheet name from spreadsheet metadata
     const metaRes = await fetch(
@@ -68,34 +70,56 @@ Deno.serve(async (req) => {
 
     // Resolve column indices by header name (with fallback to current hardcoded positions).
     const cols = resolveColumns(headers);
-    const { colDate, colDirection, colFromPhone, colFromName, colToPhone, colToName, colTranscript, colRecording, colDuration, colCallId } = cols;
+    const { colDate, colDuration, colCallId } = cols;
 
-    // Fetch the window of rows
-    const dataRange = `${sheetName}!${startRow}:${endRow}`;
-    const dataRes = await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(dataRange)}`,
-      { headers: { Authorization: `Bearer ${accessToken}` } }
-    );
-
-    if (!dataRes.ok) {
-      const err = await dataRes.text();
-      await sendCallLogErrorEmail(base44,
-        "Sheet Data Error",
-        `The scheduled call log sync could not read the Google Sheet data.\n\nError: ${err}\n\nNew calls will not be imported until this is fixed.`
+    // Read rows in chunks from the top until we pass the 60-day cutoff
+    const rawRows = [];
+    let chunkStart = 2;
+    let reachedCutoff = false;
+    while (!reachedCutoff) {
+      const chunkEnd = chunkStart + CHUNK_SIZE - 1;
+      const dataRange = `${sheetName}!${chunkStart}:${chunkEnd}`;
+      const dataRes = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(dataRange)}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
       );
-      return Response.json({ error: err }, { status: dataRes.status });
-    }
 
-    const dataJson = await dataRes.json();
-    const rawRows = dataJson.values || [];
+      if (!dataRes.ok) {
+        const err = await dataRes.text();
+        await sendCallLogErrorEmail(base44,
+          "Sheet Data Error",
+          `The scheduled call log sync could not read the Google Sheet data (rows ${chunkStart}-${chunkEnd}).\n\nError: ${err}\n\nNew calls will not be imported until this is fixed.`
+        );
+        return Response.json({ error: err }, { status: dataRes.status });
+      }
+
+      const dataJson = await dataRes.json();
+      const chunkRows = dataJson.values || [];
+      if (chunkRows.length === 0) break;
+
+      // Check the last row's date — if older than cutoff, we've read past 60 days
+      const lastRow = chunkRows[chunkRows.length - 1];
+      const lastDate = parseCallDate(lastRow[colDate]);
+      if (lastDate && lastDate < cutoffDate) {
+        reachedCutoff = true;
+      }
+
+      rawRows.push(...chunkRows);
+
+      if (chunkRows.length < CHUNK_SIZE) break; // reached end of sheet
+      chunkStart = chunkEnd + 1;
+
+      // Safety cap: don't read more than 5000 rows per run
+      if (rawRows.length >= 5000) break;
+    }
 
     if (rawRows.length === 0) {
       return Response.json({ imported: 0, skipped: 0, message: "No rows found" });
     }
 
-    // Map rows to objects using actual sheet row numbers
+    // Map rows to objects using actual sheet row numbers (row 2 = first data row)
     const records = rawRows.map((row, idx) => {
-      const obj = { __rowIndex: startRow + idx, __raw: row };
+      const obj = { __rowIndex: 2 + idx, __raw: row };
       headers.forEach((h, i) => {
         if (h && h.trim()) obj[h.trim()] = row[i] ?? "";
       });
@@ -142,45 +166,15 @@ Deno.serve(async (req) => {
         skipped++;
         continue;
       }
-
-      const directionRaw = String(row.__raw[colDirection] || "").toLowerCase().trim();
-      const call_direction = directionRaw.startsWith("out") || directionRaw === "out" ? "outbound" : "inbound";
-      const transcript = String(row.__raw[colTranscript] || "").trim();
-
-      const phoneRaw = call_direction === "inbound" ? String(row.__raw[colFromPhone] || "") : String(row.__raw[colToPhone] || "");
-      const nameRaw = call_direction === "inbound" ? String(row.__raw[colFromName] || "") : String(row.__raw[colToName] || "");
-      const caller_phone = (phoneRaw && phoneRaw.toLowerCase() !== "anonymous") ? phoneRaw.trim() : null;
-      const caller_name = nameRaw.trim() || null;
-
-      const recording_url = extractRecordingUrl(row.__raw[colRecording]);
-      const call_duration_seconds = colDuration >= 0 ? parseDurationSeconds(row.__raw[colDuration]) : null;
-
-      const callDateISO = row.__parsedDate || new Date().toISOString();
-      const zoom_meeting_id = row.__callId || `sheet_row_${row.__rowIndex}`;
-
-      recordsToCreate.push({
-        zoom_meeting_id,
-        call_date: callDateISO,
-        call_direction,
-        call_duration_seconds,
-        caller_phone,
-        caller_name,
-        transcript: transcript || null,
-        recording_url,
-        missed_call: false, // will be set by AI enricher
-        status: "pending_review",
-        ai_enriched: false,
-        __rowIndex: row.__rowIndex,
-      });
+      recordsToCreate.push(buildCallRecord(row.__raw, cols, row.__rowIndex, row.__callId));
     }
 
     // Bulk-create in batches of 50
     const BATCH_SIZE = 50;
     for (let i = 0; i < recordsToCreate.length; i += BATCH_SIZE) {
       const batch = recordsToCreate.slice(i, i + BATCH_SIZE);
-      const payloads = batch.map(({ __rowIndex, ...r }) => r);
       try {
-        await base44.asServiceRole.entities.CallRecord.bulkCreate(payloads);
+        await base44.asServiceRole.entities.CallRecord.bulkCreate(batch);
         imported += batch.length;
       } catch (err) {
         console.error(`Batch ${i} create failed:`, err.message);
@@ -207,7 +201,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    return Response.json({ imported, skipped, pendingEnrichment: imported });
+    return Response.json({ imported, skipped, pendingEnrichment: imported, rowsScanned: rawRows.length, cutoffDate });
   } catch (error) {
     await sendCallLogErrorEmail(base44,
       "Unexpected Error",
