@@ -83,9 +83,8 @@ Deno.serve(async (req) => {
     };
     const extraAliases = buildExtraAliases(cdOpts.name_aliases);
 
-    // Only fetch rows we haven't seen yet (start from lastProcessedRow + 1)
-    // Process 200 rows per run for faster catch-up
-    const startRow = lastProcessedRow + 1;
+    // New calls are PREPENDED at the top of the sheet — always scan from row 2
+    const startRow = 2;
     const endRow = startRow + 199;
 
     // First, get the actual sheet name from spreadsheet metadata
@@ -124,6 +123,9 @@ Deno.serve(async (req) => {
     // Detect the duration column by header name
     const durationHeader = headers.find(h => h && h.trim().toLowerCase().includes("duration"));
 
+    // Detect the Call ID column (stable unique ID — row positions shift when new rows are prepended)
+    const callIdHeader = headers.find(h => h && h.trim().toLowerCase() === "call id");
+
     // Fetch the window of new rows
     const dataRange = `${sheetName}!${startRow}:${endRow}`;
     const dataRes = await fetch(
@@ -151,6 +153,8 @@ Deno.serve(async (req) => {
       headers.forEach((h, i) => {
         if (h && h.trim()) obj[h.trim()] = row[i] ?? "";
       });
+      // Extract Call ID for stable dedup (row positions shift when new rows are prepended)
+      obj.__callId = callIdHeader ? (row[headers.indexOf(callIdHeader)] || "").trim() : "";
       return obj;
     });
 
@@ -164,25 +168,23 @@ Deno.serve(async (req) => {
       }
       return true;
     });
-    const remaining = rawRows.length === 100 ? "possibly more" : 0;
-
     // Build a set of already-existing zoom_meeting_ids for this batch
-    const zoomIds = rowsToProcess.map(r => `sheet_row_${r.__rowIndex}`);
+    // Use Call ID when available (stable across row shifts), fall back to sheet_row_N
+    const zoomIds = rowsToProcess.map(r => r.__callId || `sheet_row_${r.__rowIndex}`);
     const existingCalls = await base44.asServiceRole.entities.CallRecord.filter({ zoom_meeting_id: { $in: zoomIds } });
     const existingIds = new Set(existingCalls.map(c => c.zoom_meeting_id));
 
     let imported = 0;
     let skipped = 0;
     const errors = [];
-    let maxProcessedRow = lastProcessedRow;
 
     const recordsToCreate = [];
     const openai = new OpenAI({ apiKey: Deno.env.get("OPENAI_API_KEY") });
 
     for (const row of rowsToProcess) {
-      if (existingIds.has(`sheet_row_${row.__rowIndex}`)) {
+      const rowKey = row.__callId || `sheet_row_${row.__rowIndex}`;
+      if (existingIds.has(rowKey)) {
         skipped++;
-        if (row.__rowIndex > maxProcessedRow) maxProcessedRow = row.__rowIndex;
         continue;
       }
       // Column B (index 1) = direction
@@ -275,7 +277,7 @@ Deno.serve(async (req) => {
           }
         }
 
-        const zoom_meeting_id = `sheet_row_${row.__rowIndex}`;
+        const zoom_meeting_id = row.__callId || `sheet_row_${row.__rowIndex}`;
 
         recordsToCreate.push({
           zoom_meeting_id,
@@ -315,34 +317,13 @@ Deno.serve(async (req) => {
       try {
         await base44.asServiceRole.entities.CallRecord.bulkCreate(payloads);
         imported += batch.length;
-        const batchMax = Math.max(...batch.map(r => r.__rowIndex));
-        if (batchMax > maxProcessedRow) maxProcessedRow = batchMax;
-        // Save high-water mark after each successful batch
-        if (maxProcessedRow > lastProcessedRow) {
-          const updateData = { last_synced_sheet_row: maxProcessedRow };
-          if (settings?.id) {
-            await base44.asServiceRole.entities.AppSettings.update(settings.id, updateData);
-          } else {
-            await base44.asServiceRole.entities.AppSettings.create({ key: "global", ...updateData });
-          }
-        }
       } catch (err) {
         errors.push(`Batch ${i}-${i + BATCH_SIZE}: ${err.message}`);
         skipped += batch.length;
       }
     }
 
-    // Final high-water mark save (catches skipped/duplicate rows that advanced maxProcessedRow)
-    if (maxProcessedRow > lastProcessedRow) {
-      const updateData = { last_synced_sheet_row: maxProcessedRow };
-      if (settings?.id) {
-        await base44.asServiceRole.entities.AppSettings.update(settings.id, updateData);
-      } else {
-        await base44.asServiceRole.entities.AppSettings.create({ key: "global", ...updateData });
-      }
-    }
-
-    return Response.json({ imported, skipped, remaining, lastProcessedRow, maxProcessedRow, errors: errors.slice(0, 5) });
+    return Response.json({ imported, skipped, errors: errors.slice(0, 5) });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
