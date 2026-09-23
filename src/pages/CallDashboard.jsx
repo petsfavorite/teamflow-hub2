@@ -59,7 +59,13 @@ export default function CallDashboard() {
     [datePreset, customStart, customEnd]
   );
 
-  const validDurationCalls = useMemo(() => calls.filter(c => c.call_duration_seconds != null && c.call_duration_seconds >= 30), [calls]);
+  const validDurationCalls = useMemo(() => calls.filter(c => {
+    // Show calls with duration >= 30s, OR calls with no audio and no transcript
+    // (missed calls / recording failures should be visible regardless of duration)
+    const hasValidDuration = c.call_duration_seconds != null && c.call_duration_seconds >= 30;
+    const hasNoMedia = !c.recording_url && (!c.transcript || !c.transcript.trim() || c.transcript === "No transcript");
+    return hasValidDuration || hasNoMedia;
+  }), [calls]);
 
   const dateFilteredCalls = useMemo(() => {
     if (!dateStart && !dateEnd) return validDurationCalls;
