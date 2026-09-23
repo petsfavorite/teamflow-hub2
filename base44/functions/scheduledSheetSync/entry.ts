@@ -148,12 +148,16 @@ Deno.serve(async (req) => {
     }
 
     // Dedup check: use Call ID when available, fall back to sheet_row_N.
-    // Only query for the filtered rows (much smaller than scanning all 500).
+    // Query in batches to avoid 414 (URI too long) when scanning many rows.
     let existingIds = new Set();
     if (rowsToProcess.length > 0) {
       const zoomIds = rowsToProcess.map(r => r.__callId || `sheet_row_${r.__rowIndex}`);
-      const existingCalls = await base44.asServiceRole.entities.CallRecord.filter({ zoom_meeting_id: { $in: zoomIds } });
-      existingIds = new Set(existingCalls.map(c => c.zoom_meeting_id));
+      const DEDUP_BATCH = 100;
+      for (let i = 0; i < zoomIds.length; i += DEDUP_BATCH) {
+        const batch = zoomIds.slice(i, i + DEDUP_BATCH);
+        const existingCalls = await base44.asServiceRole.entities.CallRecord.filter({ zoom_meeting_id: { $in: batch } });
+        existingCalls.forEach(c => existingIds.add(c.zoom_meeting_id));
+      }
     }
 
     let imported = 0;
