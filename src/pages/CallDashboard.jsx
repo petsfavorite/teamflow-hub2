@@ -8,7 +8,7 @@ import CallDashboardSettings from "@/components/calldashboard/CallDashboardSetti
 import DateRangePicker, { getDateRange } from "@/components/calldashboard/DateRangePicker";
 import StatCard from "@/components/calldashboard/StatCard";
 import CallCard from "@/components/calldashboard/CallCard";
-import CallDetailPanel from "@/components/calldashboard/CallDetailPanel";
+import CallDetailLoader from "@/components/calldashboard/CallDetailLoader";
 import StaffLeaderboard from "@/components/calldashboard/StaffLeaderboard";
 import CallerTypeChart from "@/components/calldashboard/CallerTypeChart";
 import DashboardFilters from "@/components/calldashboard/DashboardFilters";
@@ -174,7 +174,7 @@ export default function CallDashboard() {
         </div>
       </div>
 
-      <CallDetailPanel call={selectedCall} open={!!selectedCall} onClose={() => setSelectedCall(null)} onUpdate={refetch} isAdmin={isAdmin} users={users} />
+      {selectedCall && <CallDetailLoader key={selectedCall.id} call={selectedCall} onClose={() => setSelectedCall(null)} onUpdate={refetch} isAdmin={isAdmin} users={users} />}
       {canManageSettings && <CallDashboardSettings open={showSettings} onClose={() => setShowSettings(false)} users={users} />}
     </div>
   );
