@@ -20,7 +20,7 @@ export const NAME_ALIASES = {
   "haley": "hailey", "hayley": "hailey",
 };
 
-export const NEVER_ASSIGN_AS_ANSWERER = ["caroline cofer", "dr. cofer", "dr cofer", "caroline", "dr caroline", "dr. caroline"];
+export const NEVER_ASSIGN_AS_ANSWERER = ["caroline cofer", "dr. cofer", "dr cofer", "caroline", "dr caroline", "dr. caroline", "support staff", "staff"];
 
 export function fuzzyMatchUser(detectedName, userList, extraAliases = {}) {
   if (!detectedName || !userList.length) return null;
