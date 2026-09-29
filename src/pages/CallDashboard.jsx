@@ -28,7 +28,7 @@ export default function CallDashboard() {
   const { data: calls = [], isLoading, refetch } = useQuery({
     queryKey: ["callRecords"],
     queryFn: async () => {
-      const records = await base44.entities.CallRecord.list("-call_date", 5000, 0);
+      const records = await base44.entities.CallRecord.list("-call_date", 2000, 0);
       records.sort((a, b) => new Date(b.call_date) - new Date(a.call_date));
       return records;
     },
