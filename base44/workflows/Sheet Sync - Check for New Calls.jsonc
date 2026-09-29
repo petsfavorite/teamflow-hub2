@@ -20,6 +20,7 @@
     ]
   },
   "description": "Fast import of raw call data from Google Sheet (no AI). AI enrichment handled separately by 'AI Enrich Call Records' workflow.",
+  "name": "Sheet Sync - Check for New Calls",
   "trigger": {
     "condition": null,
     "config": {
@@ -29,7 +30,7 @@
       "cron_expression": null,
       "one_time_date": null,
       "timezone": "UTC",
-      "interval_value": 5,
+      "interval_value": 10,
       "interval_unit": "minutes",
       "interval_anchor": "2026-03-06T19:42:36.607000",
       "ends_type": "never",
@@ -37,7 +38,6 @@
       "ends_after_count": null
     }
   },
-  "name": "Sheet Sync - Check for New Calls",
   "x-base44-migrated-from-automation": {
     "legacy_payload_function": "scheduledSheetSync"
   }

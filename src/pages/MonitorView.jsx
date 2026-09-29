@@ -9,19 +9,19 @@ import moment from "moment";
 export default function MonitorView() {
     const { data: pets = [], isLoading: petsLoading } = useQuery({
         queryKey: ['pets'],
-        queryFn: () => base44.entities.Pet.list()
+        queryFn: () => base44.entities.Pet.list(null, 500)
     });
 
     const { data: visits = [], isLoading: visitsLoading, refetch } = useQuery({
         queryKey: ['visits'],
-        queryFn: () => base44.entities.Visit.list()
+        queryFn: () => base44.entities.Visit.list('-check_in_time', 500)
     });
 
-    // Auto-refresh every 30 seconds
+    // Auto-refresh every 60 seconds (was 30s — reduced to lower entity read load)
     useEffect(() => {
         const interval = setInterval(() => {
             refetch();
-        }, 30000);
+        }, 60000);
         return () => clearInterval(interval);
     }, [refetch]);
 

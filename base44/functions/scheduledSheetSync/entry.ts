@@ -149,6 +149,7 @@ Deno.serve(async (req) => {
 
     // Dedup check: use Call ID when available, fall back to sheet_row_N.
     // Query in batches to avoid 414 (URI too long) when scanning many rows.
+    // Skip entirely when there are no new rows to process (saves entity reads).
     let existingIds = new Set();
     if (rowsToProcess.length > 0) {
       const zoomIds = rowsToProcess.map(r => r.__callId || `sheet_row_${r.__rowIndex}`);
@@ -205,7 +206,22 @@ Deno.serve(async (req) => {
       }
     }
 
-    return Response.json({ imported, skipped, pendingEnrichment: imported, rowsScanned: rawRows.length, cutoffDate });
+    // Diagnostic: include high-water mark and sheet's newest date so we can
+    // troubleshoot when calls stop appearing on the dashboard.
+    const newestInSheet = records
+      .map(r => r.__parsedDate)
+      .filter(Boolean)
+      .sort()
+      .pop();
+
+    return Response.json({
+      imported, skipped, pendingEnrichment: imported,
+      rowsScanned: rawRows.length, cutoffDate,
+      lastSyncedDate: lastSyncedDate || null,
+      newestDateInSheet: newestInSheet || null,
+      rowsWithDataCount: rowsWithData.length,
+      rowsToProcessCount: rowsToProcess.length,
+    });
   } catch (error) {
     await sendCallLogErrorEmail(base44,
       "Unexpected Error",

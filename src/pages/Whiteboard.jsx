@@ -52,16 +52,16 @@ export default function Whiteboard() {
 
     const { data: allPets = [], isLoading: petsLoading } = useQuery({
          queryKey: ['pets'],
-         queryFn: () => base44.entities.Pet.list()
+         queryFn: () => base44.entities.Pet.list(null, 500)
      });
 
      // Filter out archived pets for normal view
      const pets = allPets.filter(p => !p.is_archived);
 
-    const { data: visits = [], isLoading: visitsLoading } = useQuery({
-        queryKey: ['visits'],
-        queryFn: () => base44.entities.Visit.list()
-    });
+     const { data: visits = [], isLoading: visitsLoading } = useQuery({
+         queryKey: ['visits'],
+         queryFn: () => base44.entities.Visit.list('-check_in_time', 500)
+     });
 
     const updateVisitMutation = useMutation({
         mutationFn: ({ id, data }) => base44.entities.Visit.update(id, data),
