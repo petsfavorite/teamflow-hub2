@@ -32,8 +32,7 @@ export default function CallDashboard() {
       records.sort((a, b) => new Date(b.call_date) - new Date(a.call_date));
       return records;
     },
-    retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
+    retry: 0, // don't retry rate-limited requests — it makes the rate limit worse
   });
 
   const { data: users = [] } = useQuery({

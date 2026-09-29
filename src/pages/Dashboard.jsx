@@ -36,12 +36,6 @@ export default function Dashboard() {
   const canApprove = isSuperAdmin || isAdmin;
   const queryClient = useQueryClient();
 
-  const { data: sops = [] } = useQuery({
-    queryKey: ['sops-dash'],
-    queryFn: () => base44.entities.SOP.filter({ status: 'published' }),
-    enabled: !!user?.email,
-  });
-
   const { data: allSOPs = [] } = useQuery({
     queryKey: ['all-sops-dash'],
     queryFn: () => base44.entities.SOP.list(),
@@ -84,15 +78,6 @@ export default function Dashboard() {
     queryKey: ['incidents-dash'],
     queryFn: () => base44.entities.IncidentReport.list('-created_date', 50),
     enabled: !!user?.email && canManage,
-  });
-
-  const { data: recentAwards = [] } = useQuery({
-    queryKey: ['bonusly-awards'],
-    queryFn: async () => {
-      const res = await base44.functions.invoke('getBonuslyAwards', {});
-      return res.data?.recognitions || [];
-    },
-    enabled: !!user?.email,
   });
 
   // SOPs requiring acknowledgement that this user hasn't acknowledged yet

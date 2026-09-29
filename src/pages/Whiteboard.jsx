@@ -45,7 +45,7 @@ export default function Whiteboard() {
             if (isInputFocused()) return; // don't refetch mid-edit
             queryClient.invalidateQueries(['visits']);
             queryClient.invalidateQueries(['pets']);
-        }, 5000); // 5 seconds
+        }, 30000); // 30 seconds — was 5s, which caused excessive entity reads
         
         return () => clearInterval(interval);
     }, [activeTab, queryClient, selectedVisit]);
