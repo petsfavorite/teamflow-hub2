@@ -6,23 +6,51 @@
 export const NAME_ALIASES = {
   // Rebecca Evatt
   "becca": "rebecca", "becky": "rebecca", "bec": "rebecca",
-  // Aryana Vizcano
+  // Aryana Vizcaino
   "arianna": "aryana", "ariana": "aryana", "ary": "aryana", "anna": "aryana",
-  // Amanda Sandor
+  "arianne": "aryana", "ari": "aryana", "aryan": "aryana",
+  // Amanda Sandor (former employee — kept for old transcripts)
   "mandy": "amanda", "aman": "amanda",
   // Katie DeJesus
   "kate": "katie", "katelyn": "katie", "kaitlyn": "katie", "caitlin": "katie", "kaitlin": "katie",
+  "katy": "katie", "kati": "katie",
   // Jen Rising
-  "jennifer": "jen", "jenny": "jen",
+  "jennifer": "jen", "jenny": "jen", "jenn": "jen",
   // Skye Means
-  "sky": "skye",
-  // Hailey Laughter
-  "haley": "hailey", "hayley": "hailey",
+  "sky": "skye", "ski": "skye",
+  // Hailey Laughter / Haley Jones
+  "haley": "hailey", "hayley": "hailey", "hailie": "hailey", "haylee": "hailey",
   // Casie Ward (often misheard as "Casey" in transcripts)
-  "casey": "casie",
+  "casey": "casie", "cassie": "casie", "cassy": "casie", "kacie": "casie", "kacy": "casie", "kasey": "casie",
+  // Lindsay Lollis / Lindsay Wyatt
+  "linds": "lindsay", "lindy": "lindsay", "linz": "lindsay",
+  // Pam M
+  "pamela": "pam",
+  // Emmeline Wood
+  "em": "emmeline", "emmy": "emmeline", "emmie": "emmeline", "emaline": "emmeline", "emiline": "emmeline",
+  // Nevada Perkins
+  "nev": "nevada", "nevvy": "nevada",
+  // Jody Miranda
+  "jodi": "jody", "jodie": "jody", "jodee": "jody",
+  // Hope Steadman
+  "hopey": "hope",
 };
 
 export const NEVER_ASSIGN_AS_ANSWERER = ["caroline cofer", "dr. cofer", "dr cofer", "caroline", "dr caroline", "dr. caroline", "support staff", "staff"];
+
+// Returns the user's first name, preferring the first_name field over full_name.
+// full_name can be an immutable username (e.g. "zoeybinks2"), so first_name is
+// the reliable source after a profile update.
+function getFirstName(u) {
+  if (u.first_name) return u.first_name.toLowerCase().trim();
+  return (u.full_name || "").toLowerCase().split(" ")[0];
+}
+
+// Returns the user's display name — prefers first_name + last_name, falls back to full_name.
+function getDisplayName(u) {
+  if (u.first_name && u.last_name) return `${u.first_name} ${u.last_name}`.trim();
+  return u.full_name || "";
+}
 
 export function fuzzyMatchUser(detectedName, userList, extraAliases = {}) {
   if (!detectedName || !userList.length) return null;
@@ -39,9 +67,12 @@ export function fuzzyMatchUser(detectedName, userList, extraAliases = {}) {
   // Apply alias normalization before matching
   if (allAliases[lower]) lower = allAliases[lower];
 
-  // 1. Exact full name match
-  const exact = userList.find(u => u.full_name.toLowerCase() === lower);
-  if (exact) return exact.full_name;
+  // 1. Exact full name match (checks both full_name and first_name+last_name)
+  const exact = userList.find(u => {
+    return u.full_name?.toLowerCase() === lower ||
+           getDisplayName(u).toLowerCase() === lower;
+  });
+  if (exact) return getDisplayName(exact);
 
   // 1b. If multi-word name (e.g. "rebecca hall" from a garbled transcript),
   // try matching just the first word as a first name — speech-to-text often
@@ -49,19 +80,13 @@ export function fuzzyMatchUser(detectedName, userList, extraAliases = {}) {
   const words = lower.split(/\s+/);
   if (words.length > 1) {
     const firstWord = words[0];
-    const firstWordMatch = userList.find(u => {
-      const firstName = u.full_name.toLowerCase().split(" ")[0];
-      return firstName === firstWord;
-    });
-    if (firstWordMatch) return firstWordMatch.full_name;
+    const firstWordMatch = userList.find(u => getFirstName(u) === firstWord);
+    if (firstWordMatch) return getDisplayName(firstWordMatch);
   }
 
   // 2. Exact first name match (most common — sheet often has just first names)
-  const firstNameMatch = userList.find(u => {
-    const firstName = u.full_name.toLowerCase().split(" ")[0];
-    return firstName === lower;
-  });
-  if (firstNameMatch) return firstNameMatch.full_name;
+  const firstNameMatch = userList.find(u => getFirstName(u) === lower);
+  if (firstNameMatch) return getDisplayName(firstNameMatch);
 
   // 3. Partial alias: check if the detected name is an alias fragment of a user
   for (const [alias, canonical] of Object.entries(allAliases)) {
@@ -70,29 +95,25 @@ export function fuzzyMatchUser(detectedName, userList, extraAliases = {}) {
       break;
     }
   }
-  const aliasFirstName = userList.find(u => {
-    const firstName = u.full_name.toLowerCase().split(" ")[0];
-    return firstName === lower;
-  });
-  if (aliasFirstName) return aliasFirstName.full_name;
+  const aliasFirstName = userList.find(u => getFirstName(u) === lower);
+  if (aliasFirstName) return getDisplayName(aliasFirstName);
 
   // 4. Substring match — detected name is contained in a user's full name
   const substringMatch = userList.find(u => {
-    const uLower = u.full_name.toLowerCase();
-    // Only match if the detected token matches a whole word in the user's name
+    const uLower = getDisplayName(u).toLowerCase();
     const words = uLower.split(" ");
     return words.some(w => w === lower);
   });
-  if (substringMatch) return substringMatch.full_name;
+  if (substringMatch) return getDisplayName(substringMatch);
 
   // 5. Initials match (e.g. "KS" → first letters of first+last name)
   if (/^[a-z]{2,3}$/.test(lower)) {
     const initialsMatch = userList.find(u => {
-      const parts = u.full_name.toLowerCase().split(" ");
+      const parts = getDisplayName(u).toLowerCase().split(" ");
       const initials = parts.map(p => p[0]).join("");
       return initials === lower;
     });
-    if (initialsMatch) return initialsMatch.full_name;
+    if (initialsMatch) return getDisplayName(initialsMatch);
   }
 
   // No confident match — return null so we don't assign a wrong person
