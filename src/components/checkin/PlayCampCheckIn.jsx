@@ -11,6 +11,7 @@ export default function PlayCampCheckIn({ pet, onConfirm, onCancel }) {
     const [duration, setDuration] = useState('full_day');
     const [needFecal, setNeedFecal] = useState(false);
     const [addBath, setAddBath] = useState(false);
+    const [addLunch, setAddLunch] = useState(false);
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -47,6 +48,18 @@ export default function PlayCampCheckIn({ pet, onConfirm, onCancel }) {
              tasks.push({
                  type: 'Schedule Bath',
                  time: '',
+                 date: today,
+                 is_template: false,
+                 completed: false,
+                 completed_at: null
+             });
+         }
+
+         // Add "Lunch" task due at noon if requested
+         if (addLunch) {
+             tasks.push({
+                 type: 'Lunch',
+                 time: '12:00 PM',
                  date: today,
                  is_template: false,
                  completed: false,
@@ -100,6 +113,16 @@ export default function PlayCampCheckIn({ pet, onConfirm, onCancel }) {
                              />
                              <Label htmlFor="bath" className="cursor-pointer">
                                  Add Bath
+                             </Label>
+                         </div>
+                         <div className="flex items-center space-x-2">
+                             <Checkbox 
+                                 id="lunch" 
+                                 checked={addLunch}
+                                 onCheckedChange={setAddLunch}
+                             />
+                             <Label htmlFor="lunch" className="cursor-pointer">
+                                 Lunch (due at noon)
                              </Label>
                          </div>
                      </div>
