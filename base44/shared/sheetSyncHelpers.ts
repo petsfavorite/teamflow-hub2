@@ -71,7 +71,10 @@ export function parseCallDate(dateRaw) {
   }
   if (s.includes("/") || s.includes("-")) {
     const parsed = new Date(s);
-    if (!isNaN(parsed)) return parsed.toISOString();
+    if (!isNaN(parsed)) {
+      const ms = parsed.getTime();
+      return new Date(ms + easternOffsetMs(ms)).toISOString();
+    }
   }
   return null;
 }
