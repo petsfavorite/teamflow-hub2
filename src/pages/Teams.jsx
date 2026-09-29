@@ -65,24 +65,55 @@ export default function Teams() {
     },
   });
 
-  const addMember = (team, userToAdd) => {
-    const emails = [...(team.member_emails || [])];
-    const names = [...(team.member_names || [])];
-    if (emails.includes(userToAdd.email)) {
+  const [memberOpLoading, setMemberOpLoading] = useState(false);
+
+  // Use updateUserProfile so both User.team_ids and Team.member_emails stay in sync.
+  // Directly updating Team.member_emails alone would be reverted by updateUserProfile
+  // the next time that user's profile is saved, causing them to lose team-assigned checklists.
+  const addMember = async (team, userToAdd) => {
+    const currentTeamIds = userToAdd.team_ids || [];
+    if (currentTeamIds.includes(team.id)) {
       toast.info('User already in team');
       return;
     }
-    emails.push(userToAdd.email);
-    names.push(userToAdd.full_name || userToAdd.email);
-    updateMutation.mutate({ id: team.id, data: { member_emails: emails, member_names: names } });
+    setMemberOpLoading(true);
+    try {
+      await base44.functions.invoke('updateUserProfile', {
+        userId: userToAdd.id,
+        team_ids: [...currentTeamIds, team.id],
+      });
+      toast.success(`${userToAdd.full_name || userToAdd.email} added to ${team.name}`);
+      queryClient.invalidateQueries({ queryKey: ['teams'] });
+      queryClient.invalidateQueries({ queryKey: ['teams-list'] });
+      queryClient.invalidateQueries({ queryKey: ['teams-mgmt'] });
+      queryClient.invalidateQueries({ queryKey: ['all-users'] });
+    } catch (e) {
+      toast.error('Failed to add member');
+    } finally {
+      setMemberOpLoading(false);
+    }
   };
 
-  const removeMember = (team, email) => {
-    const idx = (team.member_emails || []).indexOf(email);
-    const emails = (team.member_emails || []).filter(e => e !== email);
-    const names = [...(team.member_names || [])];
-    if (idx >= 0) names.splice(idx, 1);
-    updateMutation.mutate({ id: team.id, data: { member_emails: emails, member_names: names } });
+  const removeMember = async (team, email) => {
+    const userToRemove = allUsers.find(u => u.email === email);
+    if (!userToRemove) return;
+    const currentTeamIds = userToRemove.team_ids || [];
+    setMemberOpLoading(true);
+    try {
+      await base44.functions.invoke('updateUserProfile', {
+        userId: userToRemove.id,
+        team_ids: currentTeamIds.filter(id => id !== team.id),
+      });
+      toast.success(`Removed from ${team.name}`);
+      queryClient.invalidateQueries({ queryKey: ['teams'] });
+      queryClient.invalidateQueries({ queryKey: ['teams-list'] });
+      queryClient.invalidateQueries({ queryKey: ['teams-mgmt'] });
+      queryClient.invalidateQueries({ queryKey: ['all-users'] });
+    } catch (e) {
+      toast.error('Failed to remove member');
+    } finally {
+      setMemberOpLoading(false);
+    }
   };
 
   const nonMembers = addMemberTeam
@@ -225,7 +256,8 @@ export default function Teams() {
                 <button
                   key={u.id}
                   onClick={() => addMember(addMemberTeam, u)}
-                  className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-indigo-50 transition-colors text-left"
+                  disabled={memberOpLoading}
+                  className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-indigo-50 transition-colors text-left disabled:opacity-50"
                 >
                   <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-600">
                     {u.full_name?.charAt(0) || '?'}
@@ -234,7 +266,7 @@ export default function Teams() {
                     <p className="text-sm font-medium text-slate-900">{u.full_name || 'No name'}</p>
                     <p className="text-xs text-slate-400">{u.email}</p>
                   </div>
-                  <UserPlus className="w-4 h-4 text-indigo-400 ml-auto" />
+                  {memberOpLoading ? <Loader2 className="w-4 h-4 text-indigo-400 ml-auto animate-spin" /> : <UserPlus className="w-4 h-4 text-indigo-400 ml-auto" />}
                 </button>
               ))
             )}

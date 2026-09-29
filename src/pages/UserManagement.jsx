@@ -669,6 +669,11 @@ export default function UserManagement() {
                 if (hasChanges) {
                   await base44.functions.invoke('updateUserProfile', payload);
                   queryClient.invalidateQueries({ queryKey: ['all-users'] });
+                  // Invalidate team queries so other pages (e.g. Checklists) reflect
+                  // the membership change immediately without needing a remount.
+                  queryClient.invalidateQueries({ queryKey: ['teams-list'] });
+                  queryClient.invalidateQueries({ queryKey: ['teams'] });
+                  queryClient.invalidateQueries({ queryKey: ['teams-mgmt'] });
                   toast.success('User updated');
                 }
                 setEditingUser(null);
