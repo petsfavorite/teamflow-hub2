@@ -92,6 +92,19 @@ export const AuthProvider = ({ children }) => {
       // Now check if the user is authenticated
       setIsLoadingAuth(true);
       let currentUser = await base44.auth.me();
+
+      // Block archived users from accessing the app
+      if (currentUser.is_archived) {
+        setUser(null);
+        setIsAuthenticated(false);
+        setAuthError({
+          type: 'user_archived',
+          message: 'Your account has been archived'
+        });
+        setIsLoadingAuth(false);
+        return;
+      }
+
       setUser(currentUser);
       setIsAuthenticated(true);
       setIsLoadingAuth(false);

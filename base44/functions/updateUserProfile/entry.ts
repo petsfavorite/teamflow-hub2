@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    const { userId, role, pin, team_ids, first_name, last_name } = await req.json();
+    const { userId, role, pin, team_ids, first_name, last_name, is_archived } = await req.json();
 
     const targetUser = await base44.asServiceRole.entities.User.get(userId);
     if (!targetUser) {
@@ -60,6 +60,20 @@ Deno.serve(async (req) => {
     // Team changes — managers+ can update
     if (team_ids !== undefined) {
       updates.team_ids = team_ids;
+    }
+
+    // Archive/unarchive — admins+ only, cannot archive other admins/super_admins or self
+    if (is_archived !== undefined) {
+      if (!['admin', 'super_admin'].includes(user.role)) {
+        return Response.json({ error: 'Only admins can archive or unarchive users' }, { status: 403 });
+      }
+      if (userId === user.id) {
+        return Response.json({ error: 'Cannot archive your own account' }, { status: 400 });
+      }
+      if (user.role === 'admin' && ['admin', 'super_admin'].includes(targetRole)) {
+        return Response.json({ error: 'Cannot archive other admins or super admins' }, { status: 403 });
+      }
+      updates.is_archived = is_archived;
     }
 
     if (Object.keys(updates).length === 0) {

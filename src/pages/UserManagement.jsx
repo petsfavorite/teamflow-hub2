@@ -11,7 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Users, UserPlus, Pencil, Loader2, Mail, Trash2, Hash, Plus, Clock, RotateCcw } from 'lucide-react';
+import { Users, UserPlus, Pencil, Loader2, Mail, Trash2, Hash, Plus, Clock, RotateCcw, Archive, ArchiveRestore } from 'lucide-react';
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
@@ -72,7 +72,28 @@ export default function UserManagement() {
     },
   });
 
+  const archiveUserMutation = useMutation({
+    mutationFn: async ({ userId, is_archived }) => {
+      return base44.functions.invoke('updateUserProfile', { userId, is_archived });
+    },
+    onSuccess: (_, variables) => {
+      toast.success(variables.is_archived ? 'User archived — they can no longer log in' : 'User restored — they can log in again');
+      queryClient.invalidateQueries({ queryKey: ['all-users'] });
+    },
+    onError: (e) => {
+      toast.error(e?.response?.data?.error || e?.message || 'Failed to update archive status');
+    },
+  });
+
   const canDelete = (u) => {
+    if (u.id === user?.id) return false;
+    if (u.role === 'super_admin') return false;
+    if (isSuperAdmin) return true;
+    if (isAdmin && (u.role === 'manager' || u.role === 'user' || !u.role)) return true;
+    return false;
+  };
+
+  const canArchive = (u) => {
     if (u.id === user?.id) return false;
     if (u.role === 'super_admin') return false;
     if (isSuperAdmin) return true;
@@ -171,6 +192,110 @@ export default function UserManagement() {
       toast.error('Failed to delete invite');
     }
   };
+
+  const activeUsers = users.filter(u => !u.is_archived);
+  const archivedUsers = users.filter(u => u.is_archived);
+
+  const renderUserCard = (u) => (
+    <Card key={u.id} className={`border-0 shadow-sm ${u.is_archived ? 'opacity-60' : ''}`}>
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-600 flex-shrink-0">
+              {u.initials || u.full_name?.charAt(0) || u.email?.charAt(0) || '?'}
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="font-medium text-slate-900 truncate">
+                  {(u.first_name || u.last_name) ? `${u.first_name || ''} ${u.last_name || ''}`.trim() : (u.full_name || 'No name set')}
+                </p>
+                {u.is_archived && (
+                  <span className="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded flex-shrink-0">Archived</span>
+                )}
+              </div>
+              <p className="text-xs text-slate-400 truncate">{u.email}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1 flex-shrink-0">
+            {canArchive(u) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => archiveUserMutation.mutate({ userId: u.id, is_archived: !u.is_archived })}
+                title={u.is_archived ? 'Unarchive user' : 'Archive user'}
+              >
+                {u.is_archived
+                  ? <ArchiveRestore className="w-4 h-4 text-emerald-500" />
+                  : <Archive className="w-4 h-4 text-slate-400" />}
+              </Button>
+            )}
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => { 
+                setEditingUser(u); 
+                setEditRole(u.role || 'user');
+                setEditFirstName(u.first_name || '');
+                setEditLastName(u.last_name || '');
+                setEditPin(u.pin || '');
+                setPinError('');
+              }}
+              className={(() => {
+                if (u.id === user?.id) return 'invisible';
+                if (isSuperAdmin && u.role !== 'super_admin') return '';
+                if (isAdmin && !['admin', 'super_admin'].includes(u.role)) return '';
+                if (isManager && (u.role === 'user' || !u.role)) return '';
+                return 'invisible';
+              })()}
+            >
+              <Pencil className="w-4 h-4 text-slate-400" />
+            </Button>
+            {canDelete(u) && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="sm">
+                    <Trash2 className="w-4 h-4 text-red-400" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete User</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete {u.full_name || u.email}? This cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => deleteUserMutation.mutate(u)}
+                      className="bg-red-600 hover:bg-red-700"
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
+        </div>
+        <div className="mt-2 flex items-center flex-wrap gap-2 pl-13">
+          <RoleBadge role={u.role || 'user'} />
+          {u.team_ids?.length > 0 && teams.length > 0 && (
+            <>
+              {u.team_ids.map(teamId => {
+                const team = teams.find(t => t.id === teamId);
+                return team ? (
+                  <span key={teamId} className="text-xs bg-slate-100 text-slate-700 px-2 py-0.5 rounded">
+                    {team.name}
+                  </span>
+                ) : null;
+              })}
+            </>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
 
   if (!canManage) {
     return <div className="text-center py-20"><p className="text-slate-500">Access restricted to managers and admins</p></div>;
@@ -288,96 +413,19 @@ export default function UserManagement() {
           ) : users.length === 0 ? (
             <EmptyState icon={Users} title="No users yet" description="Invite team members to get started" />
           ) : (
-            <div className="space-y-3">
-               {users.map(u => (
-            <Card key={u.id} className="border-0 shadow-sm">
-              <CardContent className="p-4">
-                {/* Top row: avatar + name/email + action buttons */}
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-600 flex-shrink-0">
-                      {u.initials || u.full_name?.charAt(0) || u.email?.charAt(0) || '?'}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-medium text-slate-900 truncate">
-                          {(u.first_name || u.last_name) ? `${u.first_name || ''} ${u.last_name || ''}`.trim() : (u.full_name || 'No name set')}
-                        </p>
-                      </div>
-                      <p className="text-xs text-slate-400 truncate">{u.email}</p>
-                    </div>
+            <>
+              <div className="space-y-3">
+                {activeUsers.map(renderUserCard)}
+              </div>
+              {archivedUsers.length > 0 && (
+                <>
+                  <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-6 mb-3">Archived Users</h3>
+                  <div className="space-y-3">
+                    {archivedUsers.map(renderUserCard)}
                   </div>
-                  {/* Action buttons */}
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => { 
-                        setEditingUser(u); 
-                        setEditRole(u.role || 'user');
-                        setEditFirstName(u.first_name || '');
-                        setEditLastName(u.last_name || '');
-                        setEditPin(u.pin || '');
-                        setPinError('');
-                      }}
-                      className={(() => {
-                        if (u.id === user?.id) return 'invisible';
-                        if (isSuperAdmin && u.role !== 'super_admin') return '';
-                        if (isAdmin && !['admin', 'super_admin'].includes(u.role)) return '';
-                        if (isManager && (u.role === 'user' || !u.role)) return '';
-                        return 'invisible';
-                      })()}
-                    >
-                      <Pencil className="w-4 h-4 text-slate-400" />
-                    </Button>
-                    {canDelete(u) && (
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <Trash2 className="w-4 h-4 text-red-400" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete User</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to delete {u.full_name || u.email}? This cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => deleteUserMutation.mutate(u)}
-                              className="bg-red-600 hover:bg-red-700"
-                            >
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    )}
-                  </div>
-                </div>
-                {/* Bottom row: role badge + teams */}
-                <div className="mt-2 flex items-center flex-wrap gap-2 pl-13">
-                  <RoleBadge role={u.role || 'user'} />
-                  {u.team_ids?.length > 0 && teams.length > 0 && (
-                    <>
-                      {u.team_ids.map(teamId => {
-                        const team = teams.find(t => t.id === teamId);
-                        return team ? (
-                          <span key={teamId} className="text-xs bg-slate-100 text-slate-700 px-2 py-0.5 rounded">
-                            {team.name}
-                          </span>
-                        ) : null;
-                      })}
-                    </>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-          </div>
+                </>
+              )}
+            </>
           )}
           </>
           )}

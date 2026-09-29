@@ -45,6 +45,11 @@
     "initials": {
       "type": "string",
       "description": "User's initials with version number (e.g., 'JD1', 'JD2')"
+    },
+    "is_archived": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the user is archived \u2014 archived users cannot log in"
     }
   },
   "required": [
