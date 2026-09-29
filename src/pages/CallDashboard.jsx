@@ -12,6 +12,7 @@ import CallDetailPanel from "@/components/calldashboard/CallDetailPanel";
 import StaffLeaderboard from "@/components/calldashboard/StaffLeaderboard";
 import CallerTypeChart from "@/components/calldashboard/CallerTypeChart";
 import DashboardFilters from "@/components/calldashboard/DashboardFilters";
+import useCallHistory from "@/components/calldashboard/useCallHistory";
 
 export default function CallDashboard() {
   const [selectedCall, setSelectedCall] = useState(null);
@@ -25,15 +26,11 @@ export default function CallDashboard() {
   const isAdmin = user?.role === "admin" || user?.role === "super_admin" || user?.role === "manager";
   const canManageSettings = user?.role === "admin" || user?.role === "super_admin";
 
-  const { data: calls = [], isLoading, refetch } = useQuery({
-    queryKey: ["callRecords"],
-    queryFn: async () => {
-      const records = await base44.entities.CallRecord.list("-call_date", 2000, 0);
-      records.sort((a, b) => new Date(b.call_date) - new Date(a.call_date));
-      return records;
-    },
-    retry: 0, // don't retry rate-limited requests — it makes the rate limit worse
-  });
+  const { start: dateStart, end: dateEnd } = useMemo(
+    () => getDateRange(datePreset, customStart, customEnd),
+    [datePreset, customStart, customEnd]
+  );
+  const { data: calls = [], isLoading, isError, refetch } = useCallHistory(dateStart, dateEnd);
 
   const { data: users = [] } = useQuery({
     queryKey: ["allUsers"],
@@ -52,11 +49,6 @@ export default function CallDashboard() {
     });
     return map;
   }, [users]);
-
-  const { start: dateStart, end: dateEnd } = useMemo(
-    () => getDateRange(datePreset, customStart, customEnd),
-    [datePreset, customStart, customEnd]
-  );
 
   const validDurationCalls = useMemo(() => calls.filter(c => c.call_duration_seconds != null && c.call_duration_seconds >= 30), [calls]);
 
@@ -114,9 +106,19 @@ export default function CallDashboard() {
     return { total, booked, bookable: bookableTotal, missedBookings, potential, bookingRate, missed, missedWhenOpen, inboundTotal: inboundCalls.length };
   }, [filteredCalls]);
 
-  if (isLoading) return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-      <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+  if (isLoading || isError) return (
+    <div className="space-y-4">
+      <h1 className="text-2xl font-bold">Call Dashboard</h1>
+      <p className="text-sm text-muted-foreground">90 days of call history available · Seven days shown by default</p>
+      <DateRangePicker preset={datePreset} onPresetChange={setDatePreset} customStart={customStart} customEnd={customEnd} onCustomChange={(s, e) => { setCustomStart(s); setCustomEnd(e); }} />
+      {isLoading ? (
+        <div role="status" className="flex items-center gap-2 text-muted-foreground"><Loader2 className="w-5 h-5 animate-spin" />Loading calls for the selected dates…</div>
+      ) : (
+        <div role="alert" className="rounded-xl border border-border bg-card p-6 space-y-3">
+          <p>Call history couldn't load. If the read limit was reached, wait a minute before retrying.</p>
+          <Button onClick={() => refetch()}>Retry</Button>
+        </div>
+      )}
     </div>
   );
 
@@ -128,6 +130,7 @@ export default function CallDashboard() {
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Call Dashboard</h1>
               <p className="text-sm text-slate-500 mt-1">{filteredCalls.length} total calls · {stats.booked} booked · {stats.missedBookings} missed opportunities</p>
+              <p className="text-xs text-muted-foreground mt-1">90 days of call history available</p>
             </div>
             {canManageSettings && (
               <Button variant="outline" size="sm" onClick={() => setShowSettings(true)} className="gap-2 flex-shrink-0">
