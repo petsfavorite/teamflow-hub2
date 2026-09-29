@@ -18,6 +18,8 @@ export const NAME_ALIASES = {
   "sky": "skye",
   // Hailey Laughter
   "haley": "hailey", "hayley": "hailey",
+  // Casie Ward (often misheard as "Casey" in transcripts)
+  "casey": "casie",
 };
 
 export const NEVER_ASSIGN_AS_ANSWERER = ["caroline cofer", "dr. cofer", "dr cofer", "caroline", "dr caroline", "dr. caroline", "support staff", "staff"];
