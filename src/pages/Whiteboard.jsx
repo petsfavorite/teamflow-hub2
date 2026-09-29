@@ -65,17 +65,31 @@ export default function Whiteboard() {
 
     const updateVisitMutation = useMutation({
         mutationFn: ({ id, data }) => base44.entities.Visit.update(id, data),
-        onSuccess: () => {
-            queryClient.invalidateQueries(['visits']);
+        onMutate: async ({ id, data }) => {
+            // Cancel outgoing refetches so they don't overwrite our optimistic update
+            await queryClient.cancelQueries({ queryKey: ['visits'] });
+            // Snapshot previous value for rollback
+            const previousVisits = queryClient.getQueryData(['visits']);
+            // Optimistically update cache BEFORE save so the whiteboard reflects
+            // the change immediately when the panel closes — even if the save is
+            // still in flight or the refetch hits a 429.
+            queryClient.setQueryData(['visits'], (oldVisits) => {
+                if (!Array.isArray(oldVisits)) return oldVisits;
+                return oldVisits.map(v => v.id === id ? { ...v, ...data } : v);
+            });
+            return { previousVisits };
         },
-        onError: () => {
-            // Rollback optimistic update — revert to freshest server state
-            const freshVisits = queryClient.getQueryData(['visits']);
-            if (selectedVisit && freshVisits) {
-                const fresh = freshVisits.find(v => v.id === selectedVisit.id);
+        onError: (err, { id }, context) => {
+            // Rollback to previous state
+            if (context?.previousVisits) {
+                queryClient.setQueryData(['visits'], context.previousVisits);
+                const fresh = context.previousVisits.find(v => v.id === id);
                 if (fresh) setSelectedVisit({ ...fresh });
             }
             alert('Failed to save changes. Please try again.');
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['visits'] });
         }
     });
 
@@ -109,18 +123,12 @@ export default function Whiteboard() {
     };
 
     const handleUpdateVisit = async (updatedVisit) => {
-        await updateVisitMutation.mutateAsync({ id: updatedVisit.id, data: updatedVisit });
-        // Optimistically update selectedVisit immediately so the UI reacts right away
+        // Update selectedVisit immediately so the panel reacts right away
         setSelectedVisit({ ...updatedVisit });
-        // Update the visits cache directly so the whiteboard card reflects the
-        // change immediately — don't rely solely on invalidateQueries refetch,
-        // which can fail silently under read-rate-limiting (429).
-        queryClient.setQueryData(['visits'], (oldVisits) => {
-            if (!Array.isArray(oldVisits)) return oldVisits;
-            return oldVisits.map(v => v.id === updatedVisit.id ? { ...v, ...updatedVisit } : v);
-        });
-        // Then refetch in background to sync with server
-        queryClient.invalidateQueries({ queryKey: ['visits'] });
+        // onMutate in the mutation updates the visits cache synchronously BEFORE
+        // the save, so the whiteboard reflects the change even if the user closes
+        // the panel before the save completes.
+        await updateVisitMutation.mutateAsync({ id: updatedVisit.id, data: updatedVisit });
     };
 
     const handleCheckout = () => {
