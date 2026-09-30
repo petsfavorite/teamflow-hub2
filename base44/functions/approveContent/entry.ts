@@ -82,6 +82,25 @@ export default async function(req) {
             pending_submitted_by: null, pending_submitted_by_name: null,
           });
         }
+        // Send rejection notice server-side — recipient validated against known users/invites
+        // so a client-settable pending_submitted_by can't email arbitrary external addresses.
+        if (template.pending_submitted_by) {
+          try {
+            const [users, invites] = await Promise.all([
+              base44.asServiceRole.entities.User.filter({ email: template.pending_submitted_by }),
+              base44.asServiceRole.entities.PendingInvite.filter({ email: template.pending_submitted_by }),
+            ]);
+            if (users.length > 0 || invites.length > 0) {
+              const safeTitle = String(template.title || '').replace(/[\r\n\t<>]/g, ' ').substring(0, 200).trim();
+              await base44.integrations.Core.SendEmail({
+                to: template.pending_submitted_by,
+                subject: `Checklist Returned to Draft: ${safeTitle}`,
+                body: `Hi,\n\nYour checklist template "${safeTitle}" has been returned to draft by an admin. Please log in to review and make any needed changes before resubmitting.\n\nThanks!`,
+                from_name: "Pet's Favorite Hub",
+              });
+            }
+          } catch { /* email is best-effort */ }
+        }
       }
       return Response.json({ success: true });
     }

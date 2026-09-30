@@ -249,20 +249,13 @@ export default function Checklists() {
     },
   });
 
-  // Reject a pending template (admins/super_admins) — sends back to draft
+  // Reject a pending template (admins/super_admins) — sends back to draft.
+  // Rejection email is sent server-side by approveContent (recipient validated against known users/invites).
   const rejectTemplateMutation = useMutation({
     mutationFn: async (template) => {
       await base44.functions.invoke('approveContent', {
         type: 'checklist', id: template.id, action: 'reject',
       });
-      // Notify the submitter
-      if (template.pending_submitted_by) {
-        await base44.integrations.Core.SendEmail({
-          to: template.pending_submitted_by,
-          subject: `Checklist Returned to Draft: ${template.title}`,
-          body: `Hi,\n\nYour checklist template "${template.title}" has been returned to draft by an admin. Please log in to review and make any needed changes before resubmitting.\n\nThanks!`
-        }).catch(() => {});
-      }
     },
     onSuccess: () => {
       toast.success('Checklist returned to draft.');

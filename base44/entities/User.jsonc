@@ -46,6 +46,10 @@
       "type": "string",
       "description": "ISO timestamp until which the PIN is locked due to too many failed attempts"
     },
+    "session_locked_at": {
+      "type": "string",
+      "description": "ISO timestamp of inactivity PIN lock \u2014 checked server-side so clearing browser storage can't bypass the lock. Cleared only by validatePin on correct PIN entry."
+    },
     "invited": {
       "type": "boolean",
       "default": false,

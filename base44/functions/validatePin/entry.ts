@@ -57,13 +57,12 @@ Deno.serve(async (req) => {
       return Response.json({ valid: false });
     }
 
-    // Success — clear attempts and lockout
-    if (fullUser?.pin_failed_attempts || fullUser?.pin_locked_until) {
-      await base44.asServiceRole.entities.User.update(user.id, {
-        pin_failed_attempts: 0,
-        pin_locked_until: '',
-      });
-    }
+    // Success — clear attempts, lockout, and server-side session lock
+    await base44.asServiceRole.entities.User.update(user.id, {
+      pin_failed_attempts: 0,
+      pin_locked_until: '',
+      session_locked_at: '',
+    });
 
     return Response.json({
       valid: true,
