@@ -187,7 +187,7 @@ export default function SOPDetail() {
           <Button variant="ghost" className="gap-2 text-slate-600"><ArrowLeft className="w-4 h-4" /> Back to SOPs</Button>
         </Link>
         <div className="flex gap-2">
-          {canApprove && (verificationOverdue || verificationSoon) && sop.status === 'published' && (
+          {canManage && (verificationOverdue || verificationSoon) && sop.status === 'published' && (
             <Button
               onClick={() => postponeVerificationMutation.mutate()}
               disabled={postponeVerificationMutation.isPending}
