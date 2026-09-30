@@ -8,7 +8,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell
 } from 'recharts';
 import { Wrench, AlertTriangle } from 'lucide-react';
-import { subDays, format } from 'date-fns';
+import moment from 'moment-timezone';
 import { createPageUrl } from '@/utils';
 import { useNavigate } from 'react-router-dom';
 
@@ -77,9 +77,9 @@ export default function Analytics() {
   // Daily task completion % — last 30 days
   // Each ChecklistCompletion has completed_items: [{ checked, ... }]
   const last30 = Array.from({ length: 30 }, (_, i) => {
-    const d = subDays(new Date(), 29 - i);
-    const dateStr = format(d, 'yyyy-MM-dd');
-    const label = format(d, 'MMM d');
+    const d = moment().subtract(29 - i, 'days');
+    const dateStr = d.format('YYYY-MM-DD');
+    const label = d.format('MMM D');
 
     const dayCompletions = completions.filter(c => c.completion_date === dateStr);
 

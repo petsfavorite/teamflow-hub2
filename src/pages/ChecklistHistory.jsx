@@ -36,7 +36,8 @@ export default function ChecklistHistory() {
 
   const { data: completions = [], isLoading: isLoadingCompletions } = useQuery({
     queryKey: ['completions-history'],
-    queryFn: () => base44.entities.ChecklistCompletion.list('-created_date', 200),
+    // Finished records only: in-progress partial saves are drafts, not history.
+    queryFn: () => base44.entities.ChecklistCompletion.filter({ status: { $in: ['completed', 'edited'] } }, '-created_date', 1000),
   });
 
   const { data: taskHistory = [], isLoading: isLoadingTaskHistory } = useQuery({
@@ -53,7 +54,7 @@ export default function ChecklistHistory() {
   const { data: notifications = [] } = useQuery({
     queryKey: ['checklist-notifications', user?.email],
     queryFn: () => base44.entities.ChecklistNotification.filter({ manager_email: user?.email }, '-created_date', 100),
-    enabled: canManage && isManager,
+    enabled: canManage,
   });
 
   const updateMutation = useMutation({
@@ -105,7 +106,7 @@ export default function ChecklistHistory() {
               className="gap-2"
             >
               <AlertCircle className="w-4 h-4" />
-              {notifications.filter(n => !n.read).length} Incomplete Items
+              {notifications.length} Alerts
             </Button>
           )
         }
@@ -130,12 +131,16 @@ export default function ChecklistHistory() {
       {/* Incomplete items notifications (checklists tab only) */}
       {tab === 'checklists' && showNotifications && notifications.length > 0 && (
         <div className="mb-6 space-y-3">
-          <h3 className="font-semibold text-slate-900">Items Not Checked Off</h3>
+          <h3 className="font-semibold text-slate-900">Checklist Alerts</h3>
           {notifications.map(n => (
             <Card key={n.id} className="border-l-4 border-l-amber-400 border-0 shadow-sm bg-amber-50">
               <CardContent className="p-4">
                 <p className="font-medium text-slate-900 mb-2">{n.checklist_title}</p>
-                <p className="text-sm text-slate-600 mb-3">Submitted by {n.completed_by_name}</p>
+                {n.type === 'unsubmitted_24h' ? (
+                  <p className="text-sm text-amber-800 mb-1">{n.message || 'All items are checked but this checklist has not been submitted for over 24 hours.'}</p>
+                ) : (
+                  <p className="text-sm text-slate-600 mb-3">Submitted by {n.completed_by_name}</p>
+                )}
                 <div className="space-y-1 text-sm">
                   {n.incomplete_items?.map((item, i) => (
                     <div key={i} className="flex items-center gap-2 text-slate-700">

@@ -3,7 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { CalendarIcon, ChevronDown } from "lucide-react";
-import { format, startOfDay, endOfDay, subDays, startOfToday, endOfToday } from "date-fns";
+import { format } from "date-fns";
+import moment from "moment-timezone";
+import { getAppTimezone } from "@/lib/timezone";
 import { cn } from "@/lib/utils";
 
 const PRESETS = [
@@ -17,15 +19,19 @@ const PRESETS = [
 ];
 
 export function getDateRange(preset, customStart, customEnd) {
-  const now = new Date();
+  const tz = getAppTimezone();
+  const startOfDaysAgo = (n) => moment().tz(tz).subtract(n, "days").startOf("day").toDate();
+  const endOfToday = () => moment().tz(tz).endOf("day").toDate();
+  // Calendar picks are local dates; read them as that calendar day in the app timezone.
+  const pickedDay = (d) => moment.tz(format(d, "yyyy-MM-dd"), "YYYY-MM-DD", tz);
   switch (preset) {
-    case "today": return { start: startOfToday(), end: endOfToday() };
-    case "yesterday": { const y = subDays(now, 1); return { start: startOfDay(y), end: endOfDay(y) }; }
-    case "last7": return { start: startOfDay(subDays(now, 6)), end: endOfToday() };
-    case "last30": return { start: startOfDay(subDays(now, 29)), end: endOfToday() };
-    case "last60": return { start: startOfDay(subDays(now, 59)), end: endOfToday() };
-    case "last90": return { start: startOfDay(subDays(now, 89)), end: endOfToday() };
-    case "custom": return { start: customStart ? startOfDay(customStart) : null, end: customEnd ? endOfDay(customEnd) : null };
+    case "today": return { start: startOfDaysAgo(0), end: endOfToday() };
+    case "yesterday": return { start: startOfDaysAgo(1), end: moment().tz(tz).subtract(1, "days").endOf("day").toDate() };
+    case "last7": return { start: startOfDaysAgo(6), end: endOfToday() };
+    case "last30": return { start: startOfDaysAgo(29), end: endOfToday() };
+    case "last60": return { start: startOfDaysAgo(59), end: endOfToday() };
+    case "last90": return { start: startOfDaysAgo(89), end: endOfToday() };
+    case "custom": return { start: customStart ? pickedDay(customStart).startOf("day").toDate() : null, end: customEnd ? pickedDay(customEnd).endOf("day").toDate() : null };
     default: return { start: null, end: null };
   }
 }

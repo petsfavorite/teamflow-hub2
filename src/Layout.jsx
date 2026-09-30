@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import {
@@ -58,8 +59,17 @@ export default function Layout({ children }) {
     const [adminOpen, setAdminOpen] = useState(false);
     const { user } = useCurrentUser();
 
-    // Apply the user's timezone before any page renders; children remount if it changes.
-    const appTimezone = applyTimezone(user?.timezone);
+    // One timezone for everyone, set by an admin / super admin in Settings.
+    // Applied before any page renders; children remount if it changes.
+    const { data: globalTimezone } = useQuery({
+        queryKey: ['global-timezone'],
+        queryFn: async () => {
+            const rows = await base44.entities.AppSettings.filter({ key: 'global' });
+            return rows[0]?.global_timezone || null;
+        },
+        staleTime: 5 * 60 * 1000,
+    });
+    const appTimezone = applyTimezone(globalTimezone);
 
     const getActivePageName = () => {
       const pathname = location.pathname.toLowerCase();

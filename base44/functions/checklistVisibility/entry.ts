@@ -13,11 +13,12 @@ Deno.serve(async (req) => {
     const [tzH, tzM] = now.toLocaleTimeString('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit' }).split(':').map(Number);
     const currentMinutes = tzH * 60 + tzM;
 
-    // Get all active checklists that are not yet visible
-    const hiddenChecklists = await base44.asServiceRole.entities.ChecklistTemplate.filter({
-      status: 'active',
-      is_visible: false
-    });
+    // Get all active (spawned) and published (one-off assigned) checklists that are not yet visible
+    const [hiddenActive, hiddenPublished] = await Promise.all([
+      base44.asServiceRole.entities.ChecklistTemplate.filter({ status: 'active', is_visible: false }),
+      base44.asServiceRole.entities.ChecklistTemplate.filter({ status: 'published', is_visible: false }),
+    ]);
+    const hiddenChecklists = [...hiddenActive, ...hiddenPublished];
 
     let updated = 0;
 
@@ -25,7 +26,8 @@ Deno.serve(async (req) => {
       // Recurring checklists with no due_date and no visible_time become visible immediately
       const isRecurring = checklist.recurrence_type && checklist.recurrence_type !== 'once';
       if (!checklist.due_date) {
-        if (isRecurring && !checklist.visible_time) {
+        // A visibility delay is measured against the due date, so with no due date there is nothing to wait for.
+        if (checklist.status === 'published' || (isRecurring && !checklist.visible_time)) {
           await base44.asServiceRole.entities.ChecklistTemplate.update(checklist.id, { is_visible: true });
           updated++;
         }
@@ -34,8 +36,8 @@ Deno.serve(async (req) => {
 
       // Calculate the visibility date by subtracting visible_day_offset from due_date
       const dayOffset = checklist.visible_day_offset || 0;
-      const dueDateObj = new Date(checklist.due_date + 'T00:00:00');
-      dueDateObj.setDate(dueDateObj.getDate() - dayOffset);
+      const dueDateObj = new Date(checklist.due_date + 'T12:00:00Z');
+      dueDateObj.setUTCDate(dueDateObj.getUTCDate() - dayOffset);
       const visibilityDate = dueDateObj.toISOString().split('T')[0];
 
       const isVisibilityDateToday = visibilityDate === today;

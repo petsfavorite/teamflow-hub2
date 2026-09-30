@@ -2,6 +2,8 @@ import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Users, Calendar, RefreshCw, Edit2, Package } from 'lucide-react';
+import moment from 'moment-timezone';
+import { todayStr, formatDate } from '@/lib/timezone';
 
 const priorityColors = {
   low: 'bg-slate-100 text-slate-600',
@@ -9,71 +11,67 @@ const priorityColors = {
   high: 'bg-orange-100 text-orange-700',
 };
 
-function isCompletedToday(task) {
-  if (task.status !== 'completed') return false;
-  const updated = task.updated_date ? new Date(task.updated_date) : null;
-  if (!updated) return false;
-  const today = new Date();
-  return updated.getFullYear() === today.getFullYear() &&
-    updated.getMonth() === today.getMonth() &&
-    updated.getDate() === today.getDate();
+const FMT = 'YYYY-MM-DD';
+
+// Day-of-month clamped to the month's last day (31 -> 28/29/30 in shorter months).
+function clampedDate(year, monthOffset, dom) {
+  const first = moment.utc([year, 0, 1]).add(monthOffset, 'months');
+  return first.clone().date(Math.min(dom, first.daysInMonth())).format(FMT);
 }
 
+// Mirrors generateRecurringTasks: which date this task will next be created for (app timezone).
 function getNextDueDate(task) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  // If completed today, start searching from tomorrow
-  const from = new Date(today);
-  if (isCompletedToday(task)) from.setDate(from.getDate() + 1);
+  const today = todayStr();
+  const t = moment.utc(today, FMT);
+  const anchor = task.due_date ? moment.utc(task.due_date, FMT) : null;
 
   switch (task.recurrence_type) {
-    case 'daily': {
-      return from;
-    }
+    case 'daily':
+      return today;
     case 'weekdays': {
-      const d = new Date(from);
-      while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
-      return d;
+      const d = t.clone();
+      while (d.day() === 0 || d.day() === 6) d.add(1, 'day');
+      return d.format(FMT);
     }
     case 'specific_days': {
       const days = task.recurrence_days_of_week || [];
       if (!days.length) return null;
-      const d = new Date(from);
+      const d = t.clone();
       for (let i = 0; i <= 7; i++) {
-        if (days.includes(d.getDay())) return d;
-        d.setDate(d.getDate() + 1);
+        if (days.includes(d.day())) return d.format(FMT);
+        d.add(1, 'day');
       }
       return null;
     }
     case 'monthly': {
       const dom = task.recurrence_day_of_month || 1;
-      const d = new Date(from.getFullYear(), from.getMonth(), dom);
-      if (d < from) d.setMonth(d.getMonth() + 1);
-      return d;
+      for (let k = 0; k < 13; k++) {
+        const d = clampedDate(t.year(), t.month() + k, dom);
+        if (d >= today) return d;
+      }
+      return null;
     }
     case 'every_x_months': {
+      if (!anchor) return null;
       const dom = task.recurrence_day_of_month || 1;
-      const interval = task.recurrence_interval_months || 1;
-      const d = new Date(from.getFullYear(), from.getMonth(), dom);
-      while (d < from) d.setMonth(d.getMonth() + interval);
-      return d;
+      const interval = Math.max(1, task.recurrence_interval_months || 1);
+      for (let k = 0; k < 400; k++) {
+        const d = clampedDate(anchor.year(), anchor.month() + k * interval, dom);
+        if (d >= today) return d;
+      }
+      return null;
     }
     case 'annually': {
-      if (!task.due_date) return null;
-      const orig = new Date(task.due_date + 'T00:00:00');
-      const d = new Date(from.getFullYear(), orig.getMonth(), orig.getDate());
-      if (d < from) d.setFullYear(d.getFullYear() + 1);
-      return d;
+      if (!anchor) return null;
+      for (let k = 0; k < 3; k++) {
+        const d = clampedDate(t.year() + k, anchor.month(), anchor.date());
+        if (d >= today) return d;
+      }
+      return null;
     }
     default:
-      return task.due_date ? new Date(task.due_date + 'T00:00:00') : null;
+      return task.due_date || null;
   }
-}
-
-function formatDate(date) {
-  if (!date) return null;
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 function recurrenceLabel(task) {
@@ -86,8 +84,8 @@ function recurrenceLabel(task) {
       return `Repeats on ${days || '—'}`;
     }
     case 'monthly': return `Repeats monthly on day ${task.recurrence_day_of_month || '—'}`;
-    case 'every_x_months': return `Repeats every ${task.recurrence_interval_months || '?'} months`;
-    case 'annually': return 'Repeats annually';
+    case 'every_x_months': return `Repeats every ${task.recurrence_interval_months || '?'} months${task.due_date ? `, starting ${formatDate(task.due_date)}` : ''}`;
+    case 'annually': return task.due_date ? `Repeats annually on ${formatDate(task.due_date, 'MMM D')}` : 'Repeats annually';
     case 'manual': return 'Manual recurrence';
     default: return task.recurrence_type;
   }
@@ -129,7 +127,7 @@ export default function RecurringTaskCard({ task, onEdit, assetName = null }) {
                 return next ? (
                   <span className="flex items-center gap-1">
                     <Calendar className="w-3 h-3" />
-                    Next due {formatDate(next)}
+                    Next due {formatDate(next, 'MMM D, YYYY')}
                   </span>
                 ) : null;
               })()}

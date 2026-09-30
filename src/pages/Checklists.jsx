@@ -19,12 +19,47 @@ import { CheckSquare, Plus, Trash2, AlertCircle, Loader2, Clock, Search, History
 import ChecklistHistoryPanel from '../components/checklist/ChecklistHistoryPanel';
 
 import { toast } from "sonner";
+import moment from 'moment-timezone';
+import { todayStr, getAppTimezone } from '@/lib/timezone';
+
+const EMPTY_USE_FORM = {
+  assigned_to_emails: [],
+  assigned_to_names: [],
+  assigned_teams: [],
+  due_date: '',
+  start_date: '',
+  due_time: '21:00',
+  visible_time: '',
+  visible_day_offset: 0,
+  visible_immediately: false,
+  recurrence_type: 'once',
+  recurrence_days_of_week: [],
+  recurrence_day_of_month: undefined,
+  recurrence_interval_months: undefined
+};
+
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+// Whether a checklist should already be visible to its assignees, using the app timezone.
+// Mirrors the checklistVisibility backend job, which flips hidden ones on later.
+const isVisibleNow = ({ due_date, visible_time, visible_day_offset }) => {
+  if (!due_date) return true;
+  const tz = getAppTimezone();
+  const visibleDate = moment.tz(due_date, 'YYYY-MM-DD', tz).subtract(visible_day_offset || 0, 'days').format('YYYY-MM-DD');
+  const today = todayStr();
+  if (visibleDate > today) return false;
+  if (visibleDate < today) return true;
+  if (!visible_time) return true;
+  return moment().tz(tz).format('HH:mm') >= visible_time;
+};
 
 export default function Checklists() {
   const { user, loading: userLoading, canManage, isSuperAdmin, isAdmin, isManager } = useCurrentUser();
   const [activeChecklist, setActiveChecklist] = useState(null);
   const [items, setItems] = useState([]);
-  const [notes, setNotes] = useState({});
+  const sessionRef = useRef(null);       // { template, completionId, items, touched } for the open checklist
+  const saveChainRef = useRef(Promise.resolve());
+  const noteTimerRef = useRef(null);
   const [canSubmitWithIncomplete, setCanSubmitWithIncomplete] = useState(false);
   const [useDialogOpen, setUseDialogOpen] = useState(false);
   const [templateToUse, setTemplateToUse] = useState(null);
@@ -34,20 +69,7 @@ export default function Checklists() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showArchived, setShowArchived] = useState(false);
   const [assignUserSearch, setAssignUserSearch] = useState('');
-  const [useForm, setUseForm] = useState({
-    assigned_to_emails: [],
-    assigned_to_names: [],
-    assigned_teams: [],
-    due_date: '',
-    due_time: '21:00',
-    visible_time: '',
-    visible_day_offset: 0,
-    visible_immediately: false,
-    recurrence_type: 'once',
-    recurrence_days_of_week: [],
-    recurrence_day_of_month: undefined,
-    recurrence_interval_months: undefined
-  });
+  const [useForm, setUseForm] = useState({ ...EMPTY_USE_FORM });
   const queryClient = useQueryClient();
 
   // Fetch only the statuses the page actually uses. Spawned instances get marked
@@ -146,7 +168,7 @@ export default function Checklists() {
       if (!(assignedToMe || assignedToMyTeam)) return false;
       if (isRecurringMaster(t)) return false;
       if (t.status === 'active') return t.is_visible !== false;
-      if (t.status === 'published') return true;
+      if (t.status === 'published') return t.is_visible !== false; // hidden until its visibility date/time
       return false; // closed (auto-submitted) checklists moved to Archived section
     }).filter(t => !mySubmittedTemplateIds.has(t.id));
   }, [allTemplates, user, teams, mySubmittedTemplateIds]);
@@ -210,8 +232,8 @@ export default function Checklists() {
         return `Repeats on ${days || '—'}`;
       }
       case 'monthly': return `Repeats monthly on day ${r.recurrence_day_of_month || '—'}`;
-      case 'every_x_months': return `Repeats every ${r.recurrence_interval_months || '?'} months`;
-      case 'annually': return 'Repeats annually';
+      case 'every_x_months': return `Repeats every ${r.recurrence_interval_months || '?'} months${r.start_date ? ` starting ${r.start_date}` : ''}`;
+      case 'annually': return r.start_date ? `Repeats annually on ${moment(r.start_date).format('MMM D')}` : 'Repeats annually';
       default: return r.recurrence_type;
     }
   };
@@ -228,7 +250,10 @@ export default function Checklists() {
   // Pending approval templates: managers see ones they submitted, admins/super_admins see all
   const pendingApprovalTemplates = useMemo(() => {
     return allTemplates.filter(t => {
-      if (t.status !== 'pending_approval') return false;
+      // New templates awaiting approval, plus live templates with an edit awaiting approval
+      // (those stay published and visible until an admin approves the change).
+      const hasPendingEdit = t.status === 'published' && t.pending_items?.length > 0;
+      if (t.status !== 'pending_approval' && !hasPendingEdit) return false;
       if (isAdmin || isSuperAdmin) return true;
       if (isManager) return t.pending_submitted_by === user?.email || t.created_by === user?.email;
       return false;
@@ -260,7 +285,8 @@ export default function Checklists() {
     },
   });
 
-  // Approve a pending template (admins/super_admins) — sets status to published
+  // Approve a pending template or edit (admins/super_admins). An edit request applies the
+  // proposed items/description to the live template; a new template is simply published.
   const approveTemplateMutation = useMutation({
     mutationFn: async (template) => {
       await base44.functions.invoke('approveContent', {
@@ -270,6 +296,7 @@ export default function Checklists() {
     onSuccess: () => {
       toast.success('Checklist approved and published!');
       queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
+      queryClient.invalidateQueries({ queryKey: ['pending-checklist-edits-dash'] });
     },
   });
 
@@ -282,8 +309,9 @@ export default function Checklists() {
       });
     },
     onSuccess: () => {
-      toast.success('Checklist returned to draft.');
+      toast.success('Request rejected.');
       queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
+      queryClient.invalidateQueries({ queryKey: ['pending-checklist-edits-dash'] });
     },
   });
 
@@ -295,6 +323,8 @@ export default function Checklists() {
         // Update existing in-progress completion to completed (prevents orphaned duplicate records)
         return base44.entities.ChecklistCompletion.update(data.completionId, {
           completed_items: data.completed_items,
+          completed_by: data.completed_by,
+          completed_by_name: data.completed_by_name,
           status: 'completed',
           completion_date: data.completion_date,
         });
@@ -312,9 +342,7 @@ export default function Checklists() {
     },
     onSuccess: (completion, variables) => {
       toast.success('Checklist submitted!');
-      setActiveChecklist(null);
-      setItems([]);
-      setNotes({});
+      clearSession();
       queryClient.invalidateQueries({ queryKey: ['completions'] });
       queryClient.invalidateQueries({ queryKey: ['checklist-templates-published'] });
       queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
@@ -343,7 +371,7 @@ export default function Checklists() {
       if (isAssigningFromTemplate) {
         // 1. Always create a new active ChecklistTemplate instance (appears in "My Checklists")
         //    only if frequency is 'once' or the user wants an immediate instance
-        const hasVisibilityDelay = !!(data.visible_time) || (data.visible_day_offset || 0) > 0;
+        const isRecurring = !!data.recurrence_type && data.recurrence_type !== 'once' && data.recurrence_type !== 'manual';
         await base44.entities.ChecklistTemplate.create({
           title: templateToUse.title,
           description: templateToUse.description,
@@ -352,7 +380,7 @@ export default function Checklists() {
           assigned_to_emails: data.assigned_to_emails,
           assigned_to_names: data.assigned_to_names,
           assigned_teams: data.assigned_teams,
-          due_date: data.due_date,
+          due_date: isRecurring ? undefined : data.due_date, // recurring schedules spawn dated copies
           due_time: data.due_time || '21:00',
           recurrence_type: data.recurrence_type,
           recurrence_days_of_week: data.recurrence_days_of_week,
@@ -361,11 +389,15 @@ export default function Checklists() {
           status: 'published',
           visible_time: data.visible_time || null,
           visible_day_offset: data.visible_day_offset || 0,
-          is_visible: !hasVisibilityDelay,
+          is_visible: isVisibleNow({
+            due_date: isRecurring ? undefined : data.due_date,
+            visible_time: data.visible_time,
+            visible_day_offset: data.visible_day_offset,
+          }),
         });
 
         // 2. If recurring, also create a RecurringChecklist schedule record (completely separate)
-        if (data.recurrence_type && data.recurrence_type !== 'once' && data.recurrence_type !== 'manual') {
+        if (isRecurring) {
           await base44.entities.RecurringChecklist.create({
             template_title: templateToUse.title,
             template_description: templateToUse.description,
@@ -381,6 +413,7 @@ export default function Checklists() {
             recurrence_days_of_week: data.recurrence_days_of_week,
             recurrence_day_of_month: data.recurrence_day_of_month,
             recurrence_interval_months: data.recurrence_interval_months,
+            start_date: data.start_date || null,
             is_active: true,
           });
         }
@@ -397,6 +430,7 @@ export default function Checklists() {
           recurrence_days_of_week: data.recurrence_days_of_week,
           recurrence_day_of_month: data.recurrence_day_of_month,
           recurrence_interval_months: data.recurrence_interval_months,
+          start_date: data.start_date || null,
           is_active: true,
         });
       }
@@ -405,17 +439,7 @@ export default function Checklists() {
       toast.success(isAssigningFromTemplate ? 'Checklist assigned!' : 'Recurring schedule updated!');
       setUseDialogOpen(false);
       setTemplateToUse(null);
-      setUseForm({
-        assigned_to_emails: [],
-        assigned_to_names: [],
-        assigned_teams: [],
-        due_date: '',
-        due_time: '21:00',
-        visible_time: '',
-        visible_day_offset: 0,
-        visible_immediately: false,
-        recurrence_type: 'once'
-      });
+      setUseForm({ ...EMPTY_USE_FORM });
       queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
       queryClient.invalidateQueries({ queryKey: ['recurring-checklists'] });
     },
@@ -428,21 +452,21 @@ export default function Checklists() {
     });
     
     const existingCompletion = existingCompletions?.[0];
-    
-    if (existingCompletion && existingCompletion.completed_items?.length > 0) {
-      setItems(existingCompletion.completed_items);
-      const notesMap = {};
-      existingCompletion.completed_items.forEach((item, idx) => {
-        if (item.notes) notesMap[idx] = item.notes;
-      });
-      setNotes(notesMap);
-      prevAllCheckedRef.current = existingCompletion.completed_items.every(i => i.checked);
-    } else {
-      setItems(template.items.map(item => ({ ...item, checked: false })));
-      setNotes({});
-      prevAllCheckedRef.current = false;
-    }
-    
+
+    // Items (with their notes and photos) live in one place: the session. Every tap updates it
+    // instantly; saving happens in the background (see scheduleSave).
+    const initialItems = existingCompletion && existingCompletion.completed_items?.length > 0
+      ? existingCompletion.completed_items
+      : template.items.map(item => ({ ...item, checked: false }));
+
+    sessionRef.current = {
+      template,
+      completionId: existingCompletion?.id || null,
+      items: initialItems,
+      touched: new Set(), // indexes changed on this device; others' changes merge in from the server
+    };
+    prevAllCheckedRef.current = initialItems.every(i => i.checked);
+    setItems(initialItems);
     setActiveChecklist({ ...template, completionId: existingCompletion?.id });
     setCanSubmitWithIncomplete(!template.due_date && !template.due_time);
   };
@@ -451,20 +475,7 @@ export default function Checklists() {
   const handleAssignClick = (template) => {
     setTemplateToUse(template);
     setIsAssigningFromTemplate(true);
-    setUseForm({
-      assigned_to_emails: [],
-      assigned_to_names: [],
-      assigned_teams: [],
-      due_date: '',
-      due_time: '21:00',
-      visible_time: '',
-      visible_day_offset: 0,
-      visible_immediately: false,
-      recurrence_type: 'once',
-      recurrence_days_of_week: [],
-      recurrence_day_of_month: undefined,
-      recurrence_interval_months: undefined
-    });
+    setUseForm({ ...EMPTY_USE_FORM });
     setUseDialogOpen(true);
   };
 
@@ -478,6 +489,7 @@ export default function Checklists() {
       assigned_to_names: record.assigned_to_names || [],
       assigned_teams: record.assigned_teams || [],
       due_date: '',
+      start_date: record.start_date || '',
       due_time: record.due_time || '21:00',
       visible_time: record.visible_time || '',
       visible_day_offset: record.visible_day_offset || 0,
@@ -497,102 +509,157 @@ export default function Checklists() {
     });
   };
 
+  // ---- In-progress checklist: instant taps, one background save at a time ----------------
+  // updateItem/updateNotes always build on session.items (never on a render's stale copy),
+  // so a photo finishing upload or a fast second tap can't undo earlier changes.
   const updateItem = (index, updates) => {
-    const updated = items.map((item, i) => {
-      if (i === index) {
-        const isChecking = updates.checked !== undefined ? updates.checked : item.checked;
-        const wasChecked = item.checked;
-        
-        return {
-          ...item,
-          ...updates,
-          checked: isChecking,
-          checked_at: isChecking && !wasChecked ? new Date().toISOString() : item.checked_at,
-          checked_by_email: isChecking && !wasChecked ? user?.email : item.checked_by_email,
-          checked_by_name: isChecking && !wasChecked ? user?.full_name : item.checked_by_name,
-        };
-      }
-      return item;
+    const session = sessionRef.current;
+    if (!session) return;
+    const item = session.items[index];
+    const isChecking = updates.checked !== undefined ? updates.checked : item.checked;
+    const justChecked = isChecking && !item.checked;
+    const next = session.items.map((it, i) => i !== index ? it : {
+      ...it,
+      ...updates,
+      checked: isChecking,
+      checked_at: justChecked ? new Date().toISOString() : it.checked_at,
+      checked_by_email: justChecked ? user?.email : it.checked_by_email,
+      checked_by_name: justChecked ? user?.full_name : it.checked_by_name,
     });
-    setItems(updated);
-    saveChecklistProgress(updated, index);
+    session.items = next;
+    session.touched.add(index);
+    setItems(next);
+    scheduleSave(session);
   };
 
   const updateNotes = (index, value) => {
-    const updatedNotes = { ...notes, [index]: value };
-    const itemsWithNotes = items.map((item, i) => ({
-      ...item,
-      notes: updatedNotes[i] || ''
-    }));
-    setNotes(updatedNotes);
-    saveChecklistProgress(itemsWithNotes, index);
+    const session = sessionRef.current;
+    if (!session) return;
+    session.items = session.items.map((it, i) => i === index ? { ...it, notes: value } : it);
+    session.touched.add(index);
+    setItems(session.items);
+    // Typing saves after a short pause instead of on every keystroke.
+    clearTimeout(noteTimerRef.current);
+    noteTimerRef.current = setTimeout(() => scheduleSave(session), 700);
   };
 
-  const saveChecklistProgress = async (currentItems, changedIndex) => {
-    if (!activeChecklist) return;
-    
-    try {
-      if (activeChecklist.completionId) {
-        // Re-fetch to detect auto-submission and merge concurrent edits
-        const serverCompletion = await base44.entities.ChecklistCompletion.get(activeChecklist.completionId);
-        if (serverCompletion.status !== 'in_progress') {
-          // Was auto-submitted while user was editing — don't overwrite
-          toast.info('This checklist was auto-submitted at the due time.');
-          setActiveChecklist(null);
-          setItems([]);
-          setNotes({});
-          queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
-          return;
-        }
-        // Merge: keep local version for the changed item, server version for all others
-        const serverItems = serverCompletion.completed_items || [];
-        const mergedItems = currentItems.map((item, i) => {
-          if (i === changedIndex) return item;
-          return serverItems[i] || item;
-        });
-        await base44.entities.ChecklistCompletion.update(activeChecklist.completionId, {
-          completed_items: mergedItems,
-          status: 'in_progress'
-        });
-      } else {
-        const completion = await base44.entities.ChecklistCompletion.create({
-          checklist_template_id: activeChecklist.id,
-          checklist_title: activeChecklist.title,
-          recurring_checklist_id: activeChecklist.recurring_checklist_id || null,
-          completed_by: user?.email,
-          completed_by_name: user?.full_name,
-          completed_items: currentItems,
-          completion_date: new Date().toISOString().split('T')[0],
-          status: 'in_progress'
-        });
-        setActiveChecklist(prev => ({ ...prev, completionId: completion.id }));
+  // Saves are queued one at a time, and taps made while a save runs collapse into a single
+  // follow-up save. So there is never more than one request in flight, the first tap creates
+  // the record exactly once, and the newest state is always what gets written last.
+  const scheduleSave = (session = sessionRef.current) => {
+    if (!session) return Promise.resolve();
+    if (session.saveQueued) return saveChainRef.current;
+    session.saveQueued = true;
+    saveChainRef.current = saveChainRef.current
+      .then(() => { session.saveQueued = false; return persistProgress(session); })
+      .catch(error => console.error('Error saving checklist progress:', error));
+    return saveChainRef.current;
+  };
+
+  const persistProgress = async (session) => {
+    const { template } = session;
+    if (!session.completionId) {
+      const completion = await base44.entities.ChecklistCompletion.create({
+        checklist_template_id: template.id,
+        checklist_title: template.title,
+        recurring_checklist_id: template.recurring_checklist_id || null,
+        completed_by: user?.email,
+        completed_by_name: user?.full_name,
+        completed_items: session.items,
+        completion_date: todayStr(),
+        status: 'in_progress'
+      });
+      session.completionId = completion.id;
+      if (sessionRef.current === session) setActiveChecklist(prev => prev ? { ...prev, completionId: completion.id } : prev);
+      return;
+    }
+
+    // Re-read so we don't reopen a checklist that was auto-submitted, and so teammates'
+    // checks made elsewhere are kept.
+    const server = await base44.entities.ChecklistCompletion.get(session.completionId);
+    if (server.status !== 'in_progress') {
+      if (sessionRef.current === session) {
+        toast.info('This checklist was already submitted or closed.');
+        clearSession();
+        queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
       }
-    } catch (error) {
-      console.error('Error saving checklist progress:', error);
+      return;
+    }
+    const merged = session.items.map((item, i) =>
+      session.touched.has(i) ? item : (server.completed_items?.[i] || item)
+    );
+    await base44.entities.ChecklistCompletion.update(session.completionId, { completed_items: merged });
+
+    // Show teammates' checks too, unless the user has already changed something since.
+    if (sessionRef.current === session && !session.saveQueued) {
+      session.items = merged;
+      setItems(merged);
     }
   };
 
-  const submitChecklist = async () => {
-    const completedItems = items.map((item, i) => ({
-      ...item,
-      notes: notes[i] || '',
-      photo_url: item.photo_url || ''
-    }));
+  const clearSession = () => {
+    clearTimeout(noteTimerRef.current);
+    sessionRef.current = null;
+    setActiveChecklist(null);
+    setItems([]);
+  };
 
-    submitMutation.mutate({
-      completionId: activeChecklist.completionId,
-      checklist_template_id: activeChecklist.id,
-      checklist_title: activeChecklist.title,
-      recurring_checklist_id: activeChecklist.recurring_checklist_id || null,
-      completed_by: user?.email,
-      completed_by_name: user?.full_name,
-      completed_items: completedItems,
-      completion_date: new Date().toISOString().split('T')[0],
-    });
+  // Leaving the checklist never waits on the network; any unsaved change still gets written.
+  const closeChecklist = () => {
+    clearTimeout(noteTimerRef.current);
+    scheduleSave();
+    clearSession();
+  };
+
+  // Shared by Assign and Edit-schedule. Returns an error message, or null when valid.
+  const validateUseForm = () => {
+    if (useForm.assigned_to_emails.length === 0 && useForm.assigned_teams.length === 0) {
+      return 'Choose at least one user or team to assign this checklist to.';
+    }
+    const type = useForm.recurrence_type;
+    if (type === 'specific_days' && !(useForm.recurrence_days_of_week || []).length) {
+      return 'Choose at least one day of the week.';
+    }
+    if ((type === 'monthly' || type === 'every_x_months') && !useForm.recurrence_day_of_month && !useForm.start_date) {
+      return 'Enter the day of the month (1-31).';
+    }
+    if ((type === 'every_x_months' || type === 'annually') && !useForm.start_date) {
+      return 'A start date is required for this frequency.';
+    }
+    return null;
+  };
+
+  const submitChecklist = async () => {
+    const session = sessionRef.current;
+    if (!session || submittingRef.current) return;
+    submittingRef.current = true;
+    try {
+      clearTimeout(noteTimerRef.current);
+      await scheduleSave(session); // make sure the record exists and holds the latest items
+      if (sessionRef.current !== session) return; // closed/auto-submitted meanwhile
+
+      submitMutation.mutate({
+        completionId: session.completionId,
+        checklist_template_id: session.template.id,
+        checklist_title: session.template.title,
+        recurring_checklist_id: session.template.recurring_checklist_id || null,
+        completed_by: user?.email,
+        completed_by_name: user?.full_name,
+        completed_items: session.items.map(item => ({
+          ...item,
+          notes: item.notes || '',
+          photo_url: item.photo_url || ''
+        })),
+        completion_date: todayStr(),
+      });
+    } finally {
+      submittingRef.current = false;
+    }
   };
 
   // Auto-submit only when items transition from "not all checked" → "all checked"
   const prevAllCheckedRef = useRef(false);
+  const submittingRef = useRef(false);
   useEffect(() => {
     if (!activeChecklist || items.length === 0) return;
     const allChecked = items.every(i => i.checked);
@@ -604,9 +671,10 @@ export default function Checklists() {
 
   if (activeChecklist) {
     const allChecked = items.every(i => i.checked);
+    const notesByIndex = Object.fromEntries(items.map((it, i) => [i, it.notes || '']));
     return (
       <div className="max-w-2xl mx-auto">
-        <Button variant="ghost" onClick={() => setActiveChecklist(null)} className="mb-4 text-slate-600">
+        <Button variant="ghost" onClick={closeChecklist} className="mb-4 text-slate-600">
           ← Back to Checklists
         </Button>
         <Card className="border-0 shadow-sm">
@@ -620,7 +688,7 @@ export default function Checklists() {
                   key={i}
                   item={item}
                   index={i}
-                  notes={notes}
+                  notes={notesByIndex}
                   onNotesChange={updateNotes}
                   onItemUpdate={updateItem}
                   canUndo={canManage}
@@ -645,38 +713,45 @@ export default function Checklists() {
                 <div className="flex justify-end">
                   <Button
                     onClick={async () => {
-                      let completionId = activeChecklist.completionId;
-                      if (completionId) {
-                        // Update existing in-progress completion to edited (prevents orphaned duplicate)
-                        await base44.entities.ChecklistCompletion.update(completionId, {
-                          completed_items: items,
-                          status: 'edited',
-                          completion_date: new Date().toISOString().split('T')[0],
-                        });
-                      } else {
-                        const completion = await base44.entities.ChecklistCompletion.create({
-                          checklist_template_id: activeChecklist.id,
-                          checklist_title: activeChecklist.title,
-                          recurring_checklist_id: activeChecklist.recurring_checklist_id || null,
-                          completed_by: user.email,
-                          completed_by_name: user.full_name,
-                          completed_items: items,
-                          completion_date: new Date().toISOString().split('T')[0],
-                          status: 'edited'
-                        });
-                        completionId = completion.id;
+                      const session = sessionRef.current;
+                      if (!session) return;
+                      try {
+                        clearTimeout(noteTimerRef.current);
+                        await scheduleSave(session);
+                        let completionId = session.completionId;
+                        if (completionId) {
+                          // Update existing in-progress completion to edited (prevents orphaned duplicate)
+                          await base44.entities.ChecklistCompletion.update(completionId, {
+                            completed_items: session.items,
+                            status: 'edited',
+                            completion_date: todayStr(),
+                          });
+                        } else {
+                          const completion = await base44.entities.ChecklistCompletion.create({
+                            checklist_template_id: session.template.id,
+                            checklist_title: session.template.title,
+                            recurring_checklist_id: session.template.recurring_checklist_id || null,
+                            completed_by: user.email,
+                            completed_by_name: user.full_name,
+                            completed_items: session.items,
+                            completion_date: todayStr(),
+                            status: 'edited'
+                          });
+                          completionId = completion.id;
+                        }
+                        await base44.functions.invoke('finalizeChecklistAssignment', {
+                          checklist_template_id: session.template.id,
+                          checklist_completion_id: completionId
+                        }).catch(() => {});
+                        toast.success('Checklist stopped and moved to history');
+                        clearSession();
+                        queryClient.invalidateQueries({ queryKey: ['checklist-templates-published'] });
+                        queryClient.invalidateQueries({ queryKey: ['checklist-completions'] });
+                        queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
+                      } catch (error) {
+                        console.error('Error stopping checklist:', error);
+                        toast.error('Could not stop the checklist. Please try again.');
                       }
-                      await base44.functions.invoke('finalizeChecklistAssignment', {
-                        checklist_template_id: activeChecklist.id,
-                        checklist_completion_id: completionId
-                      }).catch(() => {});
-                      toast.success('Checklist stopped and moved to history');
-                      setActiveChecklist(null);
-                      setItems([]);
-                      setNotes({});
-                      queryClient.invalidateQueries({ queryKey: ['checklist-templates-published'] });
-                      queryClient.invalidateQueries({ queryKey: ['checklist-completions'] });
-                      queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
                     }}
                     variant="outline"
                     className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
@@ -1036,7 +1111,15 @@ export default function Checklists() {
                       <Card key={t.id} className="border border-amber-200 shadow-sm bg-amber-50">
                         <CardContent className="p-4">
                           <p className="font-medium text-sm text-slate-800">{t.title}</p>
-                          <p className="text-xs text-slate-500 mb-1">{t.items?.length} items</p>
+                          {(t.pending_items?.length > 0) ? (
+                            <>
+                              <p className="text-xs font-medium text-amber-800 mb-1">Edit request · live version stays active until approved</p>
+                              <p className="text-xs text-slate-500 mb-1">{t.items?.length} items now → {t.pending_items.length} proposed</p>
+                              {t.pending_change_summary && <p className="text-xs text-slate-600 mb-1 italic">"{t.pending_change_summary}"</p>}
+                            </>
+                          ) : (
+                            <p className="text-xs text-slate-500 mb-1">{t.items?.length} items</p>
+                          )}
                           {t.pending_submitted_by_name && (
                             <p className="text-xs text-amber-700 mb-3">Submitted by {t.pending_submitted_by_name}</p>
                           )}
@@ -1141,7 +1224,7 @@ export default function Checklists() {
           <div className="space-y-4">
             {/* Assign Users */}
             <div>
-              <label className="text-sm font-medium text-slate-900 block mb-2">Assign to Users</label>
+              <label className="text-sm font-medium text-slate-900 block mb-2">Assign to Users and/or Teams <span className="text-red-500">*</span></label>
               <div className="relative mb-1">
                 <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                 <Input placeholder="Search users..." value={assignUserSearch} onChange={e => setAssignUserSearch(e.target.value)} className="pl-7 h-8 text-sm" />
@@ -1200,15 +1283,17 @@ export default function Checklists() {
               </div>
             </div>
 
-            {/* Due Date */}
-            <div className="space-y-2">
-              <Label>Due Date (optional)</Label>
-              <Input
-                type="date"
-                value={useForm.due_date}
-                onChange={(e) => setUseForm({ ...useForm, due_date: e.target.value })}
-              />
-            </div>
+            {/* Due Date (one-time checklists only; recurring schedules use a start date below) */}
+            {useForm.recurrence_type === 'once' && (
+              <div className="space-y-2">
+                <Label>Due Date (optional)</Label>
+                <Input
+                  type="date"
+                  value={useForm.due_date}
+                  onChange={(e) => setUseForm({ ...useForm, due_date: e.target.value })}
+                />
+              </div>
+            )}
 
             {/* Due Time */}
             <div className="space-y-2">
@@ -1238,6 +1323,79 @@ export default function Checklists() {
                 </SelectContent>
               </Select>
             </div>
+
+            {useForm.recurrence_type === 'specific_days' && (
+              <div className="space-y-2 bg-slate-50 p-4 rounded-lg border border-slate-200">
+                <Label>On these days</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {DAY_NAMES.map((day, idx) => (
+                    <label key={idx} className="flex items-center gap-2 text-sm cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 rounded border-slate-300"
+                        checked={(useForm.recurrence_days_of_week || []).includes(idx)}
+                        onChange={e => setUseForm(prev => ({
+                          ...prev,
+                          recurrence_days_of_week: e.target.checked
+                            ? [...(prev.recurrence_days_of_week || []), idx]
+                            : (prev.recurrence_days_of_week || []).filter(d => d !== idx)
+                        }))}
+                      />
+                      {day}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {useForm.recurrence_type === 'every_x_months' && (
+              <div className="space-y-2">
+                <Label>Every how many months</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={useForm.recurrence_interval_months ?? ''}
+                  onChange={(e) => setUseForm({ ...useForm, recurrence_interval_months: parseInt(e.target.value) || undefined })}
+                />
+              </div>
+            )}
+
+            {(useForm.recurrence_type === 'monthly' || useForm.recurrence_type === 'every_x_months') && (
+              <div className="space-y-2">
+                <Label>Day of month (1-31)</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="31"
+                  value={useForm.recurrence_day_of_month ?? ''}
+                  onChange={(e) => setUseForm({ ...useForm, recurrence_day_of_month: parseInt(e.target.value) || undefined })}
+                />
+                <p className="text-xs text-slate-500">Days 29-31 fall on the last day of shorter months. Leave blank to use the start date's day.</p>
+              </div>
+            )}
+
+            {useForm.recurrence_type !== 'once' && (
+              <div className="space-y-2">
+                <Label>
+                  Start Date
+                  {(useForm.recurrence_type === 'every_x_months' || useForm.recurrence_type === 'annually')
+                    ? <span className="text-red-500"> *</span>
+                    : ' (optional)'}
+                </Label>
+                <Input
+                  type="date"
+                  value={useForm.start_date || ''}
+                  onChange={(e) => setUseForm({ ...useForm, start_date: e.target.value })}
+                />
+                <p className="text-xs text-slate-500">
+                  {useForm.recurrence_type === 'annually'
+                    ? 'The month and day of this date is when the checklist comes due each year.'
+                    : useForm.recurrence_type === 'every_x_months'
+                      ? 'The first occurrence. Later ones follow every X months from this month.'
+                      : 'No checklists are created before this date.'}
+                </p>
+              </div>
+            )}
 
             {/* Visibility Settings */}
             <div className="space-y-3">
@@ -1292,26 +1450,29 @@ export default function Checklists() {
             <Button variant="outline" onClick={() => setUseDialogOpen(false)}>Cancel</Button>
             <Button 
               onClick={() => {
+                const error = validateUseForm();
+                if (error) { toast.error(error); return; }
                 assignChecklistMutation.mutate({
                   assigned_to_emails: useForm.assigned_to_emails,
                   assigned_to_names: useForm.assigned_to_names || [],
                   assigned_teams: useForm.assigned_teams,
-                  due_date: useForm.due_date || undefined,
+                  due_date: useForm.recurrence_type === 'once' ? (useForm.due_date || undefined) : undefined,
+                  start_date: useForm.recurrence_type === 'once' ? null : (useForm.start_date || null),
                   due_time: useForm.due_time || '21:00',
                   visible_time: useForm.visible_immediately ? null : (useForm.visible_time || null),
                   visible_day_offset: useForm.visible_immediately ? 0 : (useForm.visible_day_offset || 0),
                   recurrence_type: useForm.recurrence_type,
-                  recurrence_days_of_week: useForm.recurrence_days_of_week,
-                  recurrence_day_of_month: useForm.recurrence_day_of_month,
-                  recurrence_interval_months: useForm.recurrence_interval_months,
+                  recurrence_days_of_week: useForm.recurrence_type === 'specific_days' ? useForm.recurrence_days_of_week : [],
+                  recurrence_day_of_month: (useForm.recurrence_type === 'monthly' || useForm.recurrence_type === 'every_x_months') ? useForm.recurrence_day_of_month : undefined,
+                  recurrence_interval_months: useForm.recurrence_type === 'every_x_months' ? useForm.recurrence_interval_months : undefined,
                   status: 'published'
                 });
               }}
-              disabled={assignChecklistMutation.isPending}
+              disabled={assignChecklistMutation.isPending || (useForm.assigned_to_emails.length === 0 && useForm.assigned_teams.length === 0)}
               className="bg-indigo-600 hover:bg-indigo-700 gap-2"
             >
               {assignChecklistMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-              Assign
+              {isAssigningFromTemplate ? 'Assign' : 'Save'}
             </Button>
           </DialogFooter>
         </DialogContent>

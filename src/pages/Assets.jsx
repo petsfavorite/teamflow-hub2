@@ -19,8 +19,7 @@ import { Boxes, Plus, Wrench, AlertTriangle, ExternalLink, Pencil, Loader2, Pape
 import AssetQRCode from '../components/asset/AssetQRCode';
 import { isSafeUrl } from '@/lib/sanitize';
 import { toast } from "sonner";
-import { differenceInDays, parseISO } from 'date-fns';
-import { formatDateTime } from '@/lib/timezone';
+import { formatDateTime, daysFromToday } from '@/lib/timezone';
 
 const emptyForm = {
   name: '', category: 'equipment', location_detail: '', serial_number: '',
@@ -126,7 +125,7 @@ export default function Assets() {
 
   const getMaintenanceStatus = (asset) => {
     if (!asset.next_maintenance_date) return null;
-    const days = differenceInDays(parseISO(asset.next_maintenance_date), new Date());
+    const days = daysFromToday(asset.next_maintenance_date);
     if (days < 0) return { label: `${Math.abs(days)}d overdue`, color: 'text-red-600 bg-red-50' };
     if (days <= 7) return { label: `Due in ${days}d`, color: 'text-amber-600 bg-amber-50' };
     return { label: `Due ${asset.next_maintenance_date}`, color: 'text-emerald-600 bg-emerald-50' };

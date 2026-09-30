@@ -18,6 +18,9 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Completion not found' }, { status: 404 });
     }
 
+    const settings = await base44.asServiceRole.entities.AppSettings.filter({ key: 'global' });
+    const tz = settings[0]?.global_timezone || 'America/New_York';
+
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
@@ -103,7 +106,7 @@ Deno.serve(async (req) => {
       
       // Checked at
       xPos += colWidths.checkedBy;
-      const checkedAtText = item.checked_at ? new Date(item.checked_at).toLocaleString() : '—';
+      const checkedAtText = item.checked_at ? new Date(item.checked_at).toLocaleString('en-US', { timeZone: tz }) : '—';
       const checkedAtLines = doc.splitTextToSize(checkedAtText, colWidths.checkedAt - 2);
       checkedAtLines.forEach((line, lineIdx) => {
         doc.text(line, xPos, yPosition + lineIdx * 3);

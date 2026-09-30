@@ -6,13 +6,14 @@ import {
     Dog, Cat, CheckCircle2, ChevronRight, Camera, AlertCircle
 } from "lucide-react";
 import { motion } from "framer-motion";
+import moment from "moment-timezone";
+import { todayStr } from "@/lib/timezone";
 
 const getPetAge = (birthday) => {
     if (!birthday) return null;
-    const birth = new Date(birthday);
-    const now = new Date();
-    const years = now.getFullYear() - birth.getFullYear();
-    const months = now.getMonth() - birth.getMonth() + (years * 12);
+    const birth = moment(birthday);
+    const now = moment();
+    const months = now.diff(birth.clone().startOf('month'), 'months');
     const totalYears = Math.floor(months / 12);
     const remMonths = months % 12;
     if (totalYears === 0) return `${remMonths}mo`;
@@ -29,7 +30,7 @@ const ownerLastName = (pet) => {
 export default function PlayCampWhiteboardCard({ pet, visit, onViewVisit }) {
     const isCat = pet.species === 'Cat';
     
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayStr();
     const playSessions = (visit.scheduled_tasks || []).filter(t => t.type === 'Play Session' && t.date === today);
     const needsPicture = pet.daily_picture && !visit.picture_sent;
     const pictureTakenToday = (visit.picture_taken_dates || []).find(p => p.date === today);

@@ -24,6 +24,17 @@ const priorityColors = {
   high: 'bg-orange-100 text-orange-700',
 };
 
+// Every-X-months and annual tasks are scheduled from their date, so it must be filled in.
+const needsStartDate = (f) => f.recurrence_type === 'every_x_months' || f.recurrence_type === 'annually';
+const dateLabel = (f) => (f.recurrence_type === 'once' || f.recurrence_type === 'manual') ? 'Due Date' : (needsStartDate(f) ? 'Start Date *' : 'Start Date (optional)');
+const dateHint = (f) => f.recurrence_type === 'annually'
+  ? 'The month and day of this date is when the task comes due each year.'
+  : f.recurrence_type === 'every_x_months'
+    ? 'The first occurrence. Later ones follow every X months from this month.'
+    : null;
+
+const RECURRING_TYPES = ['daily', 'weekdays', 'specific_days', 'monthly', 'every_x_months', 'annually', 'manual'];
+
 const emptyForm = { 
   title: '', 
   description: '', 
@@ -49,10 +60,25 @@ export default function Tasks() {
   const [newUserSearch, setNewUserSearch] = useState('');
   const [editUserSearch, setEditUserSearch] = useState('');
 
-  const { data: tasks = [], isLoading } = useQuery({
-    queryKey: ['tasks'],
-    queryFn: () => base44.entities.Task.list('-created_date', 200),
+  // Each list asks for exactly what it shows. A single "newest 200" list pushed the recurring
+  // task definitions (the oldest records) out of view once daily copies piled up.
+  const { data: activeTasksData = [], isLoading: loadingActive } = useQuery({
+    queryKey: ['tasks', 'active'],
+    queryFn: () => base44.entities.Task.filter({ status: { $in: ['pending', 'in_progress'] } }, '-created_date', 1000),
   });
+
+  const { data: completedTasksData = [], isLoading: loadingCompleted } = useQuery({
+    queryKey: ['tasks', 'completed'],
+    queryFn: () => base44.entities.Task.filter({ status: 'completed' }, '-updated_date', 300),
+  });
+
+  const { data: recurringTasksData = [], isLoading: loadingRecurring } = useQuery({
+    queryKey: ['tasks', 'recurring'],
+    queryFn: () => base44.entities.Task.filter({ recurrence_type: { $in: RECURRING_TYPES } }, '-created_date', 1000),
+    enabled: canManage,
+  });
+
+  const isLoading = tab === 'completed' ? loadingCompleted : tab === 'recurring' ? loadingRecurring : loadingActive;
 
   const { data: users = [] } = useQuery({
     queryKey: ['users-list'],
@@ -80,6 +106,7 @@ export default function Tasks() {
       setShowNew(false);
       setForm(emptyForm);
     },
+    onError: () => toast.error('Could not create the task. Please check the form and try again.'),
   });
 
   const updateMutation = useMutation({
@@ -88,6 +115,7 @@ export default function Tasks() {
       toast.success('Task updated');
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
     },
+    onError: () => toast.error('Could not update the task. Please try again.'),
   });
 
   const myTeamIds = useMemo(() => new Set(
@@ -111,16 +139,16 @@ export default function Tasks() {
     ? (managedTeamMemberEmails.size > 0 ? users.filter(u => managedTeamMemberEmails.has(u.email)) : users)
     : users;
 
-  const myTasks = useMemo(() => tasks.filter(t => {
+  const myTasks = useMemo(() => activeTasksData.filter(t => {
     const assignedToMe = t.assigned_to_emails?.includes(user?.email);
     const inMyTeam = t.assigned_teams?.some(teamId => myTeamIds.has(teamId));
     return (assignedToMe || inMyTeam) && t.status !== 'completed' && t.status !== 'cancelled';
-  }), [tasks, user?.email, myTeamIds]);
-  const allTasks = useMemo(() => tasks.filter(t => t.status !== 'completed' && t.status !== 'cancelled'), [tasks]);
-  const completedTasks = useMemo(() => tasks.filter(t => t.status === 'completed'), [tasks]);
+  }), [activeTasksData, user?.email, myTeamIds]);
+  const allTasks = activeTasksData;
+  const completedTasks = completedTasksData;
 
   // All tasks with a recurrence type other than 'once'
-  const allRecurringTasks = tasks.filter(t => t.recurrence_type && t.recurrence_type !== 'once');
+  const allRecurringTasks = recurringTasksData;
   // Managers see only tasks assigned to their teams or members of their teams
   const recurringTasks = (isAdmin || isSuperAdmin)
     ? allRecurringTasks
@@ -132,7 +160,12 @@ export default function Tasks() {
   const displayTasks = tab === 'mine' ? myTasks : tab === 'all' ? allTasks : completedTasks;
 
   const setStatus = async (task, status) => {
-    updateMutation.mutate({ id: task.id, data: { status } });
+    // Only record history once the status change has actually saved.
+    try {
+      await updateMutation.mutateAsync({ id: task.id, data: { status } });
+    } catch {
+      return; // updateMutation's onError already showed the message
+    }
     // Write to TaskHistory when closing a task
     if (status === 'completed' || status === 'cancelled') {
       base44.entities.TaskHistory.create({
@@ -239,8 +272,9 @@ export default function Tasks() {
             <div className="space-y-2"><Label>Description</Label><Textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={2} /></div>
 
             <div className="space-y-2">
-              <Label>Due Date</Label>
+              <Label>{dateLabel(form)}</Label>
               <Input type="date" value={form.due_date} onChange={e => setForm({ ...form, due_date: e.target.value })} />
+              {dateHint(form) && <p className="text-xs text-slate-500">{dateHint(form)}</p>}
             </div>
 
             <div className="space-y-2">
@@ -361,7 +395,7 @@ export default function Tasks() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowNew(false)}>Cancel</Button>
-            <Button onClick={() => createMutation.mutate({ ...form, created_by_name: user?.full_name })} disabled={createMutation.isPending || !form.title || (form.assigned_to_emails.length === 0 && form.assigned_teams.length === 0)} className="bg-indigo-600 hover:bg-indigo-700 gap-2">
+            <Button onClick={() => createMutation.mutate({ ...form, created_by_name: user?.full_name })} disabled={createMutation.isPending || !form.title || (form.assigned_to_emails.length === 0 && form.assigned_teams.length === 0) || (needsStartDate(form) && !form.due_date)} className="bg-indigo-600 hover:bg-indigo-700 gap-2">
               {createMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Create Task
             </Button>
           </DialogFooter>
@@ -375,7 +409,11 @@ export default function Tasks() {
           <div className="space-y-4 overflow-y-auto flex-1 pr-1">
             <div className="space-y-2"><Label>Task Title</Label><Input value={editForm.title || ''} onChange={e => setEditForm({ ...editForm, title: e.target.value })} /></div>
             <div className="space-y-2"><Label>Description</Label><Textarea value={editForm.description || ''} onChange={e => setEditForm({ ...editForm, description: e.target.value })} rows={2} /></div>
-            <div className="space-y-2"><Label>Due Date</Label><Input type="date" value={editForm.due_date || ''} onChange={e => setEditForm({ ...editForm, due_date: e.target.value })} /></div>
+            <div className="space-y-2">
+              <Label>{dateLabel(editForm)}</Label>
+              <Input type="date" value={editForm.due_date || ''} onChange={e => setEditForm({ ...editForm, due_date: e.target.value })} />
+              {dateHint(editForm) && <p className="text-xs text-slate-500">{dateHint(editForm)}</p>}
+            </div>
             <div className="space-y-2">
               <Label>Priority</Label>
               <Select value={editForm.priority} onValueChange={v => setEditForm({ ...editForm, priority: v })}>
@@ -479,7 +517,7 @@ export default function Tasks() {
             <Button variant="outline" onClick={() => setEditTask(null)}>Cancel</Button>
             <Button
               onClick={() => updateMutation.mutate({ id: editTask.id, data: editForm }, { onSuccess: () => setEditTask(null) })}
-              disabled={updateMutation.isPending || !editForm.title}
+              disabled={updateMutation.isPending || !editForm.title || (needsStartDate(editForm) && !editForm.due_date)}
               className="bg-indigo-600 hover:bg-indigo-700 gap-2"
             >
               {updateMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Save Changes

@@ -85,6 +85,11 @@
     "recurrence_interval_months": {
       "type": "integer"
     },
+    "start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "First date the schedule may produce a checklist. Required for annually (its month/day is the yearly due date) and every_x_months (anchors which months occur)."
+    },
     "is_active": {
       "type": "boolean",
       "default": true,

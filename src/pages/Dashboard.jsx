@@ -12,8 +12,8 @@ import {
   LayoutDashboard, BookOpen, CheckSquare, ClipboardList, Wrench,
   AlertTriangle, MessageSquare, ArrowRight, Bell, ShieldAlert, CalendarCheck, Clock, Award, FileCheck
 } from 'lucide-react';
-import { differenceInDays, parseISO } from 'date-fns';
-import { formatDate } from '@/lib/timezone';
+import moment from 'moment-timezone';
+import { formatDate, todayStr, daysFromToday, parseTs, getAppTimezone } from '@/lib/timezone';
 
 function StatCard({ icon: Icon, label, value, color, to }) {
   const content = (
@@ -51,7 +51,14 @@ export default function Dashboard() {
 
   const { data: pendingChecklistEdits = [] } = useQuery({
     queryKey: ['pending-checklist-edits-dash'],
-    queryFn: () => base44.entities.ChecklistTemplate.filter({ status: 'pending_approval' }),
+    // New templates awaiting approval, plus live templates with an edit awaiting approval.
+    queryFn: async () => {
+      const [pending, published] = await Promise.all([
+        base44.entities.ChecklistTemplate.filter({ status: 'pending_approval' }),
+        base44.entities.ChecklistTemplate.filter({ status: 'published' }, '-updated_date', 500),
+      ]);
+      return [...pending, ...published.filter(t => t.pending_items?.length)];
+    },
     enabled: !!user?.email && canManage,
   });
 
@@ -113,11 +120,11 @@ export default function Dashboard() {
 
   const verificationDueSops = allSOPs.filter(sop => {
     if (!sop.verification_due_date) return false;
-    const daysLeft = differenceInDays(parseISO(sop.verification_due_date), new Date());
+    const daysLeft = daysFromToday(sop.verification_due_date);
     return daysLeft <= 7;
   }).sort((a, b) => {
-    const dA = differenceInDays(parseISO(a.verification_due_date), new Date());
-    const dB = differenceInDays(parseISO(b.verification_due_date), new Date());
+    const dA = daysFromToday(a.verification_due_date);
+    const dB = daysFromToday(b.verification_due_date);
     return dA - dB;
   });
 
@@ -138,7 +145,7 @@ export default function Dashboard() {
     return true;
   });
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayStr();
   const now = new Date();
   const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
   const myTeamIds = teams.filter(t => t.member_emails?.includes(user?.email)).map(t => t.id);
@@ -151,7 +158,7 @@ export default function Dashboard() {
     const assignedToMe = t.assigned_to_emails?.includes(user?.email);
     const assignedToMyTeam = t.assigned_teams?.some(tid => myTeamIds.includes(tid));
     if (!assignedToMe && !assignedToMyTeam) return false;
-    const dueDateTime = parseISO(t.due_date + 'T23:59:59');
+    const dueDateTime = moment.tz(t.due_date + 'T23:59:59', getAppTimezone()).toDate();
     return dueDateTime <= oneHourFromNow && dueDateTime > now;
   });
 
@@ -193,14 +200,14 @@ export default function Dashboard() {
     const assignedToMyTeam = c.assigned_teams?.some(tid => myTeamIds.includes(tid));
     if (!assignedToMe && !assignedToMyTeam) return false;
     const dueTime = c.due_time || '21:00';
-    const dueDateTime = parseISO(c.due_date + 'T' + dueTime);
+    const dueDateTime = moment.tz(c.due_date + 'T' + dueTime, getAppTimezone()).toDate();
     return dueDateTime <= oneHourFromNow && dueDateTime > now;
   });
 
   // For regular users: new tasks/checklists assigned to acknowledge
   const newTasksToAck = tasks.filter(t => {
     if (t.status === 'completed' || t.status === 'cancelled') return false;
-    const createdDateObj = parseISO(t.created_date || '');
+    const createdDateObj = parseTs(t.created_date).toDate();
     const isNew = (now.getTime() - createdDateObj.getTime()) / (1000 * 60) <= 1440; // Created in last 24 hours
     const assignedToMe = t.assigned_to_emails?.includes(user?.email);
     const assignedToMyTeam = t.assigned_teams?.some(tid => myTeamIds.includes(tid));
@@ -208,7 +215,7 @@ export default function Dashboard() {
   });
 
   const newChecklistsToAck = checklists.filter(c => {
-    const createdDateObj = parseISO(c.created_date || '');
+    const createdDateObj = parseTs(c.created_date).toDate();
     const isNew = (now.getTime() - createdDateObj.getTime()) / (1000 * 60) <= 1440;
     const assignedToMe = c.assigned_to_emails?.includes(user?.email);
     const assignedToMyTeam = c.assigned_teams?.some(tid => myTeamIds.includes(tid));
@@ -231,7 +238,7 @@ export default function Dashboard() {
     const assignedToMe = t.assigned_to_emails?.includes(user?.email);
     const assignedToMyTeam = t.assigned_teams?.some(tid => myTeamIds.includes(tid));
     if (!assignedToMe && !assignedToMyTeam) return false;
-    const daysUntilDue = differenceInDays(parseISO(t.due_date), new Date());
+    const daysUntilDue = daysFromToday(t.due_date);
     return daysUntilDue >= 0 && daysUntilDue <= 7;
   });
 
@@ -246,7 +253,7 @@ export default function Dashboard() {
   // "My Checklists Due Soon" - published checklists assigned to user with due date within next 7 days (today through +7 days)
   const myChecklistsDueSoon = myChecklists.filter(c => {
     if (!c.due_date) return false;
-    const daysUntilDue = differenceInDays(parseISO(c.due_date), new Date());
+    const daysUntilDue = daysFromToday(c.due_date);
     return daysUntilDue >= 0 && daysUntilDue <= 7;
   });
 
@@ -458,7 +465,7 @@ export default function Dashboard() {
                   </Link>
                 ))}
                 {verificationDueSops.map(sop => {
-                  const daysLeft = differenceInDays(parseISO(sop.verification_due_date), new Date());
+                  const daysLeft = daysFromToday(sop.verification_due_date);
                   const overdue = daysLeft < 0;
                   return (
                     <Link key={sop.id} to={createPageUrl('SOPDetail') + `?id=${sop.id}`}>

@@ -1,10 +1,10 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
-import { requireAdmin } from '../../shared/auth.ts';
+import { requireUser } from '../../shared/auth.ts';
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { error: authError } = await requireAdmin(base44);
+    const { error: authError, user: caller } = await requireUser(base44);
     if (authError) return authError;
     const { checklist_template_id, checklist_completion_id } = await req.json();
 
@@ -18,6 +18,29 @@ Deno.serve(async (req) => {
 
     if (!completion || !template) {
       return Response.json({ error: 'Completion or template not found' }, { status: 404 });
+    }
+
+    // The completion must belong to this template.
+    if (completion.checklist_template_id !== template.id) {
+      return Response.json({ error: 'Completion does not belong to this checklist' }, { status: 400 });
+    }
+
+    // Managers, admins and super admins can finalize any checklist. Staff can only wrap up a
+    // checklist that is assigned to them (directly or through a team) and that has actually
+    // been submitted; this is what lets a submission leave their list without manager access.
+    const isManagerOrAbove = ['manager', 'admin', 'super_admin'].includes(caller.role);
+    if (!isManagerOrAbove) {
+      const callerTeams = await base44.asServiceRole.entities.Team.list();
+      const assignedDirectly = template.assigned_to_emails?.includes(caller.email);
+      const assignedViaTeam = callerTeams.some(t =>
+        template.assigned_teams?.includes(t.id) && t.member_emails?.includes(caller.email)
+      );
+      if (!assignedDirectly && !assignedViaTeam) {
+        return Response.json({ error: 'Forbidden' }, { status: 403 });
+      }
+      if (completion.status !== 'completed') {
+        return Response.json({ error: 'Only a submitted checklist can be finalized' }, { status: 403 });
+      }
     }
 
     // Only archive assigned instances — never touch unassigned master templates

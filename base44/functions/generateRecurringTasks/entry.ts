@@ -12,21 +12,24 @@ Deno.serve(async (req) => {
         const tz = settings[0]?.global_timezone || 'America/New_York';
 
         const todayStr = now.toLocaleDateString('en-CA', { timeZone: tz });
-        const todayDow = new Date(todayStr + 'T12:00:00Z').getDay(); // 0=Sun, 6=Sat
+        const todayDow = new Date(todayStr + 'T12:00:00Z').getUTCDay(); // 0=Sun, 6=Sat
         const todayDom = parseInt(todayStr.split('-')[2]); // 1-31
         const todayMonth = parseInt(todayStr.split('-')[1]) - 1; // 0-indexed
         const todayYear = parseInt(todayStr.split('-')[0]);
+        // A day-of-month of 29-31 falls on the last day of shorter months.
+        const lastDomThisMonth = new Date(Date.UTC(todayYear, todayMonth + 1, 0)).getUTCDate();
+        const isDueDom = (dom) => todayDom === Math.min(dom, lastDomThisMonth);
 
-        // Fetch all tasks with a high limit to avoid missing recurring templates
-        const allTasks = await base44.asServiceRole.entities.Task.list('-created_date', 5000);
+        // Templates are fetched by type so they can never fall off the end of a "newest N" list.
+        // 'once' and 'manual' never generate; cancelled templates are stopped.
+        const recurringTemplates = (await base44.asServiceRole.entities.Task.filter(
+            { recurrence_type: { $in: ['daily', 'weekdays', 'specific_days', 'monthly', 'every_x_months', 'annually'] } },
+            '-created_date',
+            5000
+        )).filter(t => t.status !== 'cancelled');
 
-        // Recurring templates: not 'once', not 'manual', not cancelled
-        const recurringTemplates = allTasks.filter(t =>
-            t.recurrence_type &&
-            t.recurrence_type !== 'once' &&
-            t.recurrence_type !== 'manual' &&
-            t.status !== 'cancelled'
-        );
+        // Recent tasks only: used to see what was already created today (dedup).
+        const allTasks = await base44.asServiceRole.entities.Task.list('-created_date', 2000);
 
         // Build set of template IDs that already spawned an instance today (dedup by recurring_task_id)
         const spawnedToday = new Set(
@@ -48,9 +51,9 @@ Deno.serve(async (req) => {
             } else if (rt === 'specific_days') {
                 shouldCreate = (template.recurrence_days_of_week || []).includes(todayDow);
             } else if (rt === 'monthly') {
-                shouldCreate = todayDom === (template.recurrence_day_of_month || 1);
+                shouldCreate = isDueDom(template.recurrence_day_of_month || 1);
             } else if (rt === 'every_x_months') {
-                if (todayDom === (template.recurrence_day_of_month || 1) && template.due_date) {
+                if (isDueDom(template.recurrence_day_of_month || 1) && template.due_date) {
                     const ref = new Date(template.due_date + 'T12:00:00Z');
                     const monthsDiff = (todayYear - ref.getUTCFullYear()) * 12 + (todayMonth - ref.getUTCMonth());
                     shouldCreate = monthsDiff % (template.recurrence_interval_months || 1) === 0;
@@ -58,7 +61,7 @@ Deno.serve(async (req) => {
             } else if (rt === 'annually') {
                 if (template.due_date) {
                     const ref = new Date(template.due_date + 'T12:00:00Z');
-                    shouldCreate = todayMonth === ref.getUTCMonth() && todayDom === ref.getUTCDate();
+                    shouldCreate = todayMonth === ref.getUTCMonth() && isDueDom(ref.getUTCDate());
                 }
             }
 
