@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import moment from 'moment-timezone';
 import { formatDate, todayStr, daysFromToday, parseTs, getAppTimezone } from '@/lib/timezone';
+import { fetchLiveSops, fetchMyAcks, fetchMyTeamIds, sopsNeedingAck, pendingState, isLive } from '@/lib/sop';
 
 function StatCard({ icon: Icon, label, value, color, to }) {
   const content = (
@@ -93,33 +94,18 @@ export default function Dashboard() {
     queryKey: ['sops-pending-ack-dash', user?.email],
     enabled: !!user?.email,
     queryFn: async () => {
-      const allPublished = await base44.entities.SOP.filter({ status: 'published' }, '-updated_date', 200);
-      const requiresAck = allPublished.filter(sop => {
-        if (!sop.requires_acknowledgement) return false;
-        const assignedByEmail = sop.acknowledgement_assigned_emails?.includes(user.email);
-        const assignedByTeam = sop.acknowledgement_assigned_teams?.some(tid => myTeamIds.includes(tid));
-        return assignedByEmail || assignedByTeam;
-      });
-      if (requiresAck.length === 0) return [];
-      const acks = await base44.entities.SOPAcknowledgement.filter({ user_email: user.email });
-      // Build a map of sop_id -> highest acknowledged version
-      const ackedVersionMap = {};
-      acks.forEach(a => {
-        if (!ackedVersionMap[a.sop_id] || a.version_number > ackedVersionMap[a.sop_id]) {
-          ackedVersionMap[a.sop_id] = a.version_number;
-        }
-      });
-      // Show if never acknowledged OR if the current version is newer than what was acknowledged
-      return requiresAck.filter(sop => {
-        const ackedVersion = ackedVersionMap[sop.id];
-        if (!ackedVersion) return true; // never acknowledged
-        return (sop.version || 1) > ackedVersion; // updated since last ack
-      });
+      // In scope (all-staff SOPs included) and not acknowledged at the CURRENT version
+      const [live, acks, teamIds] = await Promise.all([
+        fetchLiveSops(500),
+        fetchMyAcks(user.email),
+        fetchMyTeamIds(user.email),
+      ]);
+      return sopsNeedingAck(live, acks, user.email, teamIds);
     },
   });
 
   const verificationDueSops = allSOPs.filter(sop => {
-    if (!sop.verification_due_date) return false;
+    if (!sop.verification_due_date || !isLive(sop)) return false;
     const daysLeft = daysFromToday(sop.verification_due_date);
     return daysLeft <= 7;
   }).sort((a, b) => {
@@ -131,13 +117,18 @@ export default function Dashboard() {
   // For managers: only show pending SOPs assigned to them or their teams
   // For admins/super admins: show all pending SOPs
   const pendingSOPs = allSOPs.filter(s => {
-    if (s.status !== 'pending_approval') return false;
+    if (pendingState(s) !== 'submitted') return false;
     if (canApprove) return true; // Admins/Super Admins see all
     // Managers see only those assigned to them or their teams
     const assignedToMe = s.acknowledgement_assigned_emails?.includes(user?.email);
     const assignedToMyTeam = s.acknowledgement_assigned_teams?.some(tid => myTeamIds.includes(tid));
     return assignedToMe || assignedToMyTeam;
   });
+
+  // Managers: their own edits that an admin sent back for more changes
+  const changesRequestedSops = allSOPs.filter(s =>
+    pendingState(s) === 'changes_requested' && (s.pending_submitted_by === user?.email || !s.pending_submitted_by) && !canApprove
+  );
 
   const incidents = allIncidents.filter(inc => {
     if (inc.status === 'resolved') return false;
@@ -372,13 +363,13 @@ export default function Dashboard() {
               <h2 className="font-semibold text-slate-900">Notifications</h2>
               {(() => {
                 const myPendingChecklists = pendingChecklistEdits.filter(c => canApprove || c.pending_submitted_by === user?.email || c.created_by === user?.email);
-                const total = pendingAckSops.length + pendingSOPs.length + verificationDueSops.length + incidents.length + openMaintenance.length + managersSeenOverdueTasks.length + myPendingChecklists.length;
+                const total = pendingAckSops.length + pendingSOPs.length + changesRequestedSops.length + verificationDueSops.length + incidents.length + openMaintenance.length + managersSeenOverdueTasks.length + myPendingChecklists.length;
                 return total > 0 ? (
                   <span className="ml-auto bg-amber-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{total}</span>
                 ) : null;
               })()}
             </div>
-            {pendingAckSops.length === 0 && pendingSOPs.length === 0 && verificationDueSops.length === 0 && incidents.length === 0 && openMaintenance.length === 0 && managersSeenOverdueTasks.length === 0 && pendingChecklistEdits.filter(c => canApprove || c.pending_submitted_by === user?.email || c.created_by === user?.email).length === 0 ? (
+            {pendingAckSops.length === 0 && pendingSOPs.length === 0 && changesRequestedSops.length === 0 && verificationDueSops.length === 0 && incidents.length === 0 && openMaintenance.length === 0 && managersSeenOverdueTasks.length === 0 && pendingChecklistEdits.filter(c => canApprove || c.pending_submitted_by === user?.email || c.created_by === user?.email).length === 0 ? (
               <p className="text-sm text-slate-400 py-2 text-center">No pending notifications</p>
             ) : (
               <div className="space-y-2">
@@ -426,6 +417,18 @@ export default function Dashboard() {
                         <p className="text-xs text-amber-700">Status: {req.status}</p>
                       </div>
                       <ArrowRight className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
+                    </div>
+                  </Link>
+                ))}
+                {changesRequestedSops.map(sop => (
+                  <Link key={sop.id} to={createPageUrl('SOPEditor') + `?id=${sop.id}`}>
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-red-50 hover:bg-red-100 transition-colors">
+                      <ShieldAlert className="w-4 h-4 text-red-600 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-red-900 truncate">Changes requested: {sop.title}</p>
+                        <p className="text-xs text-red-700 truncate">{sop.pending_review_note || 'Edit and resubmit for approval'}</p>
+                      </div>
+                      <ArrowRight className="w-3.5 h-3.5 text-red-600 flex-shrink-0" />
                     </div>
                   </Link>
                 ))}

@@ -10,14 +10,16 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { BookOpen, Plus, Search, Tag, Clock, Trash2 } from 'lucide-react';
+import { toast } from "sonner";
+import { useCurrentUser } from '../components/hooks/useCurrentUser';
+import { BookOpen, Plus, Search, Tag, Clock, Archive } from 'lucide-react';
 import { formatDate } from '@/lib/timezone';
+import { fetchLiveSops, pendingState, searchSops } from '@/lib/sop';
 
 export default function SOPsUnderConstruction() {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
-  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const { isAdmin, isSuperAdmin } = useCurrentUser();
   const queryClient = useQueryClient();
 
   const { data: draftSops = [], isLoading } = useQuery({
@@ -28,20 +30,28 @@ export default function SOPsUnderConstruction() {
     },
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: (sopId) => base44.entities.SOP.delete(sopId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['draft-sops'] });
-      setDeleteConfirm(null);
+  // Live SOPs with an edit waiting for review, or sent back to the manager for changes
+  const { data: liveSops = [] } = useQuery({
+    queryKey: ['sops-live'],
+    queryFn: () => fetchLiveSops(500),
+  });
+  const pendingEdits = liveSops.filter(s => pendingState(s));
+
+  // SOPs are never deleted: admins archive them instead (managers and above can still see them on the SOPs page).
+  const archiveMutation = useMutation({
+    mutationFn: (sop) => base44.entities.SOP.update(sop.id, { status: 'archived' }),
+    onSuccess: (_, sop) => {
+      ['draft-sops', 'sops-all', 'sops-live', 'all-sops-dash'].forEach(k => queryClient.invalidateQueries({ queryKey: [k] }));
+      toast.success(`"${sop.title}" archived`);
     },
+    onError: (e) => toast.error('Could not archive the SOP: ' + (e?.message || 'unknown error')),
   });
 
   const categories = [...new Set(draftSops.map(s => s.category).filter(Boolean))];
 
+  const matchIds = new Set(search ? searchSops(draftSops, search).map(r => r.sop.id) : []);
   const filtered = draftSops.filter(s => {
-    const matchSearch = !search || s.title.toLowerCase().includes(search.toLowerCase()) ||
-      s.summary?.toLowerCase().includes(search.toLowerCase()) ||
-      s.tags?.some(t => t.toLowerCase().includes(search.toLowerCase()));
+    const matchSearch = !search || matchIds.has(s.id);
     const matchCategory = categoryFilter === 'all' || s.category === categoryFilter;
     return matchSearch && matchCategory;
   });
@@ -80,6 +90,32 @@ export default function SOPsUnderConstruction() {
           </SelectContent>
         </Select>
       </div>
+
+      {pendingEdits.length > 0 && (
+        <div className="mb-8">
+          <h2 className="font-semibold text-amber-700 mb-3">Edits awaiting review ({pendingEdits.length})</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {pendingEdits.map(sop => {
+              const returned = pendingState(sop) === 'changes_requested';
+              return (
+                <Link key={sop.id} to={createPageUrl('SOPDetail') + `?id=${sop.id}`}>
+                  <Card className={`shadow-sm hover:shadow-lg transition-all cursor-pointer border-l-4 ${returned ? 'border-l-red-500' : 'border-l-amber-400'} border-0`}>
+                    <CardContent className="p-4">
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${returned ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-800'}`}>
+                        {returned ? 'Changes requested' : 'Waiting for admin approval'}
+                      </span>
+                      <h3 className="font-semibold text-slate-900 mt-2 line-clamp-2">{sop.title}</h3>
+                      <p className="text-xs text-slate-500 mt-1">
+                        {sop.pending_submitted_by_name ? `By ${sop.pending_submitted_by_name}` : ''}{sop.pending_submitted_at ? ` · ${formatDate(sop.pending_submitted_at)}` : ''} · live v{sop.version || 1}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -125,41 +161,25 @@ export default function SOPsUnderConstruction() {
                   </CardContent>
                 </Card>
               </Link>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setDeleteConfirm(sop);
-                }}
-                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 hover:bg-red-100 text-red-600"
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
+              {(isAdmin || isSuperAdmin) && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  title="Archive"
+                  disabled={archiveMutation.isPending}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    archiveMutation.mutate(sop);
+                  }}
+                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity bg-white/90 hover:bg-slate-100 text-slate-600"
+                >
+                  <Archive className="w-4 h-4" />
+                </Button>
+              )}
             </div>
           ))}
         </div>
       )}
-
-      <AlertDialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete SOP?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete "{deleteConfirm?.title}"? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="flex justify-end gap-3">
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => deleteMutation.mutate(deleteConfirm.id)}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Delete
-            </AlertDialogAction>
-          </div>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

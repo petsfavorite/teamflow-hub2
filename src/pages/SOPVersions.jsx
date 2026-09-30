@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { ArrowLeft, Clock, User, RotateCcw, Eye } from 'lucide-react';
 import { toast } from "sonner";
 import { formatDateTime } from '@/lib/timezone';
-import { sanitizeHtml } from '@/lib/sanitize';
+import { SOP_RESTORE_FIELDS, pick, sanitizeHtml, publishStamp, recordVersion, isLive } from '@/lib/sop';
 
 export default function SOPVersions() {
   const params = new URLSearchParams(window.location.search);
@@ -37,25 +37,42 @@ export default function SOPVersions() {
     enabled: !!sopId,
   });
 
+  // Restoring creates a NEW version (current + 1) holding the old content, so history stays linear
+  // and staff are asked to acknowledge it like any other update.
   const rollbackMutation = useMutation({
     mutationFn: async (version) => {
-      return base44.entities.SOP.update(sopId, {
-        content: version.content,
-        summary: version.summary,
-        title: version.title,
-        tags: version.tags,
-        category: version.category,
-        version: version.version_number,
+      const latest = (await base44.entities.SOP.filter({ id: sopId }))[0];
+      if (!latest) throw new Error('SOP not found');
+      const snap = version.snapshot || {
+        title: version.title, category: version.category, summary: version.summary,
+        tags: version.tags, instructions: version.content,
+      };
+      const fields = pick({ ...snap, instructions: snap.instructions ?? version.content }, SOP_RESTORE_FIELDS);
+      const newVersion = Math.max(latest.version || 1, ...versions.map(v => v.version_number || 0)) + 1;
+      const update = {
+        ...fields,
+        content: fields.instructions,
+        version: newVersion,
         last_updated_by: user?.email,
         last_updated_by_name: user?.full_name,
-      });
+        ...(isLive(latest) ? publishStamp({ email: user?.email, name: user?.full_name }) : {}),
+      };
+      await base44.entities.SOP.update(sopId, update);
+      await recordVersion(sopId, newVersion, { ...latest, ...update }, `Restored from v${version.version_number}`, user?.full_name);
+      return newVersion;
     },
-    onSuccess: () => {
-      toast.success('Rolled back successfully');
-      queryClient.invalidateQueries({ queryKey: ['sops'] });
+    onSuccess: (newVersion, version) => {
+      toast.success(`Restored v${version.version_number} as new version v${newVersion}`);
+      ['sops', 'sops-all', 'sops-live', 'sop', 'sop-versions', 'sops-pending-ack', 'sops-pending-ack-dash']
+        .forEach(k => queryClient.invalidateQueries({ queryKey: [k] }));
       navigate(createPageUrl('SOPDetail') + `?id=${sopId}`);
     },
+    onError: (e) => toast.error('Restore failed: ' + (e?.message || 'unknown error')),
   });
+
+  const currentVersionNumber = sop?.version;
+  // Older data can hold duplicate rows for one version number; only the newest row is "current".
+  const currentRowId = versions.find(v => v.version_number === currentVersionNumber)?.id ?? versions[0]?.id;
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -80,15 +97,15 @@ export default function SOPVersions() {
             </p>
           )}
           {(canSeeAllVersions ? versions : versions.slice(0, 3)).map((v, i) => (
-            <Card key={v.id} className={`border-0 shadow-sm ${i === 0 ? 'ring-2 ring-indigo-200' : ''}`}>
+            <Card key={v.id} className={`border-0 shadow-sm ${v.id === currentRowId ? 'ring-2 ring-indigo-200' : ''}`}>
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold ${i === 0 ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold ${v.id === currentRowId ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'}`}>
                       v{v.version_number}
                     </div>
                     <div>
-                      {i === 0 && <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-medium mr-2">Current</span>}
+                      {v.id === currentRowId && <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-medium mr-2">Current</span>}
                       <p className="font-medium text-slate-900 inline">{v.change_summary || 'No change summary'}</p>
                       <div className="flex items-center gap-3 mt-1 text-xs text-slate-400">
                         <span className="flex items-center gap-1"><User className="w-3 h-3" />{v.created_by_name}</span>
@@ -100,7 +117,7 @@ export default function SOPVersions() {
                     <Button variant="ghost" size="sm" onClick={() => setPreviewing(v)} className="gap-1">
                       <Eye className="w-4 h-4" />
                     </Button>
-                    {canRollback && i !== 0 && (
+                    {canRollback && v.id !== currentRowId && (
                       <Button variant="outline" size="sm" onClick={() => rollbackMutation.mutate(v)} className="gap-1">
                         <RotateCcw className="w-3.5 h-3.5" /> Restore
                       </Button>
@@ -118,9 +135,9 @@ export default function SOPVersions() {
           <DialogHeader>
             <DialogTitle>v{previewing?.version_number} — {previewing?.change_summary}</DialogTitle>
           </DialogHeader>
-          <div className="prose prose-sm prose-slate max-w-none" dangerouslySetInnerHTML={{ __html: sanitizeHtml(previewing?.content) }} />
+          <div className="prose prose-sm prose-slate max-w-none" dangerouslySetInnerHTML={{ __html: sanitizeHtml(previewing?.snapshot?.instructions || previewing?.content) }} />
           <DialogFooter>
-            {canRollback && (
+            {canRollback && previewing?.id !== currentRowId && (
               <Button onClick={() => { rollbackMutation.mutate(previewing); setPreviewing(null); }} className="bg-indigo-600 hover:bg-indigo-700 gap-2">
                 <RotateCcw className="w-4 h-4" /> Restore This Version
               </Button>

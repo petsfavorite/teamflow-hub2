@@ -110,6 +110,36 @@
       "type": "string",
       "description": "Legacy rich-text content field"
     },
+    "pending_changes": {
+      "type": "object",
+      "description": "Full proposed edit (all editable fields) awaiting admin review. The live fields keep showing until it is approved."
+    },
+    "pending_state": {
+      "type": "string",
+      "enum": ["submitted", "changes_requested"],
+      "description": "submitted = waiting for admin review; changes_requested = rejected and returned to the manager for more edits"
+    },
+    "pending_review_note": {
+      "type": "string",
+      "description": "Admin's note when changes are requested"
+    },
+    "pending_reviewed_by_name": {
+      "type": "string"
+    },
+    "pending_submitted_at": {
+      "type": "string"
+    },
+    "version_published_at": {
+      "type": "string",
+      "description": "When the current version went live (used for acknowledgement due dates)"
+    },
+    "related_sop_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "IDs of related SOPs"
+    },
     "pending_content": {
       "type": "string"
     },

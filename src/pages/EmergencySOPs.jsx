@@ -1,9 +1,9 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Card, CardContent } from "@/components/ui/card";
+import { fetchLiveSops } from '@/lib/sop';
 import { AlertTriangle, ChevronRight, Zap } from 'lucide-react';
 
 const EMERGENCY_TAGS = ['emergency', 'Emergency', 'urgent', 'safety', 'Safety'];
@@ -28,7 +28,7 @@ function matchesEmergency(sop) {
 export default function EmergencySOPs() {
   const { data: sops = [], isLoading } = useQuery({
     queryKey: ['sops-emergency'],
-    queryFn: () => base44.entities.SOP.filter({ status: 'published' }, '-updated_date', 200),
+    queryFn: () => fetchLiveSops(500),
   });
 
   const emergencySOPs = sops.filter(matchesEmergency);

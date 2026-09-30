@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Link, useNavigate } from 'react-router-dom';
@@ -12,46 +12,58 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import ReactQuill from 'react-quill';
-import { ArrowLeft, Save, Loader2, History, Users, User, Video, AlertTriangle, UserCheck, CheckCircle2, CalendarCheck, X, Plus, Tag, Trash2 } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, History, Users, User, Video, AlertTriangle, UserCheck, CheckCircle2, CalendarCheck, X, Plus, Tag, Archive, Link2, ShieldAlert, RotateCcw } from 'lucide-react';
 import SOPAIImporter from '../components/sop/SOPAIImporter';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { addDays, format, parseISO, differenceInDays } from 'date-fns';
-import { formatDate } from '@/lib/timezone';
+import { formatDate, addDaysStr, daysFromToday } from '@/lib/timezone';
+import {
+  SOP_CONTENT_FIELDS, SOP_MATERIAL_FIELDS, VERIFICATION_INTERVAL_DAYS, pick, fieldsDiffer, sopBody,
+  isLive, pendingState, getPendingFields, publishStamp, recordVersion, fetchLiveSops,
+} from '@/lib/sop';
 
-const MAX_VERIFICATION_DAYS = 90;
+const MAX_VERIFICATION_DAYS = VERIFICATION_INTERVAL_DAYS;
+
+const DEFAULT_FORM = {
+  title: '', category: '', purpose: '', when_it_applies: '', required_tools: '',
+  instructions: '', video_url: '', warnings: '', responsible_role: '',
+  applicable_teams: [], summary: '', tags: [], status: 'draft', version: 1,
+  requires_acknowledgement: false, acknowledgement_due_days: 3,
+  acknowledgement_assigned_emails: [], acknowledgement_assigned_teams: [],
+  related_sop_ids: [], verification_due_date: '',
+  content: '',
+};
 
 export default function SOPEditor() {
   const params = new URLSearchParams(window.location.search);
   const id = params.get('id');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user, isAdmin, isSuperAdmin, isManager } = useCurrentUser();
+  const { user, loading: userLoading, isAdmin, isSuperAdmin, isManager } = useCurrentUser();
   const canManage = isAdmin || isSuperAdmin || isManager;
 
-  const defaultForm = {
-    title: '', category: '', purpose: '', when_it_applies: '', required_tools: '',
-    instructions: '', video_url: '', warnings: '', responsible_role: '',
-    applicable_teams: [], summary: '', tags: [], status: 'draft', version: 1,
-    requires_acknowledgement: false, acknowledgement_due_days: 3,
-    acknowledgement_assigned_emails: [], acknowledgement_assigned_teams: [],
-    verification_due_date: format(addDays(new Date(), 30), 'yyyy-MM-dd'),
-    content: '',
-  };
-
-  const [form, setForm] = useState(defaultForm);
+  const [form, setForm] = useState(DEFAULT_FORM);
   const [tagsInput, setTagsInput] = useState('');
   const [changeSummary, setChangeSummary] = useState('');
-  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [archiveConfirm, setArchiveConfirm] = useState(false);
+  const [relatedSearch, setRelatedSearch] = useState('');
+  const [savedDraft, setSavedDraft] = useState(null);
+  const [initialForm, setInitialForm] = useState(null);
+  const initRef = useRef(false);
+  const draftKey = `sop-draft:${id || 'new'}`;
 
-  const deleteMutation = useMutation({
-    mutationFn: () => base44.entities.SOP.delete(id),
+  // SOPs are never deleted; archiving hides them from staff while managers and above can still see them.
+  const archiveMutation = useMutation({
+    mutationFn: () => base44.entities.SOP.update(id, { status: 'archived' }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sops-all'] });
-      queryClient.invalidateQueries({ queryKey: ['sops'] });
+      ['sops-all', 'sops', 'sops-live', 'all-sops-dash', 'draft-sops', 'sops-pending-ack', 'sops-pending-ack-dash']
+        .forEach(k => queryClient.invalidateQueries({ queryKey: [k] }));
+      try { localStorage.removeItem(draftKey); } catch { /* ignore */ }
+      toast.success('SOP archived');
       navigate(createPageUrl('SOPs'));
     },
+    onError: (e) => toast.error('Could not archive the SOP: ' + (e?.message || 'unknown error')),
   });
 
   const { data: teams = [] } = useQuery({
@@ -95,82 +107,153 @@ export default function SOPEditor() {
     setTagsInput(updated.join(', '));
   };
 
-  const { data: existing } = useQuery({
+  const { data: existing, isFetching: existingFetching } = useQuery({
     queryKey: ['sop-edit', id],
     queryFn: async () => {
       const list = await base44.entities.SOP.filter({ id });
       return list[0];
     },
     enabled: !!id,
+    refetchOnMount: 'always', // never start editing from a stale cached copy
   });
-
-  useEffect(() => {
-    if (existing) {
-      setForm({ ...defaultForm, ...existing });
-      setTagsInput(existing.tags?.join(', ') || '');
-    }
-  }, [existing]);
 
   const isManagerOnly = isManager && !isAdmin && !isSuperAdmin;
 
-  // Verification date validation
-  const verificationDaysOut = form.verification_due_date
-    ? differenceInDays(parseISO(form.verification_due_date), new Date())
-    : null;
-  const verificationError = verificationDaysOut !== null && (verificationDaysOut < 1 || verificationDaysOut > MAX_VERIFICATION_DAYS);
+  const { data: liveSops = [] } = useQuery({
+    queryKey: ['sops-live'],
+    queryFn: () => fetchLiveSops(500),
+  });
+
+  // What is live right now (legacy SOPs keep their text in `content`).
+  const liveBaseline = useMemo(
+    () => (existing ? { ...DEFAULT_FORM, ...existing, instructions: sopBody(existing), status: existing.status === 'pending_approval' ? 'published' : existing.status } : DEFAULT_FORM),
+    [existing]
+  );
+  const existingPendingState = existing ? pendingState(existing) : null;
+
+  // Initialise the form once (a background refetch must never overwrite what is being typed).
+  useEffect(() => {
+    if (initRef.current || userLoading) return;
+    if (id && (!existing || existingFetching)) return;
+    initRef.current = true;
+    let base = { ...liveBaseline };
+    if (isManagerOnly && existing && existingPendingState) {
+      // Managers pick up their own previous submission (e.g. after changes were requested).
+      base = { ...base, ...getPendingFields(existing) };
+    }
+    setForm(base);
+    setTagsInput((base.tags || []).join(', '));
+    setInitialForm(base);
+    try {
+      const raw = localStorage.getItem(draftKey);
+      if (raw) {
+        const d = JSON.parse(raw);
+        if (d?.form && (!existing || new Date(d.savedAt) > new Date(existing.updated_date))) setSavedDraft(d);
+      }
+    } catch { /* storage unavailable */ }
+  }, [existing, existingFetching, id, userLoading, isManagerOnly, liveBaseline, existingPendingState, draftKey]);
+
+  const currentTags = useMemo(() => tagsInput.split(',').map(t => t.trim()).filter(Boolean), [tagsInput]);
+
+  // Autosave an unsaved draft locally so a refresh / navigation doesn't lose work.
+  useEffect(() => {
+    if (!initRef.current || !initialForm) return;
+    const timer = setTimeout(() => {
+      try {
+        const dirty = JSON.stringify({ ...form, tags: currentTags }) !== JSON.stringify({ ...initialForm, tags: initialForm.tags || [] });
+        if (dirty) localStorage.setItem(draftKey, JSON.stringify({ form, tagsInput, savedAt: new Date().toISOString() }));
+        else localStorage.removeItem(draftKey);
+      } catch { /* storage unavailable */ }
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [form, tagsInput, currentTags, initialForm, draftKey]);
+
+  const restoreDraft = () => {
+    setForm(savedDraft.form);
+    setTagsInput(savedDraft.tagsInput || '');
+    setSavedDraft(null);
+  };
+  const discardDraft = () => {
+    try { localStorage.removeItem(draftKey); } catch { /* ignore */ }
+    setSavedDraft(null);
+  };
+
+  // Verification: SOPs are re-verified every 90 days automatically. A manager may pull the date
+  // earlier, but the date is only validated when it was actually changed (an overdue SOP must still be editable).
+  const verificationChanged = (form.verification_due_date || '') !== (liveBaseline.verification_due_date || '');
+  const verificationDaysOut = form.verification_due_date ? daysFromToday(form.verification_due_date) : null;
+  const verificationError = verificationChanged && verificationDaysOut !== null && (verificationDaysOut < 1 || verificationDaysOut > MAX_VERIFICATION_DAYS);
+
+  const wasLive = !!existing && isLive(existing);
+  const managerSubmitsEdit = isManagerOnly && !!id && wasLive;
+  const hasChanges = !existing || fieldsDiffer({ ...form, tags: currentTags }, liveBaseline, SOP_CONTENT_FIELDS) || form.status !== liveBaseline.status || verificationChanged;
+  const needsChangeSummary = !!id && hasChanges && wasLive && (managerSubmitsEdit || form.status === 'published');
+  const missingChangeSummary = needsChangeSummary && !changeSummary.trim();
+  const missingRequired = !form.title.trim() || !form.category.trim();
 
   const saveMutation = useMutation({
-    mutationFn: async (data) => {
-      const tags = tagsInput.split(',').map(t => t.trim()).filter(Boolean);
+    mutationFn: async () => {
+      const now = new Date().toISOString();
+      const fields = { ...pick(form, SOP_CONTENT_FIELDS), tags: currentTags };
+      const who = { email: user?.email, name: user?.full_name };
 
-      const isPublished = existing?.status === 'published';
-      if (isManagerOnly && id && isPublished) {
-        return base44.entities.SOP.update(id, {
-          pending_content: data.instructions || data.content,
-          pending_summary: data.summary,
-          pending_tags: tags,
-          pending_change_summary: changeSummary || 'Manager update',
+      // Manager edit of a live SOP: the live version stays untouched until an admin approves.
+      if (managerSubmitsEdit) {
+        await base44.entities.SOP.update(id, {
+          pending_changes: fields,
+          pending_state: 'submitted',
+          pending_change_summary: changeSummary,
           pending_submitted_by: user?.email,
           pending_submitted_by_name: user?.full_name,
-          status: 'pending_approval',
+          pending_submitted_at: now,
+          pending_review_note: null,
+          pending_reviewed_by_name: null,
+          pending_content: null, pending_summary: null, pending_tags: null,
+          status: 'published', // also migrates legacy 'pending_approval' rows back to live
         });
+        return { submitted: true };
       }
 
+      const goingLive = form.status === 'published';
       const sopData = {
-        ...data, tags,
+        ...fields,
+        content: fields.instructions,
+        status: form.status,
         last_updated_by: user?.email,
         last_updated_by_name: user?.full_name,
       };
+      if (form.verification_due_date) sopData.verification_due_date = form.verification_due_date;
 
-      let result;
-      if (id) {
-        result = await base44.entities.SOP.update(id, sopData);
-      } else {
-        result = await base44.entities.SOP.create(sopData);
+      // The version number is managed automatically: every approved edit of a live SOP is a new version.
+      let version = existing?.version || 1;
+      let bumped = false;
+      if (wasLive && goingLive && fieldsDiffer(fields, liveBaseline, SOP_MATERIAL_FIELDS)) {
+        version += 1;
+        bumped = true;
       }
+      if (bumped || (goingLive && !wasLive)) Object.assign(sopData, publishStamp(who));
+      sopData.version = version;
 
+      const result = id ? await base44.entities.SOP.update(id, sopData) : await base44.entities.SOP.create(sopData);
       const sopId = id || result.id;
-      await base44.entities.SOPVersion.create({
-        sop_id: sopId,
-        version_number: sopData.version,
-        title: sopData.title,
-        content: sopData.instructions || sopData.content,
-        summary: sopData.summary,
-        tags: sopData.tags,
-        category: sopData.category,
-        change_summary: changeSummary || (id ? 'Updated' : 'Initial version'),
-        created_by_name: user?.full_name,
-      });
-
-      return result;
+      // Only write version history when a version is created or a draft is saved (not for settings-only tweaks).
+      if (bumped || !wasLive) {
+        await recordVersion(sopId, version, sopData, changeSummary || (id ? 'Updated' : 'Initial version'), user?.full_name);
+      }
+      return { bumped, version };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sops-all'] });
-      queryClient.invalidateQueries({ queryKey: ['sops'] });
-      queryClient.invalidateQueries({ queryKey: ['sop-versions'] });
-      toast.success(isManagerOnly && id ? 'Edit submitted for admin approval' : id ? 'SOP updated' : 'SOP created');
-      navigate(createPageUrl('SOPs'));
+    onSuccess: (res) => {
+      ['sops-all', 'sops', 'sop-versions', 'sops-live', 'all-sops-dash', 'sops-pending-ack', 'sops-pending-ack-dash', 'draft-sops']
+        .forEach(k => queryClient.invalidateQueries({ queryKey: [k] }));
+      queryClient.invalidateQueries({ queryKey: ['sop', id] });
+      queryClient.invalidateQueries({ queryKey: ['sop-edit', id] });
+      try { localStorage.removeItem(draftKey); } catch { /* ignore */ }
+      if (res.submitted) toast.success('Edit submitted for admin approval — the current version stays live until it is approved');
+      else if (res.bumped) toast.success(`SOP updated to v${res.version}${form.requires_acknowledgement ? ' — staff will be asked to re-acknowledge' : ''}`);
+      else toast.success(id ? 'SOP saved' : 'SOP created');
+      navigate(createPageUrl(id ? 'SOPDetail' : 'SOPs') + (id ? `?id=${id}` : ''));
     },
+    onError: (e) => toast.error('Could not save the SOP: ' + (e?.message || 'unknown error')),
   });
 
   if (!id && !canManage) {
@@ -208,10 +291,40 @@ export default function SOPEditor() {
 
       <h1 className="text-2xl font-bold text-slate-900 mb-6">{id ? 'Edit SOP' : 'Create New SOP'}</h1>
 
+      {savedDraft && (
+        <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-xl text-sm text-indigo-900 mb-6 flex items-center gap-3 flex-wrap">
+          <RotateCcw className="w-4 h-4 flex-shrink-0" />
+          <span className="flex-1">You have unsaved changes from {formatDate(savedDraft.savedAt, 'M/D/YYYY h:mm A')}. Restore them?</span>
+          <Button size="sm" onClick={restoreDraft} className="bg-indigo-600 hover:bg-indigo-700">Restore</Button>
+          <Button size="sm" variant="outline" onClick={discardDraft}>Discard</Button>
+        </div>
+      )}
+
+      {isManagerOnly && existingPendingState === 'changes_requested' && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-900 mb-6">
+          <p className="font-semibold flex items-center gap-2"><ShieldAlert className="w-4 h-4" /> Changes requested{existing?.pending_reviewed_by_name ? ` by ${existing.pending_reviewed_by_name}` : ''}</p>
+          {existing?.pending_review_note && <p className="mt-1 whitespace-pre-wrap">"{existing.pending_review_note}"</p>}
+          <p className="mt-2 text-red-700">Your previous submission is loaded below. Make the requested changes and resubmit. The current approved version stays live in the meantime.</p>
+        </div>
+      )}
+
+      {isManagerOnly && existingPendingState === 'submitted' && (
+        <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-900 mb-6">
+          You already have an edit waiting for admin review (loaded below). Submitting again replaces it.
+        </div>
+      )}
+
+      {!isManagerOnly && existingPendingState === 'submitted' && (
+        <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-900 mb-6">
+          A manager's edit is waiting for review. <Link className="underline font-medium" to={createPageUrl('SOPDetail') + `?id=${id}`}>Review it on the SOP page</Link> before changing the live version here, otherwise your changes and theirs may overlap.
+        </div>
+      )}
+
       {/* AI Importer — only for new SOPs */}
       {!id && (
         <SOPAIImporter
           sopTags={sopTags}
+          hasExistingContent={!!(form.title.trim() || form.category.trim() || form.summary.trim() || form.purpose.trim() || form.instructions.replace(/<[^>]*>/g, '').trim())}
           onFill={(data) => {
             setForm(f => ({ ...f, ...data }));
             if (data.tags) setTagsInput(data.tags.join(', '));
@@ -236,11 +349,15 @@ export default function SOPEditor() {
                 <SelectContent>
                   <SelectItem value="draft">Draft</SelectItem>
                   {!isManagerOnly && <SelectItem value="published">Published</SelectItem>}
-                  {!isManagerOnly && <SelectItem value="archived">Archived</SelectItem>}
+                  {(!isManagerOnly || form.status === 'archived') && <SelectItem value="archived">Archived</SelectItem>}
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2"><Label>Version</Label><Input type="number" value={form.version} onChange={e => set('version', Number(e.target.value))} /></div>
+            <div className="space-y-2">
+              <Label>Version</Label>
+              <Input value={`v${form.version || 1}`} disabled />
+              <p className="text-xs text-slate-400">Updates automatically each time an edit is approved.</p>
+            </div>
           </div>
 
           {/* Applicable Teams */}
@@ -303,7 +420,7 @@ export default function SOPEditor() {
 
           {id && (
             <div className="space-y-2">
-              <Label>Change Summary <span className="text-slate-400 text-xs">(what changed?)</span></Label>
+              <Label>Change Summary {needsChangeSummary ? <span className="text-red-500">*</span> : null} <span className="text-slate-400 text-xs">(what changed?{needsChangeSummary ? ' — required for edits to a live SOP' : ''})</span></Label>
               <Input value={changeSummary} onChange={e => setChangeSummary(e.target.value)} placeholder="e.g. Updated step 3 with new sanitizer protocol" />
             </div>
           )}
@@ -371,27 +488,56 @@ export default function SOPEditor() {
         </CardContent>
       </Card>
 
+      {/* Related SOPs */}
+      <Card className="border-0 shadow-sm mb-8">
+        <CardHeader className="pb-2"><CardTitle className="text-base text-slate-700 flex items-center gap-2"><Link2 className="w-4 h-4 text-indigo-600" /> Related SOPs</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-slate-500">Linked SOPs appear at the bottom of this SOP so staff can jump to the next procedure.</p>
+          <Input value={relatedSearch} onChange={e => setRelatedSearch(e.target.value)} placeholder="Search SOPs to link..." className="h-8 text-sm" />
+          <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto">
+            {liveSops
+              .filter(o => o.id !== id && (!relatedSearch || o.title.toLowerCase().includes(relatedSearch.toLowerCase()) || (form.related_sop_ids || []).includes(o.id)))
+              .map(o => {
+                const selected = (form.related_sop_ids || []).includes(o.id);
+                return (
+                  <button
+                    key={o.id}
+                    type="button"
+                    onClick={() => set('related_sop_ids', selected ? form.related_sop_ids.filter(x => x !== o.id) : [...(form.related_sop_ids || []), o.id])}
+                    className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${selected ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'}`}
+                  >
+                    {o.title}
+                  </button>
+                );
+              })}
+            {liveSops.length === 0 && <p className="text-xs text-slate-400">No published SOPs to link yet</p>}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Verification */}
       <Card className="border-0 shadow-sm mb-8">
         <CardHeader className="pb-2"><CardTitle className="text-base text-slate-700 flex items-center gap-2"><CalendarCheck className="w-4 h-4 text-indigo-600" /> Verification Schedule</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          <p className="text-sm text-slate-500">Set a future date (max 90 days) by which a manager or admin on an applicable team must re-verify this SOP.</p>
+          <p className="text-sm text-slate-500">Every SOP must be looked at again every {MAX_VERIFICATION_DAYS} days. The clock restarts automatically when a version is published or approved and when a manager or admin on an applicable team verifies it from the SOP page.</p>
           <div className="flex items-start gap-4 flex-wrap">
             <div className="space-y-2">
-              <Label>Verification Due Date</Label>
+              <Label>Next verification due <span className="text-slate-400 text-xs font-normal">(optional: bring it earlier)</span></Label>
               <Input
                 type="date"
                 value={form.verification_due_date || ''}
-                min={format(addDays(new Date(), 1), 'yyyy-MM-dd')}
-                max={format(addDays(new Date(), MAX_VERIFICATION_DAYS), 'yyyy-MM-dd')}
+                min={addDaysStr(1)}
+                max={addDaysStr(MAX_VERIFICATION_DAYS)}
                 onChange={e => set('verification_due_date', e.target.value)}
                 className={verificationError ? 'border-red-400' : ''}
               />
               {verificationError && (
-                <p className="text-xs text-red-600">Must be between 1 and 90 days from today</p>
+                <p className="text-xs text-red-600">Must be between 1 and {MAX_VERIFICATION_DAYS} days from today</p>
               )}
               {verificationDaysOut !== null && !verificationError && (
-                <p className="text-xs text-slate-400">{verificationDaysOut} day{verificationDaysOut !== 1 ? 's' : ''} from today</p>
+                <p className="text-xs text-slate-400">
+                  {verificationDaysOut < 0 ? `Overdue by ${Math.abs(verificationDaysOut)} day${Math.abs(verificationDaysOut) !== 1 ? 's' : ''}` : `${verificationDaysOut} day${verificationDaysOut !== 1 ? 's' : ''} from today`}
+                </p>
               )}
             </div>
             {existing?.last_verified_by_name && (
@@ -473,49 +619,49 @@ export default function SOPEditor() {
         </CardContent>
       </Card>
 
-      {isManagerOnly && id && existing?.status === 'published' && (
+      {managerSubmitsEdit && (
         <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800 mb-8">
-          <strong>Note:</strong> Your edits will be submitted for admin approval before going live.
+          <strong>Note:</strong> Your edits will be submitted for admin approval. The current version stays live until they are approved; if changes are requested, the SOP comes back to you to edit again.
         </div>
+      )}
+      {missingChangeSummary && (
+        <p className="text-xs text-red-600 text-right mb-2">Add a change summary so reviewers and staff know what changed.</p>
       )}
 
       <div className="flex justify-end gap-3 pb-8">
-        {id && (isAdmin || isSuperAdmin) && existing?.status !== 'published' && (
+        {id && (isAdmin || isSuperAdmin) && existing?.status !== 'archived' && (
           <Button
             variant="outline"
-            onClick={() => setDeleteConfirm(true)}
-            className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 gap-2 mr-auto"
+            onClick={() => setArchiveConfirm(true)}
+            className="gap-2 mr-auto"
           >
-            <Trash2 className="w-4 h-4" /> Delete SOP
+            <Archive className="w-4 h-4" /> Archive SOP
           </Button>
         )}
         <Link to={createPageUrl('SOPs')}><Button variant="outline">Cancel</Button></Link>
         <Button
-          onClick={() => saveMutation.mutate(form)}
-          disabled={saveMutation.isPending || verificationError}
+          onClick={() => saveMutation.mutate()}
+          disabled={saveMutation.isPending || verificationError || missingChangeSummary || missingRequired || (!!id && !hasChanges)}
           className="bg-indigo-600 hover:bg-indigo-700 gap-2"
         >
           {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-          {isManagerOnly && id && existing?.status === 'published' ? 'Submit for Approval' : id ? 'Update SOP' : 'Create SOP'}
+          {managerSubmitsEdit ? 'Submit for Approval' : id ? 'Update SOP' : 'Create SOP'}
         </Button>
       </div>
 
-      <AlertDialog open={deleteConfirm} onOpenChange={setDeleteConfirm}>
+      <AlertDialog open={archiveConfirm} onOpenChange={setArchiveConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete SOP?</AlertDialogTitle>
+            <AlertDialogTitle>Archive SOP?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{existing?.title}"? This action cannot be undone.
+              "{existing?.title}" will be hidden from staff and the SOP Assistant. Managers and above can still see it under Archived and restore it as a draft.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="flex justify-end gap-3">
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => deleteMutation.mutate()}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              {deleteMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Delete
+            <AlertDialogAction onClick={() => archiveMutation.mutate()}>
+              {archiveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Archive
             </AlertDialogAction>
           </div>
         </AlertDialogContent>
