@@ -3,6 +3,35 @@ import { requireAdmin } from '../../shared/auth.ts';
 
 const FOLDER_ID = '1cS0qd-257GiwotZNyFy_UJnmoaMVsA38';
 
+// Validate that a report URL is safe to fetch (prevents SSRF)
+function isSafeReportUrl(urlStr: string): boolean {
+    try {
+        const url = new URL(urlStr);
+        if (url.protocol !== 'https:') return false;
+
+        const hostname = url.hostname.toLowerCase();
+
+        // Reject loopback
+        if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1' || hostname === '0.0.0.0') return false;
+
+        // Reject link-local (e.g. cloud metadata 169.254.169.254)
+        if (hostname.startsWith('169.254.')) return false;
+
+        // Reject private IP ranges
+        if (hostname.startsWith('10.')) return false;
+        if (hostname.startsWith('192.168.')) return false;
+        if (hostname.startsWith('172.')) {
+            const parts = hostname.split('.');
+            const second = parseInt(parts[1], 10);
+            if (second >= 16 && second <= 31) return false;
+        }
+
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
@@ -23,6 +52,11 @@ Deno.serve(async (req) => {
         for (const report of reports) {
             try {
                 if (!report.report_url) continue;
+
+                if (!isSafeReportUrl(report.report_url)) {
+                    errors.push(`Unsafe or invalid URL for ${report.pet_name}'s report`);
+                    continue;
+                }
 
                 const filename = `${report.pet_name}_${report.visit_type || 'visit'}_${report.check_out_date || report.check_in_date}.pdf`;
 

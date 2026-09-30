@@ -1,5 +1,19 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
 
+// In-memory attempt tracking (per user, resets on success or lockout expiry)
+const failedAttempts = new Map<string, { count: number; lockedUntil: number }>();
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_MS = 5 * 60 * 1000; // 5 minutes
+
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return result === 0;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -14,14 +28,33 @@ Deno.serve(async (req) => {
       return Response.json({ valid: false, error: 'PIN must be exactly 6 digits' });
     }
 
-    // Rate limiting: delay failed attempts to slow brute-force attacks
-    // (1.5s per failed attempt makes exhaustive 6-digit brute-force impractical)
+    // Check server-side lockout
+    const attemptState = failedAttempts.get(user.id);
+    if (attemptState && attemptState.lockedUntil > Date.now()) {
+      const remainingSec = Math.ceil((attemptState.lockedUntil - Date.now()) / 1000);
+      return Response.json({
+        valid: false,
+        error: `Too many failed attempts. Try again in ${remainingSec} seconds.`
+      });
+    }
+
     const attemptStart = Date.now();
 
-    // Look up which user has this PIN using service role
-    const users = await base44.asServiceRole.entities.User.filter({ pin });
+    // Only check the PIN against the current session user's own PIN
+    const fullUser = await base44.asServiceRole.entities.User.get(user.id);
+    const storedPin = fullUser?.pin || '';
+    const pinMatches = storedPin.length === 6 && timingSafeEqual(storedPin, pin);
 
-    if (users.length === 0) {
+    if (!pinMatches) {
+      // Track failed attempt with server-side lockout
+      const current = failedAttempts.get(user.id) || { count: 0, lockedUntil: 0 };
+      current.count += 1;
+      if (current.count >= MAX_ATTEMPTS) {
+        current.lockedUntil = Date.now() + LOCKOUT_MS;
+        current.count = 0;
+      }
+      failedAttempts.set(user.id, current);
+
       const elapsed = Date.now() - attemptStart;
       const minDelay = 1500;
       if (elapsed < minDelay) {
@@ -30,19 +63,16 @@ Deno.serve(async (req) => {
       return Response.json({ valid: false });
     }
 
-    // PIN collision — multiple users share this PIN, refuse to authenticate
-    if (users.length > 1) {
-      return Response.json({ valid: false, error: 'PIN collision — multiple users share this PIN. Contact an admin.' });
-    }
+    // Success — clear attempts
+    failedAttempts.delete(user.id);
 
-    const matched = users[0];
     return Response.json({
       valid: true,
       user: {
-        id: matched.id,
-        full_name: matched.full_name,
-        email: matched.email,
-        role: matched.role
+        id: user.id,
+        full_name: user.full_name,
+        email: user.email,
+        role: user.role
       }
     });
   } catch (error) {

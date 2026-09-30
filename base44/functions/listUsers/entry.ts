@@ -14,5 +14,14 @@ Deno.serve(async (req) => {
   }
 
   const users = await base44.asServiceRole.entities.User.list('full_name', 5000);
-  return Response.json({ users });
+
+  // Strip PIN from response for managers — only admins/super_admins can see PINs
+  const canSeePins = user.role === 'admin' || user.role === 'super_admin';
+  const safeUsers = users.map(u => {
+    if (canSeePins) return u;
+    const { pin, ...rest } = u;
+    return rest;
+  });
+
+  return Response.json({ users: safeUsers });
 });
