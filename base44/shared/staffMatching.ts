@@ -17,11 +17,12 @@ export const NAME_ALIASES = {
   // Jen Rising
   "jennifer": "jen", "jenny": "jen", "jenn": "jen",
   // Skye Means
-  "sky": "skye", "ski": "skye",
+  "sky": "skye", "ski": "skye", "kai": "skye",
   // Hailey Laughter / Haley Jones
   "haley": "hailey", "hayley": "hailey", "hailie": "hailey", "haylee": "hailey",
   // Casie Ward (often misheard as "Casey" in transcripts)
   "casey": "casie", "cassie": "casie", "cassy": "casie", "kacie": "casie", "kacy": "casie", "kasey": "casie",
+  "bailey": "casie", "gracie": "casie", "grace": "casie",
   // Lindsay Lollis / Lindsay Wyatt
   "linds": "lindsay", "lindy": "lindsay", "linz": "lindsay",
   // Pam M
@@ -36,7 +37,7 @@ export const NAME_ALIASES = {
   "hopey": "hope",
 };
 
-export const NEVER_ASSIGN_AS_ANSWERER = ["caroline cofer", "dr. cofer", "dr cofer", "caroline", "dr caroline", "dr. caroline", "support staff", "staff"];
+export const NEVER_ASSIGN_AS_ANSWERER = ["caroline cofer", "dr. cofer", "dr cofer", "caroline", "dr caroline", "dr. caroline", "dr. koffer", "dr koffer", "dr. crawford", "dr crawford", "support staff", "staff", "susan"];
 
 // Returns the user's first name, preferring the first_name field over full_name.
 // full_name can be an immutable username (e.g. "zoeybinks2"), so first_name is
