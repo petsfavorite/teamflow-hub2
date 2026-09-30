@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import { AlertTriangle, ArrowRight, X, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from "sonner";
+import { todayStr } from '@/lib/timezone';
 import {
   Dialog,
   DialogContent,
@@ -98,7 +99,7 @@ export default function DismissibleOverdueTask({ task, user }) {
                   type="date"
                   value={newDueDate}
                   onChange={(e) => setNewDueDate(e.target.value)}
-                  min={new Date().toISOString().split('T')[0]}
+                  min={todayStr()}
                 />
               </div>
               <div className="flex gap-2 justify-end">

@@ -13,7 +13,7 @@ import { Settings as SettingsIcon, Trash2, ChevronLeft, Download, Upload, CheckC
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import * as XLSX from 'xlsx';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 export default function Settings() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -29,7 +29,6 @@ export default function Settings() {
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [profileName, setProfileName] = useState('');
   const [profileEmail, setProfileEmail] = useState('');
-  const [profileTimezone, setProfileTimezone] = useState('America/New_York');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [globalTimezone, setGlobalTimezone] = useState('America/New_York');
   const [allUsers, setAllUsers] = useState([]);
@@ -40,6 +39,7 @@ export default function Settings() {
   const [selectedTeamIds, setSelectedTeamIds] = useState([]);
   const [isSavingTeams, setIsSavingTeams] = useState(false);
 
+  const queryClient = useQueryClient();
   const isSuperAdmin = user?.role === 'super_admin';
   const isAdmin = user?.role === 'admin';
 
@@ -53,7 +53,6 @@ export default function Settings() {
       setUser(u);
       setProfileName(u?.full_name || '');
       setProfileEmail(u?.email || '');
-      setProfileTimezone(u?.timezone || 'America/New_York');
       setSelectedTeamIds(u?.team_ids || []);
     }).catch(() => {});
 
@@ -69,6 +68,7 @@ export default function Settings() {
       if (results.length > 0) {
         setAppSettingsId(results[0].id);
         setInactivityMinutes(results[0].inactivity_timeout_minutes || 5);
+        setGlobalTimezone(results[0].global_timezone || 'America/New_York');
       }
     }).catch(() => {});
   }, [isSuperAdmin]);
@@ -255,14 +255,12 @@ export default function Settings() {
   const handleSaveProfile = async () => {
     setIsSavingProfile(true);
     try {
-      // Non-super_admin users can only edit their own timezone
       if (!isSuperAdmin) {
         await base44.auth.updateMe({
           full_name: profileName,
-          email: profileEmail,
-          timezone: profileTimezone
+          email: profileEmail
         });
-        setUser(prev => ({ ...prev, full_name: profileName, email: profileEmail, timezone: profileTimezone }));
+        setUser(prev => ({ ...prev, full_name: profileName, email: profileEmail }));
       }
       setEditProfileOpen(false);
     } catch (error) {
@@ -291,14 +289,22 @@ export default function Settings() {
     }
   };
 
+  // One app-wide timezone (admins / super admins only). Every page, list and
+  // scheduled job reads it from AppSettings.global_timezone.
   const handleSaveGlobalTimezone = async () => {
     setIsSavingGlobalTimezone(true);
     try {
-      await base44.functions.invoke('updateAllUserTimezones', { timezone: globalTimezone });
-      alert('Timezone updated for all users');
+      if (appSettingsId) {
+        await base44.entities.AppSettings.update(appSettingsId, { global_timezone: globalTimezone });
+      } else {
+        const created = await base44.entities.AppSettings.create({ key: 'global', global_timezone: globalTimezone });
+        setAppSettingsId(created.id);
+      }
+      await queryClient.invalidateQueries({ queryKey: ['global-timezone'] });
+      alert('Timezone updated for everyone');
     } catch (error) {
       console.error('Error updating global timezone:', error);
-      alert('Failed to update timezone for all users');
+      alert('Failed to save timezone');
     } finally {
       setIsSavingGlobalTimezone(false);
     }
@@ -361,7 +367,7 @@ export default function Settings() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-stone-700">Timezone</p>
-                  <p className="text-sm text-stone-600">{user.timezone || 'Not set'}</p>
+                  <p className="text-sm text-stone-600">{globalTimezone} <span className="text-xs text-stone-400">(set by an admin for everyone)</span></p>
                 </div>
                 <Button
                   variant="outline"
@@ -595,33 +601,9 @@ export default function Settings() {
                 className="rounded-xl"
               />
             </div>
-            {!isSuperAdmin && (
+            {(isSuperAdmin || isAdmin) && (
               <div className="space-y-2">
-                <Label htmlFor="timezone">Timezone</Label>
-                <Select value={profileTimezone} onValueChange={setProfileTimezone}>
-                  <SelectTrigger className="rounded-xl">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="America/New_York">Eastern (New York)</SelectItem>
-                    <SelectItem value="America/Chicago">Central (Chicago)</SelectItem>
-                    <SelectItem value="America/Denver">Mountain (Denver)</SelectItem>
-                    <SelectItem value="America/Los_Angeles">Pacific (Los Angeles)</SelectItem>
-                    <SelectItem value="America/Anchorage">Alaska (Anchorage)</SelectItem>
-                    <SelectItem value="Pacific/Honolulu">Hawaii (Honolulu)</SelectItem>
-                    <SelectItem value="UTC">UTC</SelectItem>
-                    <SelectItem value="Europe/London">London</SelectItem>
-                    <SelectItem value="Europe/Paris">Paris</SelectItem>
-                    <SelectItem value="Asia/Tokyo">Tokyo</SelectItem>
-                    <SelectItem value="Asia/Shanghai">Shanghai</SelectItem>
-                    <SelectItem value="Australia/Sydney">Sydney</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-            {isSuperAdmin && (
-              <div className="space-y-2">
-                <Label htmlFor="global-timezone">Global Timezone (All Users)</Label>
+                <Label htmlFor="global-timezone">App Timezone (everyone)</Label>
                 <Select value={globalTimezone} onValueChange={setGlobalTimezone}>
                   <SelectTrigger className="rounded-xl">
                     <SelectValue />
@@ -677,9 +659,9 @@ export default function Settings() {
                 {isSavingProfile ? 'Saving...' : 'Save'}
               </Button>
             )}
-            {isSuperAdmin && (
+            {(isSuperAdmin || isAdmin) && (
               <Button className="rounded-xl bg-[#82bb32] hover:bg-[#82bb32]/90" onClick={handleSaveGlobalTimezone} disabled={isSavingGlobalTimezone}>
-                {isSavingGlobalTimezone ? 'Saving...' : 'Update All Users'}
+                {isSavingGlobalTimezone ? 'Saving...' : 'Save Timezone'}
               </Button>
             )}
             {(isSuperAdmin || isAdmin) && (

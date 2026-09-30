@@ -16,9 +16,13 @@ Deno.serve(async (req) => {
         }
 
         // Parse check-in time to compare with task times
+        // Hour/minute are read in the app timezone (the server clock is UTC).
+        const settings = await base44.asServiceRole.entities.AppSettings.filter({ key: 'global' });
+        const tz = settings[0]?.global_timezone || 'America/New_York';
         const checkInMoment = checkInTime ? new Date(checkInTime) : new Date();
-        const checkInHour = checkInMoment.getHours();
-        const checkInMinute = checkInMoment.getMinutes();
+        const [checkInHour, checkInMinute] = checkInMoment
+            .toLocaleTimeString('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit' })
+            .split(':').map(Number);
 
         // Helper to parse time string (e.g., "8:30 AM") and check if it's before check-in
         const isTimedTaskBeforeCheckIn = (timeStr) => {

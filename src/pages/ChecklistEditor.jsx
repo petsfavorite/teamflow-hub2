@@ -21,7 +21,6 @@ export default function ChecklistEditor() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user, isSuperAdmin, isAdmin, isManager, canManage } = useCurrentUser();
-  const canDirectSave = isSuperAdmin || isAdmin || (isManager && !id);
 
   const [form, setForm] = useState({
     title: '', description: '', category: '', status: 'published', items: [],
@@ -53,6 +52,10 @@ export default function ChecklistEditor() {
     queryFn: () => base44.entities.SOP.filter({ status: 'published' }, '-updated_date', 200),
   });
 
+  // Managers save new checklists and their own drafts directly; edits to a live (published)
+  // checklist go to an admin for approval.
+  const canDirectSave = isSuperAdmin || isAdmin || (isManager && (!id || (!!existing && existing.status !== 'published')));
+
   useEffect(() => {
     if (existing) {
       setForm({
@@ -67,12 +70,16 @@ export default function ChecklistEditor() {
 
   const saveMutation = useMutation({
     mutationFn: async (data) => {
+      // _isPendingApproval is a UI flag only; never store it.
+      const { _isPendingApproval, ...payload } = data;
+      data = payload;
       if (id) return base44.entities.ChecklistTemplate.update(id, data);
       return base44.entities.ChecklistTemplate.create(data);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['checklist-templates'] });
       queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
+      queryClient.invalidateQueries({ queryKey: ['pending-checklist-edits-dash'] });
       if (variables._isPendingApproval) {
         toast.success('Edit submitted for admin approval');
       } else {
@@ -111,13 +118,18 @@ export default function ChecklistEditor() {
 
     // Managers submitting edits to existing templates go through approval
     if (id && isManager && !canDirectSave) {
+      if (!form.pending_change_summary?.trim()) {
+        toast.error('Please add a summary of your changes before submitting.');
+        return;
+      }
+      // The live checklist keeps its status (and stays visible and assignable) until an
+      // admin approves; the proposed changes wait in the pending_* fields.
       const pendingData = {
         pending_items: form.items,
         pending_description: form.description,
-        pending_change_summary: form.pending_change_summary || '',
+        pending_change_summary: form.pending_change_summary.trim(),
         pending_submitted_by: user?.email,
         pending_submitted_by_name: user?.full_name,
-        status: 'pending_approval',
         _isPendingApproval: true,
       };
       saveMutation.mutate(pendingData);
@@ -163,7 +175,7 @@ export default function ChecklistEditor() {
       <PageHeader
         title={id ? 'Edit Checklist' : 'New Checklist'}
         description={id && isManager && !canDirectSave ? 'Your changes will be submitted for admin approval before going live.' : undefined}
-        actions={canDirectSave && existing?.status === 'pending_approval' && existing?.pending_items && (
+        actions={canDirectSave && (existing?.pending_items?.length > 0) && (
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -203,7 +215,7 @@ export default function ChecklistEditor() {
         )}
       />
 
-      {canDirectSave && existing?.status === 'pending_approval' && existing?.pending_items && (
+      {canDirectSave && (existing?.pending_items?.length > 0) && (
         <Card className="border-2 border-indigo-300 shadow-sm mb-4">
           <CardContent className="p-4 space-y-2">
             <p className="text-sm font-semibold text-indigo-800">📋 Pending Edit Request</p>

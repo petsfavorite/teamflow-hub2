@@ -51,6 +51,9 @@ export default function TaskRow({ task, onStatusChange, canEdit, user, teams = [
       toast.success('Task updated');
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       setEditOpen(false);
+    } catch (error) {
+      console.error('Error updating task:', error);
+      toast.error('Could not save the task. Please try again.');
     } finally {
       setIsSaving(false);
     }

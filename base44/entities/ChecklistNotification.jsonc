@@ -51,6 +51,19 @@
     "team_name": {
       "type": "string"
     },
+    "type": {
+      "type": "string",
+      "enum": [
+        "incomplete_items",
+        "unsubmitted_24h"
+      ],
+      "default": "incomplete_items",
+      "description": "incomplete_items = submitted/closed with unchecked items; unsubmitted_24h = all items checked but never submitted for over 24 hours"
+    },
+    "message": {
+      "type": "string",
+      "description": "Human-readable text shown for non-default notification types"
+    },
     "read": {
       "type": "boolean",
       "default": false

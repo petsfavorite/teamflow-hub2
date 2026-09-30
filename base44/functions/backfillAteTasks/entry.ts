@@ -13,7 +13,9 @@ Deno.serve(async (req) => {
       visit_type: 'boarding'
     });
 
-    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    const settings = await base44.asServiceRole.entities.AppSettings.filter({ key: 'global' });
+    const tz = settings[0]?.global_timezone || 'America/New_York';
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: tz }); // YYYY-MM-DD
     const results = [];
 
     for (const visit of visits) {

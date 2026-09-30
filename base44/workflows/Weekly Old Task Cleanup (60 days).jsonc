@@ -1,5 +1,5 @@
 {
-  "name": "Checklist Recurrence - Create New Instances",
+  "name": "Weekly Old Task Cleanup (60 days)",
   "description": "",
   "trigger": {
     "condition": null,
@@ -7,7 +7,7 @@
       "trigger_type": "scheduled",
       "events": [],
       "schedule_mode": "recurring",
-      "cron_expression": "5 * * * *",
+      "cron_expression": "0 8 * * 0",
       "one_time_date": null,
       "timezone": "UTC",
       "interval_value": null,
@@ -21,7 +21,7 @@
   "definition": {
     "document": {
       "dsl": "1.0.0",
-      "name": "checklist_recurrence_create_new_instances",
+      "name": "weekly_old_task_cleanup_60_days",
       "version": "1.0",
       "namespace": "base44"
     },
@@ -30,7 +30,7 @@
         "run_function": {
           "call": "invoke_backend_function",
           "with": {
-            "function_name": "checklistRecurrence",
+            "function_name": "cleanupOldTasks",
             "args": {}
           },
           "then": "end"
@@ -39,6 +39,6 @@
     ]
   },
   "x-base44-migrated-from-automation": {
-    "legacy_payload_function": "checklistRecurrence"
+    "legacy_payload_function": "cleanupOldTasks"
   }
 }

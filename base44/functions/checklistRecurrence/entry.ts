@@ -27,11 +27,11 @@ Deno.serve(async (req) => {
 
       const visibleDate = subtractDays(dueDate, visibleDayOffset);
 
-      // DEDUPLICATION: skip if an active instance for this schedule + due_date already exists.
+      // DEDUPLICATION: skip if an instance for this schedule + due_date already exists in ANY
+      // status. Completed/stopped instances are archived or closed, and must not be respawned.
       const existing = await base44.asServiceRole.entities.ChecklistTemplate.filter({
         recurring_checklist_id: schedule.id,
-        due_date: dueDate,
-        status: 'active'
+        due_date: dueDate
       });
 
       if (existing.length > 0) { skipped++; continue; }
@@ -80,54 +80,64 @@ Deno.serve(async (req) => {
 });
 
 // Clamp a day-of-month to the last valid day of the target month (e.g. 31 → 28 for February).
-function getClampedDate(year: number, monthIdx: number, day: number): Date {
+// monthIdx may be out of range (e.g. 12 = January of next year); Date.UTC rolls it over.
+function getClampedDate(year: number, monthIdx: number, day: number): string {
   const lastDay = new Date(Date.UTC(year, monthIdx + 1, 0)).getUTCDate();
-  return new Date(Date.UTC(year, monthIdx, Math.min(day, lastDay)));
+  return new Date(Date.UTC(year, monthIdx, Math.min(day, lastDay))).toISOString().split('T')[0];
 }
 
+// The next date (today or later, and never before the schedule's start_date) that this
+// schedule is due, or null if it is not due today / has not started yet.
+// Dates are YYYY-MM-DD in the app timezone.
 function getNextDueDate(schedule, now: Date, tz: string): string | null {
   const today = now.toLocaleDateString('en-CA', { timeZone: tz });
+  const start: string | null = schedule.start_date || null;
+  const floor = start && start > today ? start : today; // earliest date we may return
+  const [fy, fm] = floor.split('-').map(Number);
+  const startDay = start ? Number(start.split('-')[2]) : null;
 
   switch (schedule.recurrence_type) {
     case 'daily':
-      return today;
+      return today >= (start || today) ? today : null;
     case 'weekdays': {
+      if (start && today < start) return null;
       const dow = new Date(today + 'T12:00:00Z').getUTCDay();
-      if (dow < 1 || dow > 5) return null;
-      return today;
+      return dow >= 1 && dow <= 5 ? today : null;
     }
     case 'specific_days': {
+      if (start && today < start) return null;
       const dow = new Date(today + 'T12:00:00Z').getUTCDay();
-      if (!(schedule.recurrence_days_of_week || []).includes(dow)) return null;
-      return today;
+      return (schedule.recurrence_days_of_week || []).includes(dow) ? today : null;
     }
     case 'monthly': {
-      const target = schedule.recurrence_day_of_month || 1;
-      const [ty, tm] = today.split('-').map(Number);
-      let d = getClampedDate(ty, tm - 1, target);
-      if (d.toISOString().split('T')[0] <= today) {
-        d = getClampedDate(ty, tm, target); // next month (tm is 1-indexed, so tm as 0-indexed = next month)
+      const target = schedule.recurrence_day_of_month || startDay || 1;
+      for (let k = 0; k < 24; k++) {
+        const d = getClampedDate(fy, fm - 1 + k, target);
+        if (d >= floor) return d;
       }
-      return d.toISOString().split('T')[0];
+      return null;
     }
     case 'every_x_months': {
-      const target = schedule.recurrence_day_of_month || 1;
-      const interval = schedule.recurrence_interval_months || 1;
-      const [ty, tm] = today.split('-').map(Number);
-      let d = getClampedDate(ty, tm - 1, target);
-      if (d.toISOString().split('T')[0] <= today) {
-        d = getClampedDate(ty, tm - 1 + interval, target);
+      const target = schedule.recurrence_day_of_month || startDay || 1;
+      const interval = Math.max(1, schedule.recurrence_interval_months || 1);
+      // Months that occur are the anchor month plus multiples of the interval.
+      const anchorStr = start || (schedule.created_date ? String(schedule.created_date).slice(0, 10) : today);
+      const [ay, am] = anchorStr.split('-').map(Number);
+      for (let k = 0; k < 400; k++) {
+        const d = getClampedDate(ay, am - 1 + k * interval, target);
+        if (d >= floor) return d;
       }
-      return d.toISOString().split('T')[0];
+      return null;
     }
     case 'annually': {
-      const target = schedule.recurrence_day_of_month || 1;
-      const [ty] = today.split('-').map(Number);
-      let d = getClampedDate(ty, 0, target);
-      if (d.toISOString().split('T')[0] <= today) {
-        d = getClampedDate(ty + 1, 0, target);
+      // The start date's month/day is the yearly due date (legacy schedules without one: January).
+      const month = start ? Number(start.split('-')[1]) - 1 : 0;
+      const day = start ? startDay! : (schedule.recurrence_day_of_month || 1);
+      for (let k = 0; k < 3; k++) {
+        const d = getClampedDate(fy + k, month, day);
+        if (d >= floor) return d;
       }
-      return d.toISOString().split('T')[0];
+      return null;
     }
     default:
       return null;

@@ -16,7 +16,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { escapeHtml, isSafeUrl } from '@/lib/sanitize';
 import { AlertTriangle, Plus, Clock, User, Loader2, ChevronDown, Paperclip, Lock, Archive, Printer } from 'lucide-react';
 import { toast } from "sonner";
-import { formatDate, formatDateTime } from '@/lib/timezone';
+import { formatDate, formatDateTime, todayStr } from '@/lib/timezone';
 
 const CATEGORIES = [
   { value: "interpersonal", label: "Interpersonal" },
@@ -36,7 +36,7 @@ const emptyForm = {
   category: '',
   title: '',
   description: '',
-  incident_date: new Date().toISOString().split('T')[0],
+  incident_date: todayStr(),
   incident_time: '',
   is_private: false,
   osha_not_sure_about_care: false,
