@@ -49,9 +49,11 @@ Deno.serve(async (req) => {
     }
     const metaJson = await metaRes.json();
     const sheetName = metaJson.sheets?.[0]?.properties?.title || "Sheet1";
+    // A1 notation needs single quotes around tab names (spaces, punctuation)
+    const q = `'${sheetName.replace(/'/g, "''")}'`;
 
     const headersRes = await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(`${sheetName}!1:1`)}`,
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(`${q}!1:1`)}`,
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
 
@@ -71,6 +73,14 @@ Deno.serve(async (req) => {
     // Resolve column indices by header name (with fallback to current hardcoded positions).
     const cols = resolveColumns(headers);
     const { colDate, colDuration, colCallId } = cols;
+    if (colCallId < 0) {
+      // Without a Call ID column, records are keyed by sheet row number, which shifts
+      // whenever rows are inserted at the top — causing duplicates and mismatches.
+      await sendCallLogErrorEmail(base44,
+        "Sheet Missing Call ID Column",
+        `The call log sheet has no "Call ID" column, so calls are identified by sheet row number. If new rows are inserted at the top of the sheet, calls can be duplicated or matched to the wrong record.\n\nColumns found: ${headers.join(", ")}`
+      );
+    }
 
     // Read rows in chunks from the top until we pass the 60-day cutoff
     const rawRows = [];
@@ -78,7 +88,7 @@ Deno.serve(async (req) => {
     let reachedCutoff = false;
     while (!reachedCutoff) {
       const chunkEnd = chunkStart + CHUNK_SIZE - 1;
-      const dataRange = `${sheetName}!${chunkStart}:${chunkEnd}`;
+      const dataRange = `${q}!${chunkStart}:${chunkEnd}`;
       const dataRes = await fetch(
         `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(dataRange)}`,
         { headers: { Authorization: `Bearer ${accessToken}` } }
@@ -139,39 +149,81 @@ Deno.serve(async (req) => {
       return true;
     });
 
-    // Date-based filter: only process rows newer than last_synced_call_date
-    // (or all rows if no high-water mark exists yet). This reduces the dedup
-    // query from ~470 IDs to just the handful of new calls.
+    // Date-based filter: only process rows newer than last_synced_call_date, minus a
+    // 24h overlap. The overlap catches calls that land in the sheet late (their start
+    // time is older than the newest row) and rows whose transcript is filled in after
+    // the first import. The dedup check below keeps the overlap from creating duplicates.
+    const LOOKBACK_MS = 24 * 60 * 60 * 1000;
     let rowsToProcess = rowsWithData;
     if (lastSyncedDate) {
-      rowsToProcess = rowsWithData.filter(row => !row.__parsedDate || row.__parsedDate > lastSyncedDate);
+      const floor = new Date(new Date(lastSyncedDate).getTime() - LOOKBACK_MS).toISOString();
+      rowsToProcess = rowsWithData.filter(row => !row.__parsedDate || row.__parsedDate > floor);
     }
 
     // Dedup check: use Call ID when available, fall back to sheet_row_N.
     // Query in batches to avoid 414 (URI too long) when scanning many rows.
     // Skip entirely when there are no new rows to process (saves entity reads).
-    let existingIds = new Set();
+    const existingById = new Map();
     if (rowsToProcess.length > 0) {
       const zoomIds = rowsToProcess.map(r => r.__callId || `sheet_row_${r.__rowIndex}`);
       const DEDUP_BATCH = 100;
       for (let i = 0; i < zoomIds.length; i += DEDUP_BATCH) {
         const batch = zoomIds.slice(i, i + DEDUP_BATCH);
         const existingCalls = await base44.asServiceRole.entities.CallRecord.filter({ zoom_meeting_id: { $in: batch } });
-        existingCalls.forEach(c => existingIds.add(c.zoom_meeting_id));
+        existingCalls.forEach(c => existingById.set(c.zoom_meeting_id, c));
       }
     }
 
+    // Fingerprints of recent records (any source), so a call already imported by the direct
+    // Zoom pull under a different ID format is not imported a second time from the sheet.
+    const digits = (v) => String(v || "").replace(/\D/g, "").slice(-10);
+    let recentFingerprints = [];
+    if (rowsToProcess.length > 0) {
+      const recentFloor = new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString();
+      const recent = await base44.asServiceRole.entities.CallRecord.filter(
+        { call_date: { $gte: recentFloor } }, "-call_date", 3000
+      );
+      recentFingerprints = recent.map(r => ({
+        t: new Date(r.call_date).getTime(), dir: r.call_direction, phone: digits(r.caller_phone),
+      }));
+    }
+    const seenElsewhere = (rec) => {
+      const t = new Date(rec.call_date).getTime();
+      const phone = digits(rec.caller_phone);
+      return recentFingerprints.some(f => f.dir === rec.call_direction && f.phone === phone && Math.abs(f.t - t) <= 3 * 60000);
+    };
+
     let imported = 0;
     let skipped = 0;
+    let transcriptsFilled = 0;
     const recordsToCreate = [];
+    const failures = [];
 
     for (const row of rowsToProcess) {
       const rowKey = row.__callId || `sheet_row_${row.__rowIndex}`;
-      if (existingIds.has(rowKey)) {
+      const existing = existingById.get(rowKey);
+      if (existing) {
         skipped++;
+        // Transcript arrived after the first import: fill it in and re-queue for AI.
+        const built = buildCallRecord(row.__raw, cols, row.__rowIndex, row.__callId);
+        if (built.transcript && !(existing.transcript || "").trim()) {
+          try {
+            await base44.asServiceRole.entities.CallRecord.update(existing.id, {
+              transcript: built.transcript,
+              ai_enriched: false,
+              enrich_attempts: 0,
+            });
+            transcriptsFilled++;
+          } catch (err) {
+            failures.push(`transcript update ${rowKey}: ${err.message}`);
+          }
+        }
         continue;
       }
-      recordsToCreate.push(buildCallRecord(row.__raw, cols, row.__rowIndex, row.__callId));
+      const built = buildCallRecord(row.__raw, cols, row.__rowIndex, row.__callId);
+      // Only trust the fingerprint for rows with a real parsed date and a phone number.
+      if (row.__parsedDate && built.caller_phone && seenElsewhere(built)) { skipped++; continue; }
+      recordsToCreate.push(built);
     }
 
     // Bulk-create in batches of 50
@@ -183,39 +235,60 @@ Deno.serve(async (req) => {
         imported += batch.length;
       } catch (err) {
         console.error(`Batch ${i} create failed:`, err.message);
+        failures.push(`create batch ${i}: ${err.message}`);
       }
     }
 
-    // Update last_synced_call_date to the newest parsed date across ALL rows
-    // (not just imported ones) so the next run skips already-seen rows
-    const maxDate = records
-      .map(r => r.__parsedDate)
-      .filter(Boolean)
-      .sort()
-      .pop();
-    if (maxDate && (!lastSyncedDate || maxDate > lastSyncedDate)) {
-      if (settings) {
-        await base44.asServiceRole.entities.AppSettings.update(settings.id, {
-          last_synced_call_date: maxDate,
-        });
-      } else {
-        await base44.asServiceRole.entities.AppSettings.create({
-          key: "global",
-          last_synced_call_date: maxDate,
-        });
-      }
+    if (failures.length > 0) {
+      await sendCallLogErrorEmail(base44,
+        "Call Import Failed",
+        `The call log sync could not save some calls to the database.\n\nErrors:\n${failures.slice(0, 5).join("\n")}\n\nThe sync will retry these calls automatically on the next run.`
+      );
     }
 
-    // Diagnostic: include high-water mark and sheet's newest date so we can
-    // troubleshoot when calls stop appearing on the dashboard.
+    // Newest call date in the sheet, ignoring rows dated more than a day in the future
+    // (a bad date must not poison the high-water mark and hide every later call).
+    const sanityLimit = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
     const newestInSheet = records
       .map(r => r.__parsedDate)
-      .filter(Boolean)
+      .filter(d => d && d <= sanityLimit)
       .sort()
-      .pop();
+      .pop() || null;
+
+    // Advance the high-water mark only when every row was saved successfully, so a
+    // failed batch is retried next run instead of being skipped forever.
+    const settingsPatch = { last_sync_run_at: new Date().toISOString() };
+    if (newestInSheet) settingsPatch.last_sync_newest_call_date = newestInSheet;
+    if (imported > 0) settingsPatch.last_sync_imported_at = new Date().toISOString();
+    if (failures.length === 0 && newestInSheet && (!lastSyncedDate || newestInSheet > lastSyncedDate)) {
+      settingsPatch.last_synced_call_date = newestInSheet;
+    }
+    if (settings) {
+      await base44.asServiceRole.entities.AppSettings.update(settings.id, settingsPatch);
+    } else {
+      await base44.asServiceRole.entities.AppSettings.create({ key: "global", ...settingsPatch });
+    }
+
+    // Stale-sheet alert: the sync itself is healthy but nothing new is landing in the
+    // sheet during business hours, so the Zoom -> Sheet step has likely stopped.
+    const STALE_HOURS = 3;
+    const et = new Date().toLocaleString("en-US", { timeZone: "America/New_York", weekday: "short", hour: "numeric", hour12: false });
+    const isWeekday = !/^(Sat|Sun)/.test(et);
+    const etHour = parseInt(et.replace(/\D/g, ""), 10);
+    const duringBusinessHours = isWeekday && etHour >= 9 && etHour < 17;
+    const hoursSinceNewest = newestInSheet ? (Date.now() - new Date(newestInSheet).getTime()) / 3600000 : null;
+    // If the direct Zoom pull is running, a quiet sheet is expected and not an error.
+    const zoomPullHealthy = settings?.last_zoom_pull_at &&
+      Date.now() - new Date(settings.last_zoom_pull_at).getTime() < 30 * 60000;
+    if (!zoomPullHealthy && duringBusinessHours && (hoursSinceNewest === null || hoursSinceNewest > STALE_HOURS)) {
+      await sendCallLogErrorEmail(base44,
+        "No New Calls in Sheet",
+        `The Google Sheet has not received a new call in ${hoursSinceNewest === null ? "an unknown time" : hoursSinceNewest.toFixed(1) + " hours"} (newest call: ${newestInSheet || "none found"}), and it is currently business hours.\n\nThe app's sync is running fine, so the step that copies Zoom Phone calls into the sheet has probably stopped. Check that tool, and check that the sheet has not run out of rows.`
+      );
+    }
 
     return Response.json({
-      imported, skipped, pendingEnrichment: imported,
+      imported, skipped, transcriptsFilled, failures: failures.slice(0, 5), pendingEnrichment: imported + transcriptsFilled,
       rowsScanned: rawRows.length, cutoffDate,
       lastSyncedDate: lastSyncedDate || null,
       newestDateInSheet: newestInSheet || null,

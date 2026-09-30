@@ -1,0 +1,41 @@
+{
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "zoom_direct_pull",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "run_function": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "pullZoomCalls",
+            "args": {}
+          },
+          "then": "end"
+        }
+      }
+    ]
+  },
+  "description": "Pulls Zoom Phone calls (and transcripts) straight from Zoom into the Call Dashboard. No AI here; AI enrichment is handled by the 'AI Enrich Call Records' workflow. Safe to run alongside the sheet sync.",
+  "name": "Zoom Direct Pull - New Calls",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "interval",
+      "cron_expression": null,
+      "one_time_date": null,
+      "timezone": "UTC",
+      "interval_value": 10,
+      "interval_unit": "minutes",
+      "interval_anchor": "2026-09-30T12:03:00",
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  }
+}

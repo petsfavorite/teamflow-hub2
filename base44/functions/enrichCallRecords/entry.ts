@@ -6,9 +6,16 @@ import { sendCallLogErrorEmail } from '../../shared/callLogErrorNotify.ts';
 
 // AI ENRICHER — picks up CallRecords with ai_enriched=false and runs
 // transcript analysis on a small batch per invocation to avoid timeouts.
-// The scheduled workflow calls this every 3 minutes; each run processes 5 records.
+// The scheduled workflow calls this every 10 minutes; each run processes up to 15 records.
 
 const MAX_PER_RUN = 15;
+// Fetch extra so records we skip (waiting on a transcript, or failed too often)
+// can't crowd out healthy ones at the front of the queue.
+const FETCH_LIMIT = 60;
+// After this many failed attempts a record is flagged and dropped from the queue.
+const MAX_ATTEMPTS = 5;
+// A call with no transcript this young is probably still waiting on Zoom's transcript.
+const TRANSCRIPT_GRACE_MS = 2 * 60 * 60 * 1000;
 
 Deno.serve(async (req) => {
   try {
@@ -30,15 +37,41 @@ Deno.serve(async (req) => {
     const openai = new OpenAI({ apiKey: Deno.env.get("OPENAI_API_KEY") });
 
     // Fetch pending (non-enriched) records, oldest first
-    const pending = await base44.asServiceRole.entities.CallRecord.filter(
+    const fetched = await base44.asServiceRole.entities.CallRecord.filter(
       { ai_enriched: false },
       "created_date",
-      MAX_PER_RUN
+      FETCH_LIMIT
     );
 
     let enriched = 0;
     let skipped = 0;
+    let deferred = 0;
+    let gaveUp = 0;
     const errors = [];
+    const gaveUpErrors = [];
+
+    // Give up on records that keep failing; otherwise they sit at the front forever.
+    const pending = [];
+    for (const record of fetched) {
+      if ((record.enrich_attempts || 0) >= MAX_ATTEMPTS) {
+        await base44.asServiceRole.entities.CallRecord.update(record.id, {
+          ai_enriched: true,
+          status: "flagged",
+          ai_notes: `AI enrichment failed ${MAX_ATTEMPTS} times and was skipped.`,
+        });
+        gaveUp++;
+        gaveUpErrors.push(record.id);
+        continue;
+      }
+      // No transcript yet and the call is recent: wait for the transcript to show up.
+      const hasTranscript = !!(record.transcript && record.transcript.trim());
+      const ageMs = Date.now() - new Date(record.created_date).getTime();
+      if (!hasTranscript && ageMs < TRANSCRIPT_GRACE_MS) {
+        deferred++;
+        continue;
+      }
+      if (pending.length < MAX_PER_RUN) pending.push(record);
+    }
 
     for (const record of pending) {
       try {
@@ -81,7 +114,9 @@ Deno.serve(async (req) => {
         }
 
         // Missed call determination
+        // record.missed_call may already be true from Zoom's own call result (unanswered / voicemail).
         const missed_call = record.call_direction === "inbound" && (
+          record.missed_call === true ||
           ai_missed_call ||
           (!record.transcript && record.call_duration_seconds !== null && record.call_duration_seconds < 30)
         );
@@ -105,7 +140,13 @@ Deno.serve(async (req) => {
         enriched++;
       } catch (err) {
         errors.push(`${record.id}: ${err.message}`);
-        // Leave ai_enriched=false so the record is retried on the next run.
+        // Leave ai_enriched=false so the record is retried on the next run, but count the
+        // attempt so a record that always fails is eventually flagged and skipped.
+        try {
+          await base44.asServiceRole.entities.CallRecord.update(record.id, {
+            enrich_attempts: (record.enrich_attempts || 0) + 1,
+          });
+        } catch { /* best effort */ }
         // If all records fail (systemic issue like out-of-credits), an email alert is sent below.
       }
     }
@@ -114,12 +155,21 @@ Deno.serve(async (req) => {
     if (pending.length > 0 && enriched === 0 && errors.length > 0) {
       await sendCallLogErrorEmail(base44,
         "AI Enrichment Failed",
-        `All ${pending.length} call records in this batch failed to enrich.\n\nErrors:\n${errors.slice(0, 5).join("\n")}\n\nThis usually means the OpenAI API is down or out of credits. The records will be retried automatically every 5 minutes.`
+        `All ${pending.length} call records in this batch failed to enrich.\n\nErrors:\n${errors.slice(0, 5).join("\n")}\n\nThis usually means the OpenAI API is down or out of credits. The records will be retried automatically every 10 minutes.`
+      );
+    }
+
+    if (gaveUp > 0) {
+      await sendCallLogErrorEmail(base44,
+        "Call Records Skipped After Repeated AI Failures",
+        `${gaveUp} call record(s) failed AI enrichment ${MAX_ATTEMPTS} times and were flagged so they stop blocking the queue.\n\nRecord IDs: ${gaveUpErrors.slice(0, 10).join(", ")}\n\nLook for them with status "flagged" on the Call Dashboard.`
       );
     }
 
     return Response.json({
       enriched,
+      deferred,
+      gaveUp,
       skipped,
       processed: pending.length,
       errors: errors.slice(0, 5),

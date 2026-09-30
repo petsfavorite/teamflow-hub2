@@ -108,6 +108,34 @@
     "last_call_log_error_email_at": {
       "type": "string",
       "description": "ISO timestamp of the last call log error email sent. Used to throttle error emails to once per hour."
+    },
+    "call_log_error_email_times": {
+      "type": "object",
+      "description": "Map of alert subject -> ISO timestamp of the last email for that subject. Throttles each kind of call log alert independently."
+    },
+    "last_sync_run_at": {
+      "type": "string",
+      "description": "ISO timestamp of the last time scheduledSheetSync completed a run without error. Shown on the Call Dashboard so a stalled pipeline is visible."
+    },
+    "last_sync_imported_at": {
+      "type": "string",
+      "description": "ISO timestamp of the last time scheduledSheetSync imported at least one new call."
+    },
+    "recordings_drive_folder_id": {
+      "type": "string",
+      "description": "Google Drive folder ID where call recordings are archived (folder 'Zoom Call Recordings')."
+    },
+    "last_zoom_pull_at": {
+      "type": "string",
+      "description": "ISO timestamp of the last successful run of pullZoomCalls (direct Zoom Phone import)."
+    },
+    "last_zoom_newest_call_date": {
+      "type": "string",
+      "description": "ISO timestamp of the newest call Zoom Phone reported on the last pullZoomCalls run."
+    },
+    "last_sync_newest_call_date": {
+      "type": "string",
+      "description": "ISO timestamp of the newest call date found in the Google Sheet on the last sync run."
     }
   },
   "required": [

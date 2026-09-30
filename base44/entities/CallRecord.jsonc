@@ -99,6 +99,24 @@
       "default": false,
       "description": "True once AI transcript analysis has been run on this record"
     },
+    "zoom_recording_id": {
+      "type": "string",
+      "description": "Zoom Phone recording ID, used to download the audio into Google Drive."
+    },
+    "recording_drive_file_id": {
+      "type": "string",
+      "description": "Google Drive file ID of the archived recording. Set once the audio has been saved to Drive."
+    },
+    "recording_attempts": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of failed attempts to save this recording to Drive."
+    },
+    "enrich_attempts": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of failed AI enrichment attempts. After too many failures the record is flagged and skipped so it cannot block the queue."
+    },
     "status": {
       "type": "string",
       "enum": [

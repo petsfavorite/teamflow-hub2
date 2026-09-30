@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { Phone, CalendarCheck, UserPlus, AlertTriangle, Loader2, Settings, PhoneMissed, Store, Headphones } from "lucide-react";
+import { Phone, CalendarCheck, UserPlus, AlertTriangle, Loader2, Settings, PhoneMissed, Store, Headphones, RefreshCw } from "lucide-react";
 import moment from "moment-timezone";
 import { Button } from "@/components/ui/button";
 import CallDashboardSettings from "@/components/calldashboard/CallDashboardSettings";
@@ -17,7 +17,7 @@ export default function CallDashboard() {
   const [selectedCall, setSelectedCall] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
   const [filters, setFilters] = useState({ search: "", callerType: "all", bookingStatus: "all", teamMember: "all", status: "all", missedCall: "all" });
-  const [datePreset, setDatePreset] = useState("60days");
+  const [datePreset, setDatePreset] = useState("last60");
   const [customStart, setCustomStart] = useState(null);
   const [customEnd, setCustomEnd] = useState(null);
 
@@ -25,15 +25,45 @@ export default function CallDashboard() {
   const isAdmin = user?.role === "admin" || user?.role === "super_admin" || user?.role === "manager";
   const canManageSettings = user?.role === "admin" || user?.role === "super_admin";
 
-  const { data: calls = [], isLoading, refetch } = useQuery({
+  const { data: calls = [], isLoading, isError, error, refetch } = useQuery({
     queryKey: ["callRecords"],
     queryFn: async () => {
-      const records = await base44.entities.CallRecord.list("-call_date", 500, 0);
+      // Page through results so busy periods aren't silently cut off at one page.
+      const PAGE = 500, MAX = 6000;
+      const records = [];
+      while (records.length < MAX) {
+        const page = await base44.entities.CallRecord.list("-call_date", PAGE, records.length);
+        records.push(...page);
+        if (page.length < PAGE) break;
+      }
       records.sort((a, b) => new Date(b.call_date) - new Date(a.call_date));
       return records;
     },
     retry: 0, // don't retry rate-limited requests — it makes the rate limit worse
   });
+
+  // Pipeline health: when the sync last ran and when the newest call arrived.
+  const { data: syncInfo } = useQuery({
+    queryKey: ["callSyncStatus"],
+    queryFn: () => base44.entities.AppSettings.filter({ key: "global" }).then(r => r?.[0] || null),
+    refetchInterval: 5 * 60 * 1000,
+    retry: 0,
+  });
+  const syncStatus = useMemo(() => {
+    if (!syncInfo) return null;
+    const ageMin = (iso) => iso ? (Date.now() - new Date(iso).getTime()) / 60000 : null;
+    // Either import path counts: the sheet sync or the direct Zoom pull.
+    const newer = (a, b) => (!a ? b : !b ? a : new Date(a) > new Date(b) ? a : b);
+    const syncAge = ageMin(newer(syncInfo.last_sync_run_at, syncInfo.last_zoom_pull_at));
+    const callAge = ageMin(newer(syncInfo.last_sync_newest_call_date, syncInfo.last_zoom_newest_call_date));
+    const ago = (m) => m === null ? "unknown" : m < 60 ? `${Math.round(m)} min ago` : m < 2880 ? `${(m / 60).toFixed(1)} hr ago` : `${Math.round(m / 1440)} days ago`;
+    return {
+      syncStale: syncAge === null || syncAge > 45,
+      callsStale: callAge !== null && callAge > 6 * 60,
+      syncText: ago(syncAge),
+      callText: ago(callAge),
+    };
+  }, [syncInfo]);
 
   const { data: users = [] } = useQuery({
     queryKey: ["allUsers"],
@@ -128,6 +158,11 @@ export default function CallDashboard() {
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Call Dashboard</h1>
               <p className="text-sm text-slate-500 mt-1">{filteredCalls.length} total calls · {stats.booked} booked · {stats.missedBookings} missed opportunities</p>
+              {syncStatus && (
+                <p className={`text-xs mt-1 ${syncStatus.syncStale ? "text-red-600 font-medium" : "text-slate-400"}`}>
+                  Last sync: {syncStatus.syncText} · Newest call: {syncStatus.callText}
+                </p>
+              )}
             </div>
             {canManageSettings && (
               <Button variant="outline" size="sm" onClick={() => setShowSettings(true)} className="gap-2 flex-shrink-0">
@@ -139,6 +174,30 @@ export default function CallDashboard() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+        {isError && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-red-800">Couldn't load calls</p>
+                <p className="text-xs text-red-700 mt-0.5">{error?.message || "Unknown error"}. The numbers below may be incomplete or empty.</p>
+              </div>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2 flex-shrink-0">
+              <RefreshCw className="w-4 h-4" /> Retry
+            </Button>
+          </div>
+        )}
+        {!isError && syncStatus && (syncStatus.syncStale || syncStatus.callsStale) && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
+            <p className="text-sm text-amber-800">
+              {syncStatus.syncStale
+                ? `The call sync hasn't run successfully in a while (last: ${syncStatus.syncText}). New calls may be missing.`
+                : `No new calls have been received since ${syncStatus.callText}. The Zoom phone connection may have stopped.`}
+            </p>
+          </div>
+        )}
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 items-stretch">
           <StatCard label="Total Incoming Calls" value={stats.inboundTotal} icon={Phone} accentColor="bg-blue-500" />
           <StatCard label="Booking Rate" value={`${stats.bookingRate}%`} subtitle={`${stats.booked} of ${stats.bookable} bookable`} icon={CalendarCheck} accentColor="bg-emerald-500" />
