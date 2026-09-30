@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { sendCallLogErrorEmail } from '../../shared/callLogErrorNotify.ts';
+import { requireAdmin } from '../../shared/auth.ts';
 
 // ZOOM DIRECT PULL — imports Zoom Phone calls straight from Zoom's API into CallRecord,
 // with no Google Sheet in the middle. Like scheduledSheetSync it does NO AI work: records
@@ -98,6 +99,8 @@ function isBusinessHoursET() {
 
 Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
+  const { error: authError } = await requireAdmin(base44);
+  if (authError) return authError;
   try {
     let zoomToken;
     try {

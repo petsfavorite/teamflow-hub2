@@ -1,10 +1,13 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { requireAdmin } from '../../shared/auth.ts';
 
 const FOLDER_ID = '1cS0qd-257GiwotZNyFy_UJnmoaMVsA38';
 
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
+        const { error: authError } = await requireAdmin(base44);
+        if (authError) return authError;
 
         const { accessToken } = await base44.asServiceRole.connectors.getConnection('googledrive');
         const authHeader = { Authorization: `Bearer ${accessToken}` };

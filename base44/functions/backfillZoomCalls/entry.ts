@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import OpenAI from 'npm:openai';
+import { requireAdmin } from '../../shared/auth.ts';
 
 // ── Zoom OAuth token ──────────────────────────────────────────────────────────
 async function getZoomToken() {
@@ -250,11 +251,8 @@ Deno.serve(async (req) => {
   try {
     console.log("[DEBUG] Starting backfillZoomCalls");
     const base44 = createClientFromRequest(req);
-    // Auth check: verify admin for manual calls; skip for scheduled runs (no user context)
-    const user = await base44.auth.me().catch(() => null);
-    if (user && user.role !== 'admin' && user.role !== 'super_admin') {
-      return Response.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const { error: authError } = await requireAdmin(base44);
+    if (authError) return authError;
 
     const body = await req.json().catch(() => ({}));
     // Default to last 2 days for scheduled runs; dedup handles already-processed calls

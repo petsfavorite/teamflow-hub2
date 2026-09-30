@@ -1,9 +1,12 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 import jsPDF from 'npm:jspdf@4.0.0';
+import { requireAdmin } from '../../shared/auth.ts';
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
+    const { error: authError } = await requireAdmin(base44);
+    if (authError) return authError;
     const { checklist_completion_id } = await req.json();
 
     if (!checklist_completion_id) {
