@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { sanitizeForEmail } from '@/lib/sanitize';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckSquare, Plus, Trash2, AlertCircle, Loader2, Clock, Search, History } from 'lucide-react';
+import { CheckSquare, Plus, Trash2, AlertCircle, Loader2, Clock, Search, History, Archive, ChevronDown, ChevronRight } from 'lucide-react';
 import ChecklistHistoryPanel from '../components/checklist/ChecklistHistoryPanel';
 
 import { toast } from "sonner";
@@ -32,6 +32,7 @@ export default function Checklists() {
   const [templateToDelete, setTemplateToDelete] = useState(null);
   const [historyChecklist, setHistoryChecklist] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showArchived, setShowArchived] = useState(false);
   const [assignUserSearch, setAssignUserSearch] = useState('');
   const [useForm, setUseForm] = useState({
     assigned_to_emails: [],
@@ -124,9 +125,20 @@ export default function Checklists() {
   // (status 'active', with a due date) that disappear after their due time.
   const isRecurringMaster = (t) => t.status === 'published' && RECURRING_TYPES.includes(t.recurrence_type) && !t.due_date;
 
-  // "My Checklists" - checklists assigned to user or their teams.
-  // Show spawned recurring instances (visible today) + one-off/dated published checklists.
-  // Hide recurring master templates (they persist forever; the spawned instances replace them).
+  // Templates the current user has already submitted (manually completed or edited)
+  const mySubmittedTemplateIds = useMemo(() => {
+    const ids = new Set();
+    checklists.forEach(c => {
+      if (c.checklist_template_id && (c.status === 'completed' || c.status === 'edited') && c.completed_by === user?.email) {
+        ids.add(c.checklist_template_id);
+      }
+    });
+    return ids;
+  }, [checklists, user]);
+
+  // "My Checklists" - active/published checklists assigned to user or their teams.
+  // Excludes submitted (manually completed) and auto-submitted (closed) checklists —
+  // those appear in the "Archived Checklists" section instead.
   const myChecklists = useMemo(() => {
     return allTemplates.filter(t => {
       const assignedToMe = t.assigned_to_emails?.includes(user?.email);
@@ -135,10 +147,22 @@ export default function Checklists() {
       if (isRecurringMaster(t)) return false;
       if (t.status === 'active') return t.is_visible !== false;
       if (t.status === 'published') return true;
-      if (t.status === 'closed') return true; // Show auto-submitted checklists with indicator
+      return false; // closed (auto-submitted) checklists moved to Archived section
+    }).filter(t => !mySubmittedTemplateIds.has(t.id));
+  }, [allTemplates, user, teams, mySubmittedTemplateIds]);
+
+  // "Archived Checklists" - submitted (manually completed) and auto-submitted (closed)
+  const archivedChecklists = useMemo(() => {
+    return allTemplates.filter(t => {
+      const assignedToMe = t.assigned_to_emails?.includes(user?.email);
+      const assignedToMyTeam = t.assigned_teams?.some(teamId => teams.some(team => team.id === teamId && team.member_emails?.includes(user?.email)));
+      if (!(assignedToMe || assignedToMyTeam)) return false;
+      if (isRecurringMaster(t)) return false;
+      if (t.status === 'closed') return true;
+      if (mySubmittedTemplateIds.has(t.id)) return true;
       return false;
     });
-  }, [allTemplates, user, teams]);
+  }, [allTemplates, user, teams, mySubmittedTemplateIds]);
 
   // Template checklists - only published templates with no assignments
   const templateChecklists = useMemo(() => {
@@ -748,6 +772,62 @@ export default function Checklists() {
               </div>
             )}
           </div>
+
+          {/* Archived Checklists - submitted/auto-submitted, toggleable */}
+          {archivedChecklists.length > 0 && (
+            <div>
+              <button
+                onClick={() => setShowArchived(!showArchived)}
+                className="flex items-center gap-2 mb-4 text-lg font-semibold text-slate-700 hover:text-slate-900 transition-colors"
+              >
+                {showArchived ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+                <Archive className="w-5 h-5" />
+                Archived Checklists
+                <span className="text-sm font-normal text-slate-400">({archivedChecklists.length})</span>
+              </button>
+              {showArchived && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {archivedChecklists.filter(t => t.title.toLowerCase().includes(searchTerm.toLowerCase())).map(template => {
+                    const wasAutoSubmitted = template.status === 'closed';
+                    const completion = checklists.find(c => c.checklist_template_id === template.id && c.completed_by === user?.email && (c.status === 'completed' || c.status === 'edited'));
+                    return (
+                      <Card
+                        key={template.id}
+                        className="border-0 shadow-sm opacity-70 cursor-pointer hover:shadow-md hover:opacity-100 transition-all"
+                        onClick={() => setHistoryChecklist(template)}
+                      >
+                        <CardContent className="p-6">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center">
+                              <Archive className="w-5 h-5 text-slate-500" />
+                            </div>
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${wasAutoSubmitted ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                              {wasAutoSubmitted ? 'Auto-submitted' : 'Completed'}
+                            </span>
+                          </div>
+                          <h3 className="font-semibold text-slate-900 mb-2">{template.title}</h3>
+                          {template.due_date && (
+                            <div className="text-sm text-slate-500 font-medium mb-2">
+                              Due {template.due_date} at {template.due_time || '21:00'}
+                            </div>
+                          )}
+                          {completion?.completion_date && (
+                            <div className="text-xs text-slate-400 mb-2">
+                              Completed on {completion.completion_date}
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2 text-xs text-slate-400">
+                            <Clock className="w-3 h-3" />
+                            {template.items?.length || 0} items
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Actively Recurring Checklists - managers and above */}
           {canManage && (
