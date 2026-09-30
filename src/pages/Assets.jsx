@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Checkbox } from "@/components/ui/checkbox";
 import { Boxes, Plus, Wrench, AlertTriangle, ExternalLink, Pencil, Loader2, Paperclip, Trash2, ChevronDown, QrCode } from 'lucide-react';
 import AssetQRCode from '../components/asset/AssetQRCode';
+import { isSafeUrl } from '@/lib/sanitize';
 import { toast } from "sonner";
 import { differenceInDays, parseISO } from 'date-fns';
 import { formatDateTime } from '@/lib/timezone';
@@ -262,7 +263,7 @@ export default function Assets() {
 
               {(selectedAsset.manual_url || selectedAsset.sop_ids?.length > 0 || selectedAsset.task_ids?.length > 0) && (
                 <div className="flex flex-col gap-3 pt-3 border-t">
-                  {selectedAsset.manual_url && (
+                  {selectedAsset.manual_url && isSafeUrl(selectedAsset.manual_url) && (
                     <a href={selectedAsset.manual_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-sm font-medium w-fit">
                       <ExternalLink className="w-4 h-4" /> Manual
                     </a>
@@ -635,6 +636,10 @@ export default function Assets() {
                 delete payload.maintenance_interval_days;
               } else {
                 payload.maintenance_interval_days = Number(payload.maintenance_interval_days);
+              }
+              if (payload.manual_url && !isSafeUrl(payload.manual_url)) {
+                toast.error('Manual URL must start with http:// or https://');
+                return;
               }
               saveMutation.mutate(payload);
             }} disabled={saveMutation.isPending} className="bg-indigo-600 hover:bg-indigo-700 gap-2">

@@ -37,6 +37,15 @@
       "type": "string",
       "description": "6-digit numeric PIN"
     },
+    "pin_failed_attempts": {
+      "type": "number",
+      "default": 0,
+      "description": "Failed PIN attempt counter (persisted for cross-isolate lockout)"
+    },
+    "pin_locked_until": {
+      "type": "string",
+      "description": "ISO timestamp until which the PIN is locked due to too many failed attempts"
+    },
     "invited": {
       "type": "boolean",
       "default": false,

@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ExternalLink, Plus, Globe, Trash2, Pencil, Loader2 } from 'lucide-react';
+import { isSafeUrl } from '@/lib/sanitize';
 import { toast } from "sonner";
 
 export default function ExternalLinks() {
@@ -96,7 +97,7 @@ export default function ExternalLinks() {
                   <Card key={link.id} className="border-0 shadow-sm hover:shadow-lg transition-all group">
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between">
-                        <a href={link.url} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 flex-1 min-w-0">
+                        <a href={isSafeUrl(link.url) ? link.url : '#'} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 flex-1 min-w-0">
                           <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-2xl flex-shrink-0">
                             {link.icon || '🔗'}
                           </div>
@@ -133,7 +134,7 @@ export default function ExternalLinks() {
                   <Card key={link.id} className="border-0 shadow-sm hover:shadow-lg transition-all group border-l-4 border-l-indigo-300">
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between">
-                        <a href={link.url} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 flex-1 min-w-0">
+                        <a href={isSafeUrl(link.url) ? link.url : '#'} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 flex-1 min-w-0">
                           <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-2xl flex-shrink-0">
                             {link.icon || '🔗'}
                           </div>
@@ -192,7 +193,13 @@ export default function ExternalLinks() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={resetForm}>Cancel</Button>
-            <Button onClick={() => saveMutation.mutate({ ...form, category: form.admin_only ? 'Admin Only' : form.category })} disabled={saveMutation.isPending} className="bg-indigo-600 hover:bg-indigo-700 gap-2">
+            <Button onClick={() => {
+              if (form.url && !isSafeUrl(form.url)) {
+                toast.error('URL must start with http:// or https://');
+                return;
+              }
+              saveMutation.mutate({ ...form, category: form.admin_only ? 'Admin Only' : form.category });
+            }} disabled={saveMutation.isPending} className="bg-indigo-600 hover:bg-indigo-700 gap-2">
               {saveMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />} {editingLink ? 'Update' : 'Add'} Link
             </Button>
           </DialogFooter>

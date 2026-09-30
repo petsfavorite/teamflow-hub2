@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
-import { requireAdmin } from '../../shared/auth.ts';
+import { requireAdminOnly } from '../../shared/auth.ts';
 
 // Columns we write back (by header name, not fixed position)
 const WRITE_COLUMNS = ['Team Member', 'Caller Type', 'Booking Outcome', 'Transcript'];
@@ -87,7 +87,7 @@ async function batchWriteRecords(records, accessToken, spreadsheetId, sheetName,
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { error: authError } = await requireAdmin(base44);
+    const { error: authError } = await requireAdminOnly(base44);
     if (authError) return authError;
     const body = await req.json();
     const callRecordId = body.callRecordId || body.event?.entity_id;

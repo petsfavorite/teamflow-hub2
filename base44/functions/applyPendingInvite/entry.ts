@@ -24,7 +24,22 @@ Deno.serve(async (req) => {
 
     if (invite) {
       const updates = { invited: true };
-      if (invite.role) updates.role = invite.role;
+      if (invite.role) {
+        const validRoles = ['user', 'manager', 'admin', 'super_admin'];
+        if (validRoles.includes(invite.role)) {
+          // Defense in depth: only apply super_admin if the inviter was a super_admin
+          if (invite.role === 'super_admin' && invite.invited_by) {
+            const inviterRecords = await base44.asServiceRole.entities.User.filter({ email: invite.invited_by });
+            if (inviterRecords.length > 0 && inviterRecords[0].role === 'super_admin') {
+              updates.role = invite.role;
+            } else {
+              updates.role = 'admin'; // downgrade — inviter wasn't authorized
+            }
+          } else {
+            updates.role = invite.role;
+          }
+        }
+      }
       if (invite.pin) updates.pin = invite.pin;
       if (invite.team_ids && invite.team_ids.length) updates.team_ids = invite.team_ids;
 

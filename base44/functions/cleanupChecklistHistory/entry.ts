@@ -1,12 +1,12 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
-import { requireAdmin } from '../../shared/auth.ts';
+import { requireAdminOnly } from '../../shared/auth.ts';
 
 // Runs on ChecklistCompletion create — deletes completions older than 60 days for the same template.
 // Also runs a global sweep to catch any orphaned old records.
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { error: authError } = await requireAdmin(base44);
+    const { error: authError } = await requireAdminOnly(base44);
     if (authError) return authError;
     const payload = await req.json();
 

@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { sendCallLogErrorEmail } from '../../shared/callLogErrorNotify.ts';
-import { requireAdmin } from '../../shared/auth.ts';
+import { requireAdminOnly } from '../../shared/auth.ts';
 
 // RECORDING ARCHIVER — downloads call audio from Zoom Phone, stores it in a Google Drive
 // folder, points the CallRecord's recording_url at the Drive copy, and permanently deletes
@@ -97,7 +97,7 @@ async function uploadToDrive(accessToken, folderId, name, contentType, bytes, cr
 
 Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
-  const { error: authError } = await requireAdmin(base44);
+  const { error: authError } = await requireAdminOnly(base44);
   if (authError) return authError;
   try {
     const settingsList = await base44.asServiceRole.entities.AppSettings.filter({ key: "global" });

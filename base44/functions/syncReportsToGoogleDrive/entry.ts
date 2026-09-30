@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
-import { requireAdmin } from '../../shared/auth.ts';
+import { requireAdminOnly } from '../../shared/auth.ts';
 
 const FOLDER_ID = '1cS0qd-257GiwotZNyFy_UJnmoaMVsA38';
 
@@ -8,25 +8,10 @@ function isSafeReportUrl(urlStr: string): boolean {
     try {
         const url = new URL(urlStr);
         if (url.protocol !== 'https:') return false;
-
-        const hostname = url.hostname.toLowerCase();
-
-        // Reject loopback
-        if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1' || hostname === '0.0.0.0') return false;
-
-        // Reject link-local (e.g. cloud metadata 169.254.169.254)
-        if (hostname.startsWith('169.254.')) return false;
-
-        // Reject private IP ranges
-        if (hostname.startsWith('10.')) return false;
-        if (hostname.startsWith('192.168.')) return false;
-        if (hostname.startsWith('172.')) {
-            const parts = hostname.split('.');
-            const second = parseInt(parts[1], 10);
-            if (second >= 16 && second <= 31) return false;
-        }
-
-        return true;
+        // Positive allowlist: only allow the app's own storage domain.
+        // This blocks all internal/metadata hostnames (e.g. metadata.google.internal)
+        // regardless of how they resolve, instead of pattern-matching IP ranges.
+        return url.hostname === 'base44.app';
     } catch {
         return false;
     }
@@ -35,7 +20,7 @@ function isSafeReportUrl(urlStr: string): boolean {
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
-        const { error: authError } = await requireAdmin(base44);
+        const { error: authError } = await requireAdminOnly(base44);
         if (authError) return authError;
 
         const { accessToken } = await base44.asServiceRole.connectors.getConnection('googledrive');

@@ -1,7 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
 
-// In-memory attempt tracking (per user, resets on success or lockout expiry)
-const failedAttempts = new Map<string, { count: number; lockedUntil: number }>();
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -18,7 +16,6 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
-    // Session must still be valid (we don't actually log out on inactivity)
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
@@ -28,32 +25,37 @@ Deno.serve(async (req) => {
       return Response.json({ valid: false, error: 'PIN must be exactly 6 digits' });
     }
 
-    // Check server-side lockout
-    const attemptState = failedAttempts.get(user.id);
-    if (attemptState && attemptState.lockedUntil > Date.now()) {
-      const remainingSec = Math.ceil((attemptState.lockedUntil - Date.now()) / 1000);
-      return Response.json({
-        valid: false,
-        error: `Too many failed attempts. Try again in ${remainingSec} seconds.`
-      });
+    // Fetch the current user's full record to get their PIN and persisted lockout state
+    const fullUser = await base44.asServiceRole.entities.User.get(user.id);
+
+    // Check server-side lockout — persisted in the User entity so it survives across isolates
+    const lockedUntilStr = fullUser?.pin_locked_until;
+    if (lockedUntilStr) {
+      const lockedUntil = new Date(lockedUntilStr).getTime();
+      if (lockedUntil > Date.now()) {
+        const remainingSec = Math.ceil((lockedUntil - Date.now()) / 1000);
+        return Response.json({
+          valid: false,
+          error: `Too many failed attempts. Try again in ${remainingSec} seconds.`
+        });
+      }
     }
 
     const attemptStart = Date.now();
-
-    // Only check the PIN against the current session user's own PIN
-    const fullUser = await base44.asServiceRole.entities.User.get(user.id);
     const storedPin = fullUser?.pin || '';
     const pinMatches = storedPin.length === 6 && timingSafeEqual(storedPin, pin);
 
     if (!pinMatches) {
-      // Track failed attempt with server-side lockout
-      const current = failedAttempts.get(user.id) || { count: 0, lockedUntil: 0 };
-      current.count += 1;
-      if (current.count >= MAX_ATTEMPTS) {
-        current.lockedUntil = Date.now() + LOCKOUT_MS;
-        current.count = 0;
+      // Track failed attempt — persisted in User entity so lockout survives across isolates
+      const currentCount = (fullUser?.pin_failed_attempts || 0) + 1;
+      const updates: Record<string, unknown> = {};
+      if (currentCount >= MAX_ATTEMPTS) {
+        updates.pin_failed_attempts = 0;
+        updates.pin_locked_until = new Date(Date.now() + LOCKOUT_MS).toISOString();
+      } else {
+        updates.pin_failed_attempts = currentCount;
       }
-      failedAttempts.set(user.id, current);
+      await base44.asServiceRole.entities.User.update(user.id, updates);
 
       const elapsed = Date.now() - attemptStart;
       const minDelay = 1500;
@@ -63,8 +65,13 @@ Deno.serve(async (req) => {
       return Response.json({ valid: false });
     }
 
-    // Success — clear attempts
-    failedAttempts.delete(user.id);
+    // Success — clear attempts and lockout
+    if (fullUser?.pin_failed_attempts || fullUser?.pin_locked_until) {
+      await base44.asServiceRole.entities.User.update(user.id, {
+        pin_failed_attempts: 0,
+        pin_locked_until: '',
+      });
+    }
 
     return Response.json({
       valid: true,

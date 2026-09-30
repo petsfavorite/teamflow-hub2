@@ -14,6 +14,11 @@ Deno.serve(async (req) => {
 
     const { email, firstName, lastName, pin, role, team_ids } = await req.json();
 
+    // Prevent admins from inviting super_admins — mirrors updateUserProfile's rule
+    if (role === 'super_admin' && user.role !== 'super_admin') {
+      return Response.json({ error: 'Only super admins can invite super admins' }, { status: 403 });
+    }
+
     if (!email) {
       return Response.json({ error: 'Email is required' }, { status: 400 });
     }

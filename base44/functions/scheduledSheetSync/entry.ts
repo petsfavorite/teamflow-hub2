@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.30';
 import { sendCallLogErrorEmail } from '../../shared/callLogErrorNotify.ts';
 import { parseCallDate, parseDurationSeconds, resolveColumns, buildCallRecord } from '../../shared/sheetSyncHelpers.ts';
-import { requireAdmin } from '../../shared/auth.ts';
+import { requireAdminOnly } from '../../shared/auth.ts';
 
 // FAST IMPORT ONLY — no AI analysis. Pulls raw sheet rows and creates
 // CallRecord entries marked pending_review with ai_enriched=false.
@@ -9,7 +9,7 @@ import { requireAdmin } from '../../shared/auth.ts';
 
 Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
-  const { error: authError } = await requireAdmin(base44);
+  const { error: authError } = await requireAdminOnly(base44);
   if (authError) return authError;
 
   try {

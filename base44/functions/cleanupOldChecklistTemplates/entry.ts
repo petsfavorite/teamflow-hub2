@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
-import { requireAdmin } from '../../shared/auth.ts';
+import { requireAdminOnly } from '../../shared/auth.ts';
 
 // Deletes spawned checklist instances whose due_date is older than 6 months.
 // Spawned instances get marked 'closed' (by checkChecklistTimeouts) or 'archived'
@@ -13,7 +13,7 @@ import { requireAdmin } from '../../shared/auth.ts';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { error: authError } = await requireAdmin(base44);
+    const { error: authError } = await requireAdminOnly(base44);
     if (authError) return authError;
 
     const cutoff = new Date();

@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import OpenAI from 'npm:openai';
-import { requireAdmin } from '../../shared/auth.ts';
+import { requireAdminOnly } from '../../shared/auth.ts';
 
 // ── Zoom OAuth token ──────────────────────────────────────────────────────────
 async function getZoomToken() {
@@ -251,7 +251,7 @@ Deno.serve(async (req) => {
   try {
     console.log("[DEBUG] Starting backfillZoomCalls");
     const base44 = createClientFromRequest(req);
-    const { error: authError } = await requireAdmin(base44);
+    const { error: authError } = await requireAdminOnly(base44);
     if (authError) return authError;
 
     const body = await req.json().catch(() => ({}));

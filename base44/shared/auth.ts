@@ -12,6 +12,17 @@ export async function requireAdmin(base44) {
   return { error: null, user };
 }
 
+export async function requireAdminOnly(base44) {
+  const user = await base44.auth.me().catch(() => null);
+  if (!user) {
+    return { error: Response.json({ error: 'Unauthorized' }, { status: 401 }), user: null };
+  }
+  if (user.role !== 'admin' && user.role !== 'super_admin') {
+    return { error: Response.json({ error: 'Forbidden' }, { status: 403 }), user: null };
+  }
+  return { error: null, user };
+}
+
 export async function requireUser(base44) {
   const user = await base44.auth.me().catch(() => null);
   if (!user) {

@@ -1,10 +1,10 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
-import { requireAdmin } from '../../shared/auth.ts';
+import { requireAdminOnly } from '../../shared/auth.ts';
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { error: authError } = await requireAdmin(base44);
+    const { error: authError } = await requireAdminOnly(base44);
     if (authError) return authError;
 
     // Get all currently checked-in boarding visits
