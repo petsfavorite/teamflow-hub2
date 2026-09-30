@@ -1,6 +1,6 @@
 {
   "name": "Monthly Call Records Cleanup",
-  "description": "Daily cleanup of call records older than 60 days from the dashboard.",
+  "description": "Daily cleanup of call records older than 90 days from the dashboard.",
   "trigger": {
     "condition": null,
     "config": {
