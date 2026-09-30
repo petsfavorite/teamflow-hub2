@@ -1,0 +1,45 @@
+{
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "dedup_call_records",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "dedup": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "dedupCallRecords",
+            "args": {}
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Dedup call records",
+            "description": "Merge duplicates from sheet/Zoom/webhook races"
+          }
+        }
+      }
+    ]
+  },
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "*/30 * * * *",
+      "one_time_date": null,
+      "timezone": "America/New_York",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "name": "Dedup Call Records Every 30 Min",
+  "description": "Merges and removes duplicate CallRecord entries created when the Google Sheet sync, direct Zoom pull, and Zoom webhook race each other. Runs every 30 minutes."
+}
