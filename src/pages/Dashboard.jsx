@@ -446,7 +446,7 @@ export default function Dashboard() {
                 {pendingChecklistEdits
                   .filter(checklist => canApprove || checklist.pending_submitted_by === user?.email || checklist.created_by === user?.email)
                   .map(checklist => (
-                  <Link key={checklist.id} to={createPageUrl('Checklists')}>
+                  <Link key={checklist.id} to={createPageUrl('ChecklistEditor') + `?id=${checklist.id}`}>
                     <div className="flex items-center gap-3 p-3 rounded-lg bg-indigo-50 hover:bg-indigo-100 transition-colors">
                       <CheckSquare className="w-4 h-4 text-indigo-600 flex-shrink-0" />
                       <div className="flex-1 min-w-0">

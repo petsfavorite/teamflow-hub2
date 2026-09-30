@@ -175,7 +175,7 @@ export default function ChecklistEditor() {
       <PageHeader
         title={id ? 'Edit Checklist' : 'New Checklist'}
         description={id && isManager && !canDirectSave ? 'Your changes will be submitted for admin approval before going live.' : undefined}
-        actions={canDirectSave && (existing?.pending_items?.length > 0) && (
+        actions={canDirectSave && (existing?.status === 'pending_approval' || existing?.pending_items?.length > 0) && (
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -187,12 +187,12 @@ export default function ChecklistEditor() {
                   queryClient.invalidateQueries({ queryKey: ['checklist-edit', id] });
                   queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
                   queryClient.invalidateQueries({ queryKey: ['pending-checklist-edits-dash'] });
-                  toast.success('Changes approved and applied');
+                  toast.success(existing?.status === 'pending_approval' ? 'Checklist approved and published' : 'Changes approved and applied');
                   navigate(createPageUrl('Checklists'));
                 });
               }}
             >
-              ✓ Approve Changes
+              {existing?.status === 'pending_approval' ? '✓ Approve' : '✓ Approve Changes'}
             </Button>
             <Button
               variant="outline"
@@ -204,7 +204,7 @@ export default function ChecklistEditor() {
                   queryClient.invalidateQueries({ queryKey: ['checklist-edit', id] });
                   queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
                   queryClient.invalidateQueries({ queryKey: ['pending-checklist-edits-dash'] });
-                  toast.success('Edit request rejected');
+                  toast.success(existing?.status === 'pending_approval' ? 'Checklist rejected' : 'Edit request rejected');
                   navigate(createPageUrl('Checklists'));
                 });
               }}
