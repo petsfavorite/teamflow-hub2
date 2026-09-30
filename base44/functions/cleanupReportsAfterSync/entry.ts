@@ -1,8 +1,11 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
+import { requireAdmin } from '../../shared/auth.ts';
 
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
+        const { error: authError } = await requireAdmin(base44);
+        if (authError) return authError;
         
         // Get all reports
         const reports = await base44.asServiceRole.entities.Report.list();

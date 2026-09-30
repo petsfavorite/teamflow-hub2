@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { requireAdmin } from '../../shared/auth.ts';
 
 // This function is triggered when a SOP is published/updated with requires_acknowledgement=true.
 // It no longer creates Tasks — acknowledgement is handled via dashboard notifications.
@@ -6,6 +7,8 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
+    const { error: authError } = await requireAdmin(base44);
+    if (authError) return authError;
     const body = await req.json();
     const sop = body.data;
 

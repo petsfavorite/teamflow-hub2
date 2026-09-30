@@ -3,6 +3,7 @@ import OpenAI from 'npm:openai';
 import { fuzzyMatchUser } from '../../shared/staffMatching.ts';
 import { analyzeCall, buildExtraAliases } from '../../shared/callAnalysis.ts';
 import { sendCallLogErrorEmail } from '../../shared/callLogErrorNotify.ts';
+import { requireAdmin } from '../../shared/auth.ts';
 
 // AI ENRICHER — picks up CallRecords with ai_enriched=false and runs
 // transcript analysis on a small batch per invocation to avoid timeouts.
@@ -20,6 +21,8 @@ const TRANSCRIPT_GRACE_MS = 2 * 60 * 60 * 1000;
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
+    const { error: authError } = await requireAdmin(base44);
+    if (authError) return authError;
 
     // Load settings (prompts + name aliases)
     const settingsList = await base44.asServiceRole.entities.AppSettings.filter({ key: "global" });
