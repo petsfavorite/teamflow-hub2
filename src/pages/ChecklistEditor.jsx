@@ -169,15 +169,8 @@ export default function ChecklistEditor() {
               variant="outline"
               className="text-green-700 border-green-300 hover:bg-green-50"
               onClick={() => {
-                base44.entities.ChecklistTemplate.update(id, {
-                  items: existing.pending_items,
-                  description: existing.pending_description || existing.description,
-                  pending_items: null,
-                  pending_description: null,
-                  pending_change_summary: null,
-                  pending_submitted_by: null,
-                  pending_submitted_by_name: null,
-                  status: 'published',
+                base44.functions.invoke('approveContent', {
+                  type: 'checklist', id, action: 'approve',
                 }).then(() => {
                   queryClient.invalidateQueries({ queryKey: ['checklist-edit', id] });
                   queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
@@ -193,13 +186,8 @@ export default function ChecklistEditor() {
               variant="outline"
               className="text-red-600 border-red-300 hover:bg-red-50"
               onClick={() => {
-                base44.entities.ChecklistTemplate.update(id, {
-                  pending_items: null,
-                  pending_description: null,
-                  pending_change_summary: null,
-                  pending_submitted_by: null,
-                  pending_submitted_by_name: null,
-                  status: 'published',
+                base44.functions.invoke('approveContent', {
+                  type: 'checklist', id, action: 'reject',
                 }).then(() => {
                   queryClient.invalidateQueries({ queryKey: ['checklist-edit', id] });
                   queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });

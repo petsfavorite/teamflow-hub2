@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import CallerTypeBadge from "./CallerTypeBadge";
 import { base44 } from "@/api/base44Client";
 import { cn } from "@/lib/utils";
+import { isSafeUrl } from "@/lib/sanitize";
 import { useQuery } from "@tanstack/react-query";
 import { getAppTimezone } from '@/lib/timezone';
 
@@ -123,7 +124,7 @@ export default function CallDetailPanel({ call, open, onClose, onUpdate, isAdmin
           {call.recording_url && (
             <div className="space-y-1.5">
               <p className="text-xs font-medium uppercase tracking-wider text-slate-400 flex items-center gap-1.5"><Headphones className="w-3 h-3" />Call Recording</p>
-              <a href={call.recording_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors text-sm font-medium">
+              <a href={isSafeUrl(call.recording_url) ? call.recording_url : '#'} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors text-sm font-medium">
                 <Headphones className="w-4 h-4" /> Listen to Recording
               </a>
             </div>

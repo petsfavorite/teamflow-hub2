@@ -294,15 +294,11 @@ export default function Settings() {
   const handleSaveGlobalTimezone = async () => {
     setIsSavingGlobalTimezone(true);
     try {
-      // Super_admin updates timezone for all users
-      for (const u of allUsers) {
-        await base44.asServiceRole.entities.User.update(u.id, {
-          timezone: globalTimezone
-        });
-      }
+      await base44.functions.invoke('updateAllUserTimezones', { timezone: globalTimezone });
       alert('Timezone updated for all users');
     } catch (error) {
       console.error('Error updating global timezone:', error);
+      alert('Failed to update timezone for all users');
     } finally {
       setIsSavingGlobalTimezone(false);
     }

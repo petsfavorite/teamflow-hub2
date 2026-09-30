@@ -239,10 +239,8 @@ export default function Checklists() {
   // Approve a pending template (admins/super_admins) — sets status to published
   const approveTemplateMutation = useMutation({
     mutationFn: async (template) => {
-      await base44.entities.ChecklistTemplate.update(template.id, {
-        status: 'published',
-        pending_submitted_by: null,
-        pending_submitted_by_name: null,
+      await base44.functions.invoke('approveContent', {
+        type: 'checklist', id: template.id, action: 'approve',
       });
     },
     onSuccess: () => {
@@ -254,10 +252,8 @@ export default function Checklists() {
   // Reject a pending template (admins/super_admins) — sends back to draft
   const rejectTemplateMutation = useMutation({
     mutationFn: async (template) => {
-      await base44.entities.ChecklistTemplate.update(template.id, {
-        status: 'draft',
-        pending_submitted_by: null,
-        pending_submitted_by_name: null,
+      await base44.functions.invoke('approveContent', {
+        type: 'checklist', id: template.id, action: 'reject',
       });
       // Notify the submitter
       if (template.pending_submitted_by) {

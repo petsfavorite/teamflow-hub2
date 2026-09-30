@@ -62,38 +62,9 @@ export default function SOPDetail() {
 
   const approveMutation = useMutation({
     mutationFn: async (approve) => {
-      // Refetch latest SOP to avoid race condition with concurrent edits
-      const list = await base44.entities.SOP.filter({ id });
-      const latest = list[0];
-      if (!latest) throw new Error('SOP not found');
-      if (approve) {
-        return base44.entities.SOP.update(id, {
-          content: latest.pending_content,
-          instructions: latest.pending_content,
-          summary: latest.pending_summary,
-          tags: latest.pending_tags,
-          version: (latest.version || 1) + 1,
-          last_updated_by: latest.pending_submitted_by,
-          last_updated_by_name: latest.pending_submitted_by_name,
-          status: 'published',
-          pending_content: null, pending_summary: null, pending_tags: null,
-          pending_change_summary: null, pending_submitted_by: null, pending_submitted_by_name: null,
-        }).then(async (result) => {
-          await base44.entities.SOPVersion.create({
-            sop_id: id, version_number: (latest.version || 1) + 1, title: latest.title,
-            content: latest.pending_content, summary: latest.pending_summary, tags: latest.pending_tags,
-            category: latest.category, change_summary: latest.pending_change_summary || 'Manager update (approved)',
-            created_by_name: latest.pending_submitted_by_name,
-          });
-          return result;
-        });
-      } else {
-        return base44.entities.SOP.update(id, {
-          status: latest.status === 'pending_approval' ? 'draft' : latest.status,
-          pending_content: null, pending_summary: null, pending_tags: null,
-          pending_change_summary: null, pending_submitted_by: null, pending_submitted_by_name: null,
-        });
-      }
+      await base44.functions.invoke('approveContent', {
+        type: 'sop', id, action: approve ? 'approve' : 'reject',
+      });
     },
     onSuccess: (_, approve) => {
       toast.success(approve ? 'Changes approved and published!' : 'Changes rejected');

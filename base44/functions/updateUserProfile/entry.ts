@@ -22,7 +22,7 @@ Deno.serve(async (req) => {
 
     // Name changes — admins+ only, cannot rename other admins/super_admins
     if (first_name !== undefined || last_name !== undefined) {
-      if (user.role === 'admin' && ['admin', 'super_admin'].includes(targetRole)) {
+      if (user.role !== 'super_admin' && ['admin', 'super_admin'].includes(targetRole)) {
         return Response.json({ error: 'Cannot rename other admins or super admins' }, { status: 403 });
       }
       if (first_name !== undefined) updates.first_name = first_name.trim();
