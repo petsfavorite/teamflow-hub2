@@ -30,13 +30,22 @@ Deno.serve(async (req) => {
     const userList = await base44.asServiceRole.entities.User.list();
     const openai = new OpenAI({ apiKey: Deno.env.get("OPENAI_API_KEY") });
 
-    // Get all call records that have transcripts
-    const allRecords = await base44.asServiceRole.entities.CallRecord.list('-created_date', 2000);
-    const withTranscripts = allRecords.filter(r => r.transcript && r.transcript.trim());
-
     const body = req.method === 'POST' ? await req.json().catch(() => ({})) : {};
     const offset = body.offset || 0;
     const chunkSize = body.chunkSize || 25;
+
+    // Get all call records that have transcripts
+    const allRecords = await base44.asServiceRole.entities.CallRecord.list('-created_date', 2000);
+    let withTranscripts = allRecords.filter(r => r.transcript && r.transcript.trim());
+
+    // Optional date filter (YYYY-MM-DD) — only process calls from that calendar day
+    if (body.date) {
+      withTranscripts = withTranscripts.filter(r => {
+        if (!r.call_date) return false;
+        return r.call_date.substring(0, 10) === body.date;
+      });
+    }
+
     const chunk = withTranscripts.slice(offset, offset + chunkSize);
 
     let updated = 0;
