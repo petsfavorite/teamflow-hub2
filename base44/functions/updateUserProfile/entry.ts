@@ -41,8 +41,11 @@ Deno.serve(async (req) => {
       updates.role = role;
     }
 
-    // PIN changes — managers+ can update, check uniqueness
+    // PIN changes — admins+ only (managers could otherwise reset a privileged user's PIN)
     if (pin !== undefined) {
+      if (!['admin', 'super_admin'].includes(user.role)) {
+        return Response.json({ error: 'Only admins can change PINs' }, { status: 403 });
+      }
       if (pin && pin.length !== 6) {
         return Response.json({ error: 'PIN must be exactly 6 digits' }, { status: 400 });
       }
@@ -57,8 +60,11 @@ Deno.serve(async (req) => {
       updates.pin = pin || null;
     }
 
-    // Team changes — managers+ can update
+    // Team changes — admins+ only (managers could otherwise reassign privileged users' teams)
     if (team_ids !== undefined) {
+      if (!['admin', 'super_admin'].includes(user.role)) {
+        return Response.json({ error: 'Only admins can change team assignments' }, { status: 403 });
+      }
       updates.team_ids = team_ids;
     }
 

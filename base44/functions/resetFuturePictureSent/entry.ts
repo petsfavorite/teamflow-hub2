@@ -1,12 +1,11 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { requireAdminOnly } from '../../shared/auth.ts';
 
 Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
 
-  const user = await base44.auth.me();
-  if (!user || user.role !== 'admin' && user.role !== 'super_admin' && user.role !== 'manager') {
-    return Response.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  const { error: authError } = await requireAdminOnly(base44);
+  if (authError) return authError;
 
   const cutoffDate = '2026-05-05'; // Remove May 5th and everything after
 
