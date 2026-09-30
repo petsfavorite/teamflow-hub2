@@ -13,6 +13,7 @@ import StaffLeaderboard from "@/components/calldashboard/StaffLeaderboard";
 import CallerTypeChart from "@/components/calldashboard/CallerTypeChart";
 import DashboardFilters from "@/components/calldashboard/DashboardFilters";
 import useCallHistory from "@/components/calldashboard/useCallHistory";
+import { getAppTimezone } from '@/lib/timezone';
 
 export default function CallDashboard() {
   const [selectedCall, setSelectedCall] = useState(null);
@@ -119,7 +120,7 @@ export default function CallDashboard() {
     const missed = filteredCalls.filter(c => c.missed_call).length;
     const missedWhenOpen = filteredCalls.filter(c => {
       if (!c.missed_call || c.clinic_closed) return false;
-      const m = moment(c.call_date).tz("America/New_York");
+      const m = moment(c.call_date).tz(getAppTimezone());
       const day = m.day();
       const hour = m.hour();
       const isWeekend = day === 0 || day === 6;

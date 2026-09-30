@@ -4,11 +4,8 @@ Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
 
-        const body = req.method === 'POST' ? await req.json().catch(() => ({})) : {};
-        // Keep call records for 90 days by default. Manual runs may pass days or months.
-        const days = (typeof body.days === 'number' && body.days >= 1) ? body.days
-            : (typeof body.months === 'number' && body.months >= 1) ? Math.round(body.months * 30)
-            : 90;
+        // Call records are kept for exactly 90 days (no other retention period can be passed in).
+        const days = 90;
 
         // Calculate cutoff based on configured days
         const cutoff = new Date();

@@ -7,6 +7,8 @@ import { Dog, Cat, ChevronRight, ChevronLeft, Calendar, Sparkles, Home, Star, Re
 import { motion, AnimatePresence } from "framer-motion";
 import moment from "moment";
 import 'moment-timezone';
+import { useToday } from '@/lib/useToday';
+import { isCollectTask, collectTaskDueOn, isPrimaryCollectTask, hasCollectionDue } from '@/lib/collectionTasks';
 import PullToRefresh from '@/components/PullToRefresh';
 import { base44 } from '@/api/base44Client';
 import LocationEditor from './LocationEditor';
@@ -50,6 +52,10 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
         return () => clearInterval(interval);
     }, []);
 
+    // Refresh "now" immediately at midnight instead of waiting for the next 15-minute tick.
+    const todayKey = useToday();
+    useEffect(() => { setNowTick(moment()); }, [todayKey]);
+
     const todayVisits = visits.filter(v => {
         if (v.status !== 'checked_in') return false;
         if (moment(v.check_in_date).format('YYYY-MM-DD') > selectedDate) return false;
@@ -69,6 +75,7 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
         const dateTasks = visit.scheduled_tasks?.filter(task => {
             // "Schedule Bath" is a persistent service — show every day until completed/cancelled
             if (task.type === 'Schedule Bath') return true;
+            if (isCollectTask(task)) return collectTaskDueOn(task, visit, date) && isPrimaryCollectTask(visit, task);
             if (task.date) return task.date === date;
             if (task.is_template) {
                 // Daily observation tasks: hide if completed today
@@ -103,8 +110,8 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
 
     const today2 = nowTick.format('YYYY-MM-DD');
     const tomorrow2 = nowTick.clone().add(1, 'day').format('YYYY-MM-DD');
-    const hasCollectFeces = (visit) => visit.scheduled_tasks?.some(t => t.type === 'Collect Feces' && t.date === today2 && !t.completed) || false;
-    const hasCollectUrine = (visit) => visit.scheduled_tasks?.some(t => t.type === 'Collect Urine' && t.date === today2 && !t.completed) || false;
+    const hasCollectFeces = (visit) => hasCollectionDue(visit, 'Collect Feces', today2);
+    const hasCollectUrine = (visit) => hasCollectionDue(visit, 'Collect Urine', today2);
 
     const isOverdueAlert = (visit) => {
         if (selectedDate !== today2) return false;

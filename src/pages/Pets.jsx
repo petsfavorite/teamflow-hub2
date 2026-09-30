@@ -44,7 +44,7 @@ export default function Pets() {
     const createPetMutation = useMutation({
         mutationFn: (data) => base44.entities.Pet.create(data),
         onSuccess: () => {
-            queryClient.invalidateQueries(['pets']);
+            queryClient.invalidateQueries({ queryKey: ['pets'] });
             setShowAddDialog(false);
         }
     });
@@ -52,7 +52,7 @@ export default function Pets() {
     const updatePetMutation = useMutation({
         mutationFn: ({ id, data }) => base44.entities.Pet.update(id, data),
         onSuccess: () => {
-            queryClient.invalidateQueries(['pets']);
+            queryClient.invalidateQueries({ queryKey: ['pets'] });
             setEditingPet(null);
         }
     });
@@ -60,7 +60,7 @@ export default function Pets() {
     const deletePetMutation = useMutation({
         mutationFn: (id) => base44.entities.Pet.delete(id),
         onSuccess: () => {
-            queryClient.invalidateQueries(['pets']);
+            queryClient.invalidateQueries({ queryKey: ['pets'] });
             setEditingPet(null);
         }
     });
@@ -82,7 +82,7 @@ export default function Pets() {
     };
 
     const handleCheckOut = (pet) => {
-        queryClient.invalidateQueries(['pets']);
+        queryClient.invalidateQueries({ queryKey: ['pets'] });
     };
 
     const handleArchivePet = async (petId) => {

@@ -19,6 +19,7 @@ import { Boxes, Plus, Wrench, AlertTriangle, ExternalLink, Pencil, Loader2, Pape
 import AssetQRCode from '../components/asset/AssetQRCode';
 import { toast } from "sonner";
 import { differenceInDays, parseISO } from 'date-fns';
+import { formatDateTime } from '@/lib/timezone';
 
 const emptyForm = {
   name: '', category: 'equipment', location_detail: '', serial_number: '',
@@ -395,7 +396,7 @@ export default function Assets() {
                             <div className="flex-1 min-w-0">
                               <p className="text-slate-700">{log.note}</p>
                               <div className="text-xs text-slate-400 mt-1">
-                                {log.added_by_name} • {log.date ? new Date(log.date).toLocaleString([], { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
+                                {log.added_by_name} • {log.date ? formatDateTime(log.date, 'MMM D, YYYY, hh:mm A') : ''}
                               </div>
                               {log.attachment_url && (
                                 <a href={log.attachment_url} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 hover:underline flex items-center gap-1 mt-1.5">

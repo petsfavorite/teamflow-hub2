@@ -5,17 +5,19 @@ import { Dog, Cat, Home, Sparkles, Star, LayoutGrid } from "lucide-react";
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import moment from "moment";
+import { hasCollectionDue } from "@/lib/collectionTasks";
+import { useToday } from "@/lib/useToday";
+import { fetchCheckedInVisits } from '@/lib/visitQueries';
+import { usePetsForVisits } from '@/lib/petQueries';
 
 export default function MonitorView() {
-    const { data: pets = [], isLoading: petsLoading } = useQuery({
-        queryKey: ['pets'],
-        queryFn: () => base44.entities.Pet.list(null, 500)
-    });
-
     const { data: visits = [], isLoading: visitsLoading, refetch } = useQuery({
         queryKey: ['visits'],
-        queryFn: () => base44.entities.Visit.list('-check_in_time', 500)
+        queryFn: fetchCheckedInVisits
     });
+
+    // Only the pets that are checked in — not limited by how many pets exist in total
+    const { pets, isLoading: petsLoading } = usePetsForVisits(visits, !visitsLoading);
 
     // Auto-refresh every 60 seconds (was 30s — reduced to lower entity read load)
     useEffect(() => {
@@ -29,32 +31,12 @@ export default function MonitorView() {
 
 
 
-    const today = moment().format('YYYY-MM-DD');
+    const today = useToday();
     const nowTick = moment();
 
-    // Check if pet has uncollected "Collect Feces" task
-    const hasCollectFeces = (visit) => {
-         const tasks = visit.scheduled_tasks?.filter(task => {
-             if (task.completed) return false;
-             if (task.date && task.date !== today) return false;
-             if (!task.is_template && task.date !== today) return false;
-             return true;
-         }) || [];
-
-         return tasks.some(task => task.type === 'Collect Feces' && !task.collected);
-    };
-
-    // Check if pet has uncollected "Collect Urine" task
-    const hasCollectUrine = (visit) => {
-         const tasks = visit.scheduled_tasks?.filter(task => {
-             if (task.completed) return false;
-             if (task.date && task.date !== today) return false;
-             if (!task.is_template && task.date !== today) return false;
-             return true;
-         }) || [];
-
-         return tasks.some(task => task.type === 'Collect Urine' && !task.collected);
-    };
+    // Uncollected Collect Feces / Urine tasks carry forward until completed
+    const hasCollectFeces = (visit) => hasCollectionDue(visit, 'Collect Feces', today);
+    const hasCollectUrine = (visit) => hasCollectionDue(visit, 'Collect Urine', today);
 
     // Check for overdue tasks (same logic as DayView)
     const OVERDUE_EXEMPT_TYPES = ['Collect Feces', 'Collect Urine', 'Feces Observed', 'Ate', 'Urine Observed'];
@@ -165,7 +147,7 @@ export default function MonitorView() {
 
             {/* Footer */}
             <div className="text-center mt-8 text-stone-600 text-sm">
-                Last updated: {moment().format('h:mm A')} • Auto-refreshing every 30 seconds
+                Last updated: {moment().format('h:mm A')} • Auto-refreshing every 60 seconds
             </div>
 
             {/* Return to Whiteboard Button */}

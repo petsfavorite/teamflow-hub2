@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Award, ArrowRight } from 'lucide-react';
+import { formatDate } from '@/lib/timezone';
 
 export default function BonuslyRecognitions() {
   const [recognitions, setRecognitions] = useState([]);
@@ -93,7 +94,7 @@ export default function BonuslyRecognitions() {
                 )}
                 {recognition.time && (
                   <p className="text-xs text-slate-500 mt-2">
-                    {new Date(recognition.time).toLocaleDateString()}
+                    {formatDate(recognition.time)}
                   </p>
                 )}
               </div>

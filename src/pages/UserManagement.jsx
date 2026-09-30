@@ -15,6 +15,7 @@ import { Users, UserPlus, Pencil, Loader2, Mail, Trash2, Hash, Plus, Clock, Rota
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { formatDate } from '@/lib/timezone';
 
 export default function UserManagement() {
   const { user, isSuperAdmin, isAdmin, isManager, canManage } = useCurrentUser();
@@ -396,7 +397,7 @@ export default function UserManagement() {
                     <div className="mt-2 pl-13">
                       <span className="text-xs text-slate-400 capitalize">{invite.role}</span>
                       {invite.last_sent_at && (
-                        <span className="text-xs text-slate-400 ml-2">· Sent {new Date(invite.last_sent_at).toLocaleDateString()}</span>
+                        <span className="text-xs text-slate-400 ml-2">· Sent {formatDate(invite.last_sent_at)}</span>
                       )}
                     </div>
                   </CardContent>

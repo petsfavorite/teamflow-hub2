@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertTriangle, Plus, Clock, User, Loader2, ChevronDown, Paperclip, Lock, Archive, Printer } from 'lucide-react';
 import { toast } from "sonner";
+import { formatDate, formatDateTime } from '@/lib/timezone';
 
 const CATEGORIES = [
   { value: "interpersonal", label: "Interpersonal" },
@@ -167,14 +168,14 @@ function PrintableReport({ report }) {
           {report.notes_log.map((log, i) => (
             <div key={i} style={{ background: '#f9f9f9', border: '1px solid #e5e7eb', borderRadius: '4px', padding: '8px', marginBottom: '6px' }}>
               <p style={{ margin: '0 0 4px' }}>{log.note}</p>
-              <p style={{ margin: 0, fontSize: '9pt', color: '#777' }}>{log.added_by_name} — {log.date ? new Date(log.date).toLocaleString([], { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}</p>
+              <p style={{ margin: 0, fontSize: '9pt', color: '#777' }}>{log.added_by_name} — {log.date ? formatDateTime(log.date, 'MMM D, YYYY, hh:mm A') : ''}</p>
             </div>
           ))}
         </div>
       )}
 
       <div style={{ marginTop: '30px', borderTop: '1px solid #ddd', paddingTop: '10px', fontSize: '9pt', color: '#aaa', textAlign: 'center' }}>
-        Printed on {new Date().toLocaleDateString()} • Confidential
+        Printed on {formatDate()} • Confidential
       </div>
     </div>
   );
@@ -227,7 +228,7 @@ export default function IncidentReports() {
     return (
       r.title?.toLowerCase().includes(q) ||
       r.description?.toLowerCase().includes(q) ||
-      new Date(r.created_date).toLocaleDateString().includes(q)
+      formatDate(r.created_date).includes(q)
     );
   });
 
@@ -689,7 +690,7 @@ export default function IncidentReports() {
                       {selected.notes_log.map((log, idx) => (
                         <div key={idx} className="text-xs bg-slate-50 rounded p-2">
                           <p className="text-slate-700">{log.note}</p>
-                          <div className="text-xs text-slate-400 mt-1">{log.added_by_name} • {log.date ? new Date(log.date).toLocaleString([], { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}</div>
+                          <div className="text-xs text-slate-400 mt-1">{log.added_by_name} • {log.date ? formatDateTime(log.date, 'MMM D, YYYY, hh:mm A') : ''}</div>
                           {log.attachment_url && (
                             <a href={log.attachment_url} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 hover:underline flex items-center gap-1 mt-1.5">
                               <Paperclip className="w-3 h-3" /> View Attachment

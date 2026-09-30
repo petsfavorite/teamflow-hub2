@@ -12,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { CheckSquare, Eye, Pencil, User, Clock, Loader2, AlertCircle, Download, ClipboardList, XCircle, CheckCircle2, Timer } from 'lucide-react';
 import { toast } from "sonner";
+import { formatDateTime } from '@/lib/timezone';
 
 const OUTCOME_CONFIG = {
   completed: { label: 'Completed', color: 'bg-emerald-100 text-emerald-700', icon: CheckCircle2 },
@@ -185,7 +186,7 @@ export default function ChecklistHistory() {
                         <p className="font-medium text-slate-900">{c.checklist_title}</p>
                         <div className="flex items-center gap-3 mt-1 text-xs text-slate-400">
                           <span className="flex items-center gap-1"><User className="w-3 h-3" />{c.completed_by_name || c.completed_by}</span>
-                          <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{new Date(c.created_date).toLocaleString()}</span>
+                          <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{formatDateTime(c.created_date)}</span>
                         </div>
                         {/* Item summary */}
                         {c.completed_items?.length > 0 && (
@@ -238,7 +239,7 @@ export default function ChecklistHistory() {
                             )}
                             {t.closed_at && (
                               <span className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" />{new Date(t.closed_at).toLocaleString()}
+                                <Clock className="w-3 h-3" />{formatDateTime(t.closed_at)}
                               </span>
                             )}
                             {t.due_date && (
@@ -296,7 +297,7 @@ export default function ChecklistHistory() {
                   <div className="flex-1">
                     <span className="text-sm font-medium">{item.label}</span>
                     {item.checked && item.checked_by_name && (
-                      <p className="text-xs text-slate-500 mt-1">Checked by {item.checked_by_name} at {item.checked_at ? new Date(item.checked_at).toLocaleString() : 'unknown time'}</p>
+                      <p className="text-xs text-slate-500 mt-1">Checked by {item.checked_by_name} at {item.checked_at ? formatDateTime(item.checked_at) : 'unknown time'}</p>
                     )}
                     {!item.checked && (
                       <p className="text-xs text-red-500 mt-1">Not completed</p>

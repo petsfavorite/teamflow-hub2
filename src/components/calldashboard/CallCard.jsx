@@ -3,11 +3,12 @@ import { PhoneIncoming, PhoneOutgoing, Clock, User, ChevronRight, PhoneMissed, H
 import CallerTypeBadge from "./CallerTypeBadge";
 import BookingStatus from "./BookingStatus";
 import { cn } from "@/lib/utils";
+import { getAppTimezone } from '@/lib/timezone';
 
 export default function CallCard({ call, onClick, nameMap = {} }) {
   const date = new Date(call.call_date);
-  const timeStr = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York" });
-  const dateStr = date.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/New_York" });
+  const timeStr = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: getAppTimezone() });
+  const dateStr = date.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: getAppTimezone() });
   const duration = call.call_duration_seconds
     ? `${Math.floor(call.call_duration_seconds / 60)}m ${call.call_duration_seconds % 60}s` : "—";
 

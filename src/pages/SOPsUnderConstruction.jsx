@@ -12,6 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { BookOpen, Plus, Search, Tag, Clock, Trash2 } from 'lucide-react';
+import { formatDate } from '@/lib/timezone';
 
 export default function SOPsUnderConstruction() {
   const [search, setSearch] = useState('');
@@ -118,7 +119,7 @@ export default function SOPsUnderConstruction() {
                       </div>
                       <div className="flex items-center gap-1.5">
                         <Clock className="w-3 h-3 text-slate-400" />
-                        <span className="text-xs text-slate-400">{new Date(sop.updated_date).toLocaleDateString()}</span>
+                        <span className="text-xs text-slate-400">{formatDate(sop.updated_date)}</span>
                       </div>
                     </div>
                   </CardContent>

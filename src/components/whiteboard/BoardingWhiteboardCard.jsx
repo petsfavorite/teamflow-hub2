@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { hasCollectionDue } from '@/lib/collectionTasks';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -60,8 +61,8 @@ export default function BoardingWhiteboardCard({ pet, visit, onViewVisit }) {
     const needsPicture = pet.daily_picture && !visit.picture_sent;
     const pictureTakenToday = (visit.picture_taken_dates || []).find(p => p.date === today);
     const isPictureSentToday = (visit.picture_sent_dates || []).includes(today);
-    const hasPendingFeces = (visit.scheduled_tasks || []).some(t => t.type === 'Collect Feces' && t.date === today && !t.completed);
-    const hasPendingUrine = (visit.scheduled_tasks || []).some(t => t.type === 'Collect Urine' && t.date === today && !t.completed);
+    const hasPendingFeces = hasCollectionDue(visit, 'Collect Feces', today);
+    const hasPendingUrine = hasCollectionDue(visit, 'Collect Urine', today);
 
     const cutoff1930 = nowTick.clone().hour(19).minute(30).second(0);
     const hasOverdue = (visit.scheduled_tasks || []).some(task => {

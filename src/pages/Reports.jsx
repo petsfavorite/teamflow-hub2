@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Download, Search, Trash2, RefreshCw, FileText } from "lucide-react";
-import { format } from 'date-fns';
+import { formatDate } from '@/lib/timezone';
 
 export default function Reports() {
     const [searchQuery, setSearchQuery] = useState('');
@@ -18,7 +18,7 @@ export default function Reports() {
 
     const deleteReportMutation = useMutation({
         mutationFn: (reportId) => base44.entities.Report.delete(reportId),
-        onSuccess: () => queryClient.invalidateQueries(['reports'])
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['reports'] })
     });
 
     const filteredReports = reports.filter(report =>
@@ -97,7 +97,7 @@ export default function Reports() {
                                                 {report.check_in_date && (
                                                     <>
                                                         <span className="hidden sm:inline">•</span>
-                                                        <span>{format(new Date(report.check_in_date), 'MMM d, yyyy')}</span>
+                                                        <span>{formatDate(report.check_in_date, 'MMM D, YYYY')}</span>
                                                     </>
                                                 )}
                                             </div>

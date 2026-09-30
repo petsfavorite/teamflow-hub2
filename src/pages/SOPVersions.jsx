@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ArrowLeft, Clock, User, RotateCcw, Eye } from 'lucide-react';
 import { toast } from "sonner";
+import { formatDateTime } from '@/lib/timezone';
 
 export default function SOPVersions() {
   const params = new URLSearchParams(window.location.search);
@@ -90,7 +91,7 @@ export default function SOPVersions() {
                       <p className="font-medium text-slate-900 inline">{v.change_summary || 'No change summary'}</p>
                       <div className="flex items-center gap-3 mt-1 text-xs text-slate-400">
                         <span className="flex items-center gap-1"><User className="w-3 h-3" />{v.created_by_name}</span>
-                        <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{new Date(v.created_date).toLocaleString()}</span>
+                        <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{formatDateTime(v.created_date)}</span>
                       </div>
                     </div>
                   </div>

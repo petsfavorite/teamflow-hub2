@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,8 @@ import {
     Dog, Search, ArrowLeft, CheckCircle2, RefreshCw, Plus
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { toast } from '@/components/ui/use-toast';
 import { createPageUrl } from '@/utils';
 import moment from 'moment';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -30,9 +31,14 @@ export default function CheckIn() {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
 
-    // Get petId from URL if present
-    const urlParams = new URLSearchParams(window.location.search);
-    const preselectedPetId = urlParams.get('petId');
+    // Get petId from the URL (read through the router so it stays in sync)
+    const [searchParams, setSearchParams] = useSearchParams();
+    const preselectedPetId = searchParams.get('petId');
+    const redirectTimer = useRef(null);
+    const appliedPetId = useRef(null);
+
+    // Don't fire the post-check-in redirect if the user has already left this page
+    useEffect(() => () => clearTimeout(redirectTimer.current), []);
 
     const { data: pets = [], isLoading } = useQuery({
         queryKey: ['pets'],
@@ -41,35 +47,39 @@ export default function CheckIn() {
 
     const updatePetMutation = useMutation({
         mutationFn: ({ id, data }) => base44.entities.Pet.update(id, data),
-        onSuccess: () => queryClient.invalidateQueries(['pets'])
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['pets'] })
     });
 
     const createVisitMutation = useMutation({
         mutationFn: (data) => base44.entities.Visit.create(data),
-        onSuccess: () => queryClient.invalidateQueries(['visits'])
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['visits'] })
     });
 
     const createPetMutation = useMutation({
         mutationFn: (data) => base44.entities.Pet.create(data),
         onSuccess: (newPet) => {
-            queryClient.invalidateQueries(['pets']);
+            queryClient.invalidateQueries({ queryKey: ['pets'] });
             setShowAddDialog(false);
             setSelectedPet(newPet);
         }
     });
 
     // Auto-select pet if petId is provided
+    // Applied once per link, so backing out of the pet doesn't re-select it when pets refresh.
     useEffect(() => {
-        if (preselectedPetId && pets.length > 0) {
-            const pet = pets.find(p => p.id === preselectedPetId);
-            if (pet && !pet.is_checked_in) {
-                setSelectedPet(pet);
-            }
+        if (!preselectedPetId || pets.length === 0) return;
+        if (appliedPetId.current === preselectedPetId) return;
+        appliedPetId.current = preselectedPetId;
+        const pet = pets.find(p => p.id === preselectedPetId);
+        if (pet && !pet.is_checked_in) {
+            setSelectedPet(pet);
         }
     }, [preselectedPetId, pets]);
 
     const handleSelectPet = (pet) => {
         setSelectedPet(pet);
+        // Clear the link's petId once a pet is chosen by hand, so it can't re-apply
+        if (preselectedPetId) setSearchParams({}, { replace: true });
     };
 
     const handleSelectType = (type) => {
@@ -77,6 +87,7 @@ export default function CheckIn() {
     };
 
     const handleConfirmCheckIn = async (visitData) => {
+        if (checkingIn) return; // ignore double-taps while a check-in is saving
         setCheckingIn(true);
         
         try {
@@ -84,21 +95,29 @@ export default function CheckIn() {
             // visit exists. If these run in parallel and the visit creation fails, the
             // pet gets stuck with is_checked_in=true but no visit (invisible on the
             // whiteboard, can't be re-checked-in).
-            await createVisitMutation.mutateAsync({
+            // Retry-safe: if an earlier attempt already created this pet's active visit
+            // (and only the pet update failed), reuse it instead of creating a duplicate.
+            const activeVisits = await base44.entities.Visit.filter({
                 pet_id: selectedPet.id,
-                pet_name: selectedPet.name,
-                check_in_date: moment().format('YYYY-MM-DD'),
-                check_in_time: new Date().toISOString(),
-                location: 'Lobby',
-                status: 'checked_in',
-                care_log: [{
-                    time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-                    activity: 'Check In',
-                    notes: `${selectedPet.name} checked in for ${visitData.visit_type === 'boarding' ? 'boarding' : 'play camp'}`
-                }],
-                picture_sent: false,
-                ...visitData
+                status: 'checked_in'
             });
+            if (!activeVisits?.length) {
+                await createVisitMutation.mutateAsync({
+                    pet_id: selectedPet.id,
+                    pet_name: selectedPet.name,
+                    check_in_date: moment().format('YYYY-MM-DD'),
+                    check_in_time: new Date().toISOString(),
+                    location: 'Lobby',
+                    status: 'checked_in',
+                    care_log: [{
+                        time: moment().format('h:mm A'),
+                        activity: 'Check In',
+                        notes: `${selectedPet.name} checked in for ${visitData.visit_type === 'boarding' ? 'boarding' : 'play camp'}`
+                    }],
+                    picture_sent: false,
+                    ...visitData
+                });
+            }
 
             await updatePetMutation.mutateAsync({
                 id: selectedPet.id,
@@ -107,11 +126,11 @@ export default function CheckIn() {
 
             setShowSuccess(true);
             
-            setTimeout(() => {
+            redirectTimer.current = setTimeout(() => {
                 navigate(createPageUrl('Whiteboard'));
             }, 1500);
         } catch (error) {
-            alert('Check-in failed. Please try again.');
+            toast({ variant: 'destructive', title: 'Check-in failed', description: 'Please try again — nothing is duplicated if you retry.' });
         } finally {
             setCheckingIn(false);
         }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,11 @@ import VisitPanel from '@/components/visit/VisitPanel';
 import CheckoutDialog from '@/components/visit/CheckoutDialog';
 import PetArchive from '@/components/whiteboard/PetArchive';
 import { isOverstayed, populateTasksForDate } from '@/lib/overstayed';
+import { buildVisitPatch } from '@/lib/visitMerge';
+import { toast } from '@/components/ui/use-toast';
+import { useToday } from '@/lib/useToday';
+import { fetchCheckedInVisits } from '@/lib/visitQueries';
+import { usePetsForVisits } from '@/lib/petQueries';
 
 export default function Whiteboard() {
     const [selectedDate, setSelectedDate] = useState(moment().format('YYYY-MM-DD'));
@@ -27,6 +32,24 @@ export default function Whiteboard() {
     const [currentUser, setCurrentUser] = useState(null);
 
     const queryClient = useQueryClient();
+    const today = useToday();
+
+    // At midnight: move a whiteboard that was showing "today" to the new day and
+    // reload the data, so screens left on overnight don't show yesterday.
+    const lastToday = useRef(today);
+    useEffect(() => {
+        if (lastToday.current === today) return;
+        const previous = lastToday.current;
+        lastToday.current = today;
+        setSelectedDate(d => (d === previous ? today : d));
+        setSelectedWeekStart(w => (moment(previous).startOf('week').format('YYYY-MM-DD') === w ? moment(today).startOf('week').format('YYYY-MM-DD') : w));
+        queryClient.invalidateQueries({ queryKey: ['visits'] });
+        queryClient.invalidateQueries({ queryKey: ['pets'] });
+    }, [today, queryClient]);
+
+    // Latest visit as shown in the panel — the "before" snapshot for the next edit.
+    const selectedVisitRef = useRef(null);
+    useEffect(() => { selectedVisitRef.current = selectedVisit; }, [selectedVisit]);
 
     useEffect(() => {
         base44.auth.me().then(setCurrentUser).catch(() => {});
@@ -44,28 +67,42 @@ export default function Whiteboard() {
 
         const interval = setInterval(() => {
             if (isInputFocused()) return; // don't refetch mid-edit
-            queryClient.invalidateQueries(['visits']);
-            queryClient.invalidateQueries(['pets']);
+            queryClient.invalidateQueries({ queryKey: ['visits'] });
+            queryClient.invalidateQueries({ queryKey: ['pets'] });
         }, 30000); // 30 seconds — was 5s, which caused excessive entity reads
         
         return () => clearInterval(interval);
     }, [activeTab, queryClient, selectedVisit]);
 
-    const { data: allPets = [], isLoading: petsLoading } = useQuery({
-         queryKey: ['pets'],
-         queryFn: () => base44.entities.Pet.list(null, 500)
-     });
-
-     // Filter out archived pets for normal view
-     const pets = allPets.filter(p => !p.is_archived);
-
      const { data: visits = [], isLoading: visitsLoading } = useQuery({
          queryKey: ['visits'],
-         queryFn: () => base44.entities.Visit.list('-check_in_time', 500)
+         queryFn: fetchCheckedInVisits
+     });
+
+     // Only the pets that are checked in — not limited by how many pets exist in total
+     const { pets: onBoardPets, isLoading: petsLoading } = usePetsForVisits(visits, !visitsLoading);
+
+     // Filter out archived pets for normal view
+     const pets = onBoardPets.filter(p => !p.is_archived);
+
+     // Archived pets are only needed when the archive is open
+     const { data: archivedPets = [] } = useQuery({
+         queryKey: ['pets', 'archived'],
+         queryFn: () => base44.entities.Pet.filter({ is_archived: true }, null, 1000),
+         enabled: showArchive
      });
 
     const updateVisitMutation = useMutation({
-        mutationFn: ({ id, data }) => base44.entities.Visit.update(id, data),
+        mutationKey: ['visit-update'],
+        // Save only what the user changed, merged onto the latest server copy, so
+        // two staff editing the same visit don't overwrite each other's tasks/log.
+        mutationFn: async ({ id, data, base }) => {
+            const server = base ? await base44.entities.Visit.get(id) : null;
+            const patch = buildVisitPatch(base, data, server);
+            if (!patch) return null;
+            await base44.entities.Visit.update(id, patch);
+            return server ? { ...server, ...patch } : null;
+        },
         onMutate: async ({ id, data }) => {
             // Cancel outgoing refetches so they don't overwrite our optimistic update
             await queryClient.cancelQueries({ queryKey: ['visits'] });
@@ -87,16 +124,21 @@ export default function Whiteboard() {
                 const fresh = context.previousVisits.find(v => v.id === id);
                 if (fresh) setSelectedVisit({ ...fresh });
             }
-            alert('Failed to save changes. Please try again.');
+            toast({ variant: 'destructive', title: 'Changes not saved', description: 'Failed to save your changes. Please try again.' });
         },
-        onSuccess: () => {
+        onSuccess: (merged, { id }) => {
+            // Show other staff's concurrent changes in the open panel — but only when
+            // no other save is in flight, so we never overwrite a newer local edit.
+            if (merged && queryClient.isMutating({ mutationKey: ['visit-update'] }) <= 1) {
+                setSelectedVisit(prev => (prev && prev.id === id ? merged : prev));
+            }
             queryClient.invalidateQueries({ queryKey: ['visits'] });
         }
     });
 
     const updatePetMutation = useMutation({
         mutationFn: ({ id, data }) => base44.entities.Pet.update(id, data),
-        onSuccess: () => queryClient.invalidateQueries(['pets'])
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['pets'] })
     });
 
     const handleUpdateLocation = (visitId, location) => {
@@ -120,17 +162,32 @@ export default function Whiteboard() {
     // Populate daily tasks for overstayed boarding pets (still checked in past
     // their scheduled departure day). Copies the previous day's template tasks
     // to today so the pet continues receiving its daily care routine.
+    // Each visit/day is attempted at most once per page load, so a failed save can't
+    // loop through refetches. It re-reads the visit first and saves only
+    // scheduled_tasks, so it never overwrites staff edits or duplicates tasks.
+    const overstayHandled = useRef(new Set());
     useEffect(() => {
         if (visitsLoading || !visits.length) return;
-        const today = moment().format('YYYY-MM-DD');
         visits.forEach(visit => {
             if (!isOverstayed(visit, today)) return;
-            const newTasks = populateTasksForDate(visit.scheduled_tasks, today);
-            if (newTasks) {
-                updateVisitMutation.mutate({ id: visit.id, data: { scheduled_tasks: newTasks } });
-            }
+            const key = `${visit.id}:${today}`;
+            if (overstayHandled.current.has(key)) return;
+            if (!populateTasksForDate(visit.scheduled_tasks, today)) return;
+            overstayHandled.current.add(key);
+            (async () => {
+                try {
+                    const fresh = await base44.entities.Visit.get(visit.id);
+                    if (!isOverstayed(fresh, today)) return;
+                    const newTasks = populateTasksForDate(fresh.scheduled_tasks, today);
+                    if (!newTasks) return; // already populated (e.g. by another tab)
+                    await base44.entities.Visit.update(visit.id, { scheduled_tasks: newTasks });
+                    queryClient.invalidateQueries({ queryKey: ['visits'] });
+                } catch (err) {
+                    console.error('Overstay task population failed for visit', visit.id, err);
+                }
+            })();
         });
-    }, [visits, visitsLoading]);
+    }, [visits, visitsLoading, today]);
     
     const handleViewVisitForDate = (visit, pet, date) => {
         setSelectedDate(date);
@@ -140,11 +197,13 @@ export default function Whiteboard() {
 
     const handleUpdateVisit = async (updatedVisit) => {
         // Update selectedVisit immediately so the panel reacts right away
+        const base = selectedVisitRef.current?.id === updatedVisit.id ? selectedVisitRef.current : null;
+        selectedVisitRef.current = { ...updatedVisit };
         setSelectedVisit({ ...updatedVisit });
         // onMutate in the mutation updates the visits cache synchronously BEFORE
         // the save, so the whiteboard reflects the change even if the user closes
         // the panel before the save completes.
-        await updateVisitMutation.mutateAsync({ id: updatedVisit.id, data: updatedVisit });
+        await updateVisitMutation.mutateAsync({ id: updatedVisit.id, data: updatedVisit, base });
     };
 
     const handleCheckout = () => {
@@ -157,20 +216,30 @@ export default function Whiteboard() {
         // pet is no longer flagged. If these run in the opposite order and the pet
         // update fails, the pet is stuck: is_checked_in=true but visit=checked_out
         // (invisible on the whiteboard, can't be re-checked-in).
-        await updatePetMutation.mutateAsync({ 
-            id: selectedPet.id, 
-            data: { is_checked_in: false }
-        });
-        await updateVisitMutation.mutateAsync({ 
-            id: selectedVisit.id, 
-            data: { 
-                check_out_time: checkoutTime,
-                status: 'checked_out',
-                pdf_url: pdfUrl,
-                pdf_expiry: pdfExpiry,
-                what_was_brought: ''
-            }
-        });
+        // Each step can be repeated safely, so if one fails the dialog tells staff
+        // exactly what failed and they can press the button again.
+        try {
+            await updatePetMutation.mutateAsync({ 
+                id: selectedPet.id, 
+                data: { is_checked_in: false }
+            });
+        } catch (err) {
+            throw new Error('Could not mark the pet as checked out.');
+        }
+        try {
+            await updateVisitMutation.mutateAsync({ 
+                id: selectedVisit.id, 
+                data: { 
+                    check_out_time: checkoutTime,
+                    status: 'checked_out',
+                    pdf_url: pdfUrl,
+                    pdf_expiry: pdfExpiry,
+                    what_was_brought: ''
+                }
+            });
+        } catch (err) {
+            throw new Error('Could not mark the visit as checked out.');
+        }
         
         setCheckoutDialogOpen(false);
         setSelectedVisit(null);
@@ -214,7 +283,7 @@ export default function Whiteboard() {
             <div>
                 {showArchive ? (
                     <PetArchive 
-                        archivedPets={allPets.filter(p => p.is_archived)}
+                        archivedPets={archivedPets}
                         onRestore={(petId) => {
                             updatePetMutation.mutateAsync({ id: petId, data: { is_archived: false } });
                         }}

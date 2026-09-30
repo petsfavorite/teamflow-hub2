@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Upload, X, Loader2, RotateCcw } from 'lucide-react';
 import { toast } from "sonner";
+import { formatDateTime } from '@/lib/timezone';
 
 export default function ChecklistItemRow({ item, index, notes, onNotesChange, onItemUpdate, canUndo }) {
   const [uploading, setUploading] = useState(false);
@@ -59,7 +60,7 @@ export default function ChecklistItemRow({ item, index, notes, onNotesChange, on
           )}
           {item.checked && (
             <div className="text-xs text-emerald-600 mb-2 flex items-center justify-between">
-              <span>✓ Checked by {item.checked_by_name} at {new Date(item.checked_at).toLocaleString()}</span>
+              <span>✓ Checked by {item.checked_by_name} at {formatDateTime(item.checked_at)}</span>
               {canUndo && (
                 <Button
                   variant="ghost"

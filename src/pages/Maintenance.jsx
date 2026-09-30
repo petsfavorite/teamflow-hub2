@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Wrench, Plus, MapPin, Clock, User, Loader2, ChevronDown, Paperclip, Archive } from 'lucide-react';
 import { toast } from "sonner";
+import { formatDate, formatDateTime } from '@/lib/timezone';
 
 export default function Maintenance() {
   const { user, canManage, isSuperAdmin, isAdmin, isManager } = useCurrentUser();
@@ -127,7 +128,7 @@ export default function Maintenance() {
       r.title?.toLowerCase().includes(q) ||
       r.description?.toLowerCase().includes(q) ||
       r.asset_name?.toLowerCase().includes(q) ||
-      new Date(r.created_date).toLocaleDateString().includes(q)
+      formatDate(r.created_date).includes(q)
     );
   });
 
@@ -255,7 +256,7 @@ export default function Maintenance() {
             <div className="space-y-4">
               <p className="text-sm text-slate-600">{selected?.description}</p>
               <div className="grid grid-cols-2 gap-3 text-sm">
-                <div><span className="text-slate-400">Submitted:</span> <span className="font-medium">{new Date(selected?.created_date).toLocaleDateString()}</span></div>
+                <div><span className="text-slate-400">Submitted:</span> <span className="font-medium">{formatDate(selected?.created_date)}</span></div>
                 <div><span className="text-slate-400">Priority:</span> <StatusBadge status={selected?.priority} /></div>
                 <div><span className="text-slate-400">Status:</span> <StatusBadge status={selected?.status} /></div>
                 {selected?.location && <div><span className="text-slate-400">Location:</span> <span className="font-medium">{selected?.location}</span></div>}
@@ -355,7 +356,7 @@ export default function Maintenance() {
                       {selected.notes_log.map((log, idx) => (
                         <div key={idx} className="text-xs bg-slate-50 rounded p-2">
                           <p className="text-slate-700">{log.note}</p>
-                          <div className="text-xs text-slate-400 mt-1">{log.added_by_name} • {log.date ? new Date(log.date).toLocaleString([], { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}</div>
+                          <div className="text-xs text-slate-400 mt-1">{log.added_by_name} • {log.date ? formatDateTime(log.date, 'MMM D, YYYY, hh:mm A') : ''}</div>
                           {log.attachment_url && (
                             <a href={log.attachment_url} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 hover:underline flex items-center gap-1 mt-1.5">
                               <Paperclip className="w-3 h-3" /> View Attachment
@@ -415,7 +416,7 @@ function RequestCard({ req, onClick, highlight, archived, allUsers = [] }) {
               <div className="flex items-center gap-3 mt-1 text-xs text-slate-400 flex-wrap">
                 {req.location && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{req.location}</span>}
                 {req.asset_name && <span>Asset: {req.asset_name}</span>}
-                <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{new Date(req.created_date).toLocaleDateString()}</span>
+                <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{formatDate(req.created_date)}</span>
                 <span className="flex items-center gap-1"><User className="w-3 h-3" />{req.requested_by_name || req.requested_by}</span>
                 {req.assigned_to && <span className="text-purple-500">→ {req.assigned_to_name || allUsers.find(u => u.email === req.assigned_to)?.full_name || req.assigned_to}</span>}
               </div>

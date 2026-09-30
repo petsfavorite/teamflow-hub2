@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AlertCircle, CheckCircle, Loader2, Zap, Download, Trash2 } from "lucide-react";
+import { AlertCircle, CheckCircle, Loader2, Zap, Download } from "lucide-react";
 
 export default function FetchCallData() {
   const [resetting, setResetting] = useState(false);
@@ -16,25 +16,6 @@ export default function FetchCallData() {
   const [backfillError, setBackfillError] = useState(null);
   const [backfillProgress, setBackfillProgress] = useState(null);
   const [backfillFrom, setBackfillFrom] = useState("2026-04-01");
-
-  const [cleanupMonths, setCleanupMonths] = useState(1);
-  const [cleaning, setCleaning] = useState(false);
-  const [cleanupResult, setCleanupResult] = useState(null);
-  const [cleanupError, setCleanupError] = useState(null);
-
-  const handleCleanup = async () => {
-    setCleaning(true);
-    setCleanupResult(null);
-    setCleanupError(null);
-    try {
-      const res = await base44.functions.invoke("cleanupOldCallRecords", { months: cleanupMonths });
-      setCleanupResult(res.data);
-    } catch (err) {
-      setCleanupError(err.message);
-    } finally {
-      setCleaning(false);
-    }
-  };
 
   const handleBackfill = async () => {
     setBackfilling(true);
@@ -134,33 +115,6 @@ export default function FetchCallData() {
         )}
       </Card>
 
-
-      {/* Cleanup old call records */}
-      <Card className="p-6 space-y-3">
-        <h2 className="font-semibold text-slate-800 flex items-center gap-2">
-          <Trash2 className="w-4 h-4 text-red-500" /> Delete Old Call Records
-        </h2>
-        <p className="text-sm text-slate-600">Runs automatically on the 1st of each month. You can also run it manually here. Deletes all call records older than the specified age.</p>
-        <div className="flex items-center gap-3">
-          <Label htmlFor="cleanup-months" className="text-sm text-slate-600 whitespace-nowrap">Delete records older than:</Label>
-          <Input id="cleanup-months" type="number" min={1} max={24} value={cleanupMonths} onChange={e => setCleanupMonths(Number(e.target.value))} className="w-24" />
-          <span className="text-sm text-slate-600">month{cleanupMonths !== 1 ? 's' : ''}</span>
-        </div>
-        <Button onClick={handleCleanup} disabled={cleaning} variant="destructive">
-          {cleaning ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Deleting...</> : "Run Cleanup Now"}
-        </Button>
-        {cleanupResult && (
-          <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center gap-2 text-sm text-emerald-800">
-            <CheckCircle className="w-4 h-4 flex-shrink-0" />
-            Deleted <strong>{cleanupResult.deleted}</strong> records older than {cleanupMonths} month{cleanupMonths !== 1 ? 's' : ''}.
-          </div>
-        )}
-        {cleanupError && (
-          <div className="flex items-center gap-2 text-sm text-red-700">
-            <AlertCircle className="w-4 h-4" /> {cleanupError}
-          </div>
-        )}
-      </Card>
     </div>
   );
 }

@@ -321,24 +321,13 @@ export default function BoardingCheckIn({ pet, visit, onConfirm, onCancel, editM
         }
     }
         
-    // Add "Collect Feces" if requested
+    // Collect Feces / Urine: one task that carries forward every day until completed
+    const collectStart = moment().format('YYYY-MM-DD');
     if (needFecal) {
-        const checkInDate = moment().format('YYYY-MM-DD');
-        let currentDate = moment(checkInDate);
-        while (currentDate.format('YYYY-MM-DD') <= checkoutDate) {
-            tasks.push({ type: 'Collect Feces', time: '', date: currentDate.format('YYYY-MM-DD'), is_template: false, completed: false, completed_at: null, collected: false });
-            currentDate.add(1, 'day');
-        }
+        tasks.push({ type: 'Collect Feces', time: '', date: collectStart, is_template: false, completed: false, completed_at: null, collected: false });
     }
-
-    // Add "Collect Urine" if requested
     if (needUrine) {
-        const checkInDate = moment().format('YYYY-MM-DD');
-        let currentDate = moment(checkInDate);
-        while (currentDate.format('YYYY-MM-DD') <= checkoutDate) {
-            tasks.push({ type: 'Collect Urine', time: '', date: currentDate.format('YYYY-MM-DD'), is_template: false, completed: false, completed_at: null, collected: false });
-            currentDate.add(1, 'day');
-        }
+        tasks.push({ type: 'Collect Urine', time: '', date: collectStart, is_template: false, completed: false, completed_at: null, collected: false });
     }
 
     // Add "Probiotic Added to Meal" for each feeding if selected

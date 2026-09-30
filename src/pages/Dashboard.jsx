@@ -13,6 +13,7 @@ import {
   AlertTriangle, MessageSquare, ArrowRight, Bell, ShieldAlert, CalendarCheck, Clock, Award, FileCheck
 } from 'lucide-react';
 import { differenceInDays, parseISO } from 'date-fns';
+import { formatDate } from '@/lib/timezone';
 
 function StatCard({ icon: Icon, label, value, color, to }) {
   const content = (
@@ -513,7 +514,7 @@ export default function Dashboard() {
                       <p className="text-sm font-medium text-slate-800 truncate">{req.title}</p>
                       <div className="flex items-center gap-2 mt-1">
                         <Clock className="w-3 h-3 text-slate-400" />
-                        <span className="text-xs text-slate-400">{new Date(req.created_date).toLocaleDateString()}</span>
+                        <span className="text-xs text-slate-400">{formatDate(req.created_date)}</span>
                       </div>
                     </div>
                     <StatusBadge status={req.status} />

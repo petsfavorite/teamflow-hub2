@@ -18,6 +18,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { addDays, format, parseISO, differenceInDays } from 'date-fns';
+import { formatDate } from '@/lib/timezone';
 
 const MAX_VERIFICATION_DAYS = 90;
 
@@ -399,7 +400,7 @@ export default function SOPEditor() {
                 <div className="flex items-center gap-1.5 text-sm text-emerald-700">
                   <CheckCircle2 className="w-4 h-4" />
                   <span>{existing.last_verified_by_name}</span>
-                  {existing.last_verified_at && <span className="text-slate-400">on {new Date(existing.last_verified_at).toLocaleDateString()}</span>}
+                  {existing.last_verified_at && <span className="text-slate-400">on {formatDate(existing.last_verified_at)}</span>}
                 </div>
               </div>
             )}

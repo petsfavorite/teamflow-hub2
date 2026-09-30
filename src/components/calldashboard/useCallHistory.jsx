@@ -1,13 +1,14 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import moment from "moment-timezone";
 import { base44 } from "@/api/base44Client";
+import { getAppTimezone } from '@/lib/timezone';
 
 const SUMMARY_FIELDS = ["id", "call_date", "call_duration_seconds", "call_direction", "caller_phone", "caller_name", "team_member", "caller_type", "caller_intent", "transcript_summary", "recording_url", "bookable", "booking_outcome", "was_booked", "booked_date", "booking_offered", "missed_call", "clinic_closed", "status"];
 
 export default function useCallHistory(start, end) {
   const queryClient = useQueryClient();
-  const earliest = moment.tz("America/New_York").subtract(89, "days").startOf("day").toISOString();
-  const latest = moment.tz("America/New_York").endOf("day").toISOString();
+  const earliest = moment.tz(getAppTimezone()).subtract(89, "days").startOf("day").toISOString();
+  const latest = moment.tz(getAppTimezone()).endOf("day").toISOString();
   const from = start && start.toISOString() > earliest ? start.toISOString() : earliest;
   const to = end && end.toISOString() < latest ? end.toISOString() : latest;
   return useQuery({

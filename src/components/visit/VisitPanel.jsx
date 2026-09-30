@@ -16,6 +16,7 @@ import {
     CheckCircle2, Plus, X, FileText, Camera, ChevronLeft, AlertCircle, Sparkles, Pencil
 } from "lucide-react";
 import moment from "moment";
+import { isCollectTask, collectTaskDueOn, isPrimaryCollectTask } from "@/lib/collectionTasks";
 
 export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheckout, selectedDate, queryClient }) {
      const [currentUser, setCurrentUser] = useState(null);
@@ -68,6 +69,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
     const [recurrenceType, setRecurrenceType] = useState('none');
     const [customTaskType, setCustomTaskType] = useState('');
     const isBoarding = visit.visit_type === 'boarding';
+    const COLLECT_TASK_TYPES = ['Collect Feces', 'Collect Urine'];
 
     const today = moment().format('YYYY-MM-DD');
     // Task completion (marking done) is locked after 9 PM on the same day
@@ -79,6 +81,12 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
     // Get tasks for the current viewing date
      const getTasksForDate = (date) => {
          let tasks = visit.scheduled_tasks?.filter(task => {
+             // Collect Feces / Urine carry forward each day until completed
+             if (isCollectTask(task)) {
+                 if (task.completed) return (task.completed_date || task.date) === date;
+                 return collectTaskDueOn(task, visit, date) && isPrimaryCollectTask(visit, task);
+             }
+
              // "As Needed" tasks always show on their date (never completed, just logged)
              if (task.is_as_needed) {
                  return task.date === date;
@@ -169,7 +177,8 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                 completed_at: null,
                 completed_by: null,
                 completed_date: null,
-                completed_iso: null
+                completed_iso: null,
+                ...(isCollectTask(task) ? { collected: false } : {})
             };
             onUpdateVisit({ ...visit, scheduled_tasks: updatedTasks });
             return;
@@ -207,38 +216,19 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
 
         // If this is a "Need Feces" task, mark it as completed and it persists
          if (task.type === 'Need Feces') {
-             updatedTasks[taskIndex].completed = true;
-             updatedTasks[taskIndex].completed_at = timestamp;
-             updatedTasks[taskIndex].completed_by = initials;
              onUpdateVisit(updateObj);
              return;
          }
 
-        // If this is a "Collect Urine" task, mark it as collected
-         if (task.type === 'Collect Urine') {
-             updatedTasks[taskIndex] = { ...updatedTasks[taskIndex], completed: true, completed_at: timestamp, completed_by: initials };
-             const filteredTasks = updatedTasks.filter(t => t.type !== 'Collect Urine' || t === updatedTasks[taskIndex]);
-             onUpdateVisit({ ...updateObj, scheduled_tasks: filteredTasks });
-             return;
-         }
-
-        // If this is a "Collect Feces" task, mark it as collected and update visit status
-         if (task.type === 'Collect Feces') {
-             // Mark as completed and don't add more instances for remaining days
-             updatedTasks[taskIndex] = {
-                 ...updatedTasks[taskIndex],
-                 completed: true,
-                 completed_at: timestamp,
-                 completed_by: initials
-             };
-             // Remove all future "Collect Feces" tasks since fecal collection is done
-             const filteredTasks = updatedTasks.filter(t => {
-                 if (t.type === 'Collect Feces' && t !== updatedTasks[taskIndex]) {
-                     return false; // Remove future feces tasks
-                 }
-                 return true;
-             });
-             onUpdateVisit({ ...updateObj, scheduled_tasks: filteredTasks, fecal_collected: true });
+        // Collect Feces / Collect Urine: mark collected, and drop any other
+        // outstanding copies of the same task (older visits stored one per day) so
+        // it no longer shows on later days.
+         if (isCollectTask(task)) {
+             const done = { ...updatedTasks[taskIndex], collected: true };
+             updatedTasks[taskIndex] = done;
+             const filteredTasks = updatedTasks.filter(t => t === done || t.type !== task.type || t.completed);
+             const extra = task.type === 'Collect Feces' ? { fecal_collected: true } : {};
+             onUpdateVisit({ ...updateObj, scheduled_tasks: filteredTasks, ...extra });
              return;
          }
 
@@ -389,7 +379,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
              : moment(visit.check_in_date).add(30, 'days');
 
          let dates = [];
-         if (recurrenceType === 'none') {
+         if (recurrenceType === 'none' || COLLECT_TASK_TYPES.includes(effectiveTaskType)) {
              dates = [newTaskDate];
          } else if (recurrenceType === 'daily') {
              let d = stayStart.clone();
@@ -926,7 +916,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                              className="rounded-xl"
                                          />
                                       )}
-                                    {newTaskType !== 'Collect Feces' && (
+                                    {!COLLECT_TASK_TYPES.includes(newTaskType) && (
                                          <Input
                                               placeholder="Time (optional, e.g., 2:00 PM)"
                                               value={newTaskTime}

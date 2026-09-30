@@ -1,11 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MapPin } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
+import { toast } from '@/components/ui/use-toast';
 
 export default function LocationEditor({ visit, onSaved, className = '' }) {
     const [editing, setEditing] = useState(false);
     const [value, setValue] = useState(visit?.location || '');
     const inputRef = useRef(null);
+    const savingRef = useRef(false);
+    const cancelledRef = useRef(false);
 
     useEffect(() => {
         setValue(visit?.location || '');
@@ -19,17 +22,30 @@ export default function LocationEditor({ visit, onSaved, className = '' }) {
     }, [editing]);
 
     const handleSave = async () => {
+        // Enter saves and then the input blurs, which would save a second time.
+        // Escape also blurs, and must not save.
+        if (savingRef.current || cancelledRef.current) { cancelledRef.current = false; return; }
         setEditing(false);
         const trimmed = value.slice(0, 10);
         setValue(trimmed);
         if (trimmed === (visit?.location || '')) return;
-        await base44.entities.Visit.update(visit.id, { location: trimmed });
-        onSaved?.(trimmed);
+        savingRef.current = true;
+        try {
+            await base44.entities.Visit.update(visit.id, { location: trimmed });
+            onSaved?.(trimmed);
+        } catch (err) {
+            console.error('Location save failed', err);
+            setValue(visit?.location || ''); // put the old location back
+            toast({ variant: 'destructive', title: 'Location not saved', description: 'Please try again.' });
+        } finally {
+            savingRef.current = false;
+        }
     };
 
     const handleKeyDown = (e) => {
         if (e.key === 'Enter') handleSave();
         if (e.key === 'Escape') {
+            cancelledRef.current = true;
             setValue(visit?.location || '');
             setEditing(false);
         }

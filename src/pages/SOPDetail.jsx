@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { toast } from "sonner";
 import { addDays, format, differenceInDays, parseISO } from 'date-fns';
+import { formatDate } from '@/lib/timezone';
 
 export default function SOPDetail() {
   const params = new URLSearchParams(window.location.search);
@@ -266,8 +267,8 @@ export default function SOPDetail() {
 
           <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-500 mb-4 pb-4 border-b border-slate-100">
             <div className="flex items-center gap-1.5"><Tag className="w-4 h-4" />{sop.category}</div>
-            <div className="flex items-center gap-1.5"><Clock className="w-4 h-4" />Created {new Date(sop.created_date).toLocaleDateString()}</div>
-            <div className="flex items-center gap-1.5"><Clock className="w-4 h-4" />Updated {new Date(sop.updated_date).toLocaleDateString()}</div>
+            <div className="flex items-center gap-1.5"><Clock className="w-4 h-4" />Created {formatDate(sop.created_date)}</div>
+            <div className="flex items-center gap-1.5"><Clock className="w-4 h-4" />Updated {formatDate(sop.updated_date)}</div>
             {sop.last_updated_by_name && <div className="flex items-center gap-1.5"><User className="w-4 h-4" />by {sop.last_updated_by_name}</div>}
             {teamNames.length > 0 && (
               <div className="flex items-center gap-1.5"><Users className="w-4 h-4" />{teamNames.join(', ')}</div>
@@ -449,7 +450,7 @@ export default function SOPDetail() {
             ) : (
               <div className="flex items-center gap-3">
                 <CheckCircle className="w-5 h-5 text-emerald-600" />
-                <p className="text-sm font-medium text-emerald-700">You acknowledged this version on {new Date(myCurrentAck.acknowledged_at).toLocaleDateString()}</p>
+                <p className="text-sm font-medium text-emerald-700">You acknowledged this version on {formatDate(myCurrentAck.acknowledged_at)}</p>
               </div>
             )}
           </CardContent>
@@ -476,7 +477,7 @@ export default function SOPDetail() {
                       return (
                         <div key={u.id} className="flex items-center justify-between px-3 py-1.5 bg-emerald-50 rounded-lg">
                           <span className="text-xs font-medium text-slate-700">{userName}</span>
-                          {ack?.acknowledged_at && <span className="text-xs text-slate-400">{new Date(ack.acknowledged_at).toLocaleDateString()}</span>}
+                          {ack?.acknowledged_at && <span className="text-xs text-slate-400">{formatDate(ack.acknowledged_at)}</span>}
                         </div>
                       );
                     })}
@@ -515,7 +516,7 @@ export default function SOPDetail() {
                   <span className="text-xs font-medium text-slate-700">{ack.user_name || ack.user_email}</span>
                   <div className="flex items-center gap-3">
                     <span className="text-xs text-slate-400">v{ack.version_number}</span>
-                    <span className="text-xs text-slate-400">{new Date(ack.acknowledged_at).toLocaleDateString()}</span>
+                    <span className="text-xs text-slate-400">{formatDate(ack.acknowledged_at)}</span>
                   </div>
                 </div>
               ))}
