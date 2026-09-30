@@ -499,10 +499,35 @@ export default function Dashboard() {
           </div>
           </div>
 
-         <BonuslyRecognitions />
+         {/* Quick Actions */}
+         <Card className="border-0 shadow-sm">
+           <CardContent className="p-4 md:p-6">
+             <h2 className="font-semibold text-sm md:text-base text-slate-900 mb-4">Quick Actions</h2>
+             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
+               <Link to={createPageUrl('SOPs')} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-indigo-50 hover:bg-indigo-100 transition-colors">
+                 <BookOpen className="w-6 h-6 text-indigo-600" />
+                 <span className="text-sm font-medium text-indigo-700 text-center">SOP Library</span>
+               </Link>
+               <Link to={createPageUrl('SOPAssistant')} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-blue-50 hover:bg-blue-100 transition-colors">
+                 <MessageSquare className="w-6 h-6 text-blue-600" />
+                 <span className="text-sm font-medium text-blue-700 text-center">Ask SOP AI</span>
+               </Link>
+               <Link to={createPageUrl('Maintenance') + '?new=true'} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-amber-50 hover:bg-amber-100 transition-colors">
+                 <Wrench className="w-6 h-6 text-amber-600" />
+                 <span className="text-sm font-medium text-amber-700 text-center">New Request</span>
+               </Link>
+               <Link to={createPageUrl('IncidentReports')} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-purple-50 hover:bg-purple-100 transition-colors">
+                 <AlertTriangle className="w-6 h-6 text-purple-600" />
+                 <span className="text-sm font-medium text-purple-700 text-center">Report Incident</span>
+               </Link>
+             </div>
+           </CardContent>
+         </Card>
 
-         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-        {/* Active Maintenance Requests */}
+             <BonuslyRecognitions />
+
+             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+           {/* Active Maintenance Requests */}
         <Card className="border-0 shadow-sm">
           <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between mb-4">
@@ -562,31 +587,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Quick Actions */}
-      <Card className="border-0 shadow-sm">
-        <CardContent className="p-4 md:p-6">
-          <h2 className="font-semibold text-sm md:text-base text-slate-900 mb-4">Quick Actions</h2>
-         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
-            <Link to={createPageUrl('SOPs')} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-indigo-50 hover:bg-indigo-100 transition-colors">
-              <BookOpen className="w-6 h-6 text-indigo-600" />
-              <span className="text-sm font-medium text-indigo-700 text-center">SOP Library</span>
-            </Link>
-            <Link to={createPageUrl('SOPAssistant')} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-blue-50 hover:bg-blue-100 transition-colors">
-              <MessageSquare className="w-6 h-6 text-blue-600" />
-              <span className="text-sm font-medium text-blue-700 text-center">Ask SOP AI</span>
-            </Link>
-            <Link to={createPageUrl('Maintenance') + '?new=true'} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-amber-50 hover:bg-amber-100 transition-colors">
-              <Wrench className="w-6 h-6 text-amber-600" />
-              <span className="text-sm font-medium text-amber-700 text-center">New Request</span>
-            </Link>
-            <Link to={createPageUrl('IncidentReports')} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-purple-50 hover:bg-purple-100 transition-colors">
-              <AlertTriangle className="w-6 h-6 text-purple-600" />
-              <span className="text-sm font-medium text-purple-700 text-center">Report Incident</span>
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
+      </div>
+      );
+      }

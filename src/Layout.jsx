@@ -27,6 +27,7 @@ const floofNavItems = [
 const mainNavItems = [
     { name: 'Dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { name: 'Whiteboard', icon: PawPrint, label: 'Floof' },
+    { name: 'SOPAssistant', icon: MessageSquare, label: 'SOP AI' },
     { name: 'CallDashboard', icon: Phone, label: 'Call Dashboard', requiredRole: 'admin' },
     { name: 'SOPs', icon: BookOpen, label: 'SOP Library' },
     { name: 'Checklists', icon: CheckSquare, label: 'Checklists' },
@@ -34,7 +35,6 @@ const mainNavItems = [
     { name: 'Maintenance', icon: Wrench, label: 'Maintenance', hiddenRole: 'general_account' },
     { name: 'IncidentReports', icon: AlertTriangle, label: 'Incidents' },
     { name: 'Assets', icon: Package, label: 'Assets' },
-    { name: 'SOPAssistant', icon: MessageSquare, label: 'SOP AI' },
     { name: 'ExternalLinks', icon: LinkIcon, label: 'Links' },
     { name: 'TrainingManuals', icon: BookMarked, label: 'Training Manuals' },
     { name: 'Settings', icon: Settings, label: 'Settings' },
