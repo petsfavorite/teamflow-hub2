@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Home, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 
-export default function CheckInTypeSelector({ onSelect }) {
+export default function CheckInTypeSelector({ onSelect, species }) {
+    const isCat = species === 'Cat';
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+        <div className={`grid grid-cols-1 ${isCat ? '' : 'md:grid-cols-2'} gap-6 max-w-3xl mx-auto`}>
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -37,6 +38,7 @@ export default function CheckInTypeSelector({ onSelect }) {
                 </Card>
             </motion.div>
 
+            {!isCat && (
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -66,6 +68,7 @@ export default function CheckInTypeSelector({ onSelect }) {
                     </CardContent>
                 </Card>
             </motion.div>
+            )}
         </div>
     );
 }

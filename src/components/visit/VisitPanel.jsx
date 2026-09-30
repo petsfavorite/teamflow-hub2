@@ -818,8 +818,8 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
                                             </Card>
                                             )}
 
-                                            {/* Add Play Camp — only for boarding pets without play camp */}
-                                            {isBoarding && !visit.play_camp_duration && (
+                                            {/* Add Play Camp — only for boarding dogs without play camp */}
+                                            {isBoarding && !visit.play_camp_duration && !isCat && (
                                             <Card className="border-0 shadow-sm rounded-2xl border-2 border-dashed border-emerald-400/50">
                                             <CardHeader className="pb-2">
                                             <CardTitle className="text-sm flex items-center gap-2">

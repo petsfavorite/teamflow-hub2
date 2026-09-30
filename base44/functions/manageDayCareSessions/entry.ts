@@ -32,6 +32,10 @@ Deno.serve(async (req) => {
         const allVisits = [...boardingVisits, ...playCampVisits.filter(v => !boardingVisits.find(b => b.id === v.id))];
 
         for (const visit of allVisits) {
+            // Cats never get play sessions — skip any cat visit that somehow has play_camp_duration set
+            const pet = await base44.asServiceRole.entities.Pet.get(visit.pet_id).catch(() => null);
+            if (pet?.species === 'Cat') continue;
+
             const tasks = visit.scheduled_tasks || [];
 
             // Check if play sessions already exist for today

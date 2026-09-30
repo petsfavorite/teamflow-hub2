@@ -567,6 +567,7 @@ export default function BoardingCheckIn({ pet, visit, onConfirm, onCancel, editM
                     </div>
 
                     <div className="pt-4 border-t border-stone-100 space-y-2">
+                         {pet.species === 'Dog' && (
                          <div className="flex items-center space-x-2">
                              <Checkbox 
                                  id="playcamp" 
@@ -577,6 +578,7 @@ export default function BoardingCheckIn({ pet, visit, onConfirm, onCancel, editM
                                  Add Day Camp
                              </Label>
                          </div>
+                         )}
                          <div className="flex items-center space-x-2">
                              <Checkbox 
                                  id="cbdchews" 

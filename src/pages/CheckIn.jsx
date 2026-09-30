@@ -162,7 +162,7 @@ export default function CheckIn() {
                     </div>
                 </div>
                 <div className="max-w-2xl">
-                    <CheckInTypeSelector onSelect={handleSelectType} />
+                    <CheckInTypeSelector onSelect={handleSelectType} species={selectedPet.species} />
                 </div>
             </div>
         );
