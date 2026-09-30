@@ -3,6 +3,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { QrCode, Printer } from 'lucide-react';
+import { escapeHtml } from '@/lib/sanitize';
 
 export default function SOPQRCode({ sop }) {
   const printRef = useRef();
@@ -13,7 +14,7 @@ export default function SOPQRCode({ sop }) {
     printWindow.document.write(`
       <html>
         <head>
-          <title>QR Code — ${sop.title}</title>
+          <title>QR Code — ${escapeHtml(sop.title)}</title>
           <style>
             body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 24px; box-sizing: border-box; }
             .container { text-align: center; border: 2px solid #e2e8f0; border-radius: 16px; padding: 32px; max-width: 340px; }
@@ -25,10 +26,10 @@ export default function SOPQRCode({ sop }) {
         </head>
         <body>
           <div class="container">
-            <div class="category">${sop.category || 'SOP'}</div>
+            <div class="category">${escapeHtml(sop.category || 'SOP')}</div>
             ${printRef.current?.innerHTML || ''}
-            <h2>${sop.title}</h2>
-            ${sop.summary ? `<p>${sop.summary}</p>` : ''}
+            <h2>${escapeHtml(sop.title)}</h2>
+            ${sop.summary ? `<p>${escapeHtml(sop.summary)}</p>` : ''}
             <p class="scan-note">Scan to view full procedure</p>
           </div>
           <script>window.onload = () => { window.print(); window.close(); }<\/script>

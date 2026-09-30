@@ -3,6 +3,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { QrCode, Printer } from 'lucide-react';
+import { escapeHtml } from '@/lib/sanitize';
 
 export default function AssetQRCode({ asset }) {
   const printRef = useRef();
@@ -14,7 +15,7 @@ export default function AssetQRCode({ asset }) {
     printWindow.document.write(`
       <html>
         <head>
-          <title>QR Code — ${asset.name}</title>
+          <title>QR Code — ${escapeHtml(asset.name)}</title>
           <style>
             body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 24px; box-sizing: border-box; }
             .container { text-align: center; border: 2px solid #e2e8f0; border-radius: 16px; padding: 32px; max-width: 340px; }
@@ -27,10 +28,10 @@ export default function AssetQRCode({ asset }) {
         </head>
         <body>
           <div class="container">
-            <div class="category">${asset.category || 'Asset'}</div>
+            <div class="category">${escapeHtml(asset.category || 'Asset')}</div>
             ${printRef.current?.innerHTML || ''}
-            <h2>${asset.name}</h2>
-            ${asset.location_detail ? `<p class="location">${asset.location_detail}</p>` : ''}
+            <h2>${escapeHtml(asset.name)}</h2>
+            ${asset.location_detail ? `<p class="location">${escapeHtml(asset.location_detail)}</p>` : ''}
             <p class="scan-note">Scan to view asset details</p>
           </div>
           <script>window.onload = () => { window.print(); window.close(); }<\/script>

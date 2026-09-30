@@ -1,8 +1,11 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { requireAdmin } from '../../shared/auth.ts';
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
+    const { error: authError } = await requireAdmin(base44);
+    if (authError) return authError;
     const settings = await base44.asServiceRole.entities.AppSettings.filter({ key: 'global' });
     const tz = settings[0]?.global_timezone || 'America/New_York';
     const today = new Date().toLocaleDateString('en-CA', { timeZone: tz });

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Download, Search, Trash2, RefreshCw, FileText } from "lucide-react";
 import { formatDate } from '@/lib/timezone';
+import { isSafeUrl } from '@/lib/sanitize';
 
 export default function Reports() {
     const [searchQuery, setSearchQuery] = useState('');
@@ -27,7 +28,7 @@ export default function Reports() {
     );
 
     const handleDownload = (report) => {
-        if (report.report_url) {
+        if (report.report_url && isSafeUrl(report.report_url)) {
             window.open(report.report_url, '_blank');
         }
     };

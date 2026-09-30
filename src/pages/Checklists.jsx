@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { sanitizeForEmail } from '@/lib/sanitize';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CheckSquare, Plus, Trash2, AlertCircle, Loader2, Clock, Search, History } from 'lucide-react';
 import ChecklistHistoryPanel from '../components/checklist/ChecklistHistoryPanel';
@@ -224,8 +225,8 @@ export default function Checklists() {
       await Promise.all(admins.map(admin =>
         base44.integrations.Core.SendEmail({
           to: admin.email,
-          subject: `Checklist Pending Approval: ${template.title}`,
-          body: `Hi ${admin.full_name || admin.email},\n\n${user?.full_name || user?.email} has submitted the checklist template "${template.title}" for approval.\n\nPlease log in and go to Checklists → Draft Checklists to review and approve or reject it.\n\nThanks!`
+          subject: `Checklist Pending Approval: ${sanitizeForEmail(template.title)}`,
+          body: `Hi ${admin.full_name || admin.email},\n\n${user?.full_name || user?.email} has submitted the checklist template "${sanitizeForEmail(template.title)}" for approval.\n\nPlease log in and go to Checklists → Draft Checklists to review and approve or reject it.\n\nThanks!`
         }).catch(() => {})
       ));
     },

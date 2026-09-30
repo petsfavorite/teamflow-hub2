@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { escapeHtml } from '@/lib/sanitize';
 import { AlertTriangle, Plus, Clock, User, Loader2, ChevronDown, Paperclip, Lock, Archive, Printer } from 'lucide-react';
 import { toast } from "sonner";
 import { formatDate, formatDateTime } from '@/lib/timezone';
@@ -284,7 +285,7 @@ export default function IncidentReports() {
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Incident Report - ${report.title}</title>
+        <title>Incident Report - ${escapeHtml(report.title)}</title>
         <style>
           @page { size: A4; margin: 20mm; }
           body { font-family: Arial, sans-serif; font-size: 11pt; color: #111; margin: 0; }

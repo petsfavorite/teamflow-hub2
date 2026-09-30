@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 import { addDays, format, differenceInDays, parseISO } from 'date-fns';
 import { formatDate } from '@/lib/timezone';
+import { sanitizeHtml, isSafeUrl } from '@/lib/sanitize';
 
 export default function SOPDetail() {
   const params = new URLSearchParams(window.location.search);
@@ -379,7 +380,7 @@ export default function SOPDetail() {
         <CardContent className="p-8">
           <h2 className="text-base font-semibold text-slate-800 mb-4 flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-indigo-500" /> Step-by-Step Instructions</h2>
           <div className="prose prose-slate max-w-none prose-headings:font-semibold prose-a:text-indigo-600"
-            dangerouslySetInnerHTML={{ __html: displayInstructions || '<p class="text-slate-400 italic">No instructions added yet.</p>' }} />
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(displayInstructions) || '<p class="text-slate-400 italic">No instructions added yet.</p>' }} />
         </CardContent>
       </Card>
 
@@ -388,7 +389,7 @@ export default function SOPDetail() {
         <Card className="border-0 shadow-sm mb-4">
           <CardContent className="p-6">
             <h2 className="text-base font-semibold text-slate-800 mb-3 flex items-center gap-2"><PlayCircle className="w-4 h-4 text-indigo-500" /> Training Video</h2>
-            <a href={sop.video_url} target="_blank" rel="noopener noreferrer"
+            <a href={isSafeUrl(sop.video_url) ? sop.video_url : '#'} target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-colors text-sm font-medium">
               <Video className="w-4 h-4" /> Watch Video
             </a>
@@ -407,7 +408,7 @@ export default function SOPDetail() {
                 <p className="text-sm text-amber-700">Submitted by <strong>{sop.pending_submitted_by_name}</strong>{sop.pending_change_summary ? ` — "${sop.pending_change_summary}"` : ''}</p>
               </div>
             </div>
-            <div className="prose prose-sm prose-slate max-w-none bg-amber-50 rounded-lg p-4 mb-4 max-h-60 overflow-y-auto" dangerouslySetInnerHTML={{ __html: sop.pending_content }} />
+            <div className="prose prose-sm prose-slate max-w-none bg-amber-50 rounded-lg p-4 mb-4 max-h-60 overflow-y-auto" dangerouslySetInnerHTML={{ __html: sanitizeHtml(sop.pending_content) }} />
             <div className="flex gap-3 justify-end">
               <Button variant="outline" onClick={() => approveMutation.mutate(false)} disabled={approveMutation.isPending} className="gap-2 border-red-200 text-red-700 hover:bg-red-50">
                 <XCircle className="w-4 h-4" /> Reject

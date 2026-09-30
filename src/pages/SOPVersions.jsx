@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { ArrowLeft, Clock, User, RotateCcw, Eye } from 'lucide-react';
 import { toast } from "sonner";
 import { formatDateTime } from '@/lib/timezone';
+import { sanitizeHtml } from '@/lib/sanitize';
 
 export default function SOPVersions() {
   const params = new URLSearchParams(window.location.search);
@@ -117,7 +118,7 @@ export default function SOPVersions() {
           <DialogHeader>
             <DialogTitle>v{previewing?.version_number} — {previewing?.change_summary}</DialogTitle>
           </DialogHeader>
-          <div className="prose prose-sm prose-slate max-w-none" dangerouslySetInnerHTML={{ __html: previewing?.content }} />
+          <div className="prose prose-sm prose-slate max-w-none" dangerouslySetInnerHTML={{ __html: sanitizeHtml(previewing?.content) }} />
           <DialogFooter>
             {canRollback && (
               <Button onClick={() => { rollbackMutation.mutate(previewing); setPreviewing(null); }} className="bg-indigo-600 hover:bg-indigo-700 gap-2">

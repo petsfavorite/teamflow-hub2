@@ -20,7 +20,20 @@ async function getZoomToken() {
 }
 
 // ── Download Zoom recording audio as ArrayBuffer ─────────────────────────────
+// Only download from Zoom's known hosts to prevent SSRF / token leakage
+function isZoomDownloadUrl(url) {
+  try {
+    const parsed = new URL(url);
+    return parsed.hostname.endsWith('.zoom.us') || parsed.hostname.endsWith('.zoomgov.com');
+  } catch {
+    return false;
+  }
+}
+
 async function downloadRecording(downloadUrl, zoomToken) {
+  if (!isZoomDownloadUrl(downloadUrl)) {
+    throw new Error("Recording download URL is not from a trusted Zoom host");
+  }
   const res = await fetch(downloadUrl, {
     headers: { Authorization: `Bearer ${zoomToken}` }
   });
@@ -84,6 +97,19 @@ Deno.serve(async (req) => {
       if (!plainToken) return Response.json({ error: "No plainToken" }, { status: 400 });
       const hash = createHmac("sha256", secret).update(plainToken).digest("hex");
       return Response.json({ plainToken, encryptedToken: hash });
+    }
+
+    // Verify Zoom signature on ALL events (not just url_validation)
+    const signature = req.headers.get('x-zm-signature') || '';
+    const secret = Deno.env.get("ZOOM_WEBHOOK_SECRET");
+    if (!secret) {
+      console.error("[ERROR] ZOOM_WEBHOOK_SECRET not configured");
+      return Response.json({ error: 'Webhook secret not configured' }, { status: 500 });
+    }
+    const hash = createHmac("sha256", secret).update(bodyText).digest("hex");
+    const expectedSig = `v0=${hash}`;
+    if (signature !== expectedSig) {
+      return Response.json({ error: 'Invalid signature' }, { status: 401 });
     }
 
     // Only process recording.completed events

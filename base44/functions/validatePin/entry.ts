@@ -14,10 +14,19 @@ Deno.serve(async (req) => {
       return Response.json({ valid: false, error: 'PIN must be exactly 6 digits' });
     }
 
+    // Rate limiting: delay failed attempts to slow brute-force attacks
+    // (1.5s per failed attempt makes exhaustive 6-digit brute-force impractical)
+    const attemptStart = Date.now();
+
     // Look up which user has this PIN using service role
     const users = await base44.asServiceRole.entities.User.filter({ pin });
 
     if (users.length === 0) {
+      const elapsed = Date.now() - attemptStart;
+      const minDelay = 1500;
+      if (elapsed < minDelay) {
+        await new Promise(r => setTimeout(r, minDelay - elapsed));
+      }
       return Response.json({ valid: false });
     }
 
