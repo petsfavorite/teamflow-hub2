@@ -129,7 +129,7 @@ export default function Whiteboard() {
         onSuccess: (merged, { id }) => {
             // Show other staff's concurrent changes in the open panel — but only when
             // no other save is in flight, so we never overwrite a newer local edit.
-            if (merged && queryClient.isMutating({ mutationKey: ['visit-update'] }) <= 1) {
+            if (merged && pendingSaves.current <= 1) {
                 setSelectedVisit(prev => (prev && prev.id === id ? merged : prev));
             }
             queryClient.invalidateQueries({ queryKey: ['visits'] });
@@ -195,15 +195,27 @@ export default function Whiteboard() {
         setSelectedPet(pet);
     };
 
+    const saveQueue = useRef(Promise.resolve());
+    const pendingSaves = useRef(0);
     const handleUpdateVisit = async (updatedVisit) => {
         // Update selectedVisit immediately so the panel reacts right away
         const base = selectedVisitRef.current?.id === updatedVisit.id ? selectedVisitRef.current : null;
         selectedVisitRef.current = { ...updatedVisit };
         setSelectedVisit({ ...updatedVisit });
-        // onMutate in the mutation updates the visits cache synchronously BEFORE
-        // the save, so the whiteboard reflects the change even if the user closes
-        // the panel before the save completes.
-        await updateVisitMutation.mutateAsync({ id: updatedVisit.id, data: updatedVisit, base });
+        // Update the visits cache now (not when the save reaches the front of the queue)
+        // so the whiteboard reflects the change even if the user closes the panel
+        // while earlier saves are still running.
+        queryClient.setQueryData(['visits'], (oldVisits) => {
+            if (!Array.isArray(oldVisits)) return oldVisits;
+            return oldVisits.map(v => v.id === updatedVisit.id ? { ...v, ...updatedVisit } : v);
+        });
+        // Run saves one at a time. Rapid check-offs otherwise race: each save reads the
+        // server copy before the previous save lands, and the later write drops the earlier one.
+        const run = () => updateVisitMutation.mutateAsync({ id: updatedVisit.id, data: updatedVisit, base });
+        pendingSaves.current += 1;
+        const result = saveQueue.current.then(run, run);
+        saveQueue.current = result.catch(() => {});
+        try { await result; } finally { pendingSaves.current -= 1; }
     };
 
     const handleCheckout = () => {
