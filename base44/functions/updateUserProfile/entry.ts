@@ -46,6 +46,10 @@ Deno.serve(async (req) => {
       if (!['admin', 'super_admin'].includes(user.role)) {
         return Response.json({ error: 'Only admins can change PINs' }, { status: 403 });
       }
+      // Hierarchy check: admins cannot modify other admins/super_admins
+      if (user.role === 'admin' && ['admin', 'super_admin'].includes(targetRole)) {
+        return Response.json({ error: 'Cannot modify PIN of other admins or super admins' }, { status: 403 });
+      }
       if (pin && pin.length !== 6) {
         return Response.json({ error: 'PIN must be exactly 6 digits' }, { status: 400 });
       }
@@ -64,6 +68,10 @@ Deno.serve(async (req) => {
     if (team_ids !== undefined) {
       if (!['admin', 'super_admin'].includes(user.role)) {
         return Response.json({ error: 'Only admins can change team assignments' }, { status: 403 });
+      }
+      // Hierarchy check: admins cannot modify other admins/super_admins
+      if (user.role === 'admin' && ['admin', 'super_admin'].includes(targetRole)) {
+        return Response.json({ error: 'Cannot modify team assignments of other admins or super admins' }, { status: 403 });
       }
       updates.team_ids = team_ids;
     }

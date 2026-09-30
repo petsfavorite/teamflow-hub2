@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { escapeHtml } from '@/lib/sanitize';
+import { escapeHtml, isSafeUrl } from '@/lib/sanitize';
 import { AlertTriangle, Plus, Clock, User, Loader2, ChevronDown, Paperclip, Lock, Archive, Printer } from 'lucide-react';
 import { toast } from "sonner";
 import { formatDate, formatDateTime } from '@/lib/timezone';
@@ -693,7 +693,7 @@ export default function IncidentReports() {
                           <p className="text-slate-700">{log.note}</p>
                           <div className="text-xs text-slate-400 mt-1">{log.added_by_name} • {log.date ? formatDateTime(log.date, 'MMM D, YYYY, hh:mm A') : ''}</div>
                           {log.attachment_url && (
-                            <a href={log.attachment_url} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 hover:underline flex items-center gap-1 mt-1.5">
+                            <a href={isSafeUrl(log.attachment_url) ? log.attachment_url : '#'} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 hover:underline flex items-center gap-1 mt-1.5">
                               <Paperclip className="w-3 h-3" /> View Attachment
                             </a>
                           )}

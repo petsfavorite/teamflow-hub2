@@ -400,7 +400,7 @@ export default function Assets() {
                                 {log.added_by_name} • {log.date ? formatDateTime(log.date, 'MMM D, YYYY, hh:mm A') : ''}
                               </div>
                               {log.attachment_url && (
-                                <a href={log.attachment_url} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 hover:underline flex items-center gap-1 mt-1.5">
+                                <a href={isSafeUrl(log.attachment_url) ? log.attachment_url : '#'} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 hover:underline flex items-center gap-1 mt-1.5">
                                   <Paperclip className="w-3 h-3" /> View Attachment
                                 </a>
                               )}

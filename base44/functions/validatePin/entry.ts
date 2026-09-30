@@ -1,16 +1,8 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
+import { timingSafeEqual } from '../../shared/crypto.ts';
 
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_MS = 5 * 60 * 1000; // 5 minutes
-
-function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let result = 0;
-  for (let i = 0; i < a.length; i++) {
-    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  }
-  return result === 0;
-}
 
 Deno.serve(async (req) => {
   try {

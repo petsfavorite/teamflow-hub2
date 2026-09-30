@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useCurrentUser } from '../components/hooks/useCurrentUser';
+import { isSafeUrl } from '@/lib/sanitize';
 import PageHeader from '../components/shared/PageHeader';
 import StatusBadge from '../components/shared/StatusBadge';
 import EmptyState from '../components/shared/EmptyState';
@@ -358,7 +359,7 @@ export default function Maintenance() {
                           <p className="text-slate-700">{log.note}</p>
                           <div className="text-xs text-slate-400 mt-1">{log.added_by_name} • {log.date ? formatDateTime(log.date, 'MMM D, YYYY, hh:mm A') : ''}</div>
                           {log.attachment_url && (
-                            <a href={log.attachment_url} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 hover:underline flex items-center gap-1 mt-1.5">
+                            <a href={isSafeUrl(log.attachment_url) ? log.attachment_url : '#'} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 hover:underline flex items-center gap-1 mt-1.5">
                               <Paperclip className="w-3 h-3" /> View Attachment
                             </a>
                           )}

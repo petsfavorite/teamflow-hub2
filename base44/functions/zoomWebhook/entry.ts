@@ -3,6 +3,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import OpenAI from 'npm:openai';
 import { fuzzyMatchUser, aiNotesIndicatesMissed } from '../../shared/staffMatching.ts';
 import { analyzeCall, checkBookingOffered, buildExtraAliases } from '../../shared/callAnalysis.ts';
+import { timingSafeEqual } from '../../shared/crypto.ts';
 
 // ── Zoom OAuth: get a short-lived access token ──────────────────────────────
 async function getZoomToken() {
@@ -108,7 +109,7 @@ Deno.serve(async (req) => {
     }
     const hash = createHmac("sha256", secret).update(bodyText).digest("hex");
     const expectedSig = `v0=${hash}`;
-    if (signature !== expectedSig) {
+    if (!timingSafeEqual(signature, expectedSig)) {
       return Response.json({ error: 'Invalid signature' }, { status: 401 });
     }
 
