@@ -14,6 +14,7 @@ import WeekView from '@/components/whiteboard/WeekView';
 import VisitPanel from '@/components/visit/VisitPanel';
 import CheckoutDialog from '@/components/visit/CheckoutDialog';
 import PetArchive from '@/components/whiteboard/PetArchive';
+import { isOverstayed, populateTasksForDate } from '@/lib/overstayed';
 
 export default function Whiteboard() {
     const [selectedDate, setSelectedDate] = useState(moment().format('YYYY-MM-DD'));
@@ -115,6 +116,21 @@ export default function Whiteboard() {
         await queryClient.invalidateQueries({ queryKey: ['visits'] });
         await queryClient.invalidateQueries({ queryKey: ['pets'] });
     };
+
+    // Populate daily tasks for overstayed boarding pets (still checked in past
+    // their scheduled departure day). Copies the previous day's template tasks
+    // to today so the pet continues receiving its daily care routine.
+    useEffect(() => {
+        if (visitsLoading || !visits.length) return;
+        const today = moment().format('YYYY-MM-DD');
+        visits.forEach(visit => {
+            if (!isOverstayed(visit, today)) return;
+            const newTasks = populateTasksForDate(visit.scheduled_tasks, today);
+            if (newTasks) {
+                updateVisitMutation.mutate({ id: visit.id, data: { scheduled_tasks: newTasks } });
+            }
+        });
+    }, [visits, visitsLoading]);
     
     const handleViewVisitForDate = (visit, pet, date) => {
         setSelectedDate(date);

@@ -7,7 +7,6 @@ import { format, startOfDay, endOfDay, subDays, startOfToday, endOfToday } from 
 import { cn } from "@/lib/utils";
 
 const PRESETS = [
-  { label: "All time", value: "all" },
   { label: "Today", value: "today" },
   { label: "Yesterday", value: "yesterday" },
   { label: "Last 7 days", value: "last7" },
@@ -36,7 +35,7 @@ export default function DateRangePicker({ preset, onPresetChange, customStart, c
   const [pickingEnd, setPickingEnd] = useState(false);
   const currentPreset = PRESETS.find(p => p.value === preset);
   const label = (() => {
-    if (preset !== "custom") return currentPreset?.label || "All time";
+    if (preset !== "custom") return currentPreset?.label || "Last 7 days";
     if (customStart && customEnd) return `${format(customStart, "MMM d")} – ${format(customEnd, "MMM d, yyyy")}`;
     if (customStart) return `From ${format(customStart, "MMM d, yyyy")}`;
     return "Custom range";

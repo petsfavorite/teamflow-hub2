@@ -10,6 +10,7 @@ import 'moment-timezone';
 import PullToRefresh from '@/components/PullToRefresh';
 import { base44 } from '@/api/base44Client';
 import LocationEditor from './LocationEditor';
+import { isOverstayed } from '@/lib/overstayed';
 
 const OVERDUE_EXEMPT_TYPES = ['Collect Feces', 'Collect Urine', 'Feces Observed', 'Ate', 'Urine Observed'];
 
@@ -323,6 +324,7 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
                              const needsUrineCollection = hasCollectUrine(visit);
                              const hasEmergencyAlert = visit.emergency_alert_active;
                              const hasOverdue = isOverdueAlert(visit);
+                             const overstayed = isOverstayed(visit, selectedDate);
 
                             return (
                                 <motion.div
@@ -334,6 +336,7 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
                                 >
                                     <Card className={`hover:shadow-md transition-shadow cursor-pointer ${
                                        hasEmergencyAlert ? 'border-red-500 bg-red-200' :
+                                       overstayed ? 'border-lime-500 bg-lime-300' :
                                        needsFecesCollection ? 'border-amber-800 bg-amber-100' :
                                        needsUrineCollection ? 'border-yellow-400 bg-yellow-100' :
                                        hasOverdue ? 'border-purple-500 bg-purple-100' : 'border-gray-200'
@@ -374,7 +377,7 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
                                                         )}
                                                         <div className="space-y-1">
                                                             <Badge className={`text-xs px-2 py-0 ${
-                                                                visit.visit_type === 'boarding' 
+                                                                visit.visit_type === 'boarding'
                                                                     ? 'bg-blue-100 text-blue-700 border-0'
                                                                     : 'bg-emerald-100 text-emerald-700 border-0'
                                                             }`}>
@@ -384,6 +387,11 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
                                                                     <><Sparkles className="w-2 h-2 mr-1" /> Play Camp</>
                                                                 )}
                                                             </Badge>
+                                                            {overstayed && (
+                                                                <Badge className="text-xs px-2 py-0 bg-lime-500 text-white border-0">
+                                                                    Overdue Pickup
+                                                                </Badge>
+                                                            )}
                                                             {needsFecesCollection && !hasEmergencyAlert && (
                                                                 <Badge className="text-xs px-2 py-0 bg-amber-100 text-amber-700 border-0">
                                                                     Need Fecal Sample
@@ -499,7 +507,7 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
                                                         )}
                                                         <div className="flex items-center gap-1 mt-1">
                                                             <Badge className={`text-xs px-2 py-0 ${
-                                                                visit.visit_type === 'boarding' 
+                                                                visit.visit_type === 'boarding'
                                                                     ? 'bg-blue-100 text-blue-700 border-0'
                                                                     : 'bg-emerald-100 text-emerald-700 border-0'
                                                             }`}>
@@ -509,6 +517,11 @@ export default function DayView({ pets, visits, selectedDate, onDateChange, onVi
                                                                     <><Sparkles className="w-2 h-2 mr-1" /> Play Camp</>
                                                                 )}
                                                             </Badge>
+                                                            {overstayed && (
+                                                                <Badge className="text-xs px-2 py-0 bg-lime-500 text-white border-0">
+                                                                    Overdue Pickup
+                                                                </Badge>
+                                                            )}
                                                             {needsFecesCollection && !hasEmergencyAlert && (
                                                                 <Badge className="text-xs px-2 py-0 bg-amber-100 text-amber-700 border-0">
                                                                     Need Fecal Sample
