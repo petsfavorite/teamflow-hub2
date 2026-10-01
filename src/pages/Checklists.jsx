@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { sanitizeForEmail } from '@/lib/sanitize';
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CheckSquare, Plus, Trash2, AlertCircle, Loader2, Clock, Search, History, Archive, ChevronDown, ChevronRight, Pencil } from 'lucide-react';
 import ChecklistHistoryPanel from '../components/checklist/ChecklistHistoryPanel';
@@ -276,12 +277,31 @@ export default function Checklists() {
   }, [allTemplates, user, isManager, isAdmin, isSuperAdmin]);
 
   // Submit a draft for approval (managers) — sets status to pending_approval and emails admins
+  const [sendBackTemplate, setSendBackTemplate] = useState(null);
+  const [sendBackNote, setSendBackNote] = useState('');
+
+  const sendBackTemplateMutation = useMutation({
+    mutationFn: ({ template, note }) => base44.functions.invoke('approveContent', {
+      type: 'checklist', id: template.id, action: 'send_back', note,
+    }),
+    onSuccess: () => {
+      toast.success('Checklist sent back with notes');
+      queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
+      queryClient.invalidateQueries({ queryKey: ['pending-checklist-edits-dash'] });
+      setSendBackTemplate(null);
+      setSendBackNote('');
+    },
+    onError: (e) => toast.error('Could not send back the checklist: ' + (e?.message || 'unknown error')),
+  });
+
   const submitForApprovalMutation = useMutation({
     mutationFn: async (template) => {
       await base44.entities.ChecklistTemplate.update(template.id, {
         status: 'pending_approval',
         pending_submitted_by: user?.email,
         pending_submitted_by_name: user?.full_name,
+        pending_review_note: null,
+        pending_reviewed_by_name: null,
       });
       // Get all admins/super_admins to notify
       const res = await base44.functions.invoke('listUsers', {});
@@ -1230,6 +1250,16 @@ export default function Checklists() {
                                 Publish
                               </Button>
                             )}
+                            {(isAdmin || isSuperAdmin) && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-red-600 border-red-300 hover:bg-red-50"
+                                onClick={() => { setSendBackTemplate(t); setSendBackNote(''); }}
+                              >
+                                Send Back
+                              </Button>
+                            )}
                             <Link to={createPageUrl('ChecklistEditor') + `?id=${t.id}`}>
                               <Button variant="ghost" size="sm" className="text-slate-600">Edit</Button>
                             </Link>
@@ -1523,6 +1553,38 @@ export default function Checklists() {
         checklist={historyChecklist}
         onClose={() => setHistoryChecklist(null)}
       />
+
+      {/* Send Back Dialog */}
+      <Dialog open={!!sendBackTemplate} onOpenChange={(open) => { if (!open) { setSendBackTemplate(null); setSendBackNote(''); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Send back "{sendBackTemplate?.title}"</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-slate-500">
+            The draft goes back to the manager who created it with your notes. The checklist stays unpublished until it's revised and approved.
+          </p>
+          <div className="space-y-2">
+            <Label>Notes for the manager</Label>
+            <Textarea
+              value={sendBackNote}
+              onChange={(e) => setSendBackNote(e.target.value)}
+              placeholder="Explain what needs to be changed before this can be published..."
+              rows={4}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setSendBackTemplate(null); setSendBackNote(''); }}>Cancel</Button>
+            <Button
+              variant="destructive"
+              disabled={!sendBackNote.trim() || sendBackTemplateMutation.isPending}
+              onClick={() => sendBackTemplateMutation.mutate({ template: sendBackTemplate, note: sendBackNote })}
+            >
+              {sendBackTemplateMutation.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+              Send Back
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

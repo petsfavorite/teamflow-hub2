@@ -59,13 +59,19 @@ export default function Dashboard() {
 
   const { data: pendingChecklistEdits = [] } = useQuery({
     queryKey: ['pending-checklist-edits-dash'],
-    // New templates awaiting approval, plus live templates with an edit awaiting approval.
+    // New templates awaiting approval, live templates with an edit awaiting approval,
+    // and draft templates sent back by an admin with review notes.
     queryFn: async () => {
-      const [pending, published] = await Promise.all([
+      const [pending, published, drafts] = await Promise.all([
         base44.entities.ChecklistTemplate.filter({ status: 'pending_approval' }),
         base44.entities.ChecklistTemplate.filter({ status: 'published' }, '-updated_date', 500),
+        base44.entities.ChecklistTemplate.filter({ status: 'draft' }, '-updated_date', 200),
       ]);
-      return [...pending, ...published.filter(t => t.pending_items?.length)];
+      return [
+        ...pending,
+        ...published.filter(t => t.pending_items?.length),
+        ...drafts.filter(t => t.pending_review_note),
+      ];
     },
     enabled: !!user?.email && canManage,
   });
@@ -137,10 +143,22 @@ export default function Dashboard() {
     return assignedToMe || assignedToMyTeam;
   });
 
-  // Managers: their own edits that an admin sent back for more changes
-  const changesRequestedSops = allSOPs.filter(s =>
-    pendingState(s) === 'changes_requested' && isLive(s) && (s.pending_submitted_by === user?.email || !s.pending_submitted_by) && !canApprove
-  );
+  // Draft SOPs sent back by an admin — fetched separately since fetchLiveSops only returns published/pending_approval
+  const { data: draftSopsSentBack = [] } = useQuery({
+    queryKey: ['draft-sops-sent-back'],
+    queryFn: () => base44.entities.SOP.filter({ status: 'draft' }, '-updated_date', 200),
+    enabled: !!user?.email && !canApprove,
+  });
+
+  // Managers: their own edits that an admin sent back for more changes (live SOPs + drafts)
+  const changesRequestedSops = [
+    ...allSOPs.filter(s =>
+      pendingState(s) === 'changes_requested' && isLive(s) && (s.pending_submitted_by === user?.email || !s.pending_submitted_by) && !canApprove
+    ),
+    ...draftSopsSentBack.filter(s =>
+      pendingState(s) === 'changes_requested' && s.pending_submitted_by === user?.email && !canApprove
+    ),
+  ];
 
   const incidents = allIncidents.filter(inc => {
     if (inc.status === 'resolved') return false;
@@ -468,25 +486,34 @@ export default function Dashboard() {
                 ))}
                 {pendingChecklistEdits
                   .filter(checklist => canApprove || checklist.pending_submitted_by === user?.email || checklist.created_by === user?.email)
-                  .map(checklist => (
-                  <Link key={checklist.id} to={createPageUrl('ChecklistEditor') + `?id=${checklist.id}`}>
-                    <div className="flex items-center gap-3 p-3 rounded-lg bg-indigo-50 hover:bg-indigo-100 transition-colors">
-                      <CheckSquare className="w-4 h-4 text-indigo-600 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-indigo-900 truncate">
-                          {canApprove ? '⏳ Awaiting Approval: ' : '📋 Pending Approval: '}{checklist.title}
-                        </p>
-                        {checklist.pending_submitted_by_name && canApprove && (
-                          <p className="text-xs text-indigo-700">Submitted by {checklist.pending_submitted_by_name}</p>
-                        )}
-                        {!canApprove && (
-                          <p className="text-xs text-indigo-700">Waiting for admin review</p>
-                        )}
-                      </div>
-                      <ArrowRight className="w-3.5 h-3.5 text-indigo-600 flex-shrink-0" />
-                    </div>
-                  </Link>
-                ))}
+                  .map(checklist => {
+                   const isSentBack = checklist.status === 'draft' && checklist.pending_review_note;
+                   return (
+                   <Link key={checklist.id} to={createPageUrl('ChecklistEditor') + `?id=${checklist.id}`}>
+                     <div className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${isSentBack ? 'bg-red-50 hover:bg-red-100' : 'bg-indigo-50 hover:bg-indigo-100'}`}>
+                       <CheckSquare className={`w-4 h-4 flex-shrink-0 ${isSentBack ? 'text-red-600' : 'text-indigo-600'}`} />
+                       <div className="flex-1 min-w-0">
+                         <p className={`text-sm font-medium truncate ${isSentBack ? 'text-red-900' : 'text-indigo-900'}`}>
+                           {isSentBack ? '↩ Sent back: ' : (canApprove ? '⏳ Awaiting Approval: ' : '📋 Pending Approval: ')}{checklist.title}
+                         </p>
+                         {isSentBack ? (
+                           <p className="text-xs text-red-700 truncate">{checklist.pending_review_note}</p>
+                         ) : (
+                           <>
+                             {checklist.pending_submitted_by_name && canApprove && (
+                               <p className="text-xs text-indigo-700">Submitted by {checklist.pending_submitted_by_name}</p>
+                             )}
+                             {!canApprove && (
+                               <p className="text-xs text-indigo-700">Waiting for admin review</p>
+                             )}
+                           </>
+                         )}
+                       </div>
+                       <ArrowRight className={`w-3.5 h-3.5 flex-shrink-0 ${isSentBack ? 'text-red-600' : 'text-indigo-600'}`} />
+                     </div>
+                   </Link>
+                   );
+                 })}
                 {verificationDueSops.map(sop => {
                   const daysLeft = daysFromToday(sop.verification_due_date);
                   const overdue = daysLeft < 0;

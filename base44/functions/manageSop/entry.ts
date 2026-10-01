@@ -48,6 +48,7 @@ Deno.serve(async (req) => {
       const data = {
         ...clean, content: clean.instructions || '', status: 'draft',
         last_updated_by: user.email, last_updated_by_name: user.full_name,
+        ...CLEAR_PENDING,
       };
       if (!id) {
         const created = await db.SOP.create({ ...data, version: 1 });

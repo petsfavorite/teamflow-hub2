@@ -12,7 +12,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { BookOpen, Plus, Search, Tag, Clock, Archive, ArchiveRestore, AlertCircle, Mic, ChevronDown, ChevronRight, FolderArchive, Send } from 'lucide-react';
+import { BookOpen, Plus, Search, Tag, Clock, Archive, ArchiveRestore, AlertCircle, Mic, ChevronDown, ChevronRight, FolderArchive, Send, Undo2, Loader2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { formatDate } from '@/lib/timezone';
 import { fetchLiveSops, fetchMyAcks, fetchMyTeamIds, sopsNeedingAck, isReAck, isAckOverdue, pendingState, verificationStatus, searchSops, isLive, manageSop } from '@/lib/sop';
 
@@ -76,6 +79,23 @@ export default function SOPs() {
     onError: (e) => toast.error('Could not publish the SOP: ' + (e?.message || 'unknown error')),
   });
 
+  const [sendBackSop, setSendBackSop] = useState(null);
+  const [sendBackNote, setSendBackNote] = useState('');
+
+  const sendBackMutation = useMutation({
+    mutationFn: ({ sop, note }) => base44.functions.invoke('approveContent', {
+      type: 'sop', id: sop.id, action: 'send_back', note,
+    }),
+    onSuccess: () => {
+      ['sops-all', 'sops-live', 'sops', 'all-sops-dash', 'draft-sops', 'sops-pending-ack', 'sops-pending-ack-dash', 'draft-sops-sent-back']
+        .forEach(k => queryClient.invalidateQueries({ queryKey: [k] }));
+      toast.success('SOP sent back with notes');
+      setSendBackSop(null);
+      setSendBackNote('');
+    },
+    onError: (e) => toast.error('Could not send back the SOP: ' + (e?.message || 'unknown error')),
+  });
+
   const categories = [...new Set(sops.map(s => s.category).filter(Boolean))];
 
   // Search covers title, summary, tags, category and the full instructions; results are ranked by relevance.
@@ -126,6 +146,21 @@ export default function SOPs() {
                   </CardContent>
                 </Card>
               </Link>
+              {(isAdmin || isSuperAdmin) && sop.status === 'draft' && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  title="Send back"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setSendBackSop(sop);
+                    setSendBackNote('');
+                  }}
+                  className="absolute top-2 right-20 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity bg-white/90 hover:bg-red-50 text-red-600 hover:text-red-700"
+                >
+                  <Undo2 className="w-4 h-4" />
+                </Button>
+              )}
               {(isAdmin || isSuperAdmin) && sop.status === 'draft' && (
                 <Button
                   variant="ghost"
@@ -300,6 +335,37 @@ export default function SOPs() {
           <span className="text-sm font-semibold hidden sm:inline">New SOP</span>
         </Link>
       )}
+
+      <Dialog open={!!sendBackSop} onOpenChange={(open) => { if (!open) { setSendBackSop(null); setSendBackNote(''); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Send back "{sendBackSop?.title}"</DialogTitle>
+            <DialogDescription>
+              The draft goes back to the manager who created it with your notes. The SOP stays unpublished until it's revised and approved.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label>Notes for the manager</Label>
+            <Textarea
+              value={sendBackNote}
+              onChange={(e) => setSendBackNote(e.target.value)}
+              placeholder="Explain what needs to be changed before this can be published..."
+              rows={4}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setSendBackSop(null); setSendBackNote(''); }}>Cancel</Button>
+            <Button
+              variant="destructive"
+              disabled={!sendBackNote.trim() || sendBackMutation.isPending}
+              onClick={() => sendBackMutation.mutate({ sop: sendBackSop, note: sendBackNote })}
+            >
+              {sendBackMutation.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+              Send Back
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

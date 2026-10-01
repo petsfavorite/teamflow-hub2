@@ -18,8 +18,65 @@ export default async function(req) {
       return Response.json({ error: 'Only admins can approve or reject content' }, { status: 403 });
     }
     const { type, id, action, note } = await req.json();
-    if (!type || !id || !['approve', 'reject'].includes(action)) {
-      return Response.json({ error: 'type, id, and action (approve/reject) are required' }, { status: 400 });
+    if (!type || !id || !['approve', 'reject', 'send_back'].includes(action)) {
+      return Response.json({ error: 'type, id, and action (approve/reject/send_back) are required' }, { status: 400 });
+    }
+
+    // Send back: an admin returns a DRAFT sop/checklist to the manager who created it,
+    // with notes. The draft stays unpublished; the manager sees it in their Dashboard notifications.
+    if (action === 'send_back') {
+      const noteText = String(note || '').slice(0, 2000);
+      if (!noteText.trim()) return Response.json({ error: 'A note is required to send back a draft' }, { status: 400 });
+
+      if (type === 'sop') {
+        const list = await base44.asServiceRole.entities.SOP.filter({ id });
+        const sop = list[0];
+        if (!sop) return Response.json({ error: 'SOP not found' }, { status: 404 });
+        if (sop.status !== 'draft') return Response.json({ error: 'Only draft SOPs can be sent back' }, { status: 409 });
+        await base44.asServiceRole.entities.SOP.update(id, {
+          pending_state: 'changes_requested',
+          pending_review_note: noteText,
+          pending_reviewed_by_name: user.full_name || user.email,
+          pending_submitted_by: sop.last_updated_by || '',
+          pending_submitted_by_name: sop.last_updated_by_name || '',
+          pending_changes: null,
+          pending_content: null, pending_summary: null, pending_tags: null,
+          pending_change_summary: null, pending_submitted_at: null,
+        });
+        return Response.json({ success: true });
+      }
+
+      if (type === 'checklist') {
+        const list = await base44.asServiceRole.entities.ChecklistTemplate.filter({ id });
+        const template = list[0];
+        if (!template) return Response.json({ error: 'Checklist not found' }, { status: 404 });
+        if (template.status !== 'draft') return Response.json({ error: 'Only draft checklists can be sent back' }, { status: 409 });
+        await base44.asServiceRole.entities.ChecklistTemplate.update(id, {
+          pending_review_note: noteText,
+          pending_reviewed_by_name: user.full_name || user.email,
+          pending_submitted_by: template.last_updated_by || '',
+          pending_submitted_by_name: template.last_updated_by_name || '',
+        });
+        if (template.last_updated_by) {
+          try {
+            const [users, invites] = await Promise.all([
+              base44.asServiceRole.entities.User.filter({ email: template.last_updated_by }),
+              base44.asServiceRole.entities.PendingInvite.filter({ email: template.last_updated_by }),
+            ]);
+            if (users.length > 0 || invites.length > 0) {
+              const safeTitle = String(template.title || '').replace(/[\r\n\t<>]/g, ' ').substring(0, 200).trim();
+              await base44.integrations.Core.SendEmail({
+                to: template.last_updated_by,
+                subject: `Checklist Sent Back: ${safeTitle}`,
+                body: `Hi,\n\nYour checklist draft "${safeTitle}" has been sent back by an admin with the following notes:\n\n${noteText}\n\nPlease log in to review and make the needed changes before resubmitting.\n\nThanks!`,
+                from_name: "Pet's Favorite Hub",
+              });
+            }
+          } catch { /* email is best-effort */ }
+        }
+        return Response.json({ success: true });
+      }
+      return Response.json({ error: 'Invalid type (sop or checklist)' }, { status: 400 });
     }
 
     if (type === 'sop') {

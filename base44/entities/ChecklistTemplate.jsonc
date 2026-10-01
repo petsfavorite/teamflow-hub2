@@ -165,6 +165,14 @@
     "pending_submitted_by_name": {
       "type": "string"
     },
+    "pending_review_note": {
+      "type": "string",
+      "description": "Admin's note when sending a draft checklist back to the manager for changes"
+    },
+    "pending_reviewed_by_name": {
+      "type": "string",
+      "description": "Name of the admin who sent the draft back"
+    },
     "is_visible": {
       "type": "boolean",
       "default": true,
