@@ -495,11 +495,16 @@ export default function Checklists() {
   });
 
   const startChecklist = async (template) => {
-    const existingCompletions = await base44.entities.ChecklistCompletion.filter({ 
-      checklist_template_id: template.id, 
-      status: 'in_progress' 
+    // Scope by completed_by so a shared (team-assigned) checklist loads THIS user's
+    // own in-progress completion — not a teammate's. RLS only allows updating a
+    // completion the user owns, so loading someone else's would make every check
+    // fail to save silently and never persist when the user leaves the page.
+    const existingCompletions = await base44.entities.ChecklistCompletion.filter({
+      checklist_template_id: template.id,
+      status: 'in_progress',
+      completed_by: user?.email,
     });
-    
+
     const existingCompletion = existingCompletions?.[0];
 
     // Items (with their notes and photos) live in one place: the session. Every tap updates it
