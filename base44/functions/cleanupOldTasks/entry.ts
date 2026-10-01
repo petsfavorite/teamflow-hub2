@@ -9,6 +9,10 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
+    const user = await base44.auth.me();
+    if (!user || !['admin', 'super_admin'].includes(user.role)) {
+      return Response.json({ error: 'Unauthorized' }, { status: 403 });
+    }
 
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - 60);
