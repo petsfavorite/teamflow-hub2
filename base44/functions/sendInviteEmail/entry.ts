@@ -9,21 +9,18 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    const { email, firstName, lastName, pin } = await req.json();
+    const { email, firstName } = await req.json();
 
-    if (!email || !pin) {
-      return Response.json({ error: 'Missing email or PIN' }, { status: 400 });
+    if (!email) {
+      return Response.json({ error: 'Missing email' }, { status: 400 });
     }
 
+    // Welcome email only — the PIN is never emailed in cleartext.
+    // The admin shares the PIN with the user via a secure channel.
     const subject = 'You\'re invited to join our team!';
     const body = `Hello${firstName ? ' ' + firstName : ''},
 
-You've been invited to join our team. Here are your login details:
-
-Email: ${email}
-PIN: ${pin}
-
-Please use these credentials to access the application.
+You've been invited to join our team. Please contact your manager to receive your session PIN and complete your setup.
 
 Welcome aboard!`;
 

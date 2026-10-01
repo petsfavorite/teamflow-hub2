@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
-import { timingSafeEqual } from '../../shared/crypto.ts';
+import { timingSafeEqual, hashPin, verifyPin, isPinHashed } from '../../shared/crypto.ts';
 
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_MS = 5 * 60 * 1000; // 5 minutes
@@ -35,7 +35,19 @@ Deno.serve(async (req) => {
 
     const attemptStart = Date.now();
     const storedPin = fullUser?.pin || '';
-    const pinMatches = storedPin.length === 6 && timingSafeEqual(storedPin, pin);
+
+    // Handle both hashed PINs (new) and legacy plaintext PINs (upgraded on success)
+    let pinMatches: boolean;
+    let upgradeToHash: string | null = null;
+    if (isPinHashed(storedPin)) {
+      pinMatches = await verifyPin(pin, user.email, storedPin);
+    } else {
+      pinMatches = storedPin.length === 6 && timingSafeEqual(storedPin, pin);
+      if (pinMatches) {
+        // Upgrade legacy plaintext PIN to hashed form
+        upgradeToHash = await hashPin(pin, user.email);
+      }
+    }
 
     if (!pinMatches) {
       // Track failed attempt — persisted in User entity so lockout survives across isolates
@@ -57,12 +69,16 @@ Deno.serve(async (req) => {
       return Response.json({ valid: false });
     }
 
-    // Success — clear attempts, lockout, and server-side session lock
-    await base44.asServiceRole.entities.User.update(user.id, {
+    // Success — clear attempts, lockout, server-side session lock, and upgrade PIN to hash if needed
+    const successUpdates: Record<string, unknown> = {
       pin_failed_attempts: 0,
       pin_locked_until: '',
       session_locked_at: '',
-    });
+    };
+    if (upgradeToHash) {
+      successUpdates.pin = upgradeToHash;
+    }
+    await base44.asServiceRole.entities.User.update(user.id, successUpdates);
 
     return Response.json({
       valid: true,
