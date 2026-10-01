@@ -9,6 +9,8 @@ Deno.serve(async (req) => {
 
   const { deleted_user_email, team_ids, reassign_to_email, preview } = await req.json();
 
+  const displayName = (u: any) => `${u?.first_name || ''} ${u?.last_name || ''}`.trim() || u?.full_name || u?.email || '';
+
   // Fetch all users to find reassignment targets
   const allUsers = await base44.asServiceRole.entities.User.list('full_name', 500);
 
@@ -102,6 +104,17 @@ Deno.serve(async (req) => {
     return Response.json({ reassigned: 0, message: 'No suitable assignees found; user removed from teams.' });
   }
 
+  const deletedName = displayName(target);
+  const today = new Date().toLocaleDateString('en-US');
+  const noteText = (itemType: string) =>
+    `Reassigned ${itemType} from ${deletedName} to ${displayName(primary)} on ${today} by ${displayName(caller)}.`;
+  const noteEntry = (itemType: string) => ({
+    note: noteText(itemType),
+    date: today,
+    added_by: caller.email,
+    added_by_name: displayName(caller),
+  });
+
   let reassigned = 0;
 
   // --- Tasks (pending + in_progress) ---
@@ -110,9 +123,11 @@ Deno.serve(async (req) => {
     const newNames = (task.assigned_to_names || []).map((n, i) =>
       task.assigned_to_emails[i] === deleted_user_email ? (primary.full_name || primary.email) : n
     );
+    const existingNotes = task.completion_notes ? task.completion_notes + '\n' : '';
     await base44.asServiceRole.entities.Task.update(task.id, {
       assigned_to_emails: newEmails,
       assigned_to_names: newNames,
+      completion_notes: existingNotes + noteText('task'),
     });
     reassigned++;
   }
@@ -121,6 +136,7 @@ Deno.serve(async (req) => {
   for (const m of myMaint) {
     await base44.asServiceRole.entities.MaintenanceRequest.update(m.id, {
       assigned_to: primary.email,
+      notes_log: [...(m.notes_log || []), noteEntry('maintenance request')],
     });
     reassigned++;
   }
@@ -129,6 +145,7 @@ Deno.serve(async (req) => {
   for (const inc of myIncidents) {
     await base44.asServiceRole.entities.IncidentReport.update(inc.id, {
       assigned_to: primary.email,
+      notes_log: [...(inc.notes_log || []), noteEntry('incident report')],
     });
     reassigned++;
   }

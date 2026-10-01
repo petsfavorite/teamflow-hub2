@@ -224,7 +224,7 @@ export default function Tasks() {
         }
       />
 
-      <div className="flex gap-2 mb-6 overflow-x-auto pb-2 -mx-6 px-6 md:mx-0 md:px-0">
+      <div className="flex gap-2 mb-6 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0">
          {['mine', 'all', 'completed', ...(canManage ? ['recurring'] : [])].map(t => (
            <button
              key={t}
