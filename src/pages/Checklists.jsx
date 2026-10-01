@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { sanitizeForEmail } from '@/lib/sanitize';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckSquare, Plus, Trash2, AlertCircle, Loader2, Clock, Search, History, Archive, ChevronDown, ChevronRight } from 'lucide-react';
+import { CheckSquare, Plus, Trash2, AlertCircle, Loader2, Clock, Search, History, Archive, ChevronDown, ChevronRight, Pencil } from 'lucide-react';
 import ChecklistHistoryPanel from '../components/checklist/ChecklistHistoryPanel';
 
 import { toast } from "sonner";
@@ -359,6 +359,14 @@ export default function Checklists() {
       toast.success('Checklist deleted!');
       setDeleteDialogOpen(false);
       setTemplateToDelete(null);
+      queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
+    },
+  });
+
+  const archiveMutation = useMutation({
+    mutationFn: (id) => base44.entities.ChecklistTemplate.update(id, { status: 'archived', is_visible: false }),
+    onSuccess: () => {
+      toast.success('Checklist archived!');
       queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
     },
   });
@@ -1027,6 +1035,22 @@ export default function Checklists() {
                             </div>
                             <span className="text-xs text-indigo-500 flex items-center gap-1"><History className="w-3 h-3" /> View history</span>
                           </div>
+                        </div>
+                        <div className="flex gap-2 mt-3" onClick={e => e.stopPropagation()}>
+                          <Link to={createPageUrl('ChecklistEditor') + `?id=${t.id}`}>
+                            <Button size="sm" variant="outline" className="text-slate-600">
+                              <Pencil className="w-3.5 h-3.5 mr-1" /> Edit
+                            </Button>
+                          </Link>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-amber-600 hover:text-amber-700 hover:bg-amber-50 border-amber-200"
+                            disabled={archiveMutation.isPending}
+                            onClick={() => archiveMutation.mutate(t.id)}
+                          >
+                            <Archive className="w-3.5 h-3.5 mr-1" /> Archive
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>
