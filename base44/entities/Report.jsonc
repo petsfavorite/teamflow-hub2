@@ -58,6 +58,11 @@
       "$or": [
         {
           "user_condition": {
+            "role": "user"
+          }
+        },
+        {
+          "user_condition": {
             "role": "manager"
           }
         },
@@ -104,6 +109,11 @@
     },
     "update": {
       "$or": [
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        },
         {
           "user_condition": {
             "role": "manager"
