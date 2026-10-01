@@ -10,15 +10,15 @@ import StatusBadge from '../components/shared/StatusBadge';
 import DismissibleOverdueTask from '../components/dashboard/DismissibleOverdueTask';
 import BonuslyRecognitions from '../components/dashboard/BonuslyRecognitions';
 import { BookOpen, CheckSquare, ClipboardList, Wrench,
-  AlertTriangle, MessageSquare, ArrowRight, Bell, ShieldAlert, CalendarCheck, Clock, FileCheck
-} from 'lucide-react';
+AlertTriangle, MessageSquare, ArrowRight, Bell, ShieldAlert, CalendarCheck, Clock, FileCheck } from
+'lucide-react';
 import moment from 'moment-timezone';
 import { formatDate, todayStr, daysFromToday, parseTs, getAppTimezone } from '@/lib/timezone';
 import { fetchLiveSops, fetchMyAcks, fetchMyTeamIds, sopsNeedingAck, pendingState, isLive } from '@/lib/sop';
 
 function StatCard({ icon: Icon, label, value, color, to }) {
-  const content = (
-    <Card className="border-0 shadow-sm hover:shadow-md transition-all cursor-pointer h-full">
+  const content =
+  <Card className="border-0 shadow-sm hover:shadow-md transition-all cursor-pointer h-full">
       <CardContent className="p-3 sm:p-4 flex items-center gap-3 h-full">
         <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl ${color} flex items-center justify-center flex-shrink-0`}>
           <Icon className="w-4 sm:w-5 h-4 sm:h-5 text-white" />
@@ -28,8 +28,8 @@ function StatCard({ icon: Icon, label, value, color, to }) {
           <p className="text-xs sm:text-sm text-slate-500 truncate">{label}</p>
         </div>
       </CardContent>
-    </Card>
-  );
+    </Card>;
+
   return to ? <Link to={to}>{content}</Link> : content;
 }
 
@@ -47,14 +47,14 @@ export default function Dashboard() {
     try {
       const stored = JSON.parse(localStorage.getItem(`ack-checklists-${user.email}`) || '[]');
       setAcknowledgedChecklists(new Set(stored));
-    } catch { setAcknowledgedChecklists(new Set()); }
+    } catch {setAcknowledgedChecklists(new Set());}
   }, [user?.email]);
   const acknowledgeChecklist = (id) => {
     if (!user?.email) return;
-    setAcknowledgedChecklists(prev => {
+    setAcknowledgedChecklists((prev) => {
       const next = new Set(prev);
       next.add(id);
-      try { localStorage.setItem(`ack-checklists-${user.email}`, JSON.stringify([...next])); } catch {}
+      try {localStorage.setItem(`ack-checklists-${user.email}`, JSON.stringify([...next]));} catch {}
       return next;
     });
   };
@@ -62,7 +62,7 @@ export default function Dashboard() {
   const { data: allSOPs = [] } = useQuery({
     queryKey: ['all-sops-dash'],
     queryFn: () => base44.entities.SOP.list(),
-    enabled: !!user?.email && canManage,
+    enabled: !!user?.email && canManage
   });
 
   const { data: checklists = [] } = useQuery({
@@ -71,12 +71,12 @@ export default function Dashboard() {
     // (kept for months) and pushes live checklists past the record cap.
     queryFn: async () => {
       const [active, published] = await Promise.all([
-        base44.entities.ChecklistTemplate.filter({ status: 'active' }, '-updated_date', 500),
-        base44.entities.ChecklistTemplate.filter({ status: 'published' }, '-updated_date', 500),
-      ]);
+      base44.entities.ChecklistTemplate.filter({ status: 'active' }, '-updated_date', 500),
+      base44.entities.ChecklistTemplate.filter({ status: 'published' }, '-updated_date', 500)]
+      );
       return [...active, ...published];
     },
-    enabled: !!user?.email,
+    enabled: !!user?.email
   });
 
   const { data: pendingChecklistEdits = [] } = useQuery({
@@ -85,23 +85,23 @@ export default function Dashboard() {
     // and draft templates sent back by an admin with review notes.
     queryFn: async () => {
       const [pending, published, drafts] = await Promise.all([
-        base44.entities.ChecklistTemplate.filter({ status: 'pending_approval' }),
-        base44.entities.ChecklistTemplate.filter({ status: 'published' }, '-updated_date', 500),
-        base44.entities.ChecklistTemplate.filter({ status: 'draft' }, '-updated_date', 200),
-      ]);
+      base44.entities.ChecklistTemplate.filter({ status: 'pending_approval' }),
+      base44.entities.ChecklistTemplate.filter({ status: 'published' }, '-updated_date', 500),
+      base44.entities.ChecklistTemplate.filter({ status: 'draft' }, '-updated_date', 200)]
+      );
       return [
-        ...pending,
-        ...published.filter(t => t.pending_items?.length),
-        ...drafts.filter(t => t.pending_review_note),
-      ];
+      ...pending,
+      ...published.filter((t) => t.pending_items?.length),
+      ...drafts.filter((t) => t.pending_review_note)];
+
     },
-    enabled: !!user?.email && canManage,
+    enabled: !!user?.email && canManage
   });
 
   const { data: maintenanceRequests = [] } = useQuery({
     queryKey: ['maintenance-dash'],
     queryFn: () => base44.entities.MaintenanceRequest.list('-created_date', 20),
-    enabled: !!user?.email,
+    enabled: !!user?.email
   });
 
   const { data: tasks = [] } = useQuery({
@@ -110,15 +110,15 @@ export default function Dashboard() {
     // Recurring tab). Each day's generated copy is the thing to do; it is closed as not-done at midnight.
     queryFn: async () => {
       const open = await base44.entities.Task.filter({ status: { $in: ['pending', 'in_progress'] } }, '-due_date', 1000);
-      return open.filter(t => !t.recurrence_type || t.recurrence_type === 'once');
+      return open.filter((t) => !t.recurrence_type || t.recurrence_type === 'once');
     },
-    enabled: !!user?.email,
+    enabled: !!user?.email
   });
 
   const { data: teams = [] } = useQuery({
     queryKey: ['teams-dash'],
     queryFn: () => base44.entities.Team.list(),
-    enabled: !!user?.email,
+    enabled: !!user?.email
   });
 
 
@@ -126,7 +126,7 @@ export default function Dashboard() {
   const { data: allIncidents = [] } = useQuery({
     queryKey: ['incidents-dash'],
     queryFn: () => base44.entities.IncidentReport.list('-created_date', 50),
-    enabled: !!user?.email && canManage,
+    enabled: !!user?.email && canManage
   });
 
   // SOPs requiring acknowledgement that this user hasn't acknowledged yet
@@ -136,15 +136,15 @@ export default function Dashboard() {
     queryFn: async () => {
       // In scope (all-staff SOPs included) and not acknowledged at the CURRENT version
       const [live, acks, teamIds] = await Promise.all([
-        fetchLiveSops(500),
-        fetchMyAcks(user.email),
-        fetchMyTeamIds(user.email),
-      ]);
+      fetchLiveSops(500),
+      fetchMyAcks(user.email),
+      fetchMyTeamIds(user.email)]
+      );
       return sopsNeedingAck(live, acks, user.email, teamIds);
-    },
+    }
   });
 
-  const verificationDueSops = allSOPs.filter(sop => {
+  const verificationDueSops = allSOPs.filter((sop) => {
     if (!sop.verification_due_date || !isLive(sop)) return false;
     const daysLeft = daysFromToday(sop.verification_due_date);
     return daysLeft <= 7;
@@ -156,12 +156,12 @@ export default function Dashboard() {
 
   // For managers: only show pending SOPs assigned to them or their teams
   // For admins/super admins: show all pending SOPs
-  const pendingSOPs = allSOPs.filter(s => {
+  const pendingSOPs = allSOPs.filter((s) => {
     if (pendingState(s) !== 'submitted' || !isLive(s)) return false;
     if (canApprove) return true; // Admins/Super Admins see all
     // Managers see only those assigned to them or their teams
     const assignedToMe = s.acknowledgement_assigned_emails?.includes(user?.email);
-    const assignedToMyTeam = s.acknowledgement_assigned_teams?.some(tid => myTeamIds.includes(tid));
+    const assignedToMyTeam = s.acknowledgement_assigned_teams?.some((tid) => myTeamIds.includes(tid));
     return assignedToMe || assignedToMyTeam;
   });
 
@@ -169,20 +169,20 @@ export default function Dashboard() {
   const { data: draftSopsSentBack = [] } = useQuery({
     queryKey: ['draft-sops-sent-back'],
     queryFn: () => base44.entities.SOP.filter({ status: 'draft' }, '-updated_date', 200),
-    enabled: !!user?.email && !canApprove,
+    enabled: !!user?.email && !canApprove
   });
 
   // Managers: their own edits that an admin sent back for more changes (live SOPs + drafts)
   const changesRequestedSops = [
-    ...allSOPs.filter(s =>
-      pendingState(s) === 'changes_requested' && isLive(s) && (s.pending_submitted_by === user?.email || !s.pending_submitted_by) && !canApprove
-    ),
-    ...draftSopsSentBack.filter(s =>
-      pendingState(s) === 'changes_requested' && s.pending_submitted_by === user?.email && !canApprove
-    ),
-  ];
+  ...allSOPs.filter((s) =>
+  pendingState(s) === 'changes_requested' && isLive(s) && (s.pending_submitted_by === user?.email || !s.pending_submitted_by) && !canApprove
+  ),
+  ...draftSopsSentBack.filter((s) =>
+  pendingState(s) === 'changes_requested' && s.pending_submitted_by === user?.email && !canApprove
+  )];
 
-  const incidents = allIncidents.filter(inc => {
+
+  const incidents = allIncidents.filter((inc) => {
     if (inc.status === 'resolved') return false;
     if (inc.is_private && !canApprove) return false;
     return true;
@@ -191,64 +191,64 @@ export default function Dashboard() {
   const today = todayStr();
   const now = new Date();
   const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
-  const myTeamIds = teams.filter(t => t.member_emails?.includes(user?.email)).map(t => t.id);
+  const myTeamIds = teams.filter((t) => t.member_emails?.includes(user?.email)).map((t) => t.id);
 
   // For regular users: tasks/checklists due in ~1 hour (yellow)
-  const urgentTasks = tasks.filter(t => {
+  const urgentTasks = tasks.filter((t) => {
     if (t.status === 'completed' || t.status === 'cancelled') return false;
     if (!t.due_date) return false;
     if (t.due_date < today) return false; // Skip overdue
     const assignedToMe = t.assigned_to_emails?.includes(user?.email);
-    const assignedToMyTeam = t.assigned_teams?.some(tid => myTeamIds.includes(tid));
+    const assignedToMyTeam = t.assigned_teams?.some((tid) => myTeamIds.includes(tid));
     if (!assignedToMe && !assignedToMyTeam) return false;
     const dueDateTime = moment.tz(t.due_date + 'T23:59:59', getAppTimezone()).toDate();
     return dueDateTime <= oneHourFromNow && dueDateTime > now;
   });
 
   // For regular users: overdue incomplete tasks (red) - only removed when completed
-  const overdueIncompleteTeasks = tasks.filter(t => {
+  const overdueIncompleteTeasks = tasks.filter((t) => {
     if (t.status === 'completed' || t.status === 'cancelled') return false;
     if (!t.due_date || t.due_date >= today) return false; // Only overdue
     const assignedToMe = t.assigned_to_emails?.includes(user?.email);
-    const assignedToMyTeam = t.assigned_teams?.some(tid => myTeamIds.includes(tid));
+    const assignedToMyTeam = t.assigned_teams?.some((tid) => myTeamIds.includes(tid));
     return assignedToMe || assignedToMyTeam;
   });
 
   // For managers/admins: overdue incomplete tasks assigned to others in their teams (dismissible)
-  const managersSeenOverdueTasks = canManage ? tasks.filter(t => {
+  const managersSeenOverdueTasks = canManage ? tasks.filter((t) => {
     if (t.status === 'completed' || t.status === 'cancelled') return false;
     if (!t.due_date || t.due_date >= today) return false; // Only overdue
-    
+
     // Check if dismissed in the last 24 hours
-    const dismissalForUser = t.dismissed_notifications?.find(d => d.user_email === user?.email);
+    const dismissalForUser = t.dismissed_notifications?.find((d) => d.user_email === user?.email);
     if (dismissalForUser) {
       const dismissedAt = new Date(dismissalForUser.dismissed_at);
       const hoursSinceDismissal = (now.getTime() - dismissedAt.getTime()) / (1000 * 60 * 60);
       if (hoursSinceDismissal < 24) return false; // Still within 24-hour window
     }
-    
+
     // Don't show own tasks (regular users see overdue own tasks above)
     const assignedToMe = t.assigned_to_emails?.includes(user?.email);
     if (assignedToMe && t.assigned_to_emails.length === 1) return false;
     // Show if assigned to team members (not self)
-    const assignedToMyTeam = t.assigned_teams?.some(tid => myTeamIds.includes(tid));
+    const assignedToMyTeam = t.assigned_teams?.some((tid) => myTeamIds.includes(tid));
     return assignedToMyTeam && !assignedToMe;
   }) : [];
 
   // Same rules as the Checklists page: hidden (not yet visible) checklists and recurring masters
   // never show up here, since staff can't open them.
   const RECURRING_CHECKLIST_TYPES = ['daily', 'weekdays', 'specific_days', 'monthly', 'every_x_months', 'annually'];
-  const visibleChecklists = checklists.filter(c =>
-    c.is_visible !== false &&
-    !(c.status === 'published' && RECURRING_CHECKLIST_TYPES.includes(c.recurrence_type) && !c.due_date)
+  const visibleChecklists = checklists.filter((c) =>
+  c.is_visible !== false &&
+  !(c.status === 'published' && RECURRING_CHECKLIST_TYPES.includes(c.recurrence_type) && !c.due_date)
   );
 
   // For regular users: checklists due in ~1 hour (yellow)
-  const urgentChecklists = visibleChecklists.filter(c => {
+  const urgentChecklists = visibleChecklists.filter((c) => {
     if (!c.due_date) return false;
     if (c.due_date < today) return false;
     const assignedToMe = c.assigned_to_emails?.includes(user?.email);
-    const assignedToMyTeam = c.assigned_teams?.some(tid => myTeamIds.includes(tid));
+    const assignedToMyTeam = c.assigned_teams?.some((tid) => myTeamIds.includes(tid));
     if (!assignedToMe && !assignedToMyTeam) return false;
     const dueTime = c.due_time || '21:00';
     const dueDateTime = moment.tz(c.due_date + 'T' + dueTime, getAppTimezone()).toDate();
@@ -256,60 +256,60 @@ export default function Dashboard() {
   });
 
   // For regular users: new tasks/checklists assigned to acknowledge
-  const newTasksToAck = tasks.filter(t => {
+  const newTasksToAck = tasks.filter((t) => {
     if (t.status === 'completed' || t.status === 'cancelled') return false;
     const createdDateObj = parseTs(t.created_date).toDate();
     const isNew = (now.getTime() - createdDateObj.getTime()) / (1000 * 60) <= 1440; // Created in last 24 hours
     const assignedToMe = t.assigned_to_emails?.includes(user?.email);
-    const assignedToMyTeam = t.assigned_teams?.some(tid => myTeamIds.includes(tid));
+    const assignedToMyTeam = t.assigned_teams?.some((tid) => myTeamIds.includes(tid));
     return (assignedToMe || assignedToMyTeam) && isNew;
   });
 
-  const newChecklistsToAck = visibleChecklists.filter(c => {
+  const newChecklistsToAck = visibleChecklists.filter((c) => {
     if (acknowledgedChecklists.has(c.id)) return false;
     const createdDateObj = parseTs(c.created_date).toDate();
     const isNew = (now.getTime() - createdDateObj.getTime()) / (1000 * 60) <= 1440;
     const assignedToMe = c.assigned_to_emails?.includes(user?.email);
-    const assignedToMyTeam = c.assigned_teams?.some(tid => myTeamIds.includes(tid));
+    const assignedToMyTeam = c.assigned_teams?.some((tid) => myTeamIds.includes(tid));
     return (assignedToMe || assignedToMyTeam) && isNew;
   });
 
   // "My Tasks" - all pending tasks assigned to user or their teams with due date today
-  const myPendingTasks = tasks.filter(t => {
+  const myPendingTasks = tasks.filter((t) => {
     if (t.status === 'completed' || t.status === 'cancelled') return false;
     if (t.due_date !== today) return false;
     const assignedToMe = t.assigned_to_emails?.includes(user?.email);
-    const assignedToMyTeam = t.assigned_teams?.some(tid => myTeamIds.includes(tid));
+    const assignedToMyTeam = t.assigned_teams?.some((tid) => myTeamIds.includes(tid));
     return assignedToMe || assignedToMyTeam;
   });
 
   // "My Tasks Due Soon" - pending tasks assigned to user or their teams with due date within next 7 days (today through +7 days)
-  const myTasksDueSoon = tasks.filter(t => {
+  const myTasksDueSoon = tasks.filter((t) => {
     if (t.status === 'completed' || t.status === 'cancelled') return false;
     if (!t.due_date) return false;
     const assignedToMe = t.assigned_to_emails?.includes(user?.email);
-    const assignedToMyTeam = t.assigned_teams?.some(tid => myTeamIds.includes(tid));
+    const assignedToMyTeam = t.assigned_teams?.some((tid) => myTeamIds.includes(tid));
     if (!assignedToMe && !assignedToMyTeam) return false;
     const daysUntilDue = daysFromToday(t.due_date);
     return daysUntilDue >= 0 && daysUntilDue <= 7;
   });
 
   // "My Checklists" shows all published or active checklists assigned to user (any role) or their teams
-  const myChecklists = visibleChecklists.filter(c => {
+  const myChecklists = visibleChecklists.filter((c) => {
     if (c.status !== 'published' && c.status !== 'active') return false;
     const assignedToMe = c.assigned_to_emails?.includes(user?.email);
-    const assignedToMyTeam = c.assigned_teams?.some(tid => myTeamIds.includes(tid));
+    const assignedToMyTeam = c.assigned_teams?.some((tid) => myTeamIds.includes(tid));
     return assignedToMe || assignedToMyTeam;
   });
 
   // "My Checklists Due Soon" - published checklists assigned to user with due date within next 7 days (today through +7 days)
-  const myChecklistsDueSoon = myChecklists.filter(c => {
+  const myChecklistsDueSoon = myChecklists.filter((c) => {
     if (!c.due_date) return false;
     const daysUntilDue = daysFromToday(c.due_date);
     return daysUntilDue >= 0 && daysUntilDue <= 7;
   });
 
-  const openMaintenance = maintenanceRequests.filter(r => {
+  const openMaintenance = maintenanceRequests.filter((r) => {
     if (r.status === 'completed') return false;
     if (canManage) return true; // Managers see all
     // Regular users see only maintenance they requested
@@ -326,8 +326,8 @@ export default function Dashboard() {
       </div>
 
       {/* Notifications tile for regular users */}
-      {!canManage && (overdueIncompleteTeasks.length > 0 || urgentTasks.length > 0 || urgentChecklists.length > 0 || newTasksToAck.length > 0 || newChecklistsToAck.length > 0 || pendingAckSops.length > 0) && (
-        <Card className="border-0 shadow-sm">
+      {!canManage && (overdueIncompleteTeasks.length > 0 || urgentTasks.length > 0 || urgentChecklists.length > 0 || newTasksToAck.length > 0 || newChecklistsToAck.length > 0 || pendingAckSops.length > 0) &&
+      <Card className="border-0 shadow-sm">
           <CardContent className="p-4 md:p-6">
             <div className="flex items-center gap-2 mb-4">
               <Bell className="w-5 h-5 text-slate-600" />
@@ -335,8 +335,8 @@ export default function Dashboard() {
             </div>
             <div className="space-y-2">
               {/* Red: Overdue incomplete tasks */}
-              {overdueIncompleteTeasks.map(task => (
-                <Link key={task.id} to={createPageUrl('Tasks')}>
+              {overdueIncompleteTeasks.map((task) =>
+            <Link key={task.id} to={createPageUrl('Tasks')}>
                   <div className="flex items-center gap-3 p-3 rounded-lg bg-red-50 hover:bg-red-100 transition-colors">
                     <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
@@ -346,10 +346,10 @@ export default function Dashboard() {
                     <ArrowRight className="w-3.5 h-3.5 text-red-600 flex-shrink-0" />
                   </div>
                 </Link>
-              ))}
+            )}
               {/* Yellow: Urgent (1 hour left) */}
-              {urgentTasks.map(task => (
-                <Link key={task.id} to={createPageUrl('Tasks')}>
+              {urgentTasks.map((task) =>
+            <Link key={task.id} to={createPageUrl('Tasks')}>
                   <div className="flex items-center gap-3 p-3 rounded-lg bg-yellow-50 hover:bg-yellow-100 transition-colors">
                     <Clock className="w-4 h-4 text-yellow-600 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
@@ -359,9 +359,9 @@ export default function Dashboard() {
                     <ArrowRight className="w-3.5 h-3.5 text-yellow-600 flex-shrink-0" />
                   </div>
                 </Link>
-              ))}
-              {urgentChecklists.map(checklist => (
-                <Link key={checklist.id} to={createPageUrl('Checklists')}>
+            )}
+              {urgentChecklists.map((checklist) =>
+            <Link key={checklist.id} to={createPageUrl('Checklists')}>
                   <div className="flex items-center gap-3 p-3 rounded-lg bg-yellow-50 hover:bg-yellow-100 transition-colors">
                     <Clock className="w-4 h-4 text-yellow-600 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
@@ -371,10 +371,10 @@ export default function Dashboard() {
                     <ArrowRight className="w-3.5 h-3.5 text-yellow-600 flex-shrink-0" />
                   </div>
                 </Link>
-              ))}
+            )}
               {/* Amber: SOPs requiring acknowledgement */}
-              {pendingAckSops.map(sop => (
-                <Link key={sop.id} to={createPageUrl('SOPDetail') + `?id=${sop.id}`}>
+              {pendingAckSops.map((sop) =>
+            <Link key={sop.id} to={createPageUrl('SOPDetail') + `?id=${sop.id}`}>
                   <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 hover:bg-amber-100 transition-colors border border-amber-200">
                     <FileCheck className="w-4 h-4 text-amber-600 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
@@ -384,10 +384,10 @@ export default function Dashboard() {
                     <ArrowRight className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
                   </div>
                 </Link>
-              ))}
+            )}
               {/* White: New items to acknowledge */}
-              {newTasksToAck.map(task => (
-                <Link key={task.id} to={createPageUrl('Tasks')}>
+              {newTasksToAck.map((task) =>
+            <Link key={task.id} to={createPageUrl('Tasks')}>
                   <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors border border-slate-200">
                     <ClipboardList className="w-4 h-4 text-slate-600 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
@@ -397,9 +397,9 @@ export default function Dashboard() {
                     <ArrowRight className="w-3.5 h-3.5 text-slate-600 flex-shrink-0" />
                   </div>
                 </Link>
-              ))}
-              {newChecklistsToAck.map(checklist => (
-                <Link key={checklist.id} to={createPageUrl('Checklists')} onClick={() => acknowledgeChecklist(checklist.id)}>
+            )}
+              {newChecklistsToAck.map((checklist) =>
+            <Link key={checklist.id} to={createPageUrl('Checklists')} onClick={() => acknowledgeChecklist(checklist.id)}>
                   <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors border border-slate-200">
                     <CheckSquare className="w-4 h-4 text-slate-600 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
@@ -409,34 +409,34 @@ export default function Dashboard() {
                     <ArrowRight className="w-3.5 h-3.5 text-slate-600 flex-shrink-0" />
                   </div>
                 </Link>
-              ))}
+            )}
             </div>
           </CardContent>
         </Card>
-      )}
+      }
 
       {/* Notifications tile for managers/admins */}
-      {canManage && (
-        <Card className="border-0 shadow-sm">
+      {canManage &&
+      <Card className="border-0 shadow-sm">
           <CardContent className="p-4 md:p-6">
             <div className="flex items-center gap-2 mb-4">
               <Bell className="w-5 h-5 text-indigo-600" />
               <h2 className="font-semibold text-slate-900">Notifications</h2>
               {(() => {
-                const myPendingChecklists = pendingChecklistEdits.filter(c => canApprove || c.pending_submitted_by === user?.email || c.created_by === user?.email);
-                const total = pendingAckSops.length + pendingSOPs.length + changesRequestedSops.length + verificationDueSops.length + incidents.length + openMaintenance.length + managersSeenOverdueTasks.length + myPendingChecklists.length;
-                return total > 0 ? (
-                  <span className="ml-auto bg-amber-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{total}</span>
-                ) : null;
-              })()}
+              const myPendingChecklists = pendingChecklistEdits.filter((c) => canApprove || c.pending_submitted_by === user?.email || c.created_by === user?.email);
+              const total = pendingAckSops.length + pendingSOPs.length + changesRequestedSops.length + verificationDueSops.length + incidents.length + openMaintenance.length + managersSeenOverdueTasks.length + myPendingChecklists.length;
+              return total > 0 ?
+              <span className="ml-auto bg-amber-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{total}</span> :
+              null;
+            })()}
             </div>
-            {pendingAckSops.length === 0 && pendingSOPs.length === 0 && changesRequestedSops.length === 0 && verificationDueSops.length === 0 && incidents.length === 0 && openMaintenance.length === 0 && managersSeenOverdueTasks.length === 0 && pendingChecklistEdits.filter(c => canApprove || c.pending_submitted_by === user?.email || c.created_by === user?.email).length === 0 ? (
-              <p className="text-sm text-slate-400 py-2 text-center">No pending notifications</p>
-            ) : (
-              <div className="space-y-2">
+            {pendingAckSops.length === 0 && pendingSOPs.length === 0 && changesRequestedSops.length === 0 && verificationDueSops.length === 0 && incidents.length === 0 && openMaintenance.length === 0 && managersSeenOverdueTasks.length === 0 && pendingChecklistEdits.filter((c) => canApprove || c.pending_submitted_by === user?.email || c.created_by === user?.email).length === 0 ?
+          <p className="text-sm text-slate-400 py-2 text-center">No pending notifications</p> :
+
+          <div className="space-y-2">
                 {/* Amber: SOPs requiring acknowledgement (managers must read too) */}
-                {pendingAckSops.map(sop => (
-                  <Link key={sop.id} to={createPageUrl('SOPDetail') + `?id=${sop.id}`}>
+                {pendingAckSops.map((sop) =>
+            <Link key={sop.id} to={createPageUrl('SOPDetail') + `?id=${sop.id}`}>
                     <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 hover:bg-amber-100 transition-colors border border-amber-200">
                       <FileCheck className="w-4 h-4 text-amber-600 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
@@ -446,17 +446,17 @@ export default function Dashboard() {
                       <ArrowRight className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
                     </div>
                   </Link>
-                ))}
+            )}
                 {/* Team members' overdue tasks - dismissible for managers */}
-                {managersSeenOverdueTasks.map(task => (
-                  <DismissibleOverdueTask
-                    key={task.id}
-                    task={task}
-                    user={user}
-                  />
-                ))}
-                {incidents.map(inc => (
-                  <Link key={inc.id} to={createPageUrl('IncidentReports')}>
+                {managersSeenOverdueTasks.map((task) =>
+            <DismissibleOverdueTask
+              key={task.id}
+              task={task}
+              user={user} />
+
+            )}
+                {incidents.map((inc) =>
+            <Link key={inc.id} to={createPageUrl('IncidentReports')}>
                     <div className="flex items-center gap-3 p-3 rounded-lg bg-red-50 hover:bg-red-100 transition-colors">
                       <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
@@ -468,9 +468,9 @@ export default function Dashboard() {
                       <ArrowRight className="w-3.5 h-3.5 text-red-600 flex-shrink-0" />
                     </div>
                   </Link>
-                ))}
-                {openMaintenance.map(req => (
-                  <Link key={req.id} to={createPageUrl('Maintenance')}>
+            )}
+                {openMaintenance.map((req) =>
+            <Link key={req.id} to={createPageUrl('Maintenance')}>
                     <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 hover:bg-amber-100 transition-colors">
                       <Wrench className="w-4 h-4 text-amber-600 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
@@ -480,9 +480,9 @@ export default function Dashboard() {
                       <ArrowRight className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
                     </div>
                   </Link>
-                ))}
-                {changesRequestedSops.map(sop => (
-                  <Link key={sop.id} to={createPageUrl('SOPEditor') + `?id=${sop.id}`}>
+            )}
+                {changesRequestedSops.map((sop) =>
+            <Link key={sop.id} to={createPageUrl('SOPEditor') + `?id=${sop.id}`}>
                     <div className="flex items-center gap-3 p-3 rounded-lg bg-red-50 hover:bg-red-100 transition-colors">
                       <ShieldAlert className="w-4 h-4 text-red-600 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
@@ -492,56 +492,56 @@ export default function Dashboard() {
                       <ArrowRight className="w-3.5 h-3.5 text-red-600 flex-shrink-0" />
                     </div>
                   </Link>
-                ))}
-                {canApprove && pendingSOPs.map(sop => (
-                  <Link key={sop.id} to={createPageUrl('SOPDetail') + `?id=${sop.id}`}>
+            )}
+                {canApprove && pendingSOPs.map((sop) =>
+            <Link key={sop.id} to={createPageUrl('SOPDetail') + `?id=${sop.id}`}>
                     <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 hover:bg-amber-100 transition-colors">
                       <ShieldAlert className="w-4 h-4 text-amber-600 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-amber-900 truncate">Pending Edit: {sop.title}</p>
-                        {sop.pending_submitted_by_name && (
-                          <p className="text-xs text-amber-700">Submitted by {sop.pending_submitted_by_name}</p>
-                        )}
+                        {sop.pending_submitted_by_name &&
+                  <p className="text-xs text-amber-700">Submitted by {sop.pending_submitted_by_name}</p>
+                  }
                       </div>
                       <ArrowRight className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
                     </div>
                   </Link>
-                ))}
-                {pendingChecklistEdits
-                  .filter(checklist => canApprove || checklist.pending_submitted_by === user?.email || checklist.created_by === user?.email)
-                  .map(checklist => {
-                   const isSentBack = checklist.status === 'draft' && checklist.pending_review_note;
-                   return (
-                   <Link key={checklist.id} to={createPageUrl('ChecklistEditor') + `?id=${checklist.id}`}>
+            )}
+                {pendingChecklistEdits.
+            filter((checklist) => canApprove || checklist.pending_submitted_by === user?.email || checklist.created_by === user?.email).
+            map((checklist) => {
+              const isSentBack = checklist.status === 'draft' && checklist.pending_review_note;
+              return (
+                <Link key={checklist.id} to={createPageUrl('ChecklistEditor') + `?id=${checklist.id}`}>
                      <div className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${isSentBack ? 'bg-red-50 hover:bg-red-100' : 'bg-indigo-50 hover:bg-indigo-100'}`}>
                        <CheckSquare className={`w-4 h-4 flex-shrink-0 ${isSentBack ? 'text-red-600' : 'text-indigo-600'}`} />
                        <div className="flex-1 min-w-0">
                          <p className={`text-sm font-medium truncate ${isSentBack ? 'text-red-900' : 'text-indigo-900'}`}>
-                           {isSentBack ? '↩ Sent back: ' : (canApprove ? '⏳ Awaiting Approval: ' : '📋 Pending Approval: ')}{checklist.title}
+                           {isSentBack ? '↩ Sent back: ' : canApprove ? '⏳ Awaiting Approval: ' : '📋 Pending Approval: '}{checklist.title}
                          </p>
-                         {isSentBack ? (
-                           <p className="text-xs text-red-700 truncate">{checklist.pending_review_note}</p>
-                         ) : (
-                           <>
-                             {checklist.pending_submitted_by_name && canApprove && (
-                               <p className="text-xs text-indigo-700">Submitted by {checklist.pending_submitted_by_name}</p>
-                             )}
-                             {!canApprove && (
-                               <p className="text-xs text-indigo-700">Waiting for admin review</p>
-                             )}
+                         {isSentBack ?
+                      <p className="text-xs text-red-700 truncate">{checklist.pending_review_note}</p> :
+
+                      <>
+                             {checklist.pending_submitted_by_name && canApprove &&
+                        <p className="text-xs text-indigo-700">Submitted by {checklist.pending_submitted_by_name}</p>
+                        }
+                             {!canApprove &&
+                        <p className="text-xs text-indigo-700">Waiting for admin review</p>
+                        }
                            </>
-                         )}
+                      }
                        </div>
                        <ArrowRight className={`w-3.5 h-3.5 flex-shrink-0 ${isSentBack ? 'text-red-600' : 'text-indigo-600'}`} />
                      </div>
-                   </Link>
-                   );
-                 })}
-                {verificationDueSops.map(sop => {
-                  const daysLeft = daysFromToday(sop.verification_due_date);
-                  const overdue = daysLeft < 0;
-                  return (
-                    <Link key={sop.id} to={createPageUrl('SOPDetail') + `?id=${sop.id}`}>
+                   </Link>);
+
+            })}
+                {verificationDueSops.map((sop) => {
+              const daysLeft = daysFromToday(sop.verification_due_date);
+              const overdue = daysLeft < 0;
+              return (
+                <Link key={sop.id} to={createPageUrl('SOPDetail') + `?id=${sop.id}`}>
                       <div className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${overdue ? 'bg-red-50 hover:bg-red-100' : 'bg-orange-50 hover:bg-orange-100'}`}>
                         <CalendarCheck className={`w-4 h-4 flex-shrink-0 ${overdue ? 'text-red-600' : 'text-orange-600'}`} />
                         <div className="flex-1 min-w-0">
@@ -554,14 +554,14 @@ export default function Dashboard() {
                         </div>
                         <ArrowRight className={`w-3.5 h-3.5 flex-shrink-0 ${overdue ? 'text-red-600' : 'text-orange-600'}`} />
                       </div>
-                    </Link>
-                  );
-                })}
+                    </Link>);
+
+            })}
               </div>
-            )}
+          }
           </CardContent>
         </Card>
-      )}
+      }
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
          <div className="h-20 sm:h-24">
@@ -587,11 +587,11 @@ export default function Dashboard() {
                </Link>
                <Link to={createPageUrl('Maintenance') + '?new=true'} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-amber-50 hover:bg-amber-100 transition-colors">
                  <Wrench className="w-6 h-6 text-amber-600" />
-                 <span className="text-sm font-medium text-amber-700 text-center">New Request</span>
+                 <span className="text-sm font-medium text-amber-700 text-center">New Maintenance Request</span>
                </Link>
                <Link to={createPageUrl('IncidentReports')} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-purple-50 hover:bg-purple-100 transition-colors">
                  <AlertTriangle className="w-6 h-6 text-purple-600" />
-                 <span className="text-sm font-medium text-purple-700 text-center">Report Incident</span>
+                 <span className="text-sm font-medium text-purple-700 text-center">New Report Incident</span>
                </Link>
              </div>
            </CardContent>
@@ -609,12 +609,12 @@ export default function Dashboard() {
                 View all <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
-            {openMaintenance.length === 0 ? (
-              <p className="text-sm text-slate-400 py-4 text-center">No active requests</p>
-            ) : (
-              <div className="space-y-3">
-                {openMaintenance.slice(0, 4).map(req => (
-                  <div key={req.id} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
+            {openMaintenance.length === 0 ?
+            <p className="text-sm text-slate-400 py-4 text-center">No active requests</p> :
+
+            <div className="space-y-3">
+                {openMaintenance.slice(0, 4).map((req) =>
+              <div key={req.id} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-slate-800 truncate">{req.title}</p>
                       <div className="flex items-center gap-2 mt-1">
@@ -624,9 +624,9 @@ export default function Dashboard() {
                     </div>
                     <StatusBadge status={req.status} />
                   </div>
-                ))}
+              )}
               </div>
-            )}
+            }
           </CardContent>
         </Card>
 
@@ -639,12 +639,12 @@ export default function Dashboard() {
                 View all <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
-            {incidents.length === 0 ? (
-              <p className="text-sm text-slate-400 py-4 text-center">No open incidents</p>
-            ) : (
-              <div className="space-y-3">
-                {incidents.slice(0, 4).map(inc => (
-                  <div key={inc.id} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
+            {incidents.length === 0 ?
+            <p className="text-sm text-slate-400 py-4 text-center">No open incidents</p> :
+
+            <div className="space-y-3">
+                {incidents.slice(0, 4).map((inc) =>
+              <div key={inc.id} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-slate-800 truncate">{inc.title}</p>
                       <div className="flex items-center gap-2 mt-1">
@@ -654,12 +654,12 @@ export default function Dashboard() {
                     </div>
                     <StatusBadge status={inc.status} />
                   </div>
-                ))}
+              )}
               </div>
-            )}
+            }
           </CardContent>
         </Card>
       </div>
-      </div>
-      );
-      }
+      </div>);
+
+}
