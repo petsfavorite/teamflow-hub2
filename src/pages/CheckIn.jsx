@@ -142,6 +142,31 @@ export default function CheckIn() {
         pet.owner_name?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+    // Success screen takes priority so the form doesn't re-render during the
+    // redirect window after check-in completes.
+    if (showSuccess) {
+        return (
+            <div className="min-h-screen bg-stone-50 flex items-center justify-center p-4">
+                <motion.div
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="text-center"
+                >
+                    <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: 0.2, type: "spring" }}
+                        className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6"
+                    >
+                        <CheckCircle2 className="w-12 h-12 text-emerald-500" />
+                    </motion.div>
+                    <h2 className="text-2xl font-bold text-stone-800 mb-2">Checked In!</h2>
+                    <p className="text-stone-500">Redirecting to whiteboard...</p>
+                </motion.div>
+            </div>
+        );
+    }
+
     // Show check-in type selection if pet is selected
     if (selectedPet && !checkInType) {
         return (
@@ -206,29 +231,6 @@ export default function CheckIn() {
                         />
                     )}
                 </div>
-            </div>
-        );
-    }
-
-    if (showSuccess) {
-        return (
-            <div className="min-h-screen bg-stone-50 flex items-center justify-center p-4">
-                <motion.div
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    className="text-center"
-                >
-                    <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ delay: 0.2, type: "spring" }}
-                        className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6"
-                    >
-                        <CheckCircle2 className="w-12 h-12 text-emerald-500" />
-                    </motion.div>
-                    <h2 className="text-2xl font-bold text-stone-800 mb-2">Checked In!</h2>
-                    <p className="text-stone-500">Redirecting to whiteboard...</p>
-                </motion.div>
             </div>
         );
     }
