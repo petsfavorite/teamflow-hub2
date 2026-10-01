@@ -1,4 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+
+const FILTER_KEY = 'sop-library-filters';
+const loadFilters = () => {
+  try { const raw = sessionStorage.getItem(FILTER_KEY); if (raw) return JSON.parse(raw); } catch { /* ignore */ }
+  return {};
+};
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
@@ -21,11 +27,17 @@ import { fetchLiveSops, fetchMyAcks, fetchMyTeamIds, sopsNeedingAck, isReAck, is
 
 export default function SOPs() {
   const { user, isAdmin, isSuperAdmin, canManage, isManager, can } = useCurrentUser();
-  const [search, setSearch] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('active');
-  const [showArchived, setShowArchived] = useState(false);
+  const _saved = loadFilters();
+  const [search, setSearch] = useState(_saved.search || '');
+  const [categoryFilter, setCategoryFilter] = useState(_saved.categoryFilter || 'all');
+  const [statusFilter, setStatusFilter] = useState(_saved.statusFilter || 'active');
+  const [showArchived, setShowArchived] = useState(_saved.showArchived || false);
   const queryClient = useQueryClient();
+
+  // Persist filters so returning from an SOP detail/edit page restores the same view
+  useEffect(() => {
+    try { sessionStorage.setItem(FILTER_KEY, JSON.stringify({ search, categoryFilter, statusFilter, showArchived })); } catch { /* ignore */ }
+  }, [search, categoryFilter, statusFilter, showArchived]);
 
   // SOPs the user must acknowledge at their CURRENT version (all-staff SOPs included, re-ack after every new version)
   const { data: pendingAck = { sops: [], acks: [] } } = useQuery({
