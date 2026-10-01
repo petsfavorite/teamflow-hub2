@@ -93,6 +93,39 @@ Deno.serve(async (req) => {
       return Response.json({ success: true });
     }
 
+    if (action === 'publish') {
+      if (!isAdmin) return fail('Only admins can publish SOPs', 403);
+      const sop = await load();
+      if (!sop) return fail('SOP not found', 404);
+      if (sop.status !== 'draft') return fail('Only draft SOPs can be published', 403);
+      const settings = await db.AppSettings.filter({ key: 'global' });
+      const tz = settings[0]?.global_timezone || 'America/New_York';
+      const now = new Date().toISOString();
+      const version = sop.version || 1;
+      await db.SOP.update(id, {
+        status: 'published',
+        version_published_at: now,
+        verification_due_date: moment().tz(tz).add(90, 'days').format('YYYY-MM-DD'),
+        last_verified_by: user.email,
+        last_verified_by_name: user.full_name || user.email,
+        last_verified_at: now,
+        last_updated_by: user.email,
+        last_updated_by_name: user.full_name,
+      });
+      // Record version snapshot (same as the editor does when publishing)
+      const body = sop.instructions || sop.content || '';
+      const versionPayload = {
+        sop_id: id, version_number: version,
+        title: sop.title, content: body, summary: sop.summary, tags: sop.tags, category: sop.category,
+        snapshot: pickFields({ ...sop, instructions: body }),
+        change_summary: 'Published', created_by_name: user.full_name || user.email,
+      };
+      const existingVersion = await db.SOPVersion.filter({ sop_id: id, version_number: version });
+      if (existingVersion[0]) await db.SOPVersion.update(existingVersion[0].id, versionPayload);
+      else await db.SOPVersion.create(versionPayload);
+      return Response.json({ success: true });
+    }
+
     if (action === 'archive') {
       const sop = await load();
       if (!sop) return fail('SOP not found', 404);

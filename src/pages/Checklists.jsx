@@ -1227,7 +1227,7 @@ export default function Checklists() {
                                 disabled={approveTemplateMutation.isPending}
                                 onClick={() => approveTemplateMutation.mutate(t)}
                               >
-                                Approve
+                                Publish
                               </Button>
                             )}
                             <Link to={createPageUrl('ChecklistEditor') + `?id=${t.id}`}>

@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { BookOpen, Plus, Search, Tag, Clock, Archive, ArchiveRestore, AlertCircle, Mic, ChevronDown, ChevronRight, FolderArchive } from 'lucide-react';
+import { BookOpen, Plus, Search, Tag, Clock, Archive, ArchiveRestore, AlertCircle, Mic, ChevronDown, ChevronRight, FolderArchive, Send } from 'lucide-react';
 import { formatDate } from '@/lib/timezone';
 import { fetchLiveSops, fetchMyAcks, fetchMyTeamIds, sopsNeedingAck, isReAck, isAckOverdue, pendingState, verificationStatus, searchSops, isLive, manageSop } from '@/lib/sop';
 
@@ -66,6 +66,16 @@ export default function SOPs() {
     onError: (e) => toast.error('Could not update the SOP: ' + (e?.message || 'unknown error')),
   });
 
+  const publishMutation = useMutation({
+    mutationFn: (sop) => manageSop('publish', { id: sop.id }),
+    onSuccess: (_, sop) => {
+      ['sops-all', 'sops-live', 'sops', 'all-sops-dash', 'draft-sops', 'sops-pending-ack', 'sops-pending-ack-dash']
+        .forEach(k => queryClient.invalidateQueries({ queryKey: [k] }));
+      toast.success(`"${sop.title}" published`);
+    },
+    onError: (e) => toast.error('Could not publish the SOP: ' + (e?.message || 'unknown error')),
+  });
+
   const categories = [...new Set(sops.map(s => s.category).filter(Boolean))];
 
   // Search covers title, summary, tags, category and the full instructions; results are ranked by relevance.
@@ -116,6 +126,21 @@ export default function SOPs() {
                   </CardContent>
                 </Card>
               </Link>
+              {(isAdmin || isSuperAdmin) && sop.status === 'draft' && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  title="Publish"
+                  disabled={publishMutation.isPending}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    publishMutation.mutate(sop);
+                  }}
+                  className="absolute top-2 right-11 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity bg-white/90 hover:bg-emerald-50 text-emerald-600 hover:text-emerald-700"
+                >
+                  <Send className="w-4 h-4" />
+                </Button>
+              )}
               {(isAdmin || isSuperAdmin) && (
                 <Button
                   variant="ghost"
