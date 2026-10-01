@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { hashPin, isPinHashed } from '../../shared/crypto.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -66,15 +67,15 @@ Deno.serve(async (req) => {
       if (pin && pin.length !== 6) {
         return Response.json({ error: 'PIN must be exactly 6 digits' }, { status: 400 });
       }
-      // Check PIN uniqueness if a non-empty PIN is being set
+      // Hash the PIN before storing — never persist plaintext PINs.
+      // Uniqueness can't be checked by filtering on the raw PIN (hashes are
+      // salted per-email), and uniqueness isn't a security requirement since
+      // each user can only unlock their own session, so the check is dropped.
       if (pin) {
-        const existingPinUsers = await base44.asServiceRole.entities.User.filter({ pin });
-        const conflict = existingPinUsers.find(u => u.id !== userId);
-        if (conflict) {
-          return Response.json({ error: 'PIN already in use by another user' }, { status: 400 });
-        }
+        updates.pin = await hashPin(pin, targetUser.email);
+      } else {
+        updates.pin = null;
       }
-      updates.pin = pin || null;
     }
 
     // Team changes — admins+ only (managers could otherwise reassign privileged users' teams)
