@@ -46,7 +46,43 @@
     },
     "assigned_to": {
       "type": "string",
-      "description": "Email of user assigned to this request"
+      "description": "Primary assignee email (first in assigned_to_emails, kept for backward compat)"
+    },
+    "assigned_to_name": {
+      "type": "string",
+      "description": "Display name of the primary assignee (backward compat)"
+    },
+    "assigned_to_emails": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Emails of all users assigned to this request"
+    },
+    "assigned_to_names": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Display names of all assigned users"
+    },
+    "acknowledgements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "acknowledged_at": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Users who have acknowledged this request and when"
     },
     "notes_log": {
       "type": "array",
@@ -108,9 +144,16 @@
     "read": {
       "$or": [
         {
-          "user_condition": {
-            "role": "user"
-          }
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "data.requested_by": "{{user.email}}"
+        },
+        {
+          "data.assigned_to": "{{user.email}}"
+        },
+        {
+          "data.assigned_to_emails": "{{user.email}}"
         },
         {
           "user_condition": {
@@ -126,11 +169,6 @@
           "user_condition": {
             "role": "super_admin"
           }
-        },
-        {
-          "user_condition": {
-            "role": "general_account"
-          }
         }
       ]
     },
@@ -144,6 +182,13 @@
         },
         {
           "data.assigned_to": "{{user.email}}"
+        },
+        {
+          "data.assigned_to_emails": {
+            "$in": [
+              "{{user.email}}"
+            ]
+          }
         },
         {
           "user_condition": {
@@ -172,6 +217,13 @@
         },
         {
           "data.assigned_to": "{{user.email}}"
+        },
+        {
+          "data.assigned_to_emails": {
+            "$in": [
+              "{{user.email}}"
+            ]
+          }
         },
         {
           "user_condition": {

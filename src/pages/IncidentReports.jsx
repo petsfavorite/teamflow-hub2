@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { escapeHtml, isSafeUrl } from '@/lib/sanitize';
+import AssignmentAcknowledge from '../components/shared/AssignmentAcknowledge';
 import { AlertTriangle, Plus, Clock, User, Loader2, ChevronDown, Paperclip, Lock, Archive, Printer } from 'lucide-react';
 import { toast } from "sonner";
 import { formatDate, formatDateTime, todayStr } from '@/lib/timezone';
@@ -93,10 +94,10 @@ function PrintableReport({ report }) {
             <td style={{ color: '#555', paddingBottom: '6px' }}>Status:</td>
             <td style={{ paddingBottom: '6px' }}>{report.status?.replace(/_/g, ' ')}</td>
           </tr>
-          {report.assigned_to && (
+          {(report.assigned_to_names?.length > 0 || report.assigned_to) && (
             <tr>
               <td style={{ color: '#555', paddingBottom: '6px' }}>Assigned To:</td>
-              <td colSpan={3} style={{ paddingBottom: '6px' }}>{report.assigned_to}</td>
+              <td colSpan={3} style={{ paddingBottom: '6px' }}>{report.assigned_to_names?.join(', ') || report.assigned_to}</td>
             </tr>
           )}
         </tbody>
@@ -223,7 +224,7 @@ export default function IncidentReports() {
 
   const visibleActive = canManage
     ? activeReports
-    : activeReports.filter(r => r.reported_by === user?.email || r.assigned_to === user?.email);
+    : activeReports.filter(r => r.reported_by === user?.email || r.assigned_to === user?.email || (r.assigned_to_emails || []).includes(user?.email));
 
   const filteredArchive = archivedReports.filter(r => {
     const q = archiveSearch.toLowerCase();
@@ -236,11 +237,17 @@ export default function IncidentReports() {
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.IncidentReport.create(data),
-    onSuccess: () => {
+    onSuccess: async (created) => {
       toast.success('Incident report submitted');
       queryClient.invalidateQueries({ queryKey: ['incidents'] });
       setShowNew(false);
       setForm(emptyForm);
+      // Notify admins/managers on the creator's team to acknowledge
+      try {
+        await base44.functions.invoke('notifyIncidentMaintenance', {
+          type: 'incident', id: created.id, action: 'create',
+        });
+      } catch (e) { /* notification best-effort */ }
     },
   });
 
@@ -271,13 +278,13 @@ export default function IncidentReports() {
 
   const canEdit = (r) => {
     if (!r) return false;
-    if (!r.assigned_to) return true;
-    return r.assigned_to === user?.email || canManage;
+    if (!r.assigned_to && !(r.assigned_to_emails || []).length) return true;
+    return r.assigned_to === user?.email || (r.assigned_to_emails || []).includes(user?.email) || canManage;
   };
 
   const canPrint = (r) => {
     if (!r) return false;
-    return canManage || r.assigned_to === user?.email;
+    return canManage || r.assigned_to === user?.email || (r.assigned_to_emails || []).includes(user?.email);
   };
 
   const handlePrint = (report) => {
@@ -565,7 +572,9 @@ export default function IncidentReports() {
                 <div><p className="text-slate-400 text-xs">Date</p><p className="font-medium">{selected.incident_date}</p></div>
                 <div><p className="text-slate-400 text-xs">Reported By</p><p className="font-medium">{selected.reported_by_name}</p></div>
                 {selected.incident_time && <div><p className="text-slate-400 text-xs">Time</p><p className="font-medium">{selected.incident_time}</p></div>}
-                {selected.assigned_to && <div><p className="text-slate-400 text-xs">Assigned To</p><p className="font-medium text-purple-700">{selected.assigned_to}</p></div>}
+                {selected.assigned_to_emails?.length > 0 && (
+                  <div className="col-span-2"><p className="text-slate-400 text-xs">Assigned To</p><p className="font-medium text-purple-700">{selected.assigned_to_names?.join(', ') || selected.assigned_to_emails.join(', ')}</p></div>
+                )}
               </div>
 
               {selected.description && (
@@ -669,6 +678,12 @@ export default function IncidentReports() {
                         setNewNoteAttachment(null);
                         setSelected({ ...selected, notes_log: [...(selected.notes_log || []), noteEntry] });
                         toast.success('Note added');
+                        // Notify creator + assignees (or team admins/managers if unassigned)
+                        try {
+                          await base44.functions.invoke('notifyIncidentMaintenance', {
+                            type: 'incident', id: selected.id, action: 'note', noteText: noteEntry.note,
+                          });
+                        } catch (e) { /* notification best-effort */ }
                       } catch (err) {
                         toast.error('Failed to save note');
                       }
@@ -705,28 +720,27 @@ export default function IncidentReports() {
                 </div>
               )}
 
-              {/* Assign To */}
-              {canAssign && selected.status !== 'resolved' && (
-                <div className="border-t pt-4">
-                  <p className="text-sm font-medium text-slate-900 mb-2">Assign To (optional)</p>
-                  <Select
-                    value={selected.assigned_to || ''}
-                    onValueChange={v => {
-                      const val = v || null;
-                      updateMutation.mutate({ id: selected.id, data: { assigned_to: val } });
-                      setSelected({ ...selected, assigned_to: val });
-                    }}
-                  >
-                    <SelectTrigger><SelectValue placeholder="Select user" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={null}>Unassigned</SelectItem>
-                      {allUsers.map(u => (
-                        <SelectItem key={u.id} value={u.email}>{u.full_name || u.email}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
+              <AssignmentAcknowledge
+                record={selected}
+                users={allUsers}
+                currentUser={user}
+                canManage={canManage}
+                isSuperAdmin={isSuperAdmin}
+                entityType="incident"
+                isResolved={selected.status === 'resolved'}
+                onUpdate={async (id, data) => {
+                  await base44.entities.IncidentReport.update(id, data);
+                  queryClient.invalidateQueries({ queryKey: ['incidents'] });
+                  setSelected(prev => ({ ...prev, ...data }));
+                }}
+                onNotify={async (action, payload) => {
+                  try {
+                    await base44.functions.invoke('notifyIncidentMaintenance', {
+                      type: 'incident', id: selected.id, action, ...payload,
+                    });
+                  } catch (e) { /* best-effort */ }
+                }}
+              />
 
               {/* Print Button */}
               {canPrint(selected) && (

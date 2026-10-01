@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Wrench, Plus, MapPin, Clock, User, Loader2, ChevronDown, Paperclip, Archive } from 'lucide-react';
+import AssignmentAcknowledge from '../components/shared/AssignmentAcknowledge';
 import { toast } from "sonner";
 import { formatDate, formatDateTime } from '@/lib/timezone';
 
@@ -39,8 +40,8 @@ export default function Maintenance() {
   const canEdit = (req) => {
     if (!req) return false;
     if (canManage) return true;
-    if (!req.assigned_to) return req.requested_by === user?.email;
-    return req.assigned_to === user?.email;
+    if (!req.assigned_to && !(req.assigned_to_emails || []).length) return req.requested_by === user?.email;
+    return req.assigned_to === user?.email || (req.assigned_to_emails || []).includes(user?.email);
   };
 
   const { data: allRequests = [], isLoading } = useQuery({
@@ -61,11 +62,17 @@ export default function Maintenance() {
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.MaintenanceRequest.create(data),
-    onSuccess: () => {
+    onSuccess: async (created) => {
       toast.success('Request submitted');
       queryClient.invalidateQueries({ queryKey: ['maintenance-requests'] });
       setShowNew(false);
       setForm({ title: '', description: '', location: '', priority: 'medium', asset_id: null });
+      // Notify admins/managers on the creator's team to acknowledge
+      try {
+        await base44.functions.invoke('notifyIncidentMaintenance', {
+          type: 'maintenance', id: created.id, action: 'create',
+        });
+      } catch (e) { /* notification best-effort */ }
     },
   });
 
@@ -118,11 +125,11 @@ export default function Maintenance() {
 
   const visibleActive = canManage
     ? activeRequests
-    : activeRequests.filter(r => r.requested_by === user?.email || r.assigned_to === user?.email);
+    : activeRequests.filter(r => r.requested_by === user?.email || r.assigned_to === user?.email || (r.assigned_to_emails || []).includes(user?.email));
 
   const myAssignedTasks = !canManage
-    ? activeRequests.filter(r => r.assigned_to === user?.email)
-    : [];
+  ? activeRequests.filter(r => r.assigned_to === user?.email || (r.assigned_to_emails || []).includes(user?.email))
+  : [];
 
   const filteredArchive = archivedRequests.filter(r => {
     const q = archiveSearch.toLowerCase();
@@ -262,7 +269,9 @@ export default function Maintenance() {
                 <div><span className="text-slate-400">Priority:</span> <StatusBadge status={selected?.priority} /></div>
                 <div><span className="text-slate-400">Status:</span> <StatusBadge status={selected?.status} /></div>
                 {selected?.location && <div><span className="text-slate-400">Location:</span> <span className="font-medium">{selected?.location}</span></div>}
-                {selected?.assigned_to && <div className="col-span-2"><span className="text-slate-400">Assigned to:</span> <span className="font-medium text-purple-700">{getUserDisplayName(allUsers.find(u => u.email === selected.assigned_to)) || selected.assigned_to}</span></div>}
+                {selected?.assigned_to_emails?.length > 0 && (
+                  <div className="col-span-2"><span className="text-slate-400">Assigned to:</span> <span className="font-medium text-purple-700">{selected.assigned_to_names?.join(', ') || selected.assigned_to_emails.join(', ')}</span></div>
+                )}
               </div>
               {selected?.asset_name && (
                 <div className="bg-blue-50 p-3 rounded-lg">
@@ -336,6 +345,12 @@ export default function Maintenance() {
                         setNewNoteAttachment(null);
                         setSelected({ ...selected, notes_log: [...(selected.notes_log || []), noteEntry] });
                         toast.success('Note added');
+                        // Notify creator + assignees (or team admins/managers if unassigned)
+                        try {
+                          await base44.functions.invoke('notifyIncidentMaintenance', {
+                            type: 'maintenance', id: selected.id, action: 'note', noteText: noteEntry.note,
+                          });
+                        } catch (e) { /* notification best-effort */ }
                       } catch (err) {
                         toast.error('Failed to save note');
                       }
@@ -371,28 +386,27 @@ export default function Maintenance() {
                 </div>
               )}
 
-              {canAssign && selected.status !== 'completed' && (
-                <div className="border-t pt-4">
-                  <p className="text-sm font-medium text-slate-900 mb-2">Assign To (optional)</p>
-                  <Select
-                    value={selected.assigned_to || ''}
-                    onValueChange={v => {
-                      const val = v || null;
-                      const assignedUser = allUsers.find(u => u.email === val);
-                      updateMutation.mutate({ id: selected.id, data: { assigned_to: val, assigned_to_name: getUserDisplayName(assignedUser) || null } });
-                      setSelected({ ...selected, assigned_to: val, assigned_to_name: getUserDisplayName(assignedUser) || null });
-                    }}
-                  >
-                    <SelectTrigger><SelectValue placeholder="Select user" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={null}>Unassigned</SelectItem>
-                      {allUsers.map(u => (
-                        <SelectItem key={u.id} value={u.email}>{getUserDisplayName(u)}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
+              <AssignmentAcknowledge
+                record={selected}
+                users={allUsers}
+                currentUser={user}
+                canManage={canManage}
+                isSuperAdmin={isSuperAdmin}
+                entityType="maintenance"
+                isResolved={selected.status === 'completed'}
+                onUpdate={async (id, data) => {
+                  await base44.entities.MaintenanceRequest.update(id, data);
+                  queryClient.invalidateQueries({ queryKey: ['maintenance-requests'] });
+                  setSelected(prev => ({ ...prev, ...data }));
+                }}
+                onNotify={async (action, payload) => {
+                  try {
+                    await base44.functions.invoke('notifyIncidentMaintenance', {
+                      type: 'maintenance', id: selected.id, action, ...payload,
+                    });
+                  } catch (e) { /* best-effort */ }
+                }}
+              />
             </div>
           )}
         </DialogContent>
@@ -420,7 +434,7 @@ function RequestCard({ req, onClick, highlight, archived, allUsers = [] }) {
                 {req.asset_name && <span>Asset: {req.asset_name}</span>}
                 <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{formatDate(req.created_date)}</span>
                 <span className="flex items-center gap-1"><User className="w-3 h-3" />{req.requested_by_name || req.requested_by}</span>
-                {req.assigned_to && <span className="text-purple-500">→ {req.assigned_to_name || getUserDisplayName(allUsers.find(u => u.email === req.assigned_to)) || req.assigned_to}</span>}
+                {(req.assigned_to_emails?.length > 0 || req.assigned_to) && <span className="text-purple-500">→ {req.assigned_to_names?.join(', ') || req.assigned_to_name || getUserDisplayName(allUsers.find(u => u.email === req.assigned_to)) || req.assigned_to}</span>}
               </div>
             </div>
           </div>
