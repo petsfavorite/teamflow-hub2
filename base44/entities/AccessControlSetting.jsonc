@@ -1,0 +1,102 @@
+{
+  "name": "AccessControlSetting",
+  "type": "object",
+  "properties": {
+    "action_key": {
+      "type": "string",
+      "description": "Unique identifier for the action (e.g. 'sop.create')"
+    },
+    "category": {
+      "type": "string",
+      "description": "Function category for grouping in the matrix"
+    },
+    "label": {
+      "type": "string",
+      "description": "Display name shown in the matrix row"
+    },
+    "description": {
+      "type": "string"
+    },
+    "allowed_roles": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Roles allowed to perform this action"
+    },
+    "order": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "action_key",
+    "category",
+    "label",
+    "allowed_roles"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "super_admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "manager"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "super_admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "general_account"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "super_admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "super_admin"
+      }
+    }
+  }
+}

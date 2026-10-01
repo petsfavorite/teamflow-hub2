@@ -8,7 +8,8 @@ import { LayoutGrid, Users, LogIn, Settings, Menu, X,
     ChevronDown, ChevronRight, ShieldCheck, History, Upload, Phone, FileSpreadsheet, FileText,
     LogOut,
     Download,
-    BookMarked
+    BookMarked,
+    Lock
 } from 'lucide-react';
 import { useCurrentUser } from './components/hooks/useCurrentUser';
 import { base44 } from '@/api/base44Client';
@@ -47,6 +48,7 @@ const adminNavItems = [
     { name: 'FetchCallData', icon: FileSpreadsheet, label: 'Fetch Call Data', superAdminOnly: true },
     { name: 'DevChecklist', icon: ClipboardList, label: 'Dev Checklist', superAdminOnly: true },
     { name: 'DataExport', icon: Download, label: 'Data Export', superAdminOnly: true },
+    { name: 'AccessControl', icon: Lock, label: 'Access Control', adminOnly: true },
 ];
 
 const ADMIN_ROLES = ['admin', 'manager', 'super_admin'];
@@ -165,7 +167,7 @@ export default function Layout({ children }) {
                                 </button>
                                 {(adminOpen || isOnAdminPage) && (
                                     <div className="ml-4 mt-1 flex flex-col gap-1 border-l-2 border-stone-100 pl-3">
-                                        {adminNavItems.filter(item => !item.superAdminOnly || user?.role === 'super_admin').map((item) => (
+                                        {adminNavItems.filter(item => (!item.superAdminOnly || user?.role === 'super_admin') && (!item.adminOnly || ['admin', 'super_admin'].includes(user?.role))).map((item) => (
                                             <Link
                                                 key={item.name}
                                                 to={createPageUrl(item.name)}
@@ -184,7 +186,7 @@ export default function Layout({ children }) {
                             </>
                         ) : (
                             // Collapsed: show icon only for admin items
-                            adminNavItems.filter(item => !item.superAdminOnly || user?.role === 'super_admin').map((item) => (
+                            adminNavItems.filter(item => (!item.superAdminOnly || user?.role === 'super_admin') && (!item.adminOnly || ['admin', 'super_admin'].includes(user?.role))).map((item) => (
                                 <Link
                                     key={item.name}
                                     to={createPageUrl(item.name)}
@@ -306,7 +308,7 @@ export default function Layout({ children }) {
                             </button>
                             {(adminOpen || isOnAdminPage) && (
                                 <div className="ml-4 mt-1 flex flex-col gap-1 border-l-2 border-stone-100 pl-3">
-                                    {adminNavItems.filter(item => !item.superAdminOnly || user?.role === 'super_admin').map((item) => (
+                                    {adminNavItems.filter(item => (!item.superAdminOnly || user?.role === 'super_admin') && (!item.adminOnly || ['admin', 'super_admin'].includes(user?.role))).map((item) => (
                                         <Link
                                             key={item.name}
                                             to={createPageUrl(item.name)}

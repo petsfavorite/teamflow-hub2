@@ -47,6 +47,7 @@
  *
  * The mainPage value must match a key in the PAGES object exactly.
  */
+import AccessControl from './pages/AccessControl';
 import Analytics from './pages/Analytics';
 import Assets from './pages/Assets';
 import CallDashboard from './pages/CallDashboard';
@@ -109,6 +110,7 @@ export const PAGES = {
     "Teams": Teams,
     "UserManagement": UserManagement,
     "Whiteboard": Whiteboard,
+    "AccessControl": AccessControl,
 }
 
 export const pagesConfig = {

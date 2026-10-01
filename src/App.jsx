@@ -15,6 +15,7 @@ import NamePromptDialog from '@/components/NamePromptDialog';
 import Reports from './pages/Reports';
 import DataExport from './pages/DataExport';
 import TrainingManuals from './pages/TrainingManuals';
+import AccessControl from './pages/AccessControl';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -83,6 +84,11 @@ const AuthenticatedApp = () => {
       <Route path="/TrainingManuals" element={
         <LayoutWrapper currentPageName="TrainingManuals">
           <TrainingManuals />
+        </LayoutWrapper>
+      } />
+      <Route path="/AccessControl" element={
+        <LayoutWrapper currentPageName="AccessControl">
+          <AccessControl />
         </LayoutWrapper>
       } />
       <Route path="*" element={<PageNotFound />} />
