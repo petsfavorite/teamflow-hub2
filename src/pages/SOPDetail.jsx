@@ -15,7 +15,7 @@ import SOPDocumentLink from '../components/sop/SOPDocumentLink';
 import {
   ArrowLeft, Pencil, Tag, Clock, User, CheckCircle, History, Users, Loader2,
   ShieldAlert, CheckCircle2, XCircle, Video, AlertTriangle, UserCheck,
-  CalendarCheck, CalendarClock, Wrench, BookOpen, PlayCircle, Link2, Archive, ArchiveRestore, Sparkles
+  CalendarCheck, CalendarClock, Wrench, BookOpen, PlayCircle, Link2, Archive, ArchiveRestore, Sparkles, CornerUpLeft
 } from 'lucide-react';
 import { toast } from "sonner";
 import { formatDate, daysFromToday } from '@/lib/timezone';
@@ -69,6 +69,8 @@ export default function SOPDetail() {
 
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectNote, setRejectNote] = useState('');
+  const [sendBackOpen, setSendBackOpen] = useState(false);
+  const [sendBackNote, setSendBackNote] = useState('');
 
   const { data: liveSops = [] } = useQuery({
     queryKey: ['sops-live'],
@@ -131,6 +133,32 @@ export default function SOPDetail() {
         .forEach(k => queryClient.invalidateQueries({ queryKey: [k] }));
     },
     onError: (e) => toast.error('Could not update the SOP: ' + (e?.message || 'unknown error')),
+  });
+
+  // Publish a draft SOP directly (admin/super_admin).
+  const publishDraftMutation = useMutation({
+    mutationFn: () => manageSop('publish', { id }),
+    onSuccess: (res) => {
+      toast.success(`Published as v${res?.version || ''}`);
+      ['sop', 'sops', 'sops-all', 'sops-live', 'all-sops-dash', 'draft-sops', 'sops-pending-ack', 'sops-pending-ack-dash']
+        .forEach(k => queryClient.invalidateQueries({ queryKey: [k] }));
+    },
+    onError: (e) => toast.error('Could not publish: ' + (e?.message || 'unknown error')),
+  });
+
+  // Send a draft SOP back to the creator with a note.
+  const sendBackDraftMutation = useMutation({
+    mutationFn: (note) => base44.functions.invoke('approveContent', {
+      type: 'sop', id, action: 'send_back', note,
+    }),
+    onSuccess: () => {
+      toast.success('SOP sent back with notes');
+      setSendBackOpen(false);
+      setSendBackNote('');
+      ['sop', 'sops', 'sops-all', 'sops-live', 'all-sops-dash', 'draft-sops', 'sops-pending-ack', 'sops-pending-ack-dash']
+        .forEach(k => queryClient.invalidateQueries({ queryKey: [k] }));
+    },
+    onError: (e) => toast.error('Could not send back: ' + (e?.message || 'unknown error')),
   });
 
   const verifyMutation = useMutation({
@@ -260,6 +288,27 @@ export default function SOPDetail() {
             <Link to={createPageUrl('SOPVersions') + `?id=${sop.id}`}>
               <Button variant="outline" className="gap-2"><History className="w-4 h-4" /> History</Button>
             </Link>
+          )}
+          {canApprove && sop.status === 'draft' && (
+            <>
+              <Button
+                variant="outline"
+                onClick={() => setSendBackOpen(true)}
+                disabled={sendBackDraftMutation.isPending}
+                className="gap-2 border-amber-300 text-amber-700 hover:bg-amber-50"
+              >
+                {sendBackDraftMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CornerUpLeft className="w-4 h-4" />}
+                Return
+              </Button>
+              <Button
+                onClick={() => publishDraftMutation.mutate()}
+                disabled={publishDraftMutation.isPending}
+                className="bg-emerald-600 hover:bg-emerald-700 gap-2"
+              >
+                {publishDraftMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                Publish
+              </Button>
+            </>
           )}
           {can('sop.archive') && (sop.status === 'archived' || sop.status === 'draft' || isLive(sop)) && (
             <Button
@@ -466,6 +515,26 @@ export default function SOPDetail() {
               className="bg-red-600 hover:bg-red-700"
             >
               {approveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null} Send back
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={sendBackOpen} onOpenChange={setSendBackOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Return this draft</DialogTitle>
+            <DialogDescription>The draft will be sent back to the creator with your note so they can revise it.</DialogDescription>
+          </DialogHeader>
+          <Textarea value={sendBackNote} onChange={e => setSendBackNote(e.target.value)} rows={4} placeholder="What needs to change before this can be published?" />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSendBackOpen(false)}>Cancel</Button>
+            <Button
+              onClick={() => sendBackDraftMutation.mutate(sendBackNote.trim())}
+              disabled={sendBackDraftMutation.isPending || !sendBackNote.trim()}
+              className="bg-amber-600 hover:bg-amber-700"
+            >
+              {sendBackDraftMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CornerUpLeft className="w-4 h-4 mr-2" />} Return to creator
             </Button>
           </DialogFooter>
         </DialogContent>
