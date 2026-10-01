@@ -591,7 +591,7 @@ export default function Dashboard() {
                </Link>
                <Link to={createPageUrl('IncidentReports')} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-purple-50 hover:bg-purple-100 transition-colors">
                  <AlertTriangle className="w-6 h-6 text-purple-600" />
-                 <span className="text-sm font-medium text-purple-700 text-center">New Report Incident</span>
+                 <span className="text-sm font-medium text-purple-700 text-center">New Incident Report</span>
                </Link>
              </div>
            </CardContent>
