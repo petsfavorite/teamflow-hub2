@@ -54,7 +54,6 @@ export function PinProvider({ children }) {
     const s = readSessionStorage();
     if (s?.lockedAt && (Date.now() - s.lockedAt) / 60000 >= MAX_LOCK_MINUTES) {
       sessionStorage.removeItem(SESSION_KEY);
-      base44.auth.updateMe({ session_locked_at: '' }).catch(() => {});
       base44.auth.logout(window.location.href);
       return;
     }
@@ -74,26 +73,27 @@ export function PinProvider({ children }) {
   }, []);
 
   // Server-side lock check — authoritative source so clearing sessionStorage can't bypass the lock.
-  // On mount/reload, if the server says the session is locked, re-lock even if browser storage was cleared.
+  // Uses the lockSession backend function so the client never reads or writes session_locked_at directly.
   useEffect(() => {
     if (IS_PREVIEW || !isAuthenticated || !user) return;
-    const serverLockedAt = user.session_locked_at ? new Date(user.session_locked_at).getTime() : null;
-    if (serverLockedAt) {
-      const elapsed = (Date.now() - serverLockedAt) / 60000;
-      if (elapsed >= MAX_LOCK_MINUTES) {
-        sessionStorage.removeItem(SESSION_KEY);
-        base44.auth.updateMe({ session_locked_at: '' }).catch(() => {});
-        base44.auth.logout(window.location.href);
-        return;
-      }
-      setIsLocked(true);
-      setLockedAt(serverLockedAt);
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify({ lockedAt: serverLockedAt }));
-    } else {
-      setIsLocked(false);
-      setLockedAt(null);
-      sessionStorage.removeItem(SESSION_KEY);
-    }
+    let cancelled = false;
+    base44.functions.invoke('lockSession', { action: 'check' })
+      .then(res => {
+        if (cancelled) return;
+        const data = res.data;
+        if (data?.locked && data.lockedAt) {
+          const serverLockedAt = new Date(data.lockedAt).getTime();
+          setIsLocked(true);
+          setLockedAt(serverLockedAt);
+          sessionStorage.setItem(SESSION_KEY, JSON.stringify({ lockedAt: serverLockedAt }));
+        } else {
+          setIsLocked(false);
+          setLockedAt(null);
+          sessionStorage.removeItem(SESSION_KEY);
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
   }, [isAuthenticated, user]);
 
   const lock = useCallback(() => {
@@ -102,8 +102,8 @@ export function PinProvider({ children }) {
     setIsLocked(true);
     setLockedAt(now);
     sessionStorage.setItem(SESSION_KEY, JSON.stringify({ lockedAt: now }));
-    // Record lock server-side so clearing sessionStorage can't bypass it
-    base44.auth.updateMe({ session_locked_at: new Date(now).toISOString() }).catch(() => {});
+    // Record lock server-side via backend function so the client never writes session_locked_at directly
+    base44.functions.invoke('lockSession', { action: 'lock' }).catch(() => {});
   }, []);
 
   const unlock = useCallback((user) => {
@@ -163,7 +163,6 @@ export function PinProvider({ children }) {
     const interval = setInterval(() => {
       if ((Date.now() - lockedAt) / 60000 >= MAX_LOCK_MINUTES) {
         sessionStorage.removeItem(SESSION_KEY);
-        base44.auth.updateMe({ session_locked_at: '' }).catch(() => {});
         base44.auth.logout(window.location.href);
       }
     }, 30000);

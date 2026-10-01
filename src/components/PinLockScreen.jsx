@@ -86,7 +86,6 @@ export default function PinLockScreen() {
 
   const handleFullLogout = () => {
     sessionStorage.removeItem('pin_session');
-    base44.auth.updateMe({ session_locked_at: '' }).catch(() => {});
     base44.auth.logout(window.location.href);
   };
 
