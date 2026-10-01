@@ -77,7 +77,7 @@
       "$or": [
         {
           "user_condition": {
-            "invited": true
+            "role": "user"
           }
         },
         {
@@ -93,6 +93,11 @@
         {
           "user_condition": {
             "role": "super_admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "general_account"
           }
         }
       ]
