@@ -112,7 +112,7 @@ export default function AccessControl() {
   }
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-6 max-w-5xl pb-24 sm:pb-4">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-bold text-stone-800 flex items-center gap-2">
