@@ -10,7 +10,7 @@ import { Loader2, CheckCircle2, Users, User, ShieldCheck } from 'lucide-react';
 // with the acknowledgement settings. The 90-day verification cycle is set automatically on publish.
 export default function SOPPublishDialog({ open, onOpenChange, onPublish, pending, sopTitle, teams = [], users = [] }) {
   const [ackMode, setAckMode] = useState('none');
-  const [dueDays, setDueDays] = useState(3);
+  const [dueDays, setDueDays] = useState(5);
   const [teamIds, setTeamIds] = useState([]);
   const [emails, setEmails] = useState([]);
 
@@ -18,7 +18,7 @@ export default function SOPPublishDialog({ open, onOpenChange, onPublish, pendin
   useEffect(() => {
     if (open) {
       setAckMode('none');
-      setDueDays(3);
+      setDueDays(5);
       setTeamIds([]);
       setEmails([]);
     }
@@ -26,7 +26,7 @@ export default function SOPPublishDialog({ open, onOpenChange, onPublish, pendin
 
   const handlePublish = () => {
     const ackSettings = ackMode === 'none'
-      ? { requires_acknowledgement: false, acknowledgement_due_days: 3, acknowledgement_assigned_emails: [], acknowledgement_assigned_teams: [] }
+      ? { requires_acknowledgement: false, acknowledgement_due_days: 5, acknowledgement_assigned_emails: [], acknowledgement_assigned_teams: [] }
       : ackMode === 'all'
         ? { requires_acknowledgement: true, acknowledgement_due_days: dueDays, acknowledgement_assigned_emails: [], acknowledgement_assigned_teams: [] }
         : { requires_acknowledgement: true, acknowledgement_due_days: dueDays, acknowledgement_assigned_emails: emails, acknowledgement_assigned_teams: teamIds };

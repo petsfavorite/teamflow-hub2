@@ -96,7 +96,7 @@
     },
     "acknowledgement_due_days": {
       "type": "number",
-      "default": 3
+      "default": 5
     },
     "acknowledgement_assigned_emails": {
       "type": "array",

@@ -164,7 +164,7 @@ export const isReAck = (acks, sop) =>
 export function isAckOverdue(sop) {
   const start = sop?.version_published_at || sop?.updated_date;
   if (!start) return false;
-  const days = sop.acknowledgement_due_days ?? 3;
+  const days = sop.acknowledgement_due_days ?? 5;
   return Date.now() > new Date(start).getTime() + days * 86400000;
 }
 

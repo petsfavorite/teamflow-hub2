@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import ReactQuill from 'react-quill';
 import { ArrowLeft, Save, Loader2, History, Users, User, Video, AlertTriangle, UserCheck, CheckCircle2, CalendarCheck, X, Plus, Tag, Archive, Link2, ShieldAlert, RotateCcw, CornerUpLeft, FileText } from 'lucide-react';
@@ -33,7 +33,7 @@ const DEFAULT_FORM = {
   title: '', category: '', purpose: '', when_it_applies: '', required_tools: '',
   instructions: '', video_url: '', document_url: '', warnings: '', responsible_role: '',
   applicable_teams: [], summary: '', tags: [], status: 'draft', version: 1,
-  requires_acknowledgement: false, acknowledgement_due_days: 3,
+  requires_acknowledgement: false, acknowledgement_due_days: 5,
   acknowledgement_assigned_emails: [], acknowledgement_assigned_teams: [],
   related_sop_ids: [], verification_due_date: '',
   content: '',
@@ -77,7 +77,16 @@ export default function SOPEditor() {
   const publishMutation = useMutation({
     mutationFn: async (ackSettings) => {
       const now = new Date().toISOString();
-      const fields = { ...pick({ ...form, ...ackSettings }, SOP_CONTENT_FIELDS), tags: currentTags };
+      // If an admin publishes a draft they didn't create, the original author must acknowledge it.
+      let effectiveAck = { ...ackSettings };
+      if (id && existing?.created_by_id && existing.created_by_id !== user?.id) {
+        const creator = allUsers.find(u => u.id === existing.created_by_id);
+        if (creator?.email) {
+          const emails = new Set([...(ackSettings.acknowledgement_assigned_emails || []), creator.email]);
+          effectiveAck = { ...ackSettings, requires_acknowledgement: true, acknowledgement_assigned_emails: [...emails] };
+        }
+      }
+      const fields = { ...pick({ ...form, ...effectiveAck }, SOP_CONTENT_FIELDS), tags: currentTags };
       const who = { email: user?.email, name: getUserDisplayName(user) };
       const sopData = {
         ...fields,
@@ -92,7 +101,7 @@ export default function SOPEditor() {
       const result = id ? await base44.entities.SOP.update(id, sopData) : await base44.entities.SOP.create(sopData);
       const sopId = id || result.id;
       await recordVersion(sopId, sopData.version, sopData, changeSummary || 'Published', getUserDisplayName(user));
-      return { version: sopData.version, requires_acknowledgement: !!ackSettings.requires_acknowledgement };
+      return { version: sopData.version, requires_acknowledgement: !!effectiveAck.requires_acknowledgement };
     },
     onSuccess: (res) => {
       ['sops-all', 'sops', 'sop-versions', 'sops-live', 'all-sops-dash', 'sops-pending-ack', 'sops-pending-ack-dash', 'draft-sops']
@@ -127,7 +136,11 @@ export default function SOPEditor() {
   const { data: allUsers = [] } = useQuery({
     queryKey: ['all-users-sop'],
     queryFn: () => base44.entities.User.list('first_name', 500),
-    enabled: !!(isAdmin || isSuperAdmin),
+  });
+
+  const { data: sopCategories = [] } = useQuery({
+    queryKey: ['sop-categories'],
+    queryFn: () => base44.entities.SOPCategory.list('order', 200),
   });
 
   const { data: sopTags = [], refetch: refetchTags } = useQuery({
@@ -402,7 +415,23 @@ export default function SOPEditor() {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2"><Label>Title *</Label><Input value={form.title} onChange={e => set('title', e.target.value)} placeholder="SOP Title" /></div>
-            <div className="space-y-2"><Label>Category *</Label><Input value={form.category} onChange={e => set('category', e.target.value)} placeholder="e.g. Safety, Operations" /></div>
+            <div className="space-y-2">
+              <Label>Category *</Label>
+              <Select value={form.category} onValueChange={v => set('category', v)}>
+                <SelectTrigger><SelectValue placeholder="Select a category" /></SelectTrigger>
+                <SelectContent>
+                  {sopCategories.map(cat => (
+                    <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
+                  ))}
+                  {form.category && !sopCategories.some(c => c.name === form.category) && (
+                    <SelectItem value={form.category}>{form.category}</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+              {sopCategories.length === 0 && (
+                <p className="text-xs text-slate-400">No categories yet — create them under Administration → SOP Categories.</p>
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -549,7 +578,30 @@ export default function SOPEditor() {
 
           <div className="space-y-2">
             <Label className="flex items-center gap-1.5"><UserCheck className="w-3.5 h-3.5" /> Who Is Responsible</Label>
-            <Input value={form.responsible_role} onChange={e => set('responsible_role', e.target.value)} placeholder="e.g. Kennel Staff, Shift Lead, All Staff" />
+            <Select value={form.responsible_role} onValueChange={v => set('responsible_role', v)}>
+              <SelectTrigger><SelectValue placeholder="Select a team or person" /></SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>Teams</SelectLabel>
+                  {teams.map(t => (
+                    <SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>
+                  ))}
+                </SelectGroup>
+                <SelectGroup>
+                  <SelectLabel>Individuals</SelectLabel>
+                  {allUsers.map(u => {
+                    const name = (u.first_name || u.last_name) ? `${u.first_name || ''} ${u.last_name || ''}`.trim() : u.email;
+                    return <SelectItem key={u.id} value={name}>{name}</SelectItem>;
+                  })}
+                </SelectGroup>
+                {form.responsible_role && !teams.some(t => t.name === form.responsible_role) && !allUsers.some(u => {
+                  const name = (u.first_name || u.last_name) ? `${u.first_name || ''} ${u.last_name || ''}`.trim() : u.email;
+                  return name === form.responsible_role;
+                }) && (
+                  <SelectItem value={form.responsible_role}>{form.responsible_role}</SelectItem>
+                )}
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>

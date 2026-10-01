@@ -15,7 +15,7 @@ import SOPDocumentLink from '../components/sop/SOPDocumentLink';
 import {
   ArrowLeft, Pencil, Tag, Clock, User, CheckCircle, History, Users, Loader2,
   ShieldAlert, CheckCircle2, XCircle, Video, AlertTriangle, UserCheck,
-  CalendarCheck, CalendarClock, Wrench, BookOpen, PlayCircle, Link2, Archive, ArchiveRestore
+  CalendarCheck, CalendarClock, Wrench, BookOpen, PlayCircle, Link2, Archive, ArchiveRestore, Sparkles
 } from 'lucide-react';
 import { toast } from "sonner";
 import { formatDate, daysFromToday } from '@/lib/timezone';
@@ -74,6 +74,16 @@ export default function SOPDetail() {
     queryKey: ['sops-live'],
     queryFn: () => fetchLiveSops(500),
     enabled: !!sop?.related_sop_ids?.length,
+  });
+
+  // Latest version record — used for the "What's New" banner on republished SOPs (v2+).
+  const { data: latestVersion } = useQuery({
+    queryKey: ['sop-latest-version', id],
+    queryFn: async () => {
+      const list = await base44.entities.SOPVersion.filter({ sop_id: id }, '-version_number', 1);
+      return list[0];
+    },
+    enabled: !!id,
   });
 
   // Approval runs server-side (approveContent): only admins can publish, and the server applies the edit.
@@ -311,6 +321,19 @@ export default function SOPDetail() {
           )}
         </CardContent>
       </Card>
+
+      {/* What's New banner — bright highlight of changes for v2+ */}
+      {(sop.version || 1) >= 2 && latestVersion?.change_summary && (
+        <div className="bg-gradient-to-r from-amber-300 to-yellow-200 rounded-xl p-4 mb-4 border-2 border-amber-400 shadow-sm">
+          <div className="flex items-start gap-3">
+            <Sparkles className="w-5 h-5 text-amber-900 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="font-bold text-amber-950">What's New in v{sop.version}</p>
+              <p className="text-sm text-amber-900 mt-1">{latestVersion.change_summary}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {sop.status === 'archived' && (
         <Card className="border-0 shadow-sm mb-4 border-l-4 border-l-slate-400">
