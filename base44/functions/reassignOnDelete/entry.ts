@@ -7,7 +7,7 @@ Deno.serve(async (req) => {
     return Response.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const { deleted_user_email, team_ids } = await req.json();
+  const { deleted_user_email, team_ids, reassign_to_email, preview } = await req.json();
 
   // Fetch all users to find reassignment targets
   const allUsers = await base44.asServiceRole.entities.User.list('full_name', 500);
@@ -22,15 +22,13 @@ Deno.serve(async (req) => {
     return Response.json({ error: 'Admins cannot remove other admins' }, { status: 403 });
   }
 
+  // Candidate assignees (admins/managers or same-team managers)
+  const allTeams = await base44.asServiceRole.entities.Team.list('name', 200);
   let assignees = [];
-
   if (deleted_user_role === 'manager') {
-    // Reassign to admins and super_admins
     assignees = allUsers.filter(u => ['admin', 'super_admin'].includes(u.role) && u.email !== deleted_user_email);
   } else {
-    // Regular user — reassign to managers on the same teams
-    const teams = await base44.asServiceRole.entities.Team.list('name', 200);
-    const userTeams = teams.filter(t => (team_ids || []).includes(t.id));
+    const userTeams = allTeams.filter(t => (team_ids || []).includes(t.id));
     const managerEmails = new Set(
       userTeams.flatMap(t => t.member_emails || [])
         .filter(email => {
@@ -39,14 +37,56 @@ Deno.serve(async (req) => {
         })
     );
     assignees = allUsers.filter(u => managerEmails.has(u.email));
-    // Fallback: if no managers found on teams, fall back to admins
     if (assignees.length === 0) {
       assignees = allUsers.filter(u => ['admin', 'super_admin'].includes(u.role) && u.email !== deleted_user_email);
     }
   }
 
+  // Gather every active item currently assigned to the deleted user
+  const [pendingTasks, inProgressTasks, maint, incidents, checklists, recurring] = await Promise.all([
+    base44.asServiceRole.entities.Task.filter({ status: 'pending' }),
+    base44.asServiceRole.entities.Task.filter({ status: 'in_progress' }),
+    base44.asServiceRole.entities.MaintenanceRequest.filter({ assigned_to: deleted_user_email }),
+    base44.asServiceRole.entities.IncidentReport.filter({ assigned_to: deleted_user_email }),
+    base44.asServiceRole.entities.ChecklistTemplate.list('title', 500),
+    base44.asServiceRole.entities.RecurringChecklist.list('template_title', 500),
+  ]);
+
+  const myTasks = [...pendingTasks, ...inProgressTasks].filter(t =>
+    t.assigned_to_emails?.includes(deleted_user_email)
+  );
+  const myMaint = maint;
+  const myIncidents = incidents.filter(inc => inc.status !== 'resolved');
+  const myChecklists = checklists.filter(c =>
+    c.status === 'published' && c.assigned_to_emails?.includes(deleted_user_email)
+  );
+  const myRecurring = recurring.filter(r =>
+    r.is_active !== false && r.assigned_to_emails?.includes(deleted_user_email)
+  );
+
+  const count = myTasks.length + myMaint.length + myIncidents.length + myChecklists.length + myRecurring.length;
+
+  // Preview mode: return the count + candidate list so the admin can choose who
+  // gets the reassigned items, without modifying anything yet.
+  if (preview) {
+    return Response.json({
+      count,
+      candidates: assignees.map(u => ({ email: u.email, name: u.full_name || u.email, role: u.role })),
+    });
+  }
+
+  // Determine the reassignment target: the admin's explicit choice, else auto-pick.
+  let primary = null;
+  if (reassign_to_email) {
+    primary = allUsers.find(u => u.email === reassign_to_email);
+    if (!primary) {
+      return Response.json({ error: 'Selected reassign target not found' }, { status: 400 });
+    }
+  } else if (assignees.length > 0) {
+    primary = assignees[0];
+  }
+
   // Really delete them: remove from all team member lists so they don't linger.
-  const allTeams = await base44.asServiceRole.entities.Team.list('name', 200);
   const teamsWithUser = allTeams.filter(t => (t.member_emails || []).includes(deleted_user_email));
   for (const t of teamsWithUser) {
     const idx = (t.member_emails || []).indexOf(deleted_user_email);
@@ -58,23 +98,13 @@ Deno.serve(async (req) => {
     });
   }
 
-  if (assignees.length === 0) {
+  if (!primary) {
     return Response.json({ reassigned: 0, message: 'No suitable assignees found; user removed from teams.' });
   }
 
-  // Pick the first assignee (or spread round-robin — keep it simple: first admin/manager)
-  const primary = assignees[0];
-
   let reassigned = 0;
 
-  // --- Tasks (include both pending and in_progress) ---
-  const [pendingTasks, inProgressTasks] = await Promise.all([
-    base44.asServiceRole.entities.Task.filter({ status: 'pending' }),
-    base44.asServiceRole.entities.Task.filter({ status: 'in_progress' }),
-  ]);
-  const myTasks = [...pendingTasks, ...inProgressTasks].filter(t =>
-    t.assigned_to_emails?.includes(deleted_user_email)
-  );
+  // --- Tasks (pending + in_progress) ---
   for (const task of myTasks) {
     const newEmails = task.assigned_to_emails.map(e => e === deleted_user_email ? primary.email : e);
     const newNames = (task.assigned_to_names || []).map((n, i) =>
@@ -88,30 +118,22 @@ Deno.serve(async (req) => {
   }
 
   // --- Maintenance Requests ---
-  const maint = await base44.asServiceRole.entities.MaintenanceRequest.filter({ assigned_to: deleted_user_email });
-  for (const m of maint) {
+  for (const m of myMaint) {
     await base44.asServiceRole.entities.MaintenanceRequest.update(m.id, {
       assigned_to: primary.email,
     });
     reassigned++;
   }
 
-  // --- Incident Reports ---
-  const incidents = await base44.asServiceRole.entities.IncidentReport.filter({ assigned_to: deleted_user_email });
-  for (const inc of incidents) {
-    if (inc.status !== 'resolved') {
-      await base44.asServiceRole.entities.IncidentReport.update(inc.id, {
-        assigned_to: primary.email,
-      });
-      reassigned++;
-    }
+  // --- Incident Reports (non-resolved only) ---
+  for (const inc of myIncidents) {
+    await base44.asServiceRole.entities.IncidentReport.update(inc.id, {
+      assigned_to: primary.email,
+    });
+    reassigned++;
   }
 
   // --- Checklist Templates assigned to this user ---
-  const checklists = await base44.asServiceRole.entities.ChecklistTemplate.list('title', 500);
-  const myChecklists = checklists.filter(c =>
-    c.status === 'published' && c.assigned_to_emails?.includes(deleted_user_email)
-  );
   for (const c of myChecklists) {
     const newEmails = c.assigned_to_emails.map(e => e === deleted_user_email ? primary.email : e);
     const newNames = (c.assigned_to_names || []).map((n, i) =>
@@ -128,10 +150,6 @@ Deno.serve(async (req) => {
   // Reassign so future spawned instances go to a live person. Past
   // ChecklistCompletion records are intentionally left untouched so the
   // deleted user's name remains on the history of checklists they completed.
-  const recurring = await base44.asServiceRole.entities.RecurringChecklist.list('template_title', 500);
-  const myRecurring = recurring.filter(r =>
-    r.is_active !== false && r.assigned_to_emails?.includes(deleted_user_email)
-  );
   for (const r of myRecurring) {
     const newEmails = r.assigned_to_emails.map(e => e === deleted_user_email ? primary.email : e);
     const newNames = (r.assigned_to_names || []).map((n, i) =>

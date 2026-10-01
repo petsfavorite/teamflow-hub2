@@ -33,6 +33,9 @@ export default function UserManagement() {
   const [editLastName, setEditLastName] = useState('');
   const [editPin, setEditPin] = useState('');
   const [pinError, setPinError] = useState('');
+  const [reassignDialog, setReassignDialog] = useState(null); // { user, candidates, count }
+  const [selectedReassignEmail, setSelectedReassignEmail] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['all-users'],
@@ -58,20 +61,51 @@ export default function UserManagement() {
   const [activeTab, setActiveTab] = useState('users');
 
   const deleteUserMutation = useMutation({
-    mutationFn: async (u) => {
-      // Reassign open items before deleting
+    mutationFn: async ({ u, reassignToEmail }) => {
+      // Reassign open items to the chosen person (or auto-pick if none chosen) before deleting
       await base44.functions.invoke('reassignOnDelete', {
         deleted_user_email: u.email,
         deleted_user_role: u.role || 'user',
         team_ids: u.team_ids || [],
+        reassign_to_email: reassignToEmail || null,
       });
       return base44.entities.User.delete(u.id);
     },
     onSuccess: () => {
       toast.success('User deleted and items reassigned');
       queryClient.invalidateQueries({ queryKey: ['all-users'] });
+      setReassignDialog(null);
+      setSelectedReassignEmail('');
+    },
+    onError: (e) => {
+      toast.error(e?.response?.data?.error || e?.message || 'Failed to delete user');
     },
   });
+
+  // First confirm the delete, then check for active assignments. If any exist,
+  // ask who they should be reassigned to before actually deleting.
+  const handleDeleteConfirm = async (u) => {
+    setDeleteLoading(true);
+    try {
+      const res = await base44.functions.invoke('reassignOnDelete', {
+        deleted_user_email: u.email,
+        deleted_user_role: u.role || 'user',
+        team_ids: u.team_ids || [],
+        preview: true,
+      });
+      const data = res.data || res;
+      if (data.count > 0 && (data.candidates || []).length > 0) {
+        setReassignDialog({ user: u, candidates: data.candidates, count: data.count });
+        setSelectedReassignEmail(data.candidates[0].email);
+      } else {
+        deleteUserMutation.mutate({ u });
+      }
+    } catch (e) {
+      toast.error(e?.response?.data?.error || e?.message || 'Could not check assignments');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
 
   const archiveUserMutation = useMutation({
     mutationFn: async ({ userId, is_archived }) => {
@@ -262,16 +296,17 @@ export default function UserManagement() {
                   <AlertDialogHeader>
                     <AlertDialogTitle>Delete User</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Are you sure you want to delete {u.full_name || u.email}? This cannot be undone.
+                      Are you sure you want to delete {u.full_name || u.email}? This cannot be undone. Any active items assigned to them will be reassigned.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
                     <AlertDialogAction
-                      onClick={() => deleteUserMutation.mutate(u)}
+                      onClick={() => handleDeleteConfirm(u)}
+                      disabled={deleteLoading}
                       className="bg-red-600 hover:bg-red-700"
                     >
-                      Delete
+                      {deleteLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Delete'}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
@@ -753,6 +788,34 @@ export default function UserManagement() {
             </Button>
           </DialogFooter>
         </DialogContent>
+        </Dialog>
+
+        {/* Reassign active items before deleting */}
+        <Dialog open={!!reassignDialog} onOpenChange={(open) => { if (!open) { setReassignDialog(null); setSelectedReassignEmail(''); } }}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Reassign active items</DialogTitle></DialogHeader>
+            <p className="text-sm text-slate-600">
+              {reassignDialog?.user?.full_name || reassignDialog?.user?.email} has <strong>{reassignDialog?.count}</strong> active item(s) assigned (tasks, maintenance requests, incident reports, checklists). Who should they be reassigned to?
+            </p>
+            <Select value={selectedReassignEmail} onValueChange={setSelectedReassignEmail}>
+              <SelectTrigger><SelectValue placeholder="Choose a person" /></SelectTrigger>
+              <SelectContent>
+                {(reassignDialog?.candidates || []).map(c => (
+                  <SelectItem key={c.email} value={c.email}>{c.name} ({c.role})</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => { setReassignDialog(null); setSelectedReassignEmail(''); }}>Cancel</Button>
+              <Button
+                className="bg-red-600 hover:bg-red-700"
+                disabled={!selectedReassignEmail || deleteUserMutation.isPending}
+                onClick={() => deleteUserMutation.mutate({ u: reassignDialog.user, reassignToEmail: selectedReassignEmail })}
+              >
+                {deleteUserMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Reassign & Delete'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
         </Dialog>
         </div>
         );
