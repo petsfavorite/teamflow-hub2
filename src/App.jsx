@@ -11,6 +11,7 @@ import NotInvitedError from '@/components/NotInvitedError';
 import UserArchivedError from '@/components/UserArchivedError';
 import { PinProvider } from '@/lib/PinContext';
 import PinLockScreen from '@/components/PinLockScreen';
+import NamePromptDialog from '@/components/NamePromptDialog';
 import Reports from './pages/Reports';
 import DataExport from './pages/DataExport';
 import TrainingManuals from './pages/TrainingManuals';
@@ -99,6 +100,7 @@ function App() {
           <NavigationTracker />
           <PinProvider>
             <PinLockScreen />
+            <NamePromptDialog />
             <AuthenticatedApp />
           </PinProvider>
         </Router>

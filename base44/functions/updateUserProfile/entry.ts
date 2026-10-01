@@ -20,9 +20,13 @@ Deno.serve(async (req) => {
     // Build update payload
     const updates = {};
 
-    // Name changes — admins+ only, cannot rename other admins/super_admins
+    // Name changes — managers+ can rename, but managers can only rename regular users.
+    // Admins can rename users+managers. Super admins can rename anyone.
     if (first_name !== undefined || last_name !== undefined) {
-      if (user.role !== 'super_admin' && ['admin', 'super_admin'].includes(targetRole)) {
+      if (user.role === 'manager' && targetRole !== 'user') {
+        return Response.json({ error: 'Managers can only rename regular users' }, { status: 403 });
+      }
+      if (user.role === 'admin' && ['admin', 'super_admin'].includes(targetRole)) {
         return Response.json({ error: 'Cannot rename other admins or super admins' }, { status: 403 });
       }
       if (first_name !== undefined) updates.first_name = first_name.trim();
@@ -41,12 +45,12 @@ Deno.serve(async (req) => {
       updates.role = role;
     }
 
-    // PIN changes — admins+ only (managers could otherwise reset a privileged user's PIN)
+    // PIN changes — managers+ can change PINs, but managers can only change regular users' PINs.
+    // Admins can change PINs of users+managers. Super admins can change anyone's.
     if (pin !== undefined) {
-      if (!['admin', 'super_admin'].includes(user.role)) {
-        return Response.json({ error: 'Only admins can change PINs' }, { status: 403 });
+      if (user.role === 'manager' && targetRole !== 'user') {
+        return Response.json({ error: 'Managers can only change PINs of regular users' }, { status: 403 });
       }
-      // Hierarchy check: admins cannot modify other admins/super_admins
       if (user.role === 'admin' && ['admin', 'super_admin'].includes(targetRole)) {
         return Response.json({ error: 'Cannot modify PIN of other admins or super admins' }, { status: 403 });
       }

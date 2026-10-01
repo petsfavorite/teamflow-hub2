@@ -27,8 +27,8 @@ export default function Settings() {
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
   const [user, setUser] = useState(null);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
-  const [profileName, setProfileName] = useState('');
-  const [profileEmail, setProfileEmail] = useState('');
+  const [profileFirstName, setProfileFirstName] = useState('');
+  const [profileLastName, setProfileLastName] = useState('');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [globalTimezone, setGlobalTimezone] = useState('America/New_York');
   const [allUsers, setAllUsers] = useState([]);
@@ -51,8 +51,8 @@ export default function Settings() {
   useEffect(() => {
     base44.auth.me().then(u => {
       setUser(u);
-      setProfileName(u?.full_name || '');
-      setProfileEmail(u?.email || '');
+      setProfileFirstName(u?.first_name || '');
+      setProfileLastName(u?.last_name || '');
       setSelectedTeamIds(u?.team_ids || []);
     }).catch(() => {});
 
@@ -253,18 +253,22 @@ export default function Settings() {
   };
 
   const handleSaveProfile = async () => {
+    if (!profileFirstName.trim() || !profileLastName.trim()) {
+      alert('Please enter both your first and last name');
+      return;
+    }
     setIsSavingProfile(true);
     try {
-      if (!isSuperAdmin) {
-        await base44.auth.updateMe({
-          full_name: profileName,
-          email: profileEmail
-        });
-        setUser(prev => ({ ...prev, full_name: profileName, email: profileEmail }));
-      }
+      await base44.functions.invoke('updateOwnName', {
+        first_name: profileFirstName.trim(),
+        last_name: profileLastName.trim(),
+      });
+      const fullName = `${profileFirstName.trim()} ${profileLastName.trim()}`;
+      setUser(prev => ({ ...prev, first_name: profileFirstName.trim(), last_name: profileLastName.trim(), full_name: fullName }));
       setEditProfileOpen(false);
     } catch (error) {
       console.error('Error saving profile:', error);
+      alert(error?.response?.data?.error || 'Failed to save profile');
     } finally {
       setIsSavingProfile(false);
     }
@@ -359,7 +363,11 @@ export default function Settings() {
               <div className="space-y-3">
                 <div>
                   <p className="text-sm font-medium text-stone-700">Name</p>
-                  <p className="text-sm text-stone-600">{user.full_name}</p>
+                  <p className="text-sm text-stone-600">
+                    {user.first_name || user.last_name
+                      ? `${user.first_name || ''} ${user.last_name || ''}`.trim()
+                      : (user.full_name || 'Not set')}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-stone-700">Email</p>
@@ -582,23 +590,36 @@ export default function Settings() {
             <DialogTitle>Edit Profile</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                value={profileName}
-                onChange={(e) => setProfileName(e.target.value)}
-                className="rounded-xl"
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="first-name">First Name <span className="text-red-500">*</span></Label>
+                <Input
+                  id="first-name"
+                  value={profileFirstName}
+                  onChange={(e) => setProfileFirstName(e.target.value)}
+                  className="rounded-xl"
+                  placeholder="First name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="last-name">Last Name <span className="text-red-500">*</span></Label>
+                <Input
+                  id="last-name"
+                  value={profileLastName}
+                  onChange={(e) => setProfileLastName(e.target.value)}
+                  className="rounded-xl"
+                  placeholder="Last name"
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
-                value={profileEmail}
-                onChange={(e) => setProfileEmail(e.target.value)}
-                className="rounded-xl"
+                value={user?.email || ''}
+                disabled
+                className="rounded-xl bg-stone-100"
               />
             </div>
             {(isSuperAdmin || isAdmin) && (
@@ -654,11 +675,9 @@ export default function Settings() {
             <Button variant="outline" className="rounded-xl" onClick={() => setEditProfileOpen(false)}>
               Cancel
             </Button>
-            {!isSuperAdmin && (
-              <Button className="rounded-xl bg-[#82bb32] hover:bg-[#82bb32]/90" onClick={handleSaveProfile} disabled={isSavingProfile}>
-                {isSavingProfile ? 'Saving...' : 'Save'}
-              </Button>
-            )}
+            <Button className="rounded-xl bg-[#82bb32] hover:bg-[#82bb32]/90" onClick={handleSaveProfile} disabled={isSavingProfile}>
+              {isSavingProfile ? 'Saving...' : 'Save Name'}
+            </Button>
             {(isSuperAdmin || isAdmin) && (
               <Button className="rounded-xl bg-[#82bb32] hover:bg-[#82bb32]/90" onClick={handleSaveGlobalTimezone} disabled={isSavingGlobalTimezone}>
                 {isSavingGlobalTimezone ? 'Saving...' : 'Save Timezone'}
