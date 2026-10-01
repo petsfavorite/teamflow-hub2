@@ -27,14 +27,16 @@ Deno.serve(async (req) => {
       if (invite.role) {
         const validRoles = ['user', 'manager', 'admin', 'super_admin'];
         if (validRoles.includes(invite.role)) {
-          // Defense in depth: only apply super_admin if the inviter was a super_admin
-          if (invite.role === 'super_admin' && invite.invited_by) {
-            const inviterRecords = await base44.asServiceRole.entities.User.filter({ email: invite.invited_by });
-            if (inviterRecords.length > 0 && inviterRecords[0].role === 'super_admin') {
-              updates.role = invite.role;
-            } else {
-              updates.role = 'admin'; // downgrade — inviter wasn't authorized
+          // Defense in depth: only apply super_admin if the inviter was a super_admin.
+          // Always verify — never trust the invite row directly, since admins can
+          // create PendingInvite rows via the SDK with arbitrary fields.
+          if (invite.role === 'super_admin') {
+            let inviterIsSuperAdmin = false;
+            if (invite.invited_by) {
+              const inviterRecords = await base44.asServiceRole.entities.User.filter({ email: invite.invited_by });
+              inviterIsSuperAdmin = inviterRecords.length > 0 && inviterRecords[0].role === 'super_admin';
             }
+            updates.role = inviterIsSuperAdmin ? invite.role : 'admin'; // downgrade when unverifiable
           } else {
             updates.role = invite.role;
           }

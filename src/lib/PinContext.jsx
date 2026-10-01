@@ -17,21 +17,17 @@ function readSessionStorage() {
   }
 }
 
-const IS_PREVIEW = window.location.hostname.includes('base44.com') || window.location.hostname.includes('localhost') || window.location.hostname.includes('preview');
-
 export function PinProvider({ children }) {
   const { isAuthenticated, user } = useAuth();
 
   // Synchronously determine initial lock state to avoid flash of unlocked content
   const [isLocked, setIsLocked] = useState(() => {
-    if (IS_PREVIEW) return false;
     const s = readSessionStorage();
     if (!s?.lockedAt) return false;
     return (Date.now() - s.lockedAt) / 60000 < MAX_LOCK_MINUTES;
   });
 
   const [lockedAt, setLockedAt] = useState(() => {
-    if (IS_PREVIEW) return null;
     const s = readSessionStorage();
     return s?.lockedAt || null;
   });
@@ -50,7 +46,6 @@ export function PinProvider({ children }) {
 
   // On mount: handle expired session & load settings
   useEffect(() => {
-    if (IS_PREVIEW) return;
     const s = readSessionStorage();
     if (s?.lockedAt && (Date.now() - s.lockedAt) / 60000 >= MAX_LOCK_MINUTES) {
       sessionStorage.removeItem(SESSION_KEY);
@@ -75,7 +70,7 @@ export function PinProvider({ children }) {
   // Server-side lock check — authoritative source so clearing sessionStorage can't bypass the lock.
   // Uses the lockSession backend function so the client never reads or writes session_locked_at directly.
   useEffect(() => {
-    if (IS_PREVIEW || !isAuthenticated || !user) return;
+    if (!isAuthenticated || !user) return;
     let cancelled = false;
     base44.functions.invoke('lockSession', { action: 'check' })
       .then(res => {
@@ -115,7 +110,6 @@ export function PinProvider({ children }) {
   }, []);
 
   const startTimer = useCallback(() => {
-    if (IS_PREVIEW) return; // Disabled in Base44 preview
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => lock(), timeoutRef.current * 60 * 1000);
   }, [lock]);
@@ -146,7 +140,6 @@ export function PinProvider({ children }) {
   useEffect(() => {
     if (!isAuthenticated) return;
     const handleVisibility = () => {
-      if (IS_PREVIEW) return; // Disabled in Base44 preview
       if (document.visibilityState !== 'visible' || isLocked) return;
       const elapsed = (Date.now() - lastActivityRef.current) / 60000;
       if (elapsed >= timeoutRef.current) {
