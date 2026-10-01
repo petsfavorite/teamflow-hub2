@@ -29,7 +29,30 @@
         }
       ]
     },
-    "read": null,
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "invited": true
+          }
+        },
+        {
+          "user_condition": {
+            "role": "manager"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "super_admin"
+          }
+        }
+      ]
+    },
     "update": {
       "$or": [
         {

@@ -34,7 +34,8 @@ Deno.serve(async (req) => {
     // Generate or validate 6-digit PIN
     let finalPin = pin;
     if (!finalPin) {
-      finalPin = Math.floor(100000 + Math.random() * 900000).toString();
+      const randVal = crypto.getRandomValues(new Uint32Array(1))[0];
+      finalPin = (100000 + (randVal % 900000)).toString();
     }
     if (!/^\d{6}$/.test(finalPin)) {
       return Response.json({ error: 'PIN must be exactly 6 digits' }, { status: 400 });
