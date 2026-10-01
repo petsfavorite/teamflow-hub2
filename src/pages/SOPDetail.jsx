@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { useCurrentUser } from '../components/hooks/useCurrentUser';
 import StatusBadge from '../components/shared/StatusBadge';
@@ -17,15 +17,16 @@ import {
   CalendarCheck, CalendarClock, Wrench, BookOpen, PlayCircle, Link2, Archive, ArchiveRestore
 } from 'lucide-react';
 import { toast } from "sonner";
-import { formatDate, addDaysStr, daysFromToday } from '@/lib/timezone';
+import { formatDate, daysFromToday } from '@/lib/timezone';
 import {
-  sopBody, sanitizeHtml, pendingState, getPendingFields, isReAck, isAckOverdue, fetchLiveSops, isLive,
+  sopBody, sanitizeHtml, pendingState, getPendingFields, isReAck, isAckOverdue, fetchLiveSops, isLive, manageSop,
 } from '@/lib/sop';
 import { isSafeUrl } from '@/lib/sanitize';
 
 export default function SOPDetail() {
-  const params = new URLSearchParams(window.location.search);
-  const id = params.get('id');
+  // Router-aware so following a Related SOP link (same route, new ?id=) re-renders.
+  const [searchParams] = useSearchParams();
+  const id = searchParams.get('id');
   const { user, loading: userLoading, canManage, isAdmin, isSuperAdmin, isManager } = useCurrentUser();
   const displayName = (u) => (u?.first_name || u?.last_name) ? `${u?.first_name || ''} ${u?.last_name || ''}`.trim() : (u?.full_name || u?.email || 'Unknown');
   const canApprove = isAdmin || isSuperAdmin;
@@ -111,7 +112,7 @@ export default function SOPDetail() {
 
   // SOPs are never deleted: archiving hides them from staff; managers and above can still open them.
   const archiveMutation = useMutation({
-    mutationFn: (archive) => base44.entities.SOP.update(id, { status: archive ? 'archived' : 'draft' }),
+    mutationFn: (archive) => archive ? manageSop('archive', { id }) : base44.entities.SOP.update(id, { status: 'draft' }),
     onSuccess: (_, archive) => {
       toast.success(archive ? 'SOP archived' : 'SOP restored as a draft');
       ['sop', 'sops', 'sops-all', 'sops-live', 'all-sops-dash', 'draft-sops', 'sops-pending-ack', 'sops-pending-ack-dash']
@@ -121,12 +122,7 @@ export default function SOPDetail() {
   });
 
   const verifyMutation = useMutation({
-    mutationFn: () => base44.entities.SOP.update(id, {
-      last_verified_by: user.email,
-      last_verified_by_name: displayName(user),
-      last_verified_at: new Date().toISOString(),
-      verification_due_date: addDaysStr(90),
-    }),
+    mutationFn: () => manageSop('verify', { id }),
     onSuccess: () => {
       toast.success('SOP verified! Next verification set for 90 days out.');
       queryClient.invalidateQueries({ queryKey: ['sop', id] });
@@ -135,9 +131,7 @@ export default function SOPDetail() {
   });
 
   const postponeVerificationMutation = useMutation({
-    mutationFn: () => base44.entities.SOP.update(id, {
-      verification_due_date: addDaysStr(90),
-    }),
+    mutationFn: () => manageSop('postpone', { id }),
     onSuccess: () => {
       toast.success('Verification postponed 90 days.');
       queryClient.invalidateQueries({ queryKey: ['sop', id] });

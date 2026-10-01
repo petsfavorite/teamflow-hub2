@@ -25,6 +25,20 @@ export const SOP_RESTORE_FIELDS = SOP_MATERIAL_FIELDS;
 
 export const VERIFICATION_INTERVAL_DAYS = 90;
 
+// Managers can't write to the SOP entity directly (admins only); their drafts, proposed edits,
+// verification and draft-archiving all go through the manageSop backend function.
+export async function manageSop(action, payload = {}) {
+  const res = await base44.functions.invoke('manageSop', { action, ...payload });
+  return res?.data ?? res;
+}
+
+// An archived SOP must not keep a waiting edit that could be approved back to life.
+export const CLEARED_PENDING = {
+  pending_changes: null, pending_state: null, pending_review_note: null, pending_reviewed_by_name: null,
+  pending_submitted_at: null, pending_content: null, pending_summary: null, pending_tags: null,
+  pending_change_summary: null, pending_submitted_by: null, pending_submitted_by_name: null,
+};
+
 export const pick = (obj, keys) => {
   const out = {};
   keys.forEach((k) => { if (obj && obj[k] !== undefined) out[k] = obj[k]; });

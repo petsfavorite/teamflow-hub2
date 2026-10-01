@@ -17,6 +17,12 @@ Deno.serve(async (req) => {
     }
     const targetRole = targetUser?.role || 'user';
 
+    // Super admins are untouchable by anyone but another super admin: no renames, role, PIN,
+    // team or archive changes of any kind.
+    if (targetRole === 'super_admin' && user.role !== 'super_admin') {
+      return Response.json({ error: 'Only a super admin can make changes to a super admin' }, { status: 403 });
+    }
+
     // Build update payload
     const updates = {};
 
@@ -37,6 +43,9 @@ Deno.serve(async (req) => {
       }
       if (user.role === 'admin' && role === 'super_admin') {
         return Response.json({ error: 'Admins cannot assign super_admin role' }, { status: 403 });
+      }
+      if (!['user', 'manager', 'admin', 'super_admin', 'general_account'].includes(role)) {
+        return Response.json({ error: 'Invalid role' }, { status: 400 });
       }
       updates.role = role;
     }

@@ -20,7 +20,7 @@ import { toast } from "sonner";
 import { formatDate, addDaysStr, daysFromToday } from '@/lib/timezone';
 import {
   SOP_CONTENT_FIELDS, SOP_MATERIAL_FIELDS, VERIFICATION_INTERVAL_DAYS, pick, fieldsDiffer, sopBody,
-  isLive, pendingState, getPendingFields, publishStamp, recordVersion, fetchLiveSops,
+  isLive, pendingState, getPendingFields, publishStamp, recordVersion, fetchLiveSops, manageSop, CLEARED_PENDING,
 } from '@/lib/sop';
 
 const MAX_VERIFICATION_DAYS = VERIFICATION_INTERVAL_DAYS;
@@ -55,7 +55,7 @@ export default function SOPEditor() {
 
   // SOPs are never deleted; archiving hides them from staff while managers and above can still see them.
   const archiveMutation = useMutation({
-    mutationFn: () => base44.entities.SOP.update(id, { status: 'archived' }),
+    mutationFn: () => manageSop('archive', { id }),
     onSuccess: () => {
       ['sops-all', 'sops', 'sops-live', 'all-sops-dash', 'draft-sops', 'sops-pending-ack', 'sops-pending-ack-dash']
         .forEach(k => queryClient.invalidateQueries({ queryKey: [k] }));
@@ -199,19 +199,16 @@ export default function SOPEditor() {
 
       // Manager edit of a live SOP: the live version stays untouched until an admin approves.
       if (managerSubmitsEdit) {
-        await base44.entities.SOP.update(id, {
-          pending_changes: fields,
-          pending_state: 'submitted',
-          pending_change_summary: changeSummary,
-          pending_submitted_by: user?.email,
-          pending_submitted_by_name: user?.full_name,
-          pending_submitted_at: now,
-          pending_review_note: null,
-          pending_reviewed_by_name: null,
-          pending_content: null, pending_summary: null, pending_tags: null,
-          status: 'published', // also migrates legacy 'pending_approval' rows back to live
-        });
+        await manageSop('submit_edit', { id, fields, change_summary: changeSummary });
         return { submitted: true };
+      }
+
+      // Managers can only save drafts (server-enforced); they never publish, restore or edit a live SOP directly.
+      if (isManagerOnly) {
+        const saved = await manageSop('save_draft', { id, fields, change_summary: changeSummary });
+        const draftData = { ...fields, content: fields.instructions, status: 'draft' };
+        await recordVersion(saved.id, saved.version || 1, draftData, changeSummary || (id ? 'Updated' : 'Initial version'), user?.full_name);
+        return { bumped: false, version: saved.version || 1 };
       }
 
       const goingLive = form.status === 'published';
@@ -222,6 +219,7 @@ export default function SOPEditor() {
         last_updated_by: user?.email,
         last_updated_by_name: user?.full_name,
       };
+      if (form.status === 'archived') Object.assign(sopData, CLEARED_PENDING);
       if (form.verification_due_date) sopData.verification_due_date = form.verification_due_date;
 
       // The version number is managed automatically: every approved edit of a live SOP is a new version.

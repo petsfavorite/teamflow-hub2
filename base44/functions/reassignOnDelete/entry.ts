@@ -7,10 +7,20 @@ Deno.serve(async (req) => {
     return Response.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const { deleted_user_email, deleted_user_role, team_ids } = await req.json();
+  const { deleted_user_email, team_ids } = await req.json();
 
   // Fetch all users to find reassignment targets
   const allUsers = await base44.asServiceRole.entities.User.list('full_name', 500);
+
+  // Use the stored role, never a caller-supplied one, and enforce the hierarchy server-side.
+  const target = allUsers.find(u => u.email === deleted_user_email);
+  const deleted_user_role = target?.role || 'user';
+  if (deleted_user_role === 'super_admin' && caller.role !== 'super_admin') {
+    return Response.json({ error: 'Only a super admin can make changes to a super admin' }, { status: 403 });
+  }
+  if (deleted_user_role === 'admin' && caller.role === 'admin') {
+    return Response.json({ error: 'Admins cannot remove other admins' }, { status: 403 });
+  }
 
   let assignees = [];
 

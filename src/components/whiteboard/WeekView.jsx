@@ -1,7 +1,6 @@
-import React, { useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React from 'react';
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Dog, Cat, ChevronRight, ChevronLeft, Calendar } from "lucide-react";
 import moment from "moment";
 import LocationEditor from './LocationEditor';

@@ -4,8 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { 
-    Dog, Cat, Utensils, Pill, Camera, CheckCircle2, 
-    AlertCircle, ChevronRight, Sparkles, Cake
+    Dog, Cat, Camera, CheckCircle2, 
+    AlertCircle, ChevronRight, Sparkles
 } from "lucide-react";
 
 const getPetAge = (birthday) => {

@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dog, Cat, Phone, Pill, Clock, MapPin, Archive } from "lucide-react";
+import { Dog, Cat, Pill, MapPin, Archive } from "lucide-react";
 import { motion } from "framer-motion";
 
 // Returns "PetName (LastName)" or just "PetName" if no owner last name

@@ -1,13 +1,13 @@
 {
   "name": "Archive Overdue Tasks to History",
-  "description": "",
+  "description": "At local midnight (fires 04:05 and 05:05 UTC; the function acts only when it is midnight in the app timezone) closes unfinished past-due one-off tasks as not completed. Copies of recurring tasks are skipped: they stay open and overdue until generateRecurringTasks restarts them.",
   "trigger": {
     "condition": null,
     "config": {
       "trigger_type": "scheduled",
       "events": [],
       "schedule_mode": "recurring",
-      "cron_expression": "0 10 * * *",
+      "cron_expression": "5 4,5 * * *",
       "one_time_date": null,
       "timezone": "UTC",
       "interval_value": null,

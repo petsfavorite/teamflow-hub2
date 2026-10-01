@@ -16,7 +16,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Trash2, Upload, Dog, User, Stethoscope, Utensils, Footprints, Pill, Cat } from "lucide-react";
+import { Plus, Trash2, Upload, Dog, User, Utensils, Pill, Cat } from "lucide-react";
 import { base44 } from '@/api/base44Client';
 import PhotoCropSelector from './PhotoCropSelector';
 
@@ -99,7 +99,20 @@ export default function PetForm({ pet, onSave, onCancel, onDelete, isLoading }) 
             return;
         }
         setErrors({});
-        onSave(formData);
+        if (!pet) {
+            onSave(formData);
+            return;
+        }
+        // Editing: send only what this form actually changed, and never the live check-in / archive
+        // state. The form's copy of the pet can be minutes old; saving the whole object would flip
+        // a pet that was checked in (or archived) on another device back to its old state.
+        const LIVE_STATE = ['id', 'is_checked_in', 'is_archived', 'created_date', 'updated_date', 'created_by', 'created_by_id', 'is_sample'];
+        const changes = {};
+        Object.keys(formData).forEach(key => {
+            if (LIVE_STATE.includes(key)) return;
+            if (JSON.stringify(formData[key]) !== JSON.stringify(pet[key])) changes[key] = formData[key];
+        });
+        onSave(changes);
     };
 
     return (

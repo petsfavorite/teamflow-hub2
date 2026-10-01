@@ -35,6 +35,9 @@ export default async function(req) {
             ...(sop.pending_summary != null ? { summary: sop.pending_summary } : {}),
             ...(sop.pending_tags != null ? { tags: sop.pending_tags } : {}),
           };
+      if (sop.status === 'archived' || sop.status === 'draft') {
+        return Response.json({ error: 'This SOP is archived or a draft, so its pending edit cannot be reviewed. Restore it first.' }, { status: 409 });
+      }
       const state = sop.pending_state || ((Object.keys(proposed).length || sop.status === 'pending_approval') ? 'submitted' : null);
       if (state !== 'submitted') {
         return Response.json({ error: 'There is no edit waiting for review (it may already have been handled).' }, { status: 409 });

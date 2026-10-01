@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
@@ -8,9 +8,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import StatusBadge from '../components/shared/StatusBadge';
 import DismissibleOverdueTask from '../components/dashboard/DismissibleOverdueTask';
 import BonuslyRecognitions from '../components/dashboard/BonuslyRecognitions';
-import {
-  LayoutDashboard, BookOpen, CheckSquare, ClipboardList, Wrench,
-  AlertTriangle, MessageSquare, ArrowRight, Bell, ShieldAlert, CalendarCheck, Clock, Award, FileCheck
+import { BookOpen, CheckSquare, ClipboardList, Wrench,
+  AlertTriangle, MessageSquare, ArrowRight, Bell, ShieldAlert, CalendarCheck, Clock, FileCheck
 } from 'lucide-react';
 import moment from 'moment-timezone';
 import { formatDate, todayStr, daysFromToday, parseTs, getAppTimezone } from '@/lib/timezone';
@@ -46,7 +45,15 @@ export default function Dashboard() {
 
   const { data: checklists = [] } = useQuery({
     queryKey: ['checklists-dash'],
-    queryFn: () => base44.entities.ChecklistTemplate.list(),
+    // Only the statuses a user can act on. A plain list() fills up with closed/archived instances
+    // (kept for months) and pushes live checklists past the record cap.
+    queryFn: async () => {
+      const [active, published] = await Promise.all([
+        base44.entities.ChecklistTemplate.filter({ status: 'active' }, '-updated_date', 500),
+        base44.entities.ChecklistTemplate.filter({ status: 'published' }, '-updated_date', 500),
+      ]);
+      return [...active, ...published];
+    },
     enabled: !!user?.email,
   });
 
@@ -71,7 +78,12 @@ export default function Dashboard() {
 
   const { data: tasks = [] } = useQuery({
     queryKey: ['tasks-dash'],
-    queryFn: () => base44.entities.Task.list('-due_date', 200),
+    // Only open tasks, and never the recurring definitions themselves (they live on the Tasks page's
+    // Recurring tab). Each day's generated copy is the thing to do; it is closed as not-done at midnight.
+    queryFn: async () => {
+      const open = await base44.entities.Task.filter({ status: { $in: ['pending', 'in_progress'] } }, '-due_date', 1000);
+      return open.filter(t => !t.recurrence_type || t.recurrence_type === 'once');
+    },
     enabled: !!user?.email,
   });
 
@@ -117,7 +129,7 @@ export default function Dashboard() {
   // For managers: only show pending SOPs assigned to them or their teams
   // For admins/super admins: show all pending SOPs
   const pendingSOPs = allSOPs.filter(s => {
-    if (pendingState(s) !== 'submitted') return false;
+    if (pendingState(s) !== 'submitted' || !isLive(s)) return false;
     if (canApprove) return true; // Admins/Super Admins see all
     // Managers see only those assigned to them or their teams
     const assignedToMe = s.acknowledgement_assigned_emails?.includes(user?.email);
@@ -127,7 +139,7 @@ export default function Dashboard() {
 
   // Managers: their own edits that an admin sent back for more changes
   const changesRequestedSops = allSOPs.filter(s =>
-    pendingState(s) === 'changes_requested' && (s.pending_submitted_by === user?.email || !s.pending_submitted_by) && !canApprove
+    pendingState(s) === 'changes_requested' && isLive(s) && (s.pending_submitted_by === user?.email || !s.pending_submitted_by) && !canApprove
   );
 
   const incidents = allIncidents.filter(inc => {
@@ -183,8 +195,16 @@ export default function Dashboard() {
     return assignedToMyTeam && !assignedToMe;
   }) : [];
 
+  // Same rules as the Checklists page: hidden (not yet visible) checklists and recurring masters
+  // never show up here, since staff can't open them.
+  const RECURRING_CHECKLIST_TYPES = ['daily', 'weekdays', 'specific_days', 'monthly', 'every_x_months', 'annually'];
+  const visibleChecklists = checklists.filter(c =>
+    c.is_visible !== false &&
+    !(c.status === 'published' && RECURRING_CHECKLIST_TYPES.includes(c.recurrence_type) && !c.due_date)
+  );
+
   // For regular users: checklists due in ~1 hour (yellow)
-  const urgentChecklists = checklists.filter(c => {
+  const urgentChecklists = visibleChecklists.filter(c => {
     if (!c.due_date) return false;
     if (c.due_date < today) return false;
     const assignedToMe = c.assigned_to_emails?.includes(user?.email);
@@ -205,7 +225,7 @@ export default function Dashboard() {
     return (assignedToMe || assignedToMyTeam) && isNew;
   });
 
-  const newChecklistsToAck = checklists.filter(c => {
+  const newChecklistsToAck = visibleChecklists.filter(c => {
     const createdDateObj = parseTs(c.created_date).toDate();
     const isNew = (now.getTime() - createdDateObj.getTime()) / (1000 * 60) <= 1440;
     const assignedToMe = c.assigned_to_emails?.includes(user?.email);
@@ -234,7 +254,7 @@ export default function Dashboard() {
   });
 
   // "My Checklists" shows all published or active checklists assigned to user (any role) or their teams
-  const myChecklists = checklists.filter(c => {
+  const myChecklists = visibleChecklists.filter(c => {
     if (c.status !== 'published' && c.status !== 'active') return false;
     const assignedToMe = c.assigned_to_emails?.includes(user?.email);
     const assignedToMyTeam = c.assigned_teams?.some(tid => myTeamIds.includes(tid));

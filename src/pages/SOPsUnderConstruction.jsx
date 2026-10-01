@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { useCurrentUser } from '../components/hooks/useCurrentUser';
 import { BookOpen, Plus, Search, Tag, Clock, Archive } from 'lucide-react';
 import { formatDate } from '@/lib/timezone';
-import { fetchLiveSops, pendingState, searchSops } from '@/lib/sop';
+import { fetchLiveSops, pendingState, searchSops, manageSop } from '@/lib/sop';
 
 export default function SOPsUnderConstruction() {
   const [search, setSearch] = useState('');
@@ -39,7 +39,7 @@ export default function SOPsUnderConstruction() {
 
   // SOPs are never deleted: admins archive them instead (managers and above can still see them on the SOPs page).
   const archiveMutation = useMutation({
-    mutationFn: (sop) => base44.entities.SOP.update(sop.id, { status: 'archived' }),
+    mutationFn: (sop) => manageSop('archive', { id: sop.id }),
     onSuccess: (_, sop) => {
       ['draft-sops', 'sops-all', 'sops-live', 'all-sops-dash'].forEach(k => queryClient.invalidateQueries({ queryKey: [k] }));
       toast.success(`"${sop.title}" archived`);

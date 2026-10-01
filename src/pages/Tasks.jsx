@@ -3,7 +3,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useCurrentUser } from '../components/hooks/useCurrentUser';
 import PageHeader from '../components/shared/PageHeader';
-import StatusBadge from '../components/shared/StatusBadge';
 import EmptyState from '../components/shared/EmptyState';
 import TaskRow from '../components/task/TaskRow';
 import { Input } from "@/components/ui/input";
@@ -14,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ClipboardList, Plus, Calendar, Users, CheckCircle, Loader2, Circle, PlayCircle, RefreshCw, Search } from 'lucide-react';
+import { ClipboardList, Plus, Loader2, RefreshCw, Search } from 'lucide-react';
 import RecurringTaskCard from '../components/task/RecurringTaskCard';
 import { toast } from "sonner";
 
@@ -139,13 +138,18 @@ export default function Tasks() {
     ? (managedTeamMemberEmails.size > 0 ? users.filter(u => managedTeamMemberEmails.has(u.email)) : users)
     : users;
 
-  const myTasks = useMemo(() => activeTasksData.filter(t => {
+  // Recurring definitions only live on the Recurring tab. The active lists show each day's generated
+  // copy, which is closed as not-done at midnight; the definition keeps scheduling the next one.
+  const isRecurringDefinition = (t) => RECURRING_TYPES.includes(t.recurrence_type);
+  const activeTasks = useMemo(() => activeTasksData.filter(t => !isRecurringDefinition(t)), [activeTasksData]);
+
+  const myTasks = useMemo(() => activeTasks.filter(t => {
     const assignedToMe = t.assigned_to_emails?.includes(user?.email);
     const inMyTeam = t.assigned_teams?.some(teamId => myTeamIds.has(teamId));
     return (assignedToMe || inMyTeam) && t.status !== 'completed' && t.status !== 'cancelled';
-  }), [activeTasksData, user?.email, myTeamIds]);
-  const allTasks = activeTasksData;
-  const completedTasks = completedTasksData;
+  }), [activeTasks, user?.email, myTeamIds]);
+  const allTasks = activeTasks;
+  const completedTasks = completedTasksData.filter(t => !isRecurringDefinition(t));
 
   // All tasks with a recurrence type other than 'once'
   const allRecurringTasks = recurringTasksData;
