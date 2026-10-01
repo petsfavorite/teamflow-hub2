@@ -107,6 +107,7 @@ export default function SOPDetail() {
       queryClient.invalidateQueries({ queryKey: ['my-ack'] });
       queryClient.invalidateQueries({ queryKey: ['ack'] });
       queryClient.invalidateQueries({ queryKey: ['sops-pending-ack'] });
+      queryClient.invalidateQueries({ queryKey: ['sops-pending-ack-dash'] });
     },
   });
 
