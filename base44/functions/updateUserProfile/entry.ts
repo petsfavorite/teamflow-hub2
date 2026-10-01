@@ -78,10 +78,14 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Team changes — admins+ only (managers could otherwise reassign privileged users' teams)
+    // Team changes — managers+ only. Managers can only change regular users' teams, never
+    // other managers or above.
     if (team_ids !== undefined) {
-      if (!['admin', 'super_admin'].includes(user.role)) {
-        return Response.json({ error: 'Only admins can change team assignments' }, { status: 403 });
+      if (user.role === 'manager' && targetRole !== 'user') {
+        return Response.json({ error: 'Managers can only change team assignments of regular users' }, { status: 403 });
+      }
+      if (!Array.isArray(team_ids) || team_ids.some((id) => typeof id !== 'string')) {
+        return Response.json({ error: 'team_ids must be a list of team IDs' }, { status: 400 });
       }
       // Hierarchy check: admins cannot modify other admins/super_admins
       if (user.role === 'admin' && ['admin', 'super_admin'].includes(targetRole)) {

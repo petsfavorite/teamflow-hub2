@@ -19,7 +19,23 @@
       "items": {
         "type": "string"
       },
-      "description": "Team IDs this user is assigned to"
+      "description": "Team IDs this user is assigned to",
+      "rls": {
+        "write": {
+          "$or": [
+            {
+              "user_condition": {
+                "role": "admin"
+              }
+            },
+            {
+              "user_condition": {
+                "role": "super_admin"
+              }
+            }
+          ]
+        }
+      }
     },
     "timezone": {
       "type": "string",
@@ -35,20 +51,36 @@
     },
     "pin": {
       "type": "string",
-      "description": "6-digit numeric PIN"
+      "description": "6-digit numeric PIN",
+      "rls": {
+        "read": false,
+        "write": false
+      }
     },
     "pin_failed_attempts": {
       "type": "number",
       "default": 0,
-      "description": "Failed PIN attempt counter (persisted for cross-isolate lockout)"
+      "description": "Failed PIN attempt counter (persisted for cross-isolate lockout)",
+      "rls": {
+        "read": false,
+        "write": false
+      }
     },
     "pin_locked_until": {
       "type": "string",
-      "description": "ISO timestamp until which the PIN is locked due to too many failed attempts"
+      "description": "ISO timestamp until which the PIN is locked due to too many failed attempts",
+      "rls": {
+        "read": false,
+        "write": false
+      }
     },
     "session_locked_at": {
       "type": "string",
-      "description": "ISO timestamp of inactivity PIN lock \u2014 checked server-side so clearing browser storage can't bypass the lock. Cleared only by validatePin on correct PIN entry."
+      "description": "ISO timestamp of inactivity PIN lock \u2014 checked server-side so clearing browser storage can't bypass the lock. Cleared only by validatePin on correct PIN entry.",
+      "rls": {
+        "read": false,
+        "write": false
+      }
     },
     "invited": {
       "type": "boolean",
