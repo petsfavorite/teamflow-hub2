@@ -92,14 +92,14 @@ function recurrenceLabel(task) {
 
 export default function RecurringTaskCard({ task, onEdit, assetName = null }) {
   return (
-    <Card className="border-0 shadow-sm">
+    <Card className="border-0 shadow-sm overflow-hidden">
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
           <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center flex-shrink-0 mt-0.5">
             <RefreshCw className="w-4 h-4 text-violet-600" />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-2">
+            <div className="flex items-start justify-between gap-2 min-w-0">
               <p className="font-medium text-slate-900 min-w-0 break-words">{task.title}</p>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${priorityColors[task.priority]}`}>{task.priority}</span>
@@ -113,12 +113,12 @@ export default function RecurringTaskCard({ task, onEdit, assetName = null }) {
               </div>
             </div>
             {task.description && <p className="text-xs text-slate-500 mt-0.5 truncate">{task.description}</p>}
-            <p className="text-xs font-medium text-violet-600 mt-1.5">{recurrenceLabel(task)}</p>
+            <p className="text-xs font-medium text-violet-600 mt-1.5 break-words">{recurrenceLabel(task)}</p>
             <div className="flex items-center gap-3 mt-1 text-xs text-slate-400 flex-wrap">
               {(task.assigned_to_names?.length > 0 || task.assigned_teams?.length > 0) && (
-                <span className="flex items-center gap-1">
-                  <Users className="w-3 h-3" />
-                  {[...(task.assigned_to_names || []), ...(task.assigned_teams || [])].join(', ')}
+                <span className="flex items-center gap-1 min-w-0">
+                  <Users className="w-3 h-3 flex-shrink-0" />
+                  <span className="truncate">{[...(task.assigned_to_names || []), ...(task.assigned_teams || [])].join(', ')}</span>
                 </span>
               )}
               {(() => {
