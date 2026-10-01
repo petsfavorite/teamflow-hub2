@@ -56,7 +56,7 @@ const isVisibleNow = ({ due_date, visible_time, visible_day_offset }) => {
 };
 
 export default function Checklists() {
-  const { user, loading: userLoading, canManage, isSuperAdmin, isAdmin, isManager } = useCurrentUser();
+  const { user, loading: userLoading, canManage, isSuperAdmin, isAdmin, isManager, can } = useCurrentUser();
   const [activeChecklist, setActiveChecklist] = useState(null);
   const [items, setItems] = useState([]);
   const sessionRef = useRef(null);       // { template, completionId, items, touched } for the open checklist
@@ -822,7 +822,7 @@ export default function Checklists() {
         title="Checklists"
         description={canManage ? "Manage and assign checklists" : "Complete your assigned checklists"}
         actions={
-          canManage && (
+          can('checklist.create') && (
             <Link to={createPageUrl('ChecklistEditor')}>
               <Button className="bg-indigo-600 hover:bg-indigo-700 gap-2">
                 <Plus className="w-4 h-4" /> New Checklist
@@ -995,7 +995,7 @@ export default function Checklists() {
                           >
                             Edit
                           </Button>
-                          {(isSuperAdmin || isAdmin || isManager) && (
+                          {can('checklist.delete') && (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -1128,7 +1128,7 @@ export default function Checklists() {
                           <Link to={createPageUrl('ChecklistEditor') + `?id=${template.id}`}>
                             <Button variant="outline" size="sm">Edit</Button>
                           </Link>
-                          {(isSuperAdmin || isAdmin) && (
+                          {can('checklist.delete') && (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -1185,7 +1185,7 @@ export default function Checklists() {
                             <p className="text-xs text-amber-700 mb-3">Submitted by {t.pending_submitted_by_name}</p>
                           )}
                           <div className="flex gap-1.5 flex-wrap">
-                            {(isAdmin || isSuperAdmin) && (
+                            {can('checklist.publish') && (
                               <>
                                 <Button
                                   size="sm"
@@ -1241,7 +1241,7 @@ export default function Checklists() {
                                 Submit for Approval
                               </Button>
                             )}
-                            {(isAdmin || isSuperAdmin) && (
+                            {can('checklist.publish') && (
                               <Button
                                 size="sm"
                                 className="bg-emerald-600 hover:bg-emerald-700 text-white"
@@ -1251,7 +1251,7 @@ export default function Checklists() {
                                 Publish
                               </Button>
                             )}
-                            {(isAdmin || isSuperAdmin) && (
+                            {can('checklist.send_back') && (
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -1264,7 +1264,7 @@ export default function Checklists() {
                             <Link to={createPageUrl('ChecklistEditor') + `?id=${t.id}`}>
                               <Button variant="ghost" size="sm" className="text-slate-600">Edit</Button>
                             </Link>
-                            {(isSuperAdmin || isAdmin) && (
+                            {can('checklist.delete') && (
                               <Button
                                 variant="ghost"
                                 size="sm"
