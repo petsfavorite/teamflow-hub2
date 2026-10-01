@@ -96,12 +96,16 @@ export default function Whiteboard() {
         mutationKey: ['visit-update'],
         // Save only what the user changed, merged onto the latest server copy, so
         // two staff editing the same visit don't overwrite each other's tasks/log.
-        mutationFn: async ({ id, data, base }) => {
-            const server = base ? await base44.entities.Visit.get(id) : null;
-            const patch = buildVisitPatch(base, data, server);
+        mutationFn: async ({ id, data, base, server }) => {
+            // Use the server snapshot captured from the query cache (passed in
+            // from handleUpdateVisit) instead of doing an extra Visit.get() on
+            // every check-off. Fall back to a GET only when the visit isn't in
+            // the cache (e.g. just transitioned status).
+            const serverCopy = server || (base ? await base44.entities.Visit.get(id) : null);
+            const patch = buildVisitPatch(base, data, serverCopy);
             if (!patch) return null;
             await base44.entities.Visit.update(id, patch);
-            return server ? { ...server, ...patch } : null;
+            return serverCopy ? { ...serverCopy, ...patch } : null;
         },
         onMutate: async ({ id, data }) => {
             // Cancel outgoing refetches so they don't overwrite our optimistic update
@@ -141,7 +145,11 @@ export default function Whiteboard() {
             if (merged && pendingSaves.current <= 1) {
                 setSelectedVisit(prev => (prev && prev.id === id ? merged : prev));
             }
-            queryClient.invalidateQueries({ queryKey: ['visits'] });
+            // Skip the full-list refetch when more saves are queued — the optimistic
+            // cache already reflects the edit, and the last save triggers the refetch.
+            if (pendingSaves.current <= 1) {
+                queryClient.invalidateQueries({ queryKey: ['visits'] });
+            }
         }
     });
 
@@ -209,6 +217,12 @@ export default function Whiteboard() {
     const handleUpdateVisit = async (updatedVisit) => {
         // Update selectedVisit immediately so the panel reacts right away
         const base = selectedVisitRef.current?.id === updatedVisit.id ? selectedVisitRef.current : null;
+        // Capture the server snapshot from the cache BEFORE the optimistic update —
+        // this lets the mutation merge without an extra Visit.get() round-trip.
+        const cachedVisits = queryClient.getQueryData(['visits']);
+        const serverSnapshot = (cachedVisits && Array.isArray(cachedVisits))
+            ? cachedVisits.find(v => v.id === updatedVisit.id) || null
+            : null;
         selectedVisitRef.current = { ...updatedVisit };
         setSelectedVisit({ ...updatedVisit });
         // Update the visits cache now (not when the save reaches the front of the queue)
@@ -220,7 +234,7 @@ export default function Whiteboard() {
         });
         // Run saves one at a time. Rapid check-offs otherwise race: each save reads the
         // server copy before the previous save lands, and the later write drops the earlier one.
-        const run = () => updateVisitMutation.mutateAsync({ id: updatedVisit.id, data: updatedVisit, base });
+        const run = () => updateVisitMutation.mutateAsync({ id: updatedVisit.id, data: updatedVisit, base, server: serverSnapshot });
         pendingSaves.current += 1;
         const result = saveQueue.current.then(run, run);
         saveQueue.current = result.catch(() => {});
