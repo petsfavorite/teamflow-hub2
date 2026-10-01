@@ -132,6 +132,11 @@
         },
         {
           "user_condition": {
+            "role": "user"
+          }
+        },
+        {
+          "user_condition": {
             "role": "manager"
           }
         },
@@ -180,6 +185,11 @@
       "$or": [
         {
           "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
         },
         {
           "user_condition": {
