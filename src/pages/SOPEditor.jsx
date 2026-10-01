@@ -54,6 +54,7 @@ export default function SOPEditor() {
   const [publishOpen, setPublishOpen] = useState(false);
   const [returnOpen, setReturnOpen] = useState(false);
   const [returnNote, setReturnNote] = useState('');
+  const [responsibleIsOther, setResponsibleIsOther] = useState(false);
   const [relatedSearch, setRelatedSearch] = useState('');
   const [savedDraft, setSavedDraft] = useState(null);
   const [initialForm, setInitialForm] = useState(null);
@@ -219,6 +220,18 @@ export default function SOPEditor() {
     } catch { /* storage unavailable */ }
   }, [existing, existingFetching, id, userLoading, isManagerOnly, liveBaseline, existingPendingState, draftKey]);
 
+  // Detect if the loaded responsible_role is a custom value (not a known team or individual)
+  useEffect(() => {
+    if (!initRef.current || responsibleIsOther) return;
+    const r = form.responsible_role;
+    if (!r || r === '__other__') return;
+    const isKnown = teams.some(t => t.name === r) || allUsers.some(u => {
+      const name = (u.first_name || u.last_name) ? `${u.first_name || ''} ${u.last_name || ''}`.trim() : u.email;
+      return name === r;
+    });
+    if (!isKnown) setResponsibleIsOther(true);
+  }, [form.responsible_role, teams, allUsers, responsibleIsOther]);
+
   const currentTags = useMemo(() => tagsInput.split(',').map(t => t.trim()).filter(Boolean), [tagsInput]);
 
   // Autosave an unsaved draft locally so a refresh / navigation doesn't lose work.
@@ -256,6 +269,7 @@ export default function SOPEditor() {
   const needsChangeSummary = !!id && hasChanges && wasLive && (managerSubmitsEdit || form.status === 'published');
   const missingChangeSummary = needsChangeSummary && !changeSummary.trim();
   const missingRequired = !form.title.trim() || !form.category.trim();
+  const responsibleError = responsibleIsOther && !form.responsible_role?.trim();
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -358,7 +372,7 @@ export default function SOPEditor() {
               <Button variant="outline" onClick={() => setReturnOpen(true)} className="gap-2 border-amber-300 text-amber-700 hover:bg-amber-50">
                 <CornerUpLeft className="w-4 h-4" /> Return
               </Button>
-              <Button onClick={() => setPublishOpen(true)} disabled={missingRequired} className="bg-emerald-600 hover:bg-emerald-700 gap-2">
+              <Button onClick={() => setPublishOpen(true)} disabled={missingRequired || responsibleError} className="bg-emerald-600 hover:bg-emerald-700 gap-2">
                 <CheckCircle2 className="w-4 h-4" /> Publish
               </Button>
             </>
@@ -578,7 +592,18 @@ export default function SOPEditor() {
 
           <div className="space-y-2">
             <Label className="flex items-center gap-1.5"><UserCheck className="w-3.5 h-3.5" /> Who Is Responsible</Label>
-            <Select value={form.responsible_role} onValueChange={v => set('responsible_role', v)}>
+            <Select
+              value={responsibleIsOther ? '__other__' : form.responsible_role}
+              onValueChange={v => {
+                if (v === '__other__') {
+                  setResponsibleIsOther(true);
+                  set('responsible_role', '');
+                } else {
+                  setResponsibleIsOther(false);
+                  set('responsible_role', v);
+                }
+              }}
+            >
               <SelectTrigger><SelectValue placeholder="Select a team or person" /></SelectTrigger>
               <SelectContent>
                 <SelectGroup>
@@ -594,14 +619,20 @@ export default function SOPEditor() {
                     return <SelectItem key={u.id} value={name}>{name}</SelectItem>;
                   })}
                 </SelectGroup>
-                {form.responsible_role && !teams.some(t => t.name === form.responsible_role) && !allUsers.some(u => {
-                  const name = (u.first_name || u.last_name) ? `${u.first_name || ''} ${u.last_name || ''}`.trim() : u.email;
-                  return name === form.responsible_role;
-                }) && (
-                  <SelectItem value={form.responsible_role}>{form.responsible_role}</SelectItem>
-                )}
+                <SelectItem value="__other__">Other…</SelectItem>
               </SelectContent>
             </Select>
+            {responsibleIsOther && (
+              <div className="space-y-1">
+                <Input
+                  value={form.responsible_role || ''}
+                  onChange={e => set('responsible_role', e.target.value)}
+                  placeholder="Specify who is responsible *"
+                  className={responsibleError ? 'border-red-400' : ''}
+                />
+                {responsibleError && <p className="text-xs text-red-600">Please specify who is responsible.</p>}
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -759,7 +790,7 @@ export default function SOPEditor() {
         <Link to={createPageUrl('SOPs')}><Button variant="outline">Cancel</Button></Link>
         <Button
           onClick={() => saveMutation.mutate()}
-          disabled={saveMutation.isPending || verificationError || missingChangeSummary || missingRequired || (!!id && !hasChanges)}
+          disabled={saveMutation.isPending || verificationError || missingChangeSummary || missingRequired || responsibleError || (!!id && !hasChanges)}
           className="bg-indigo-600 hover:bg-indigo-700 gap-2"
         >
           {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
