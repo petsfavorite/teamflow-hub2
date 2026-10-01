@@ -4,12 +4,35 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Sparkles, Loader2, ChevronDown, ChevronUp, Mic, MicOff } from 'lucide-react';
 import { toast } from 'sonner';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { htmlToText, sanitizeHtml } from '@/lib/sop';
 
-export default function SOPAIImporter({ onFill, sopTags = [] }) {
+const TEXT_KEYS = ['title', 'category', 'purpose', 'when_it_applies', 'required_tools', 'warnings', 'responsible_role', 'summary'];
+
+// Keep only what the model reliably produced: tags must exist in the allowed list, empty values are dropped
+// (so they can't blank out what is already in the form) and the instructions HTML is sanitized.
+function cleanResult(result, allowedTags) {
+  const out = {};
+  TEXT_KEYS.forEach((k) => {
+    const v = typeof result?.[k] === 'string' ? result[k].trim() : '';
+    if (v) out[k] = v;
+  });
+  const instructions = typeof result?.instructions === 'string' ? sanitizeHtml(result.instructions) : '';
+  if (htmlToText(instructions).length >= 20) out.instructions = instructions;
+  const byLower = new Map(allowedTags.map((t) => [t.toLowerCase(), t]));
+  const tags = (Array.isArray(result?.tags) ? result.tags : [])
+    .map((t) => byLower.get(String(t).trim().toLowerCase()))
+    .filter(Boolean);
+  if (tags.length) out.tags = [...new Set(tags)];
+  return out;
+}
+
+export default function SOPAIImporter({ onFill, sopTags = [], hasExistingContent = false }) {
   const [rawText, setRawText] = useState('');
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(true);
   const [isListening, setIsListening] = useState(false);
+  const [pendingFill, setPendingFill] = useState(null);
   const recognitionRef = useRef(null);
 
   useEffect(() => {
@@ -45,6 +68,14 @@ export default function SOPAIImporter({ onFill, sopTags = [] }) {
       recognitionRef.current.start();
       setIsListening(true);
     }
+  };
+
+  const applyFill = (cleaned, missing) => {
+    onFill(cleaned);
+    setPendingFill(null);
+    if (missing.length) toast.warning(`SOP filled, but the AI left out: ${missing.join(', ')}. Please fill those in.`);
+    else toast.success('SOP fields filled from AI — review and adjust as needed');
+    setExpanded(false);
   };
 
   const handleGenerate = async () => {
@@ -92,9 +123,17 @@ Return a JSON object with these exact keys:
         }
       });
 
-      onFill(result);
-      toast.success('SOP fields filled from AI — review and adjust as needed');
-      setExpanded(false);
+      const cleaned = cleanResult(result, availableTagNames);
+      if (!cleaned.instructions) {
+        toast.error('The AI did not produce usable step-by-step instructions. Add more detail to your text and try again.');
+        return;
+      }
+      const missing = ['title', 'category'].filter((k) => !cleaned[k]);
+      if (hasExistingContent) {
+        setPendingFill({ cleaned, missing });
+      } else {
+        applyFill(cleaned, missing);
+      }
     } catch (e) {
       toast.error('AI generation failed: ' + e.message);
     } finally {
@@ -157,6 +196,20 @@ Return a JSON object with these exact keys:
           </div>
         </div>
       )}
+      <AlertDialog open={!!pendingFill} onOpenChange={(open) => !open && setPendingFill(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Replace what you've already entered?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The form already has content. Filling from AI overwrites the fields the AI produced. Fields it left empty are kept.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex justify-end gap-3">
+            <AlertDialogCancel>Keep my text</AlertDialogCancel>
+            <AlertDialogAction onClick={() => applyFill(pendingFill.cleaned, pendingFill.missing)}>Replace</AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

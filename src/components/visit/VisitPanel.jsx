@@ -8,11 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Checkbox } from "@/components/ui/checkbox";
 import { 
-    Dog, Cat, MapPin, Clock, Utensils, Pill, 
+    Dog, Cat, MapPin, Clock, 
     CheckCircle2, Plus, X, FileText, Camera, ChevronLeft, AlertCircle, Sparkles, Pencil
 } from "lucide-react";
 import moment from "moment";

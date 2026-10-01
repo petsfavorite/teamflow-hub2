@@ -11,76 +11,128 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { BookOpen, Plus, Search, Tag, Clock, Trash2, AlertCircle, Mic } from 'lucide-react';
+import { toast } from "sonner";
+import { BookOpen, Plus, Search, Tag, Clock, Archive, ArchiveRestore, AlertCircle, Mic, ChevronDown, ChevronRight, FolderArchive } from 'lucide-react';
 import { formatDate } from '@/lib/timezone';
+import { fetchLiveSops, fetchMyAcks, fetchMyTeamIds, sopsNeedingAck, isReAck, isAckOverdue, pendingState, verificationStatus, searchSops, isLive, manageSop } from '@/lib/sop';
 
 export default function SOPs() {
   const { user, isAdmin, isSuperAdmin, canManage, isManager } = useCurrentUser();
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
-  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [statusFilter, setStatusFilter] = useState('active');
+  const [showArchived, setShowArchived] = useState(false);
   const queryClient = useQueryClient();
 
-  // Fetch SOPs that require acknowledgement and the user hasn't acknowledged yet
-  const { data: pendingAckSops = [] } = useQuery({
+  // SOPs the user must acknowledge at their CURRENT version (all-staff SOPs included, re-ack after every new version)
+  const { data: pendingAck = { sops: [], acks: [] } } = useQuery({
     queryKey: ['sops-pending-ack', user?.email],
     enabled: !!user?.email,
     queryFn: async () => {
-      const [allPublished, acks, allTeams] = await Promise.all([
-        base44.entities.SOP.filter({ status: 'published' }, '-updated_date', 200),
-        base44.entities.SOPAcknowledgement.filter({ user_email: user.email }),
-        base44.entities.Team.list('name', 100),
+      const [live, acks, myTeamIds] = await Promise.all([
+        fetchLiveSops(500),
+        fetchMyAcks(user.email),
+        fetchMyTeamIds(user.email),
       ]);
-      const ackedSopIds = new Set(acks.map(a => a.sop_id));
-      const requiresAck = allPublished.filter(sop => {
-        if (!sop.requires_acknowledgement) return false;
-        // Check direct email assignment
-        if (sop.acknowledgement_assigned_emails?.includes(user.email)) return true;
-        // Check team membership
-        const assignedTeamIds = sop.acknowledgement_assigned_teams || [];
-        if (assignedTeamIds.length > 0) {
-          return allTeams.some(t => assignedTeamIds.includes(t.id) && (t.member_emails || []).includes(user.email));
-        }
-        return false;
-      });
-      return requiresAck.filter(sop => !ackedSopIds.has(sop.id));
+      return { sops: sopsNeedingAck(live, acks, user.email, myTeamIds), acks };
     },
   });
+  const pendingAckSops = pendingAck.sops;
 
   const { data: sops = [], isLoading } = useQuery({
-    queryKey: ['sops-all'],
+    queryKey: ['sops-all', canManage],
     queryFn: async () => {
       if (canManage) {
         const [drafts, pending, published, archived] = await Promise.all([
-          base44.entities.SOP.filter({ status: 'draft' }, '-updated_date', 200),
-          base44.entities.SOP.filter({ status: 'pending_approval' }, '-updated_date', 200),
-          base44.entities.SOP.filter({ status: 'published' }, '-updated_date', 200),
-          base44.entities.SOP.filter({ status: 'archived' }, '-updated_date', 200),
+          base44.entities.SOP.filter({ status: 'draft' }, '-updated_date', 500),
+          base44.entities.SOP.filter({ status: 'pending_approval' }, '-updated_date', 500),
+          base44.entities.SOP.filter({ status: 'published' }, '-updated_date', 500),
+          base44.entities.SOP.filter({ status: 'archived' }, '-updated_date', 500),
         ]);
         return [...drafts, ...pending, ...published, ...archived].sort((a, b) => new Date(b.updated_date) - new Date(a.updated_date));
       }
-      return base44.entities.SOP.filter({ status: 'published' }, '-updated_date', 200);
+      return fetchLiveSops(500);
     },
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: (sopId) => base44.entities.SOP.delete(sopId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sops-all'] });
-      setDeleteConfirm(null);
+  // SOPs are never deleted: admins archive them (hidden from staff) and can restore them as drafts.
+  const archiveMutation = useMutation({
+    mutationFn: ({ sop, archive }) => archive ? manageSop('archive', { id: sop.id }) : base44.entities.SOP.update(sop.id, { status: 'draft' }),
+    onSuccess: (_, { sop, archive }) => {
+      ['sops-all', 'sops-live', 'sops', 'all-sops-dash', 'draft-sops', 'sops-pending-ack', 'sops-pending-ack-dash']
+        .forEach(k => queryClient.invalidateQueries({ queryKey: [k] }));
+      toast.success(archive ? `"${sop.title}" archived` : `"${sop.title}" restored as a draft`);
     },
+    onError: (e) => toast.error('Could not update the SOP: ' + (e?.message || 'unknown error')),
   });
 
   const categories = [...new Set(sops.map(s => s.category).filter(Boolean))];
 
-  const filtered = sops.filter(s => {
-    const matchSearch = !search || s.title.toLowerCase().includes(search.toLowerCase()) ||
-      s.summary?.toLowerCase().includes(search.toLowerCase()) ||
-      s.tags?.some(t => t.toLowerCase().includes(search.toLowerCase()));
-    const matchCategory = categoryFilter === 'all' || s.category === categoryFilter;
-    return matchSearch && matchCategory;
-  });
+  // Search covers title, summary, tags, category and the full instructions; results are ranked by relevance.
+  const searched = search.trim() ? searchSops(sops, search).map(r => r.sop) : sops;
+  // Archived SOPs never appear in the main list; they live in the collapsible Archived folder below it.
+  const matchesStatus = (s) => {
+    if (s.status === 'archived') return false;
+    if (!canManage) return true; // staff only ever receive live SOPs
+    return statusFilter === 'active' || s.status === statusFilter || (statusFilter === 'published' && isLive(s));
+  };
+  const matchesCategory = (s) => categoryFilter === 'all' || s.category === categoryFilter;
+  const filtered = searched.filter(s => matchesStatus(s) && matchesCategory(s));
+  const archivedSops = canManage ? searched.filter(s => s.status === 'archived' && matchesCategory(s)) : [];
+
+  const badgesFor = (sop) => {
+    const out = [];
+    const ps = pendingState(sop);
+    if (canManage && ps === 'submitted') out.push(['Edit pending review', 'bg-amber-100 text-amber-800']);
+    if (canManage && ps === 'changes_requested') out.push(['Changes requested', 'bg-red-100 text-red-700']);
+    if (canManage && isLive(sop) && verificationStatus(sop).overdue) out.push(['Verification overdue', 'bg-red-100 text-red-700']);
+    return out;
+  };
+
+  const renderCard = (sop) => (
+             <div key={sop.id} className="relative group">
+               <Link to={createPageUrl('SOPDetail') + `?id=${sop.id}`}>
+                 <Card className="border-0 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 h-full cursor-pointer">
+                   <CardContent className="p-4 md:p-6">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex flex-wrap gap-1.5">
+                        {sop.status !== 'published' && <StatusBadge status={sop.status === 'pending_approval' ? 'published' : sop.status} />}
+                        {badgesFor(sop).map(([label, cls]) => <span key={label} className={`text-xs font-semibold px-2 py-0.5 rounded-full ${cls}`}>{label}</span>)}
+                      </div>
+                      {sop.version && <span className="text-xs text-slate-400">v{sop.version}</span>}
+                    </div>
+                    <h3 className="font-semibold text-slate-900 mb-2 line-clamp-2">{sop.title}</h3>
+                    {sop.summary && <p className="text-sm text-slate-500 line-clamp-2 mb-3">{sop.summary}</p>}
+                    <div className="flex items-center justify-between mt-auto pt-3 border-t border-slate-100">
+                      <div className="flex items-center gap-1.5">
+                        <Tag className="w-3 h-3 text-slate-400" />
+                        <span className="text-xs text-slate-400">{sop.category}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="w-3 h-3 text-slate-400" />
+                        <span className="text-xs text-slate-400">{formatDate(sop.updated_date)}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+              {(isAdmin || isSuperAdmin) && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  title={sop.status === 'archived' ? 'Restore as draft' : 'Archive'}
+                  disabled={archiveMutation.isPending}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    archiveMutation.mutate({ sop, archive: sop.status !== 'archived' });
+                  }}
+                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity bg-white/90 hover:bg-slate-100 text-slate-600"
+                >
+                  {sop.status === 'archived' ? <ArchiveRestore className="w-4 h-4" /> : <Archive className="w-4 h-4" />}
+                </Button>
+              )}
+            </div>
+  );
 
   return (
     <div>
@@ -108,6 +160,18 @@ export default function SOPs() {
              className="pl-10 text-sm"
            />
          </div>
+         {canManage && (
+           <Select value={statusFilter} onValueChange={setStatusFilter}>
+             <SelectTrigger className="w-full sm:w-44 text-sm">
+               <SelectValue />
+             </SelectTrigger>
+             <SelectContent>
+               <SelectItem value="active">All active</SelectItem>
+               <SelectItem value="published">Published</SelectItem>
+               <SelectItem value="draft">Drafts</SelectItem>
+             </SelectContent>
+           </Select>
+         )}
          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
            <SelectTrigger className="w-full sm:w-48 text-sm">
              <SelectValue placeholder="All Categories" />
@@ -131,7 +195,10 @@ export default function SOPs() {
                 <Card className="border-2 border-amber-400 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 cursor-pointer bg-amber-50">
                   <CardContent className="p-4 md:p-6">
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="text-xs font-semibold bg-amber-400 text-amber-900 px-2 py-0.5 rounded-full">Needs Acknowledgement</span>
+                      <span className="text-xs font-semibold bg-amber-400 text-amber-900 px-2 py-0.5 rounded-full">
+                        {isReAck(pendingAck.acks, sop) ? `Updated to v${sop.version || 1} — re-acknowledge` : 'Needs Acknowledgement'}
+                      </span>
+                      {isAckOverdue(sop) && <span className="text-xs font-semibold bg-red-100 text-red-700 px-2 py-0.5 rounded-full">Overdue</span>}
                     </div>
                     <h3 className="font-semibold text-slate-900 mb-2 line-clamp-2">{sop.title}</h3>
                     {sop.summary && <p className="text-sm text-slate-500 line-clamp-2 mb-3">{sop.summary}</p>}
@@ -174,45 +241,26 @@ export default function SOPs() {
         />
       ) : (
          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-           {filtered.map(sop => (
-             <div key={sop.id} className="relative group">
-               <Link to={createPageUrl('SOPDetail') + `?id=${sop.id}`}>
-                 <Card className="border-0 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 h-full cursor-pointer">
-                   <CardContent className="p-4 md:p-6">
-                    <div className="flex items-start justify-between mb-3">
-                      {sop.status !== 'published' && <StatusBadge status={sop.status} />}
-                      {sop.version && <span className="text-xs text-slate-400">v{sop.version}</span>}
-                    </div>
-                    <h3 className="font-semibold text-slate-900 mb-2 line-clamp-2">{sop.title}</h3>
-                    {sop.summary && <p className="text-sm text-slate-500 line-clamp-2 mb-3">{sop.summary}</p>}
-                    <div className="flex items-center justify-between mt-auto pt-3 border-t border-slate-100">
-                      <div className="flex items-center gap-1.5">
-                        <Tag className="w-3 h-3 text-slate-400" />
-                        <span className="text-xs text-slate-400">{sop.category}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <Clock className="w-3 h-3 text-slate-400" />
-                        <span className="text-xs text-slate-400">{formatDate(sop.updated_date)}</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-              {(isAdmin || isSuperAdmin) && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setDeleteConfirm(sop);
-                  }}
-                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 hover:bg-red-100 text-red-600"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              )}
+           {filtered.map(renderCard)}
+        </div>
+      )}
+
+      {archivedSops.length > 0 && (
+        <div className="mt-8">
+          <button
+            type="button"
+            onClick={() => setShowArchived(v => !v)}
+            className="flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-900 mb-3"
+          >
+            {showArchived ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+            <FolderArchive className="w-4 h-4" />
+            Archived ({archivedSops.length})
+          </button>
+          {showArchived && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+              {archivedSops.map(renderCard)}
             </div>
-          ))}
+          )}
         </div>
       )}
 
@@ -227,26 +275,6 @@ export default function SOPs() {
           <span className="text-sm font-semibold hidden sm:inline">New SOP</span>
         </Link>
       )}
-
-      <AlertDialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete SOP?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete "{deleteConfirm?.title}"? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="flex justify-end gap-3">
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => deleteMutation.mutate(deleteConfirm.id)}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Delete
-            </AlertDialogAction>
-          </div>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

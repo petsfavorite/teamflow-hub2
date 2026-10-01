@@ -7,10 +7,10 @@ import {
     Dialog, DialogContent, DialogHeader, DialogTitle 
 } from "@/components/ui/dialog";
 import { 
-    Dog, Search, Plus, Grid3X3, List, Filter, RefreshCw
+    Dog, Search, Plus, RefreshCw
 } from "lucide-react";
-import { AnimatePresence, motion } from "framer-motion";
-import { Link, useNavigate } from 'react-router-dom';
+import { AnimatePresence } from "framer-motion";
+import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 
 import PetCard from '@/components/pets/PetCard';

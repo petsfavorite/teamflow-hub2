@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent } from '@/components/ui/card';
-import { Award, ArrowRight } from 'lucide-react';
+import { Award } from 'lucide-react';
 import { formatDate } from '@/lib/timezone';
 
 export default function BonuslyRecognitions() {

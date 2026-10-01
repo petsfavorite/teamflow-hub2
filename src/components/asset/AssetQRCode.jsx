@@ -8,7 +8,7 @@ import { escapeHtml } from '@/lib/sanitize';
 export default function AssetQRCode({ asset }) {
   const printRef = useRef();
   if (!asset) return null;
-  const assetUrl = `${window.location.origin}${window.location.pathname}#/Assets?id=${asset.id}`;
+  const assetUrl = `${window.location.origin}/Assets?id=${asset.id}`;
 
   const handlePrint = () => {
     const printWindow = window.open('', '_blank');

@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
 import { requireAdminOnly } from '../../shared/auth.ts';
+import { localScheduleGate } from '../../shared/localSchedule.ts';
 
 Deno.serve(async (req) => {
     try {
@@ -8,9 +9,9 @@ Deno.serve(async (req) => {
         if (authError) return authError;
         const now = new Date();
 
-        const settings = await base44.asServiceRole.entities.AppSettings.filter({ key: 'global' });
-        const tz = settings[0]?.global_timezone || 'America/New_York';
-
+        // Runs only at local midnight (see shared/localSchedule.ts)
+        const { tz, skip } = await localScheduleGate(base44, req, 0);
+        if (skip) return skip;
         const todayStr = now.toLocaleDateString('en-CA', { timeZone: tz });
         const todayDow = new Date(todayStr + 'T12:00:00Z').getUTCDay(); // 0=Sun, 6=Sat
         const todayDom = parseInt(todayStr.split('-')[2]); // 1-31
@@ -77,6 +78,32 @@ Deno.serve(async (req) => {
                 t.created_date.startsWith(todayStr)
             );
             if (legacyExists) continue;
+
+            // Time to restart: any earlier copy still open was never finished. Archive it as not done
+            // (it stayed active, and overdue, until now) so only the new occurrence is open.
+            const staleCopies = await base44.asServiceRole.entities.Task.filter(
+                { recurring_task_id: template.id, status: { $in: ['pending', 'in_progress'] } },
+                '-created_date',
+                200
+            );
+            for (const old of staleCopies) {
+                await base44.asServiceRole.entities.TaskHistory.create({
+                    task_id: old.id,
+                    task_title: old.title,
+                    task_description: old.description || null,
+                    priority: old.priority || 'medium',
+                    due_date: old.due_date,
+                    assigned_to_emails: old.assigned_to_emails || [],
+                    assigned_to_names: old.assigned_to_names || [],
+                    assigned_teams: old.assigned_teams || [],
+                    outcome: 'expired',
+                    closed_by: 'system',
+                    closed_by_name: 'Not completed (replaced by next occurrence)',
+                    closed_at: new Date().toISOString(),
+                    completion_notes: old.completion_notes || null,
+                });
+                await base44.asServiceRole.entities.Task.update(old.id, { status: 'cancelled' });
+            }
 
             await base44.asServiceRole.entities.Task.create({
                 title: template.title,

@@ -1,11 +1,15 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 import moment from 'npm:moment-timezone@0.5.45';
 import { requireAdminOnly } from '../../shared/auth.ts';
+import { localScheduleGate } from '../../shared/localSchedule.ts';
 
 Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
   const { error: authError } = await requireAdminOnly(base44);
   if (authError) return authError;
+  // Runs only at local midnight (see shared/localSchedule.ts)
+  const { skip } = await localScheduleGate(base44, req, 0);
+  if (skip) return skip;
 
   const settings = await base44.asServiceRole.entities.AppSettings.filter({ key: 'global' });
   const tz = settings[0]?.global_timezone || 'America/New_York';

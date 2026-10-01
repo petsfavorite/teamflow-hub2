@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 import { requireAdminOnly } from '../../shared/auth.ts';
+import { localScheduleGate } from '../../shared/localSchedule.ts';
 
 const FOLDER_ID = '1cS0qd-257GiwotZNyFy_UJnmoaMVsA38';
 
@@ -22,6 +23,9 @@ Deno.serve(async (req) => {
         const base44 = createClientFromRequest(req);
         const { error: authError } = await requireAdminOnly(base44);
         if (authError) return authError;
+        // Runs only at 8 PM app time (see shared/localSchedule.ts)
+        const { skip } = await localScheduleGate(base44, req, 20);
+        if (skip) return skip;
 
         const { accessToken } = await base44.asServiceRole.connectors.getConnection('googledrive');
         const authHeader = { Authorization: `Bearer ${accessToken}` };

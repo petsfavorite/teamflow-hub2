@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { CalendarDays, CalendarRange, Plus, RefreshCw, FileText } from "lucide-react";
+import { CalendarDays, CalendarRange, Plus, RefreshCw } from "lucide-react";
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import moment from "moment";
@@ -106,8 +106,6 @@ export default function Whiteboard() {
         onMutate: async ({ id, data }) => {
             // Cancel outgoing refetches so they don't overwrite our optimistic update
             await queryClient.cancelQueries({ queryKey: ['visits'] });
-            // Snapshot previous value for rollback
-            const previousVisits = queryClient.getQueryData(['visits']);
             // Optimistically update cache BEFORE save so the whiteboard reflects
             // the change immediately when the panel closes — even if the save is
             // still in flight or the refetch hits a 429.
@@ -115,16 +113,27 @@ export default function Whiteboard() {
                 if (!Array.isArray(oldVisits)) return oldVisits;
                 return oldVisits.map(v => v.id === id ? { ...v, ...data } : v);
             });
-            return { previousVisits };
+            return {};
         },
-        onError: (err, { id }, context) => {
-            // Rollback to previous state
-            if (context?.previousVisits) {
-                queryClient.setQueryData(['visits'], context.previousVisits);
-                const fresh = context.previousVisits.find(v => v.id === id);
-                if (fresh) setSelectedVisit({ ...fresh });
-            }
+        onError: async (err, { id }) => {
             toast({ variant: 'destructive', title: 'Changes not saved', description: 'Failed to save your changes. Please try again.' });
+            // The cache and the open panel were updated optimistically BEFORE this save, so a snapshot
+            // taken in onMutate already contains the unsaved edit and rolling back to it undoes nothing.
+            // Reload the real server copy instead; otherwise the failed change looks saved and later
+            // saves (which diff against the panel) silently skip it.
+            try {
+                const fresh = await base44.entities.Visit.get(id);
+                queryClient.setQueryData(['visits'], (old) => (
+                    Array.isArray(old) ? old.map(v => v.id === id ? { ...v, ...fresh } : v) : old
+                ));
+                // Only reset the open panel when no other save is queued behind this one.
+                if (pendingSaves.current <= 1 && selectedVisitRef.current?.id === id) {
+                    selectedVisitRef.current = { ...fresh };
+                    setSelectedVisit({ ...fresh });
+                }
+            } catch {
+                queryClient.invalidateQueries({ queryKey: ['visits'] });
+            }
         },
         onSuccess: (merged, { id }) => {
             // Show other staff's concurrent changes in the open panel — but only when

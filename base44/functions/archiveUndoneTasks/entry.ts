@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 import { requireAdminOnly } from '../../shared/auth.ts';
+import { localScheduleGate } from '../../shared/localSchedule.ts';
 
 Deno.serve(async (req) => {
     try {
@@ -7,6 +8,10 @@ Deno.serve(async (req) => {
         const { error: authError } = await requireAdminOnly(base44);
         if (authError) return authError;
         
+        // Runs only at 11 PM app time (see shared/localSchedule.ts)
+        const { tz, skip } = await localScheduleGate(base44, req, 23);
+        if (skip) return skip;
+
         // Get all checked-in visits
         const visits = await base44.asServiceRole.entities.Visit.filter({ status: 'checked_in' });
         
@@ -14,8 +19,6 @@ Deno.serve(async (req) => {
             return Response.json({ message: 'No checked-in visits found' });
         }
         
-        const settings = await base44.asServiceRole.entities.AppSettings.filter({ key: 'global' });
-        const tz = settings[0]?.global_timezone || 'America/New_York';
         const today = new Date().toLocaleDateString('en-CA', { timeZone: tz });
         const nowTime = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: tz });
         let updatedCount = 0;

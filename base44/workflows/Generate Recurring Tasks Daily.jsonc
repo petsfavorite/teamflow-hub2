@@ -1,13 +1,13 @@
 {
   "name": "Generate Recurring Tasks Daily",
-  "description": "",
+  "description": "At local midnight (fires 04:10 and 05:10 UTC; the function acts only when it is midnight in the app timezone) creates today's copy of each recurring task, first archiving the previous unfinished copy as not done.",
   "trigger": {
     "condition": null,
     "config": {
       "trigger_type": "scheduled",
       "events": [],
       "schedule_mode": "recurring",
-      "cron_expression": "0 10 * * *",
+      "cron_expression": "10 4,5 * * *",
       "one_time_date": null,
       "timezone": "UTC",
       "interval_value": null,

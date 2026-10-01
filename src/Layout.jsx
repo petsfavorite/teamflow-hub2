@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import {
-    Dog, LayoutGrid, Users, LogIn, Settings, Menu, X,
+import { LayoutGrid, Users, LogIn, Settings, Menu, X,
     LayoutDashboard, BookOpen, CheckSquare, ClipboardList, Wrench,
     AlertTriangle, BarChart2, MessageSquare, Link as LinkIcon, Package, PawPrint,
     ChevronDown, ChevronRight, ShieldCheck, History, Upload, Phone, FileSpreadsheet, FileText,

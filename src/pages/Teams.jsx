@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Users, Plus, Pencil, UserPlus, UserMinus, Loader2, Trash2 } from 'lucide-react';
+import { Users, Plus, Pencil, UserPlus, Loader2, Trash2 } from 'lucide-react';
 import { toast } from "sonner";
 
 export default function Teams() {
