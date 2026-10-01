@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { getUserDisplayName } from '@/lib/utils';
 import { useCurrentUser } from '../components/hooks/useCurrentUser';
 import PageHeader from '../components/shared/PageHeader';
 import StatusBadge from '../components/shared/StatusBadge';
@@ -260,7 +261,7 @@ export default function IncidentReports() {
       osha_days_away_from_work: toNum(form.osha_days_away_from_work),
       osha_days_on_restricted_duty: toNum(form.osha_days_on_restricted_duty),
       reported_by: user?.email,
-      reported_by_name: user?.full_name,
+      reported_by_name: getUserDisplayName(user),
     });
   };
 
@@ -656,7 +657,7 @@ export default function IncidentReports() {
                         note: newNote,
                         date: new Date().toISOString(),
                         added_by: user.email,
-                        added_by_name: user.full_name || user.email,
+                        added_by_name: getUserDisplayName(user),
                         ...(attachmentUrl && { attachment_url: attachmentUrl })
                       };
                       try {

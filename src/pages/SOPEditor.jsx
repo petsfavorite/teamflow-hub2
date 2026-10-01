@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { getUserDisplayName } from '@/lib/utils';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { useCurrentUser } from '../components/hooks/useCurrentUser';
@@ -73,7 +74,7 @@ export default function SOPEditor() {
 
   const { data: allUsers = [] } = useQuery({
     queryKey: ['all-users-sop'],
-    queryFn: () => base44.entities.User.list('full_name', 500),
+    queryFn: () => base44.entities.User.list('first_name', 500),
     enabled: !!(isAdmin || isSuperAdmin),
   });
 
@@ -195,7 +196,7 @@ export default function SOPEditor() {
     mutationFn: async () => {
       const now = new Date().toISOString();
       const fields = { ...pick(form, SOP_CONTENT_FIELDS), tags: currentTags };
-      const who = { email: user?.email, name: user?.full_name };
+      const who = { email: user?.email, name: getUserDisplayName(user) };
 
       // Manager edit of a live SOP: the live version stays untouched until an admin approves.
       if (managerSubmitsEdit) {
@@ -207,7 +208,7 @@ export default function SOPEditor() {
       if (isManagerOnly) {
         const saved = await manageSop('save_draft', { id, fields, change_summary: changeSummary });
         const draftData = { ...fields, content: fields.instructions, status: 'draft' };
-        await recordVersion(saved.id, saved.version || 1, draftData, changeSummary || (id ? 'Updated' : 'Initial version'), user?.full_name);
+        await recordVersion(saved.id, saved.version || 1, draftData, changeSummary || (id ? 'Updated' : 'Initial version'), getUserDisplayName(user));
         return { bumped: false, version: saved.version || 1 };
       }
 
@@ -217,7 +218,7 @@ export default function SOPEditor() {
         content: fields.instructions,
         status: form.status,
         last_updated_by: user?.email,
-        last_updated_by_name: user?.full_name,
+        last_updated_by_name: getUserDisplayName(user),
       };
       if (form.status === 'archived') Object.assign(sopData, CLEARED_PENDING);
       if (form.verification_due_date) sopData.verification_due_date = form.verification_due_date;
@@ -236,7 +237,7 @@ export default function SOPEditor() {
       const sopId = id || result.id;
       // Only write version history when a version is created or a draft is saved (not for settings-only tweaks).
       if (bumped || !wasLive) {
-        await recordVersion(sopId, version, sopData, changeSummary || (id ? 'Updated' : 'Initial version'), user?.full_name);
+        await recordVersion(sopId, version, sopData, changeSummary || (id ? 'Updated' : 'Initial version'), getUserDisplayName(user));
       }
       return { bumped, version };
     },

@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { getUserDisplayName } from '@/lib/utils';
 import { useCurrentUser } from '../components/hooks/useCurrentUser';
 import PageHeader from '../components/shared/PageHeader';
 import EmptyState from '../components/shared/EmptyState';
@@ -183,7 +184,7 @@ export default function Tasks() {
         assigned_teams: task.assigned_teams || [],
         outcome: status,
         closed_by: user?.email || 'unknown',
-        closed_by_name: user?.full_name || user?.email || 'Unknown',
+        closed_by_name: getUserDisplayName(user) || 'Unknown',
         closed_at: new Date().toISOString(),
         completion_notes: task.completion_notes || null,
       }).catch(() => {
@@ -355,7 +356,7 @@ export default function Tasks() {
                 <Input placeholder="Search users..." value={newUserSearch} onChange={e => setNewUserSearch(e.target.value)} className="pl-7 h-8 text-sm" />
               </div>
               <div className="flex flex-col gap-1 overflow-y-auto p-2 bg-slate-50 rounded-lg border border-slate-200" style={{ maxHeight: '108px' }}>
-                {assignableUsers.filter(u => (u.full_name || u.email).toLowerCase().includes(newUserSearch.toLowerCase())).map(u => (
+                {assignableUsers.filter(u => (getUserDisplayName(u)).toLowerCase().includes(newUserSearch.toLowerCase())).map(u => (
                   <label key={u.id} className="flex items-center gap-2 text-sm cursor-pointer">
                     <Checkbox
                       checked={form.assigned_to_emails.includes(u.email)}
@@ -364,12 +365,12 @@ export default function Tasks() {
                           ? [...form.assigned_to_emails, u.email]
                           : form.assigned_to_emails.filter(e => e !== u.email);
                         const names = checked
-                          ? [...form.assigned_to_names, u.full_name || u.email]
+                          ? [...form.assigned_to_names, getUserDisplayName(u)]
                           : form.assigned_to_names.filter((_, i) => form.assigned_to_emails[i] !== u.email);
                         setForm({ ...form, assigned_to_emails: emails, assigned_to_names: names });
                       }}
                     />
-                    {u.full_name || u.email}
+                    {getUserDisplayName(u)}
                   </label>
                 ))}
               </div>
@@ -399,7 +400,7 @@ export default function Tasks() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowNew(false)}>Cancel</Button>
-            <Button onClick={() => createMutation.mutate({ ...form, created_by_name: user?.full_name })} disabled={createMutation.isPending || !form.title || (form.assigned_to_emails.length === 0 && form.assigned_teams.length === 0) || (needsStartDate(form) && !form.due_date)} className="bg-indigo-600 hover:bg-indigo-700 gap-2">
+            <Button onClick={() => createMutation.mutate({ ...form, created_by_name: getUserDisplayName(user) })} disabled={createMutation.isPending || !form.title || (form.assigned_to_emails.length === 0 && form.assigned_teams.length === 0) || (needsStartDate(form) && !form.due_date)} className="bg-indigo-600 hover:bg-indigo-700 gap-2">
               {createMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Create Task
             </Button>
           </DialogFooter>
@@ -487,17 +488,17 @@ export default function Tasks() {
                 <Input placeholder="Search users..." value={editUserSearch} onChange={e => setEditUserSearch(e.target.value)} className="pl-7 h-8 text-sm" />
               </div>
               <div className="flex flex-col gap-1 overflow-y-auto p-2 bg-slate-50 rounded-lg border border-slate-200" style={{ maxHeight: '108px' }}>
-                {assignableUsers.filter(u => (u.full_name || u.email).toLowerCase().includes(editUserSearch.toLowerCase())).map(u => (
+                {assignableUsers.filter(u => (getUserDisplayName(u)).toLowerCase().includes(editUserSearch.toLowerCase())).map(u => (
                   <label key={u.id} className="flex items-center gap-2 text-sm cursor-pointer">
                     <Checkbox
                       checked={(editForm.assigned_to_emails || []).includes(u.email)}
                       onCheckedChange={checked => {
                         const emails = checked ? [...(editForm.assigned_to_emails || []), u.email] : (editForm.assigned_to_emails || []).filter(e => e !== u.email);
-                        const names = checked ? [...(editForm.assigned_to_names || []), u.full_name || u.email] : (editForm.assigned_to_names || []).filter((_, i) => (editForm.assigned_to_emails || [])[i] !== u.email);
+                        const names = checked ? [...(editForm.assigned_to_names || []), getUserDisplayName(u)] : (editForm.assigned_to_names || []).filter((_, i) => (editForm.assigned_to_emails || [])[i] !== u.email);
                         setEditForm({ ...editForm, assigned_to_emails: emails, assigned_to_names: names });
                       }}
                     />
-                    {u.full_name || u.email}
+                    {getUserDisplayName(u)}
                   </label>
                 ))}
               </div>

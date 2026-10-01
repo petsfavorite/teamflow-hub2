@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { getUserDisplayName } from '@/lib/utils';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { useCurrentUser } from '../components/hooks/useCurrentUser';
@@ -299,7 +300,7 @@ export default function Checklists() {
       await base44.entities.ChecklistTemplate.update(template.id, {
         status: 'pending_approval',
         pending_submitted_by: user?.email,
-        pending_submitted_by_name: user?.full_name,
+        pending_submitted_by_name: getUserDisplayName(user),
         pending_review_note: null,
         pending_reviewed_by_name: null,
       });
@@ -310,7 +311,7 @@ export default function Checklists() {
         base44.integrations.Core.SendEmail({
           to: admin.email,
           subject: `Checklist Pending Approval: ${sanitizeForEmail(template.title)}`,
-          body: `Hi ${admin.full_name || admin.email},\n\n${user?.full_name || user?.email} has submitted the checklist template "${sanitizeForEmail(template.title)}" for approval.\n\nPlease log in and go to Checklists → Draft Checklists to review and approve or reject it.\n\nThanks!`
+          body: `Hi ${getUserDisplayName(admin)},\n\n${getUserDisplayName(user)} has submitted the checklist template "${sanitizeForEmail(template.title)}" for approval.\n\nPlease log in and go to Checklists → Draft Checklists to review and approve or reject it.\n\nThanks!`
         }).catch(() => {})
       ));
     },
@@ -572,7 +573,7 @@ export default function Checklists() {
       checked: isChecking,
       checked_at: justChecked ? new Date().toISOString() : it.checked_at,
       checked_by_email: justChecked ? user?.email : it.checked_by_email,
-      checked_by_name: justChecked ? user?.full_name : it.checked_by_name,
+      checked_by_name: justChecked ? getUserDisplayName(user) : it.checked_by_name,
     });
     session.items = next;
     session.touched.add(index);
@@ -612,7 +613,7 @@ export default function Checklists() {
         checklist_title: template.title,
         recurring_checklist_id: template.recurring_checklist_id || null,
         completed_by: user?.email,
-        completed_by_name: user?.full_name,
+        completed_by_name: getUserDisplayName(user),
         completed_items: session.items,
         completion_date: todayStr(),
         status: 'in_progress'
@@ -692,7 +693,7 @@ export default function Checklists() {
         checklist_title: session.template.title,
         recurring_checklist_id: session.template.recurring_checklist_id || null,
         completed_by: user?.email,
-        completed_by_name: user?.full_name,
+        completed_by_name: getUserDisplayName(user),
         completed_items: session.items.map(item => ({
           ...item,
           notes: item.notes || '',
@@ -780,7 +781,7 @@ export default function Checklists() {
                             checklist_title: session.template.title,
                             recurring_checklist_id: session.template.recurring_checklist_id || null,
                             completed_by: user.email,
-                            completed_by_name: user.full_name,
+                            completed_by_name: getUserDisplayName(user),
                             completed_items: session.items,
                             completion_date: todayStr(),
                             status: 'edited'
@@ -1310,7 +1311,7 @@ export default function Checklists() {
                           setUseForm({
                             ...useForm,
                             assigned_to_emails: [...useForm.assigned_to_emails, u.email],
-                            assigned_to_names: [...(useForm.assigned_to_names || []), u.full_name]
+                            assigned_to_names: [...(useForm.assigned_to_names || []), getUserDisplayName(u)]
                           });
                         } else {
                           const idx = useForm.assigned_to_emails.indexOf(u.email);

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { getUserDisplayName } from '@/lib/utils';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { useCurrentUser } from '../components/hooks/useCurrentUser';
@@ -39,7 +40,7 @@ export default function ChecklistEditor() {
 
   const { data: users = [] } = useQuery({
     queryKey: ['users-list'],
-    queryFn: () => base44.entities.User.list('full_name', 200),
+    queryFn: () => base44.entities.User.list('first_name', 200),
   });
 
   const { data: teams = [] } = useQuery({
@@ -129,7 +130,7 @@ export default function ChecklistEditor() {
         pending_description: form.description,
         pending_change_summary: form.pending_change_summary.trim(),
         pending_submitted_by: user?.email,
-        pending_submitted_by_name: user?.full_name,
+        pending_submitted_by_name: getUserDisplayName(user),
         _isPendingApproval: true,
       };
       saveMutation.mutate(pendingData);

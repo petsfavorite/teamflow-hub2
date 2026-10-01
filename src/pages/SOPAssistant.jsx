@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import { getUserDisplayName } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import { useCurrentUser } from '../components/hooks/useCurrentUser';
 import { Input } from "@/components/ui/input";
@@ -91,7 +92,7 @@ export default function SOPAssistant() {
       answered,
       matched_sop_ids: matchedIds,
       user_email: user?.email,
-      user_name: user?.full_name,
+      user_name: getUserDisplayName(user),
     }).then(() => { if (!answered) queryClient.invalidateQueries({ queryKey: ['sop-search-gaps'] }); }).catch(() => {});
   };
 

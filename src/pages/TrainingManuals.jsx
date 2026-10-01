@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { getUserDisplayName } from '@/lib/utils';
 import { useCurrentUser } from '../components/hooks/useCurrentUser';
 import PageHeader from '../components/shared/PageHeader';
 import EmptyState from '../components/shared/EmptyState';
@@ -124,7 +125,7 @@ export default function TrainingManuals() {
       file_content: form.file_content,
       file_summary: form.file_summary,
       uploaded_by: user?.email,
-      uploaded_by_name: user?.full_name || '',
+      uploaded_by_name: getUserDisplayName(user),
     });
   };
 

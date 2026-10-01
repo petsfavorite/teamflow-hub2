@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import PreliminaryReportDialog from './PreliminaryReportDialog';
 import EditCheckInDialog from './EditCheckInDialog';
 import { base44 } from "@/api/base44Client";
+import { getUserDisplayName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -149,7 +150,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
         const today = moment().format('YYYY-MM-DD');
 
         // Derive initials from current user's name (use stored initials if available)
-        const name = currentUser?.full_name || '';
+        const name = getUserDisplayName(currentUser);
         const initials = currentUser?.initials || name.split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase() || '?';
         const timestamp = moment().format('h:mm A');
 
@@ -295,7 +296,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
 
     const handleAddActivity = () => {
         if (!newNotes) return;
-        const initials = currentUser?.initials || currentUser?.full_name?.split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase() || '?';
+        const initials = currentUser?.initials || getUserDisplayName(currentUser).split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase() || '?';
         const careLog = [...(visit.care_log || []), {
             time: moment().format('h:mm A'),
             activity: 'Note',
@@ -336,7 +337,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
     const pictureTakenToday = pictureTakenDates.find(p => p.date === viewDate);
 
     const handleTakePicture = () => {
-        const initials = currentUser?.initials || currentUser?.full_name?.split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase() || '?';
+        const initials = currentUser?.initials || getUserDisplayName(currentUser).split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase() || '?';
         const careLog = [...(visit.care_log || []), {
             time: moment().format('h:mm A'),
             date: viewDate,
@@ -349,7 +350,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
     };
 
     const handleSendPicture = () => {
-        const initials = currentUser?.initials || currentUser?.full_name?.split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase() || '?';
+        const initials = currentUser?.initials || getUserDisplayName(currentUser).split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase() || '?';
         const careLog = [...(visit.care_log || []), {
             time: moment().format('h:mm A'),
             date: viewDate,
@@ -489,7 +490,7 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
     const handleCancelTask = (taskIndex) => {
         if (!cancelTaskNote.trim()) return;
         const task = visit.scheduled_tasks[taskIndex];
-        const initials = currentUser?.initials || currentUser?.full_name?.split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase() || '?';
+        const initials = currentUser?.initials || getUserDisplayName(currentUser).split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase() || '?';
         const timestamp = moment().format('h:mm A');
         const taskLabel = task.type === 'Medication' ? task.medication_name : task.type;
 

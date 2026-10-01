@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { getUserDisplayName } from '@/lib/utils';
 import { useCurrentUser } from '../components/hooks/useCurrentUser';
 import PageHeader from '../components/shared/PageHeader';
 import EmptyState from '../components/shared/EmptyState';
@@ -32,7 +33,7 @@ export default function Teams() {
 
   const { data: allUsers = [] } = useQuery({
     queryKey: ['all-users'],
-    queryFn: () => base44.entities.User.list('full_name', 500),
+    queryFn: () => base44.entities.User.list('first_name', 500),
     enabled: canManageMembers,
   });
 
@@ -82,7 +83,7 @@ export default function Teams() {
         userId: userToAdd.id,
         team_ids: [...currentTeamIds, team.id],
       });
-      toast.success(`${userToAdd.full_name || userToAdd.email} added to ${team.name}`);
+      toast.success(`${getUserDisplayName(userToAdd)} added to ${team.name}`);
       queryClient.invalidateQueries({ queryKey: ['teams'] });
       queryClient.invalidateQueries({ queryKey: ['teams-list'] });
       queryClient.invalidateQueries({ queryKey: ['teams-mgmt'] });
@@ -260,10 +261,10 @@ export default function Teams() {
                   className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-indigo-50 transition-colors text-left disabled:opacity-50"
                 >
                   <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-600">
-                    {u.full_name?.charAt(0) || '?'}
+                    {getUserDisplayName(u).charAt(0) || '?'}
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-slate-900">{u.full_name || 'No name'}</p>
+                    <p className="text-sm font-medium text-slate-900">{getUserDisplayName(u) || 'No name'}</p>
                     <p className="text-xs text-slate-400">{u.email}</p>
                   </div>
                   {memberOpLoading ? <Loader2 className="w-4 h-4 text-indigo-400 ml-auto animate-spin" /> : <UserPlus className="w-4 h-4 text-indigo-400 ml-auto" />}

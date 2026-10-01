@@ -1,6 +1,7 @@
 import React from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { getUserDisplayName } from '@/lib/utils';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { useCurrentUser } from '../components/hooks/useCurrentUser';
@@ -297,7 +298,7 @@ export default function Dashboard() {
     <div className="space-y-6 md:space-y-8">
       <div>
         <h1 className="text-xl md:text-2xl font-bold text-slate-900 tracking-tight">
-          Welcome back, {user?.full_name?.split(' ')[0] || 'there'}
+          Welcome back, {getUserDisplayName(user).split(' ')[0] || 'there'}
         </h1>
         <p className="text-sm md:text-base text-slate-500 mt-1">Here's what's happening today.</p>
       </div>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { getUserDisplayName } from '@/lib/utils';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { useCurrentUser } from '../components/hooks/useCurrentUser';
@@ -54,11 +55,11 @@ export default function SOPVersions() {
         content: fields.instructions,
         version: newVersion,
         last_updated_by: user?.email,
-        last_updated_by_name: user?.full_name,
-        ...(isLive(latest) ? publishStamp({ email: user?.email, name: user?.full_name }) : {}),
+        last_updated_by_name: getUserDisplayName(user),
+        ...(isLive(latest) ? publishStamp({ email: user?.email, name: getUserDisplayName(user) }) : {}),
       };
       await base44.entities.SOP.update(sopId, update);
-      await recordVersion(sopId, newVersion, { ...latest, ...update }, `Restored from v${version.version_number}`, user?.full_name);
+      await recordVersion(sopId, newVersion, { ...latest, ...update }, `Restored from v${version.version_number}`, getUserDisplayName(user));
       return newVersion;
     },
     onSuccess: (newVersion, version) => {

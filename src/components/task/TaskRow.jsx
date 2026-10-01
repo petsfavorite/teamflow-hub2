@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
+import { getUserDisplayName } from '@/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -145,7 +146,7 @@ export default function TaskRow({ task, onStatusChange, canEdit, user, teams = [
                 />
               </div>
               <div className="flex flex-col gap-1 overflow-y-auto p-2 bg-slate-50 rounded-lg border border-slate-200" style={{ maxHeight: '108px' }}>
-                {users.filter(u => (u.full_name || u.email).toLowerCase().includes(userSearch.toLowerCase())).map(u => (
+                {users.filter(u => (getUserDisplayName(u)).toLowerCase().includes(userSearch.toLowerCase())).map(u => (
                   <label key={u.id} className="flex items-center gap-2 text-sm cursor-pointer">
                     <Checkbox
                       checked={(form.assigned_to_emails || []).includes(u.email)}
@@ -154,12 +155,12 @@ export default function TaskRow({ task, onStatusChange, canEdit, user, teams = [
                           ? [...(form.assigned_to_emails || []), u.email]
                           : (form.assigned_to_emails || []).filter(e => e !== u.email);
                         const names = checked
-                          ? [...(form.assigned_to_names || []), u.full_name || u.email]
+                          ? [...(form.assigned_to_names || []), getUserDisplayName(u)]
                           : (form.assigned_to_names || []).filter((_, i) => (form.assigned_to_emails || [])[i] !== u.email);
                         setForm({ ...form, assigned_to_emails: emails, assigned_to_names: names });
                       }}
                     />
-                    {u.full_name || u.email}
+                    {getUserDisplayName(u)}
                   </label>
                 ))}
               </div>

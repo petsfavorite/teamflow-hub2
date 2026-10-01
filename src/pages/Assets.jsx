@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { getUserDisplayName } from '@/lib/utils';
 import { Link, useSearchParams } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { useCurrentUser } from '../components/hooks/useCurrentUser';
@@ -354,7 +355,7 @@ export default function Assets() {
                           note: newNote, 
                           date: new Date().toISOString(),
                           added_by: user.email,
-                          added_by_name: user.full_name || user.email,
+                          added_by_name: getUserDisplayName(user),
                           ...(attachmentUrl && { attachment_url: attachmentUrl })
                         };
                         try {
@@ -549,7 +550,7 @@ export default function Assets() {
               if (newTaskForm.title && selectedAsset && ((newTaskForm.assigned_to_emails?.length > 0) || (newTaskForm.assigned_teams?.length > 0))) {
                 const taskData = {
                   ...newTaskForm,
-                  created_by_name: user?.full_name,
+                  created_by_name: getUserDisplayName(user),
                   asset_id: selectedAsset.id,
                 };
                 if (!taskData.due_date) delete taskData.due_date;

@@ -56,7 +56,7 @@ export default function SOPDetail() {
 
   const { data: allUsers = [] } = useQuery({
     queryKey: ['users-for-ack'],
-    queryFn: () => base44.entities.User.list('full_name', 200),
+    queryFn: () => base44.entities.User.list('first_name', 200),
     enabled: !!(id && sop?.requires_acknowledgement),
   });
 

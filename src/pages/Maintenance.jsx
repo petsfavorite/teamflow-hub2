@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { getUserDisplayName } from '@/lib/utils';
 import { useCurrentUser } from '../components/hooks/useCurrentUser';
 import { isSafeUrl } from '@/lib/sanitize';
 import PageHeader from '../components/shared/PageHeader';
@@ -90,7 +91,7 @@ export default function Maintenance() {
       ...form,
       asset_name: selectedAsset?.name || null,
       requested_by: user?.email,
-      requested_by_name: user?.full_name,
+      requested_by_name: getUserDisplayName(user),
     });
   };
 
@@ -261,7 +262,7 @@ export default function Maintenance() {
                 <div><span className="text-slate-400">Priority:</span> <StatusBadge status={selected?.priority} /></div>
                 <div><span className="text-slate-400">Status:</span> <StatusBadge status={selected?.status} /></div>
                 {selected?.location && <div><span className="text-slate-400">Location:</span> <span className="font-medium">{selected?.location}</span></div>}
-                {selected?.assigned_to && <div className="col-span-2"><span className="text-slate-400">Assigned to:</span> <span className="font-medium text-purple-700">{allUsers.find(u => u.email === selected.assigned_to)?.full_name || selected.assigned_to}</span></div>}
+                {selected?.assigned_to && <div className="col-span-2"><span className="text-slate-400">Assigned to:</span> <span className="font-medium text-purple-700">{getUserDisplayName(allUsers.find(u => u.email === selected.assigned_to)) || selected.assigned_to}</span></div>}
               </div>
               {selected?.asset_name && (
                 <div className="bg-blue-50 p-3 rounded-lg">
@@ -323,7 +324,7 @@ export default function Maintenance() {
                         note: newNote,
                         date: new Date().toISOString(),
                         added_by: user.email,
-                        added_by_name: user.full_name || user.email,
+                        added_by_name: getUserDisplayName(user),
                         ...(attachmentUrl && { attachment_url: attachmentUrl })
                       };
                       try {
@@ -378,15 +379,15 @@ export default function Maintenance() {
                     onValueChange={v => {
                       const val = v || null;
                       const assignedUser = allUsers.find(u => u.email === val);
-                      updateMutation.mutate({ id: selected.id, data: { assigned_to: val, assigned_to_name: assignedUser?.full_name || null } });
-                      setSelected({ ...selected, assigned_to: val, assigned_to_name: assignedUser?.full_name || null });
+                      updateMutation.mutate({ id: selected.id, data: { assigned_to: val, assigned_to_name: getUserDisplayName(assignedUser) || null } });
+                      setSelected({ ...selected, assigned_to: val, assigned_to_name: getUserDisplayName(assignedUser) || null });
                     }}
                   >
                     <SelectTrigger><SelectValue placeholder="Select user" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value={null}>Unassigned</SelectItem>
                       {allUsers.map(u => (
-                        <SelectItem key={u.id} value={u.email}>{u.full_name || u.email}</SelectItem>
+                        <SelectItem key={u.id} value={u.email}>{getUserDisplayName(u)}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -419,7 +420,7 @@ function RequestCard({ req, onClick, highlight, archived, allUsers = [] }) {
                 {req.asset_name && <span>Asset: {req.asset_name}</span>}
                 <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{formatDate(req.created_date)}</span>
                 <span className="flex items-center gap-1"><User className="w-3 h-3" />{req.requested_by_name || req.requested_by}</span>
-                {req.assigned_to && <span className="text-purple-500">→ {req.assigned_to_name || allUsers.find(u => u.email === req.assigned_to)?.full_name || req.assigned_to}</span>}
+                {req.assigned_to && <span className="text-purple-500">→ {req.assigned_to_name || getUserDisplayName(allUsers.find(u => u.email === req.assigned_to)) || req.assigned_to}</span>}
               </div>
             </div>
           </div>
