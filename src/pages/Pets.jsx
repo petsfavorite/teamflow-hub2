@@ -237,7 +237,7 @@ export default function Pets() {
                         pet={editingPet}
                         onSave={handleSavePet}
                         onCancel={() => { setShowAddDialog(false); setEditingPet(null); }}
-                        onDelete={handleDeletePet}
+                        onDelete={(currentUser?.role === 'manager' || currentUser?.role === 'admin' || currentUser?.role === 'super_admin') ? handleDeletePet : null}
                         isLoading={createPetMutation.isPending || updatePetMutation.isPending}
                     />
                 </DialogContent>
