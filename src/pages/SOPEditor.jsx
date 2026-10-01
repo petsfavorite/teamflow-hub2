@@ -13,9 +13,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import ReactQuill from 'react-quill';
-import { ArrowLeft, Save, Loader2, History, Users, User, Video, AlertTriangle, UserCheck, CheckCircle2, CalendarCheck, X, Plus, Tag, Archive, Link2, ShieldAlert, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, History, Users, User, Video, AlertTriangle, UserCheck, CheckCircle2, CalendarCheck, X, Plus, Tag, Archive, Link2, ShieldAlert, RotateCcw, CornerUpLeft, FileText } from 'lucide-react';
 import SOPAIImporter from '../components/sop/SOPAIImporter';
+import SOPDocumentUpload from '../components/sop/SOPDocumentUpload';
+import SOPPublishDialog from '../components/sop/SOPPublishDialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { formatDate, addDaysStr, daysFromToday } from '@/lib/timezone';
@@ -28,7 +31,7 @@ const MAX_VERIFICATION_DAYS = VERIFICATION_INTERVAL_DAYS;
 
 const DEFAULT_FORM = {
   title: '', category: '', purpose: '', when_it_applies: '', required_tools: '',
-  instructions: '', video_url: '', warnings: '', responsible_role: '',
+  instructions: '', video_url: '', document_url: '', warnings: '', responsible_role: '',
   applicable_teams: [], summary: '', tags: [], status: 'draft', version: 1,
   requires_acknowledgement: false, acknowledgement_due_days: 3,
   acknowledgement_assigned_emails: [], acknowledgement_assigned_teams: [],
@@ -48,6 +51,9 @@ export default function SOPEditor() {
   const [tagsInput, setTagsInput] = useState('');
   const [changeSummary, setChangeSummary] = useState('');
   const [archiveConfirm, setArchiveConfirm] = useState(false);
+  const [publishOpen, setPublishOpen] = useState(false);
+  const [returnOpen, setReturnOpen] = useState(false);
+  const [returnNote, setReturnNote] = useState('');
   const [relatedSearch, setRelatedSearch] = useState('');
   const [savedDraft, setSavedDraft] = useState(null);
   const [initialForm, setInitialForm] = useState(null);
@@ -65,6 +71,52 @@ export default function SOPEditor() {
       navigate(createPageUrl('SOPs'));
     },
     onError: (e) => toast.error('Could not archive the SOP: ' + (e?.message || 'unknown error')),
+  });
+
+  // Publish: admin publishes a draft SOP directly. 90-day verification cycle starts automatically.
+  const publishMutation = useMutation({
+    mutationFn: async (ackSettings) => {
+      const now = new Date().toISOString();
+      const fields = { ...pick({ ...form, ...ackSettings }, SOP_CONTENT_FIELDS), tags: currentTags };
+      const who = { email: user?.email, name: getUserDisplayName(user) };
+      const sopData = {
+        ...fields,
+        content: fields.instructions,
+        status: 'published',
+        last_updated_by: user?.email,
+        last_updated_by_name: getUserDisplayName(user),
+        ...CLEARED_PENDING,
+        ...publishStamp(who),
+      };
+      sopData.version = existing?.version || 1;
+      const result = id ? await base44.entities.SOP.update(id, sopData) : await base44.entities.SOP.create(sopData);
+      const sopId = id || result.id;
+      await recordVersion(sopId, sopData.version, sopData, changeSummary || 'Published', getUserDisplayName(user));
+      return { version: sopData.version, requires_acknowledgement: !!ackSettings.requires_acknowledgement };
+    },
+    onSuccess: (res) => {
+      ['sops-all', 'sops', 'sop-versions', 'sops-live', 'all-sops-dash', 'sops-pending-ack', 'sops-pending-ack-dash', 'draft-sops']
+        .forEach(k => queryClient.invalidateQueries({ queryKey: [k] }));
+      queryClient.invalidateQueries({ queryKey: ['sop', id] });
+      queryClient.invalidateQueries({ queryKey: ['sop-edit', id] });
+      try { localStorage.removeItem(draftKey); } catch { /* ignore */ }
+      toast.success(`SOP published as v${res.version}${res.requires_acknowledgement ? ' — staff will be asked to acknowledge' : ''}`);
+      navigate(createPageUrl('SOPDetail') + `?id=${id}`);
+    },
+    onError: (e) => toast.error('Could not publish the SOP: ' + (e?.message || 'unknown error')),
+  });
+
+  // Return (send back): admin returns a draft to its creator with a note.
+  const returnMutation = useMutation({
+    mutationFn: async (note) => {
+      const res = await base44.functions.invoke('approveContent', { type: 'sop', id, action: 'send_back', note });
+      return res?.data ?? res;
+    },
+    onSuccess: () => {
+      toast.success('Draft sent back to the creator');
+      navigate(createPageUrl('SOPs'));
+    },
+    onError: (e) => toast.error('Could not send the draft back: ' + (e?.message || 'unknown error')),
   });
 
   const { data: teams = [] } = useQuery({
@@ -277,15 +329,28 @@ export default function SOPEditor() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <Link to={createPageUrl('SOPs')}>
           <Button variant="ghost" className="gap-2 text-slate-600"><ArrowLeft className="w-4 h-4" /> Back</Button>
         </Link>
-        {id && (
-          <Link to={createPageUrl('SOPVersions') + `?id=${id}`}>
-            <Button variant="outline" className="gap-2"><History className="w-4 h-4" /> Version History</Button>
-          </Link>
-        )}
+        <div className="flex gap-2 flex-wrap">
+          {id && (
+            <Link to={createPageUrl('SOPVersions') + `?id=${id}`}>
+              <Button variant="outline" className="gap-2"><History className="w-4 h-4" /> Version History</Button>
+            </Link>
+          )}
+          {/* Admin draft actions: Return (send back to creator) and Publish */}
+          {id && (isAdmin || isSuperAdmin) && existing?.status === 'draft' && !managerSubmitsEdit && (
+            <>
+              <Button variant="outline" onClick={() => setReturnOpen(true)} className="gap-2 border-amber-300 text-amber-700 hover:bg-amber-50">
+                <CornerUpLeft className="w-4 h-4" /> Return
+              </Button>
+              <Button onClick={() => setPublishOpen(true)} disabled={missingRequired} className="bg-emerald-600 hover:bg-emerald-700 gap-2">
+                <CheckCircle2 className="w-4 h-4" /> Publish
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       <h1 className="text-2xl font-bold text-slate-900 mb-6">{id ? 'Edit SOP' : 'Create New SOP'}</h1>
@@ -474,6 +539,8 @@ export default function SOPEditor() {
             <Label className="flex items-center gap-1.5"><Video className="w-3.5 h-3.5" /> Video URL <span className="text-slate-400 text-xs font-normal">(optional)</span></Label>
             <Input value={form.video_url} onChange={e => set('video_url', e.target.value)} placeholder="https://youtube.com/..." />
           </div>
+
+          <SOPDocumentUpload value={form.document_url} onChange={v => set('document_url', v)} />
 
           <div className="space-y-2">
             <Label className="flex items-center gap-1.5 text-amber-700"><AlertTriangle className="w-3.5 h-3.5" /> Warnings / Cautions</Label>
@@ -665,6 +732,39 @@ export default function SOPEditor() {
           </div>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Publish dialog — asks who needs to acknowledge, then publishes with a 90-day verification cycle */}
+      <SOPPublishDialog
+        open={publishOpen}
+        onOpenChange={setPublishOpen}
+        onPublish={(ackSettings) => publishMutation.mutate(ackSettings)}
+        pending={publishMutation.isPending}
+        sopTitle={form.title || existing?.title || 'this SOP'}
+        teams={teams}
+        users={allUsers}
+      />
+
+      {/* Return (send back) dialog — admin returns a draft to its creator with a note */}
+      <Dialog open={returnOpen} onOpenChange={setReturnOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><CornerUpLeft className="w-5 h-5 text-amber-600" /> Return to Creator</DialogTitle>
+            <DialogDescription>This draft will be sent back to {existing?.last_updated_by_name || 'the creator'} with your notes. It stays unpublished until they resubmit it.</DialogDescription>
+          </DialogHeader>
+          <Textarea value={returnNote} onChange={e => setReturnNote(e.target.value)} rows={4} placeholder="What needs to change before this can be published?" />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReturnOpen(false)}>Cancel</Button>
+            <Button
+              onClick={() => returnMutation.mutate(returnNote.trim())}
+              disabled={returnMutation.isPending || !returnNote.trim()}
+              className="bg-amber-600 hover:bg-amber-700 gap-2"
+            >
+              {returnMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CornerUpLeft className="w-4 h-4" />}
+              Send Back
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import SOPChangeDiff from '../components/sop/SOPChangeDiff';
+import SOPDocumentLink from '../components/sop/SOPDocumentLink';
 import {
   ArrowLeft, Pencil, Tag, Clock, User, CheckCircle, History, Users, Loader2,
   ShieldAlert, CheckCircle2, XCircle, Video, AlertTriangle, UserCheck,
@@ -508,6 +509,9 @@ export default function SOPDetail() {
           </CardContent>
         </Card>
       )}
+
+      {/* Document / Reference Material */}
+      <SOPDocumentLink url={sop.document_url} />
 
       {relatedSops.length > 0 && (
         <Card className="border-0 shadow-sm mb-4">

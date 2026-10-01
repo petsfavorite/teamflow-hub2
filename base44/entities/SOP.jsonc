@@ -28,6 +28,10 @@
       "type": "string",
       "description": "Optional video link (YouTube, Vimeo, etc.)"
     },
+    "document_url": {
+      "type": "string",
+      "description": "Optional link to a supporting document (PDF, Word, etc.) \u2014 either a URL or an uploaded file"
+    },
     "warnings": {
       "type": "string",
       "description": "Safety warnings or cautions"

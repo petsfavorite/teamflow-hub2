@@ -9,7 +9,7 @@ import { addDaysStr, daysFromToday } from '@/lib/timezone';
 // Every field a manager/admin can edit in the SOP editor (snapshotted in versions and pending edits).
 export const SOP_CONTENT_FIELDS = [
   'title', 'category', 'purpose', 'when_it_applies', 'required_tools', 'instructions',
-  'video_url', 'warnings', 'responsible_role', 'applicable_teams', 'summary', 'tags',
+  'video_url', 'document_url', 'warnings', 'responsible_role', 'applicable_teams', 'summary', 'tags',
   'related_sop_ids', 'requires_acknowledgement', 'acknowledgement_due_days',
   'acknowledgement_assigned_emails', 'acknowledgement_assigned_teams',
 ];
@@ -17,7 +17,7 @@ export const SOP_CONTENT_FIELDS = [
 // Fields a direct (admin) edit must change before the version number is bumped.
 export const SOP_MATERIAL_FIELDS = [
   'title', 'category', 'purpose', 'when_it_applies', 'required_tools', 'instructions',
-  'video_url', 'warnings', 'responsible_role', 'summary', 'tags',
+  'video_url', 'document_url', 'warnings', 'responsible_role', 'summary', 'tags',
 ];
 
 // Fields restored by "Restore this version" (ack assignments / teams are left as they are now).

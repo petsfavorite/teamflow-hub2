@@ -4,7 +4,7 @@ import moment from 'npm:moment-timezone@0.5.45';
 // Every field a SOP edit can change (keep in sync with SOP_CONTENT_FIELDS in src/lib/sop.js).
 const SOP_CONTENT_FIELDS = [
   'title', 'category', 'purpose', 'when_it_applies', 'required_tools', 'instructions',
-  'video_url', 'warnings', 'responsible_role', 'applicable_teams', 'summary', 'tags',
+  'video_url', 'document_url', 'warnings', 'responsible_role', 'applicable_teams', 'summary', 'tags',
   'related_sop_ids', 'requires_acknowledgement', 'acknowledgement_due_days',
   'acknowledgement_assigned_emails', 'acknowledgement_assigned_teams',
 ];
