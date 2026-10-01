@@ -16,6 +16,7 @@ import { createPageUrl } from '@/utils';
 import PetCard from '@/components/pets/PetCard';
 import PetForm from '@/components/forms/PetForm';
 import PetArchive from '@/components/whiteboard/PetArchive';
+import { useCurrentUser } from '@/components/hooks/useCurrentUser';
 
 export default function Pets() {
     const [searchQuery, setSearchQuery] = useState('');
@@ -23,15 +24,11 @@ export default function Pets() {
     const [showAddDialog, setShowAddDialog] = useState(false);
     const [editingPet, setEditingPet] = useState(null);
     const [filterCheckedIn, setFilterCheckedIn] = useState('all');
-     const [currentUser, setCurrentUser] = useState(null);
+     const { can } = useCurrentUser();
      const [showArchive, setShowArchive] = useState(false);
 
      const navigate = useNavigate();
      const queryClient = useQueryClient();
-
-    useEffect(() => {
-        base44.auth.me().then(setCurrentUser).catch(() => {});
-    }, []);
 
     const { data: allPets = [], isLoading } = useQuery({
         queryKey: ['pets'],
@@ -114,7 +111,7 @@ export default function Pets() {
                     <p className="text-slate-500 mt-1">{pets.length} pets registered</p>
                 </div>
                 <div className="flex items-center gap-3">
-                    {(currentUser?.role === 'manager' || currentUser?.role === 'admin' || currentUser?.role === 'super_admin') && (
+                    {can('pet.delete') && (
                         <Button 
                             variant="outline" 
                             onClick={() => setShowArchive(!showArchive)}
@@ -214,7 +211,7 @@ export default function Pets() {
                                      onCheckIn={handleCheckIn}
                                      onCheckOut={handleCheckOut}
                                      onViewDetails={(p) => setEditingPet(p)}
-                                     onArchive={(currentUser?.role === 'manager' || currentUser?.role === 'admin' || currentUser?.role === 'super_admin') ? handleArchivePet : null}
+                                     onArchive={can('pet.delete') ? handleArchivePet : null}
                                  />
                              ))}
                          </AnimatePresence>
@@ -237,7 +234,7 @@ export default function Pets() {
                         pet={editingPet}
                         onSave={handleSavePet}
                         onCancel={() => { setShowAddDialog(false); setEditingPet(null); }}
-                        onDelete={(currentUser?.role === 'manager' || currentUser?.role === 'admin' || currentUser?.role === 'super_admin') ? handleDeletePet : null}
+                        onDelete={can('pet.delete') ? handleDeletePet : null}
                         isLoading={createPetMutation.isPending || updatePetMutation.isPending}
                     />
                 </DialogContent>

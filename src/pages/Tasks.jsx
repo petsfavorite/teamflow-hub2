@@ -50,7 +50,7 @@ const emptyForm = {
 };
 
 export default function Tasks() {
-  const { user, loading: userLoading, canManage, isSuperAdmin, isAdmin, isManager } = useCurrentUser();
+  const { user, loading: userLoading, canManage, isSuperAdmin, isAdmin, isManager, can } = useCurrentUser();
   const queryClient = useQueryClient();
   const [showNew, setShowNew] = useState(false);
   const [form, setForm] = useState(emptyForm);
@@ -216,7 +216,7 @@ export default function Tasks() {
         title="Tasks"
         description="One-off assignments for the team"
         actions={
-          canManage && (
+          can('task.create') && (
             <Button onClick={() => setShowNew(true)} className="bg-indigo-600 hover:bg-indigo-700 gap-2">
               <Plus className="w-4 h-4" /> Assign Task
             </Button>
@@ -224,7 +224,7 @@ export default function Tasks() {
         }
       />
 
-      <div className="flex gap-2 mb-6 overflow-x-auto pb-2 -mx-6 px-6 md:mx-0 md:px-0">
+      <div className="flex gap-2 mb-6 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0">
          {['mine', 'all', 'completed', ...(canManage ? ['recurring'] : [])].map(t => (
            <button
              key={t}
@@ -259,7 +259,7 @@ export default function Tasks() {
               key={task.id}
               task={task}
               onStatusChange={setStatus}
-              canEdit={canManage}
+              canEdit={can('task.update')}
               user={user}
               teams={assignableTeams}
               allowedUsers={assignableUsers}

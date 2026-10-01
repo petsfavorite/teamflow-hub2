@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { getUserDisplayName } from '@/lib/utils';
@@ -37,6 +37,27 @@ export default function Dashboard() {
   const { user, canManage, isSuperAdmin, isAdmin, isManager } = useCurrentUser();
   const canApprove = isSuperAdmin || isAdmin;
   const queryClient = useQueryClient();
+
+  // Per-user, per-device acknowledgement of "New checklist assigned" notifications.
+  // Tapping one marks it acknowledged so it disappears from the dashboard instead of
+  // lingering for 24 hours regardless of whether the user has seen it.
+  const [acknowledgedChecklists, setAcknowledgedChecklists] = useState(new Set());
+  useEffect(() => {
+    if (!user?.email) return;
+    try {
+      const stored = JSON.parse(localStorage.getItem(`ack-checklists-${user.email}`) || '[]');
+      setAcknowledgedChecklists(new Set(stored));
+    } catch { setAcknowledgedChecklists(new Set()); }
+  }, [user?.email]);
+  const acknowledgeChecklist = (id) => {
+    if (!user?.email) return;
+    setAcknowledgedChecklists(prev => {
+      const next = new Set(prev);
+      next.add(id);
+      try { localStorage.setItem(`ack-checklists-${user.email}`, JSON.stringify([...next])); } catch {}
+      return next;
+    });
+  };
 
   const { data: allSOPs = [] } = useQuery({
     queryKey: ['all-sops-dash'],
@@ -245,6 +266,7 @@ export default function Dashboard() {
   });
 
   const newChecklistsToAck = visibleChecklists.filter(c => {
+    if (acknowledgedChecklists.has(c.id)) return false;
     const createdDateObj = parseTs(c.created_date).toDate();
     const isNew = (now.getTime() - createdDateObj.getTime()) / (1000 * 60) <= 1440;
     const assignedToMe = c.assigned_to_emails?.includes(user?.email);
@@ -377,7 +399,7 @@ export default function Dashboard() {
                 </Link>
               ))}
               {newChecklistsToAck.map(checklist => (
-                <Link key={checklist.id} to={createPageUrl('Checklists')}>
+                <Link key={checklist.id} to={createPageUrl('Checklists')} onClick={() => acknowledgeChecklist(checklist.id)}>
                   <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors border border-slate-200">
                     <CheckSquare className="w-4 h-4 text-slate-600 flex-shrink-0" />
                     <div className="flex-1 min-w-0">

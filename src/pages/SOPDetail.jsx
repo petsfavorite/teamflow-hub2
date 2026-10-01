@@ -27,9 +27,9 @@ export default function SOPDetail() {
   // Router-aware so following a Related SOP link (same route, new ?id=) re-renders.
   const [searchParams] = useSearchParams();
   const id = searchParams.get('id');
-  const { user, loading: userLoading, canManage, isAdmin, isSuperAdmin, isManager } = useCurrentUser();
+  const { user, loading: userLoading, canManage, isAdmin, isSuperAdmin, isManager, can } = useCurrentUser();
   const displayName = (u) => (u?.first_name || u?.last_name) ? `${u?.first_name || ''} ${u?.last_name || ''}`.trim() : (u?.full_name || u?.email || 'Unknown');
-  const canApprove = isAdmin || isSuperAdmin;
+  const canApprove = can('sop.approve');
   const queryClient = useQueryClient();
 
   const { data: sop, isLoading } = useQuery({
@@ -107,6 +107,7 @@ export default function SOPDetail() {
       queryClient.invalidateQueries({ queryKey: ['my-ack'] });
       queryClient.invalidateQueries({ queryKey: ['ack'] });
       queryClient.invalidateQueries({ queryKey: ['sops-pending-ack'] });
+      queryClient.invalidateQueries({ queryKey: ['sops-pending-ack-dash'] });
     },
   });
 
@@ -197,7 +198,7 @@ export default function SOPDetail() {
   const applicableTeams = teams.filter(t => (sop.applicable_teams || []).includes(t.id));
   const userTeams = teams.filter(t => (t.member_emails || []).includes(user?.email));
   const isOnApplicableTeam = applicableTeams.length === 0 || userTeams.some(ut => (sop.applicable_teams || []).includes(ut.id));
-  const canVerify = canManage && isOnApplicableTeam && sop.status === 'published';
+  const canVerify = can('sop.verify') && isOnApplicableTeam && sop.status === 'published';
   // Verification is needed when the SOP has never been verified (initial) or reverification is due/overdue
   const needsVerification = !sop.last_verified_at || verificationOverdue || verificationSoon;
 
@@ -218,7 +219,7 @@ export default function SOPDetail() {
           <Button variant="ghost" className="gap-2 text-slate-600"><ArrowLeft className="w-4 h-4" /> Back to SOPs</Button>
         </Link>
         <div className="flex gap-2">
-          {canManage && (verificationOverdue || verificationSoon) && sop.status === 'published' && (
+          {can('sop.verify') && (verificationOverdue || verificationSoon) && sop.status === 'published' && (
             <Button
               onClick={() => postponeVerificationMutation.mutate()}
               disabled={postponeVerificationMutation.isPending}
@@ -249,7 +250,7 @@ export default function SOPDetail() {
               <Button variant="outline" className="gap-2"><History className="w-4 h-4" /> History</Button>
             </Link>
           )}
-          {canApprove && (sop.status === 'archived' || sop.status === 'draft' || isLive(sop)) && (
+          {can('sop.archive') && (sop.status === 'archived' || sop.status === 'draft' || isLive(sop)) && (
             <Button
               variant="outline"
               className="gap-2"
@@ -261,7 +262,7 @@ export default function SOPDetail() {
             </Button>
           )}
           <SOPQRCode sop={sop} />
-          {canManage && (
+          {(can('sop.update') || can('sop.submit_review')) && (
             <Link to={createPageUrl('SOPEditor') + `?id=${sop.id}`}>
               <Button variant="outline" className="gap-2"><Pencil className="w-4 h-4" /> Edit</Button>
             </Link>

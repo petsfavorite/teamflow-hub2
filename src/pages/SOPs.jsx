@@ -20,7 +20,7 @@ import { formatDate } from '@/lib/timezone';
 import { fetchLiveSops, fetchMyAcks, fetchMyTeamIds, sopsNeedingAck, isReAck, isAckOverdue, pendingState, verificationStatus, searchSops, isLive, manageSop } from '@/lib/sop';
 
 export default function SOPs() {
-  const { user, isAdmin, isSuperAdmin, canManage, isManager } = useCurrentUser();
+  const { user, isAdmin, isSuperAdmin, canManage, isManager, can } = useCurrentUser();
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('active');
@@ -146,7 +146,7 @@ export default function SOPs() {
                   </CardContent>
                 </Card>
               </Link>
-              {(isAdmin || isSuperAdmin) && sop.status === 'draft' && (
+              {can('sop.approve') && sop.status === 'draft' && (
                 <Button
                   variant="ghost"
                   size="icon"
@@ -161,7 +161,7 @@ export default function SOPs() {
                   <Undo2 className="w-4 h-4" />
                 </Button>
               )}
-              {(isAdmin || isSuperAdmin) && sop.status === 'draft' && (
+              {can('sop.approve') && sop.status === 'draft' && (
                 <Button
                   variant="ghost"
                   size="icon"
@@ -176,7 +176,7 @@ export default function SOPs() {
                   <Send className="w-4 h-4" />
                 </Button>
               )}
-              {(isAdmin || isSuperAdmin) && (
+              {can('sop.archive') && (
                 <Button
                   variant="ghost"
                   size="icon"
@@ -200,7 +200,7 @@ export default function SOPs() {
         title="Standard Operating Procedures"
         description="Browse and search company SOPs"
         actions={
-          (isAdmin || isSuperAdmin || isManager) && (
+          can('sop.create') && (
             <Link to={createPageUrl('SOPEditor')}>
               <Button className="bg-indigo-600 hover:bg-indigo-700 gap-2">
                 <Plus className="w-4 h-4" /> New SOP
@@ -325,7 +325,7 @@ export default function SOPs() {
       )}
 
       {/* Floating mic button for admins/managers → Create New SOP */}
-      {(isAdmin || isSuperAdmin || isManager) && (
+      {can('sop.create') && (
         <Link
           to={createPageUrl('SOPEditor')}
           className="fixed bottom-24 right-4 md:bottom-10 md:right-8 z-50 flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-3 rounded-full shadow-lg transition-all hover:scale-105"

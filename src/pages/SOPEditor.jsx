@@ -41,7 +41,7 @@ export default function SOPEditor() {
   const id = params.get('id');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user, loading: userLoading, isAdmin, isSuperAdmin, isManager } = useCurrentUser();
+  const { user, loading: userLoading, isAdmin, isSuperAdmin, isManager, can } = useCurrentUser();
   const canManage = isAdmin || isSuperAdmin || isManager;
 
   const [form, setForm] = useState(DEFAULT_FORM);
@@ -255,7 +255,7 @@ export default function SOPEditor() {
     onError: (e) => toast.error('Could not save the SOP: ' + (e?.message || 'unknown error')),
   });
 
-  if (!id && !canManage) {
+  if (!id && !can('sop.create')) {
     return (
       <div className="text-center py-20">
         <p className="text-slate-500">Only admins and managers can create new SOPs</p>
@@ -264,7 +264,7 @@ export default function SOPEditor() {
     );
   }
 
-  if (id && !canManage) {
+  if (id && !can('sop.update') && !can('sop.submit_review')) {
     return (
       <div className="text-center py-20">
         <p className="text-slate-500">You don't have permission to edit SOPs</p>
@@ -387,7 +387,7 @@ export default function SOPEditor() {
                 return (
                   <div key={tag.id} className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer transition-colors ${selected ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-100'}`}>
                     <span onClick={() => toggleFormTag(tag.name)}>{tag.name}</span>
-                    {(isAdmin || isSuperAdmin) && (
+                    {can('tag.delete') && (
                       <button
                         onClick={(e) => { e.stopPropagation(); handleDeleteTag(tag.id); }}
                         className={`ml-0.5 rounded-full hover:bg-black/10 p-0.5 ${selected ? 'text-indigo-200 hover:text-white' : 'text-slate-400 hover:text-red-500'}`}
@@ -400,7 +400,7 @@ export default function SOPEditor() {
               })}
               {sopTags.length === 0 && <p className="text-xs text-slate-400">No tags yet</p>}
             </div>
-            {(isAdmin || isSuperAdmin) && (
+            {can('tag.create') && (
               <div className="flex gap-2">
                 <Input
                   value={newTagInput}
@@ -628,7 +628,7 @@ export default function SOPEditor() {
       )}
 
       <div className="flex justify-end gap-3 pb-8">
-        {id && (isAdmin || isSuperAdmin) && existing?.status !== 'archived' && (
+        {id && can('sop.archive') && existing?.status !== 'archived' && (
           <Button
             variant="outline"
             onClick={() => setArchiveConfirm(true)}

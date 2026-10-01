@@ -56,7 +56,7 @@ const isVisibleNow = ({ due_date, visible_time, visible_day_offset }) => {
 };
 
 export default function Checklists() {
-  const { user, loading: userLoading, canManage, isSuperAdmin, isAdmin, isManager } = useCurrentUser();
+  const { user, loading: userLoading, canManage, isSuperAdmin, isAdmin, isManager, can } = useCurrentUser();
   const [activeChecklist, setActiveChecklist] = useState(null);
   const [items, setItems] = useState([]);
   const sessionRef = useRef(null);       // { template, completionId, items, touched } for the open checklist
@@ -495,11 +495,16 @@ export default function Checklists() {
   });
 
   const startChecklist = async (template) => {
-    const existingCompletions = await base44.entities.ChecklistCompletion.filter({ 
-      checklist_template_id: template.id, 
-      status: 'in_progress' 
+    // Scope by completed_by so a shared (team-assigned) checklist loads THIS user's
+    // own in-progress completion — not a teammate's. RLS only allows updating a
+    // completion the user owns, so loading someone else's would make every check
+    // fail to save silently and never persist when the user leaves the page.
+    const existingCompletions = await base44.entities.ChecklistCompletion.filter({
+      checklist_template_id: template.id,
+      status: 'in_progress',
+      completed_by: user?.email,
     });
-    
+
     const existingCompletion = existingCompletions?.[0];
 
     // Items (with their notes and photos) live in one place: the session. Every tap updates it
@@ -822,7 +827,7 @@ export default function Checklists() {
         title="Checklists"
         description={canManage ? "Manage and assign checklists" : "Complete your assigned checklists"}
         actions={
-          canManage && (
+          can('checklist.create') && (
             <Link to={createPageUrl('ChecklistEditor')}>
               <Button className="bg-indigo-600 hover:bg-indigo-700 gap-2">
                 <Plus className="w-4 h-4" /> New Checklist
@@ -995,7 +1000,7 @@ export default function Checklists() {
                           >
                             Edit
                           </Button>
-                          {(isSuperAdmin || isAdmin || isManager) && (
+                          {can('checklist.delete') && (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -1128,7 +1133,7 @@ export default function Checklists() {
                           <Link to={createPageUrl('ChecklistEditor') + `?id=${template.id}`}>
                             <Button variant="outline" size="sm">Edit</Button>
                           </Link>
-                          {(isSuperAdmin || isAdmin) && (
+                          {can('checklist.delete') && (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -1185,7 +1190,7 @@ export default function Checklists() {
                             <p className="text-xs text-amber-700 mb-3">Submitted by {t.pending_submitted_by_name}</p>
                           )}
                           <div className="flex gap-1.5 flex-wrap">
-                            {(isAdmin || isSuperAdmin) && (
+                            {can('checklist.publish') && (
                               <>
                                 <Button
                                   size="sm"
@@ -1241,7 +1246,7 @@ export default function Checklists() {
                                 Submit for Approval
                               </Button>
                             )}
-                            {(isAdmin || isSuperAdmin) && (
+                            {can('checklist.publish') && (
                               <Button
                                 size="sm"
                                 className="bg-emerald-600 hover:bg-emerald-700 text-white"
@@ -1251,7 +1256,7 @@ export default function Checklists() {
                                 Publish
                               </Button>
                             )}
-                            {(isAdmin || isSuperAdmin) && (
+                            {can('checklist.send_back') && (
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -1264,7 +1269,7 @@ export default function Checklists() {
                             <Link to={createPageUrl('ChecklistEditor') + `?id=${t.id}`}>
                               <Button variant="ghost" size="sm" className="text-slate-600">Edit</Button>
                             </Link>
-                            {(isSuperAdmin || isAdmin) && (
+                            {can('checklist.delete') && (
                               <Button
                                 variant="ghost"
                                 size="sm"

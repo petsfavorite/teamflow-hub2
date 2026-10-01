@@ -12,7 +12,7 @@ import { ACCESS_ROLES, ROLE_LABELS, SUPER_ADMIN, useAccessSettings } from '@/lib
 export default function AccessControl() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { user } = useCurrentUser();
+  const { user, isSuperAdmin } = useCurrentUser();
   const [localSettings, setLocalSettings] = useState(null);
   const [saving, setSaving] = useState(false);
 
@@ -53,6 +53,9 @@ export default function AccessControl() {
 
   const toggleRole = (id, role) => {
     if (role === SUPER_ADMIN) return;
+    // Only Super Admin can modify the Admin role's permissions — prevents an
+    // admin from granting their own role new permissions (privilege escalation).
+    if (role === 'admin' && !isSuperAdmin) return;
     setLocalSettings(prev => prev.map(s => {
       if (s.id !== id) return s;
       const roles = new Set(s.allowed_roles);
@@ -112,7 +115,7 @@ export default function AccessControl() {
   }
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-6 max-w-5xl pb-24 sm:pb-4">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-bold text-stone-800 flex items-center gap-2">
@@ -156,7 +159,7 @@ export default function AccessControl() {
                       <td className="text-sm text-stone-700 px-4 py-3 font-medium">{item.label}</td>
                       {ACCESS_ROLES.map(r => {
                         const checked = item.allowed_roles.includes(r);
-                        const disabled = r === SUPER_ADMIN;
+                        const disabled = r === SUPER_ADMIN || (r === 'admin' && !isSuperAdmin);
                         return (
                           <td key={r} className="text-center px-2 py-3">
                             <Checkbox
