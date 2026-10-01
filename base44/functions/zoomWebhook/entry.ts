@@ -107,7 +107,14 @@ Deno.serve(async (req) => {
       console.error("[ERROR] ZOOM_WEBHOOK_SECRET not configured");
       return Response.json({ error: 'Webhook secret not configured' }, { status: 500 });
     }
-    const hash = createHmac("sha256", secret).update(bodyText).digest("hex");
+    // Zoom signs the string "v0:{x-zm-request-timestamp}:{raw body}" (not the body alone), and the
+    // timestamp lets us reject replayed requests.
+    const timestamp = req.headers.get('x-zm-request-timestamp') || '';
+    const ageSeconds = Math.abs(Date.now() / 1000 - Number(timestamp));
+    if (!timestamp || !Number.isFinite(ageSeconds) || ageSeconds > 300) {
+      return Response.json({ error: 'Missing or stale timestamp' }, { status: 401 });
+    }
+    const hash = createHmac("sha256", secret).update(`v0:${timestamp}:${bodyText}`).digest("hex");
     const expectedSig = `v0=${hash}`;
     if (!timingSafeEqual(signature, expectedSig)) {
       return Response.json({ error: 'Invalid signature' }, { status: 401 });
@@ -186,8 +193,9 @@ Deno.serve(async (req) => {
     // A: Date | B: Duration (min) | C: Direction | D: Caller Name | E: Caller Phone
     // F: Team Member | G: Caller Type | H: Booking Outcome | I: Summary | J: AI Notes
     const sheetName = await getSheetName(spreadsheetId, sheetsToken);
+    const appTz = settingsList[0]?.global_timezone || 'America/New_York';
     const rowValues = [
-      new Date(startTime).toLocaleString("en-US", { timeZone: "America/New_York" }),
+      new Date(startTime).toLocaleString("en-US", { timeZone: appTz }),
       duration,
       callDirection,
       analysis.caller_name || "",

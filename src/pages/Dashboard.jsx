@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
@@ -8,12 +8,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import StatusBadge from '../components/shared/StatusBadge';
 import DismissibleOverdueTask from '../components/dashboard/DismissibleOverdueTask';
 import BonuslyRecognitions from '../components/dashboard/BonuslyRecognitions';
-import {
-  LayoutDashboard, BookOpen, CheckSquare, ClipboardList, Wrench,
-  AlertTriangle, MessageSquare, ArrowRight, Bell, ShieldAlert, CalendarCheck, Clock, Award, FileCheck
+import { BookOpen, CheckSquare, ClipboardList, Wrench,
+  AlertTriangle, MessageSquare, ArrowRight, Bell, ShieldAlert, CalendarCheck, Clock, FileCheck
 } from 'lucide-react';
 import moment from 'moment-timezone';
 import { formatDate, todayStr, daysFromToday, parseTs, getAppTimezone } from '@/lib/timezone';
+import { fetchLiveSops, fetchMyAcks, fetchMyTeamIds, sopsNeedingAck, pendingState, isLive } from '@/lib/sop';
 
 function StatCard({ icon: Icon, label, value, color, to }) {
   const content = (
@@ -45,7 +45,15 @@ export default function Dashboard() {
 
   const { data: checklists = [] } = useQuery({
     queryKey: ['checklists-dash'],
-    queryFn: () => base44.entities.ChecklistTemplate.list(),
+    // Only the statuses a user can act on. A plain list() fills up with closed/archived instances
+    // (kept for months) and pushes live checklists past the record cap.
+    queryFn: async () => {
+      const [active, published] = await Promise.all([
+        base44.entities.ChecklistTemplate.filter({ status: 'active' }, '-updated_date', 500),
+        base44.entities.ChecklistTemplate.filter({ status: 'published' }, '-updated_date', 500),
+      ]);
+      return [...active, ...published];
+    },
     enabled: !!user?.email,
   });
 
@@ -70,7 +78,12 @@ export default function Dashboard() {
 
   const { data: tasks = [] } = useQuery({
     queryKey: ['tasks-dash'],
-    queryFn: () => base44.entities.Task.list('-due_date', 200),
+    // Only open tasks, and never the recurring definitions themselves (they live on the Tasks page's
+    // Recurring tab). Each day's generated copy is the thing to do; it is closed as not-done at midnight.
+    queryFn: async () => {
+      const open = await base44.entities.Task.filter({ status: { $in: ['pending', 'in_progress'] } }, '-due_date', 1000);
+      return open.filter(t => !t.recurrence_type || t.recurrence_type === 'once');
+    },
     enabled: !!user?.email,
   });
 
@@ -93,33 +106,18 @@ export default function Dashboard() {
     queryKey: ['sops-pending-ack-dash', user?.email],
     enabled: !!user?.email,
     queryFn: async () => {
-      const allPublished = await base44.entities.SOP.filter({ status: 'published' }, '-updated_date', 200);
-      const requiresAck = allPublished.filter(sop => {
-        if (!sop.requires_acknowledgement) return false;
-        const assignedByEmail = sop.acknowledgement_assigned_emails?.includes(user.email);
-        const assignedByTeam = sop.acknowledgement_assigned_teams?.some(tid => myTeamIds.includes(tid));
-        return assignedByEmail || assignedByTeam;
-      });
-      if (requiresAck.length === 0) return [];
-      const acks = await base44.entities.SOPAcknowledgement.filter({ user_email: user.email });
-      // Build a map of sop_id -> highest acknowledged version
-      const ackedVersionMap = {};
-      acks.forEach(a => {
-        if (!ackedVersionMap[a.sop_id] || a.version_number > ackedVersionMap[a.sop_id]) {
-          ackedVersionMap[a.sop_id] = a.version_number;
-        }
-      });
-      // Show if never acknowledged OR if the current version is newer than what was acknowledged
-      return requiresAck.filter(sop => {
-        const ackedVersion = ackedVersionMap[sop.id];
-        if (!ackedVersion) return true; // never acknowledged
-        return (sop.version || 1) > ackedVersion; // updated since last ack
-      });
+      // In scope (all-staff SOPs included) and not acknowledged at the CURRENT version
+      const [live, acks, teamIds] = await Promise.all([
+        fetchLiveSops(500),
+        fetchMyAcks(user.email),
+        fetchMyTeamIds(user.email),
+      ]);
+      return sopsNeedingAck(live, acks, user.email, teamIds);
     },
   });
 
   const verificationDueSops = allSOPs.filter(sop => {
-    if (!sop.verification_due_date) return false;
+    if (!sop.verification_due_date || !isLive(sop)) return false;
     const daysLeft = daysFromToday(sop.verification_due_date);
     return daysLeft <= 7;
   }).sort((a, b) => {
@@ -131,13 +129,18 @@ export default function Dashboard() {
   // For managers: only show pending SOPs assigned to them or their teams
   // For admins/super admins: show all pending SOPs
   const pendingSOPs = allSOPs.filter(s => {
-    if (s.status !== 'pending_approval') return false;
+    if (pendingState(s) !== 'submitted' || !isLive(s)) return false;
     if (canApprove) return true; // Admins/Super Admins see all
     // Managers see only those assigned to them or their teams
     const assignedToMe = s.acknowledgement_assigned_emails?.includes(user?.email);
     const assignedToMyTeam = s.acknowledgement_assigned_teams?.some(tid => myTeamIds.includes(tid));
     return assignedToMe || assignedToMyTeam;
   });
+
+  // Managers: their own edits that an admin sent back for more changes
+  const changesRequestedSops = allSOPs.filter(s =>
+    pendingState(s) === 'changes_requested' && isLive(s) && (s.pending_submitted_by === user?.email || !s.pending_submitted_by) && !canApprove
+  );
 
   const incidents = allIncidents.filter(inc => {
     if (inc.status === 'resolved') return false;
@@ -192,8 +195,16 @@ export default function Dashboard() {
     return assignedToMyTeam && !assignedToMe;
   }) : [];
 
+  // Same rules as the Checklists page: hidden (not yet visible) checklists and recurring masters
+  // never show up here, since staff can't open them.
+  const RECURRING_CHECKLIST_TYPES = ['daily', 'weekdays', 'specific_days', 'monthly', 'every_x_months', 'annually'];
+  const visibleChecklists = checklists.filter(c =>
+    c.is_visible !== false &&
+    !(c.status === 'published' && RECURRING_CHECKLIST_TYPES.includes(c.recurrence_type) && !c.due_date)
+  );
+
   // For regular users: checklists due in ~1 hour (yellow)
-  const urgentChecklists = checklists.filter(c => {
+  const urgentChecklists = visibleChecklists.filter(c => {
     if (!c.due_date) return false;
     if (c.due_date < today) return false;
     const assignedToMe = c.assigned_to_emails?.includes(user?.email);
@@ -214,7 +225,7 @@ export default function Dashboard() {
     return (assignedToMe || assignedToMyTeam) && isNew;
   });
 
-  const newChecklistsToAck = checklists.filter(c => {
+  const newChecklistsToAck = visibleChecklists.filter(c => {
     const createdDateObj = parseTs(c.created_date).toDate();
     const isNew = (now.getTime() - createdDateObj.getTime()) / (1000 * 60) <= 1440;
     const assignedToMe = c.assigned_to_emails?.includes(user?.email);
@@ -243,7 +254,7 @@ export default function Dashboard() {
   });
 
   // "My Checklists" shows all published or active checklists assigned to user (any role) or their teams
-  const myChecklists = checklists.filter(c => {
+  const myChecklists = visibleChecklists.filter(c => {
     if (c.status !== 'published' && c.status !== 'active') return false;
     const assignedToMe = c.assigned_to_emails?.includes(user?.email);
     const assignedToMyTeam = c.assigned_teams?.some(tid => myTeamIds.includes(tid));
@@ -372,13 +383,13 @@ export default function Dashboard() {
               <h2 className="font-semibold text-slate-900">Notifications</h2>
               {(() => {
                 const myPendingChecklists = pendingChecklistEdits.filter(c => canApprove || c.pending_submitted_by === user?.email || c.created_by === user?.email);
-                const total = pendingAckSops.length + pendingSOPs.length + verificationDueSops.length + incidents.length + openMaintenance.length + managersSeenOverdueTasks.length + myPendingChecklists.length;
+                const total = pendingAckSops.length + pendingSOPs.length + changesRequestedSops.length + verificationDueSops.length + incidents.length + openMaintenance.length + managersSeenOverdueTasks.length + myPendingChecklists.length;
                 return total > 0 ? (
                   <span className="ml-auto bg-amber-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{total}</span>
                 ) : null;
               })()}
             </div>
-            {pendingAckSops.length === 0 && pendingSOPs.length === 0 && verificationDueSops.length === 0 && incidents.length === 0 && openMaintenance.length === 0 && managersSeenOverdueTasks.length === 0 && pendingChecklistEdits.filter(c => canApprove || c.pending_submitted_by === user?.email || c.created_by === user?.email).length === 0 ? (
+            {pendingAckSops.length === 0 && pendingSOPs.length === 0 && changesRequestedSops.length === 0 && verificationDueSops.length === 0 && incidents.length === 0 && openMaintenance.length === 0 && managersSeenOverdueTasks.length === 0 && pendingChecklistEdits.filter(c => canApprove || c.pending_submitted_by === user?.email || c.created_by === user?.email).length === 0 ? (
               <p className="text-sm text-slate-400 py-2 text-center">No pending notifications</p>
             ) : (
               <div className="space-y-2">
@@ -426,6 +437,18 @@ export default function Dashboard() {
                         <p className="text-xs text-amber-700">Status: {req.status}</p>
                       </div>
                       <ArrowRight className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
+                    </div>
+                  </Link>
+                ))}
+                {changesRequestedSops.map(sop => (
+                  <Link key={sop.id} to={createPageUrl('SOPEditor') + `?id=${sop.id}`}>
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-red-50 hover:bg-red-100 transition-colors">
+                      <ShieldAlert className="w-4 h-4 text-red-600 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-red-900 truncate">Changes requested: {sop.title}</p>
+                        <p className="text-xs text-red-700 truncate">{sop.pending_review_note || 'Edit and resubmit for approval'}</p>
+                      </div>
+                      <ArrowRight className="w-3.5 h-3.5 text-red-600 flex-shrink-0" />
                     </div>
                   </Link>
                 ))}

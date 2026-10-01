@@ -7,7 +7,7 @@
       "trigger_type": "scheduled",
       "events": [],
       "schedule_mode": "recurring",
-      "cron_expression": "0 0 * * *",
+      "cron_expression": "0 0,1 * * *",
       "one_time_date": null,
       "timezone": "UTC",
       "interval_value": null,

@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { useCurrentUser } from '../components/hooks/useCurrentUser';
 import PageHeader from '../components/shared/PageHeader';
@@ -106,7 +106,7 @@ export default function Checklists() {
 
   const { data: checklists = [] } = useQuery({
     queryKey: ['checklist-completions'],
-    queryFn: () => base44.entities.ChecklistCompletion.list(),
+    queryFn: () => base44.entities.ChecklistCompletion.list('-created_date', 1000),
   });
 
   const { data: teams = [] } = useQuery({
@@ -173,18 +173,33 @@ export default function Checklists() {
     }).filter(t => !mySubmittedTemplateIds.has(t.id));
   }, [allTemplates, user, teams, mySubmittedTemplateIds]);
 
-  // "Archived Checklists" - submitted (manually completed) and auto-submitted (closed)
-  const archivedChecklists = useMemo(() => {
-    return allTemplates.filter(t => {
+  // "Completed" - checklists I submitted plus ones that were auto-submitted (closed) at their due time.
+  // Built from my completion records so a finished checklist never disappears: submitting archives the
+  // template and clears its assignees, so the template alone can no longer tell us it was mine.
+  const completedChecklists = useMemo(() => {
+    const byTemplate = new Map(allTemplates.map(t => [t.id, t]));
+    const entries = new Map();
+    // Newest completion per template wins (list is newest-first)
+    checklists.forEach(c => {
+      if (!c.checklist_template_id || c.completed_by !== user?.email) return;
+      if (c.status !== 'completed' && c.status !== 'edited') return;
+      if (entries.has(c.checklist_template_id)) return;
+      const template = byTemplate.get(c.checklist_template_id) || {
+        id: c.checklist_template_id,
+        title: c.checklist_title || 'Checklist',
+        items: c.completed_items || [],
+        status: 'archived',
+      };
+      entries.set(c.checklist_template_id, { template, completion: c, autoSubmitted: false });
+    });
+    allTemplates.forEach(t => {
+      if (t.status !== 'closed' || entries.has(t.id) || isRecurringMaster(t)) return;
       const assignedToMe = t.assigned_to_emails?.includes(user?.email);
       const assignedToMyTeam = t.assigned_teams?.some(teamId => teams.some(team => team.id === teamId && team.member_emails?.includes(user?.email)));
-      if (!(assignedToMe || assignedToMyTeam)) return false;
-      if (isRecurringMaster(t)) return false;
-      if (t.status === 'closed') return true;
-      if (mySubmittedTemplateIds.has(t.id)) return true;
-      return false;
+      if (assignedToMe || assignedToMyTeam) entries.set(t.id, { template: t, completion: null, autoSubmitted: true });
     });
-  }, [allTemplates, user, teams, mySubmittedTemplateIds]);
+    return [...entries.values()];
+  }, [allTemplates, checklists, user, teams]);
 
   // Template checklists - only published templates with no assignments
   const templateChecklists = useMemo(() => {
@@ -340,16 +355,21 @@ export default function Checklists() {
         status: 'completed',
       });
     },
-    onSuccess: (completion, variables) => {
+    onSuccess: async (completion, variables) => {
       toast.success('Checklist submitted!');
       clearSession();
-      queryClient.invalidateQueries({ queryKey: ['completions'] });
+      // The completion is saved, so refresh it right away: the checklist moves to "Completed" at once
+      // and can't be reopened (which would start a duplicate completion).
+      await queryClient.invalidateQueries({ queryKey: ['checklist-completions'] });
+      // Finalizing archives the template and clears its assignees, so refresh templates only after it finishes.
+      try {
+        await base44.functions.invoke('finalizeChecklistAssignment', {
+          checklist_template_id: variables.checklist_template_id,
+          checklist_completion_id: completion.id
+        });
+      } catch { /* the template stays open until the next expiry sweep; the completion is already saved */ }
       queryClient.invalidateQueries({ queryKey: ['checklist-templates-published'] });
       queryClient.invalidateQueries({ queryKey: ['checklist-templates-all'] });
-      base44.functions.invoke('finalizeChecklistAssignment', {
-        checklist_template_id: variables.checklist_template_id,
-        checklist_completion_id: completion.id
-      }).catch(() => {});
     },
   });
 
@@ -848,57 +868,53 @@ export default function Checklists() {
             )}
           </div>
 
-          {/* Archived Checklists - submitted/auto-submitted, toggleable */}
-          {archivedChecklists.length > 0 && (
+          {/* Completed - submitted/auto-submitted, collapsed by default */}
+          {completedChecklists.length > 0 && (
             <div>
               <button
                 onClick={() => setShowArchived(!showArchived)}
                 className="flex items-center gap-2 mb-4 text-lg font-semibold text-slate-700 hover:text-slate-900 transition-colors"
               >
                 {showArchived ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
-                <Archive className="w-5 h-5" />
-                Archived Checklists
-                <span className="text-sm font-normal text-slate-400">({archivedChecklists.length})</span>
+                <CheckSquare className="w-5 h-5" />
+                Completed
+                <span className="text-sm font-normal text-slate-400">({completedChecklists.length})</span>
               </button>
               {showArchived && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {archivedChecklists.filter(t => t.title.toLowerCase().includes(searchTerm.toLowerCase())).map(template => {
-                    const wasAutoSubmitted = template.status === 'closed';
-                    const completion = checklists.find(c => c.checklist_template_id === template.id && c.completed_by === user?.email && (c.status === 'completed' || c.status === 'edited'));
-                    return (
-                      <Card
-                        key={template.id}
-                        className="border-0 shadow-sm opacity-70 cursor-pointer hover:shadow-md hover:opacity-100 transition-all"
-                        onClick={() => setHistoryChecklist(template)}
-                      >
-                        <CardContent className="p-6">
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center">
-                              <Archive className="w-5 h-5 text-slate-500" />
-                            </div>
-                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${wasAutoSubmitted ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                              {wasAutoSubmitted ? 'Auto-submitted' : 'Completed'}
-                            </span>
+                  {completedChecklists.filter(({ template }) => (template.title || '').toLowerCase().includes(searchTerm.toLowerCase())).map(({ template, completion, autoSubmitted }) => (
+                    <Card
+                      key={template.id}
+                      className="border-0 shadow-sm opacity-70 cursor-pointer hover:shadow-md hover:opacity-100 transition-all"
+                      onClick={() => setHistoryChecklist(template)}
+                    >
+                      <CardContent className="p-6">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center">
+                            <Archive className="w-5 h-5 text-slate-500" />
                           </div>
-                          <h3 className="font-semibold text-slate-900 mb-2">{template.title}</h3>
-                          {template.due_date && (
-                            <div className="text-sm text-slate-500 font-medium mb-2">
-                              Due {template.due_date} at {template.due_time || '21:00'}
-                            </div>
-                          )}
-                          {completion?.completion_date && (
-                            <div className="text-xs text-slate-400 mb-2">
-                              Completed on {completion.completion_date}
-                            </div>
-                          )}
-                          <div className="flex items-center gap-2 text-xs text-slate-400">
-                            <Clock className="w-3 h-3" />
-                            {template.items?.length || 0} items
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${autoSubmitted ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                            {autoSubmitted ? 'Auto-submitted' : 'Completed'}
+                          </span>
+                        </div>
+                        <h3 className="font-semibold text-slate-900 mb-2">{template.title}</h3>
+                        {template.due_date && (
+                          <div className="text-sm text-slate-500 font-medium mb-2">
+                            Due {template.due_date} at {template.due_time || '21:00'}
                           </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
+                        )}
+                        {completion?.completion_date && (
+                          <div className="text-xs text-slate-400 mb-2">
+                            Completed on {completion.completion_date}
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2 text-xs text-slate-400">
+                          <Clock className="w-3 h-3" />
+                          {template.items?.length || 0} items
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
               )}
             </div>

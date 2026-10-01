@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { Phone, CalendarCheck, UserPlus, AlertTriangle, Loader2, Settings, PhoneMissed, Store, Headphones } from "lucide-react";
+import { Phone, CalendarCheck, UserPlus, AlertTriangle, Loader2, Settings, PhoneMissed, Store } from "lucide-react";
 import moment from "moment-timezone";
 import { Button } from "@/components/ui/button";
 import CallDashboardSettings from "@/components/calldashboard/CallDashboardSettings";

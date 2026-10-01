@@ -1,11 +1,15 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 import { requireAdminOnly } from '../../shared/auth.ts';
+import { localScheduleGate } from '../../shared/localSchedule.ts';
 
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
         const { error: authError } = await requireAdminOnly(base44);
         if (authError) return authError;
+        // Runs only at local midnight (see shared/localSchedule.ts)
+        const { skip } = await localScheduleGate(base44, req, 0);
+        if (skip) return skip;
 
         // Get all active visits (checked_in status)
         const visits = await base44.asServiceRole.entities.Visit.filter({

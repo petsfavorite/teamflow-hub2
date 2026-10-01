@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { RefreshCw } from 'lucide-react';
 
 export default function PullToRefresh({ onRefresh, children }) {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { useCurrentUser } from '../components/hooks/useCurrentUser';
 import PageHeader from '../components/shared/PageHeader';
@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Boxes, Plus, Wrench, AlertTriangle, ExternalLink, Pencil, Loader2, Paperclip, Trash2, ChevronDown, QrCode } from 'lucide-react';
+import { Boxes, Plus, Wrench, ExternalLink, Pencil, Loader2, Paperclip, ChevronDown } from 'lucide-react';
 import AssetQRCode from '../components/asset/AssetQRCode';
 import { isSafeUrl } from '@/lib/sanitize';
 import { toast } from "sonner";
@@ -54,6 +54,16 @@ export default function Assets() {
     queryKey: ['assets'],
     queryFn: () => base44.entities.Asset.list('name', 200),
   });
+
+  // QR codes link to /Assets?id=<assetId>: open that asset once the list has loaded.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const deepLinkId = searchParams.get('id');
+  useEffect(() => {
+    if (!deepLinkId || assets.length === 0) return;
+    const match = assets.find(a => a.id === deepLinkId);
+    if (match) setSelectedAsset(match);
+    setSearchParams({}, { replace: true });
+  }, [deepLinkId, assets]);
 
   const { data: sops = [] } = useQuery({
     queryKey: ['sops-published'],

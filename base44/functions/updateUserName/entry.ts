@@ -22,6 +22,10 @@ Deno.serve(async (req) => {
     const targetUser = await base44.asServiceRole.entities.User.get(userId);
     const targetRole = targetUser?.role || 'user';
 
+    // Only a super admin may change anything about a super admin
+    if (targetRole === 'super_admin' && user.role !== 'super_admin') {
+      return Response.json({ error: 'Only a super admin can make changes to a super admin' }, { status: 403 });
+    }
     // Admins can only rename non-admin users (user, manager)
     if (user.role === 'admin' && ['admin', 'super_admin'].includes(targetRole)) {
       return Response.json({ error: 'Admins cannot rename other admins or super admins' }, { status: 403 });

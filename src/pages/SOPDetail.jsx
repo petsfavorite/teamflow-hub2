@@ -1,27 +1,33 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { useCurrentUser } from '../components/hooks/useCurrentUser';
 import StatusBadge from '../components/shared/StatusBadge';
 import SOPQRCode from '../components/sop/SOPQRCode';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import SOPChangeDiff from '../components/sop/SOPChangeDiff';
 import {
   ArrowLeft, Pencil, Tag, Clock, User, CheckCircle, History, Users, Loader2,
   ShieldAlert, CheckCircle2, XCircle, Video, AlertTriangle, UserCheck,
-  CalendarCheck, CalendarClock, Wrench, BookOpen, PlayCircle
+  CalendarCheck, CalendarClock, Wrench, BookOpen, PlayCircle, Link2, Archive, ArchiveRestore
 } from 'lucide-react';
 import { toast } from "sonner";
-import { addDays, format, differenceInDays, parseISO } from 'date-fns';
-import { formatDate } from '@/lib/timezone';
-import { sanitizeHtml, isSafeUrl } from '@/lib/sanitize';
+import { formatDate, daysFromToday } from '@/lib/timezone';
+import {
+  sopBody, sanitizeHtml, pendingState, getPendingFields, isReAck, isAckOverdue, fetchLiveSops, isLive, manageSop,
+} from '@/lib/sop';
+import { isSafeUrl } from '@/lib/sanitize';
 
 export default function SOPDetail() {
-  const params = new URLSearchParams(window.location.search);
-  const id = params.get('id');
-  const { user, canManage, isAdmin, isSuperAdmin, isManager } = useCurrentUser();
+  // Router-aware so following a Related SOP link (same route, new ?id=) re-renders.
+  const [searchParams] = useSearchParams();
+  const id = searchParams.get('id');
+  const { user, loading: userLoading, canManage, isAdmin, isSuperAdmin, isManager } = useCurrentUser();
   const displayName = (u) => (u?.first_name || u?.last_name) ? `${u?.first_name || ''} ${u?.last_name || ''}`.trim() : (u?.full_name || u?.email || 'Unknown');
   const canApprove = isAdmin || isSuperAdmin;
   const queryClient = useQueryClient();
@@ -60,18 +66,33 @@ export default function SOPDetail() {
     enabled: !!(id && sop?.requires_acknowledgement),
   });
 
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [rejectNote, setRejectNote] = useState('');
+
+  const { data: liveSops = [] } = useQuery({
+    queryKey: ['sops-live'],
+    queryFn: () => fetchLiveSops(500),
+    enabled: !!sop?.related_sop_ids?.length,
+  });
+
+  // Approval runs server-side (approveContent): only admins can publish, and the server applies the edit.
   const approveMutation = useMutation({
-    mutationFn: async (approve) => {
-      await base44.functions.invoke('approveContent', {
-        type: 'sop', id, action: approve ? 'approve' : 'reject',
+    mutationFn: async ({ approve, note }) => {
+      const res = await base44.functions.invoke('approveContent', {
+        type: 'sop', id, action: approve ? 'approve' : 'reject', note: note || '',
       });
+      return res?.data ?? res ?? {};
     },
-    onSuccess: (_, approve) => {
-      toast.success(approve ? 'Changes approved and published!' : 'Changes rejected');
+    onSuccess: (res, { approve }) => {
+      toast.success(approve ? `Approved and published as v${res.version}${res.requires_acknowledgement ? ' — staff will be asked to re-acknowledge' : ''}` : 'Changes requested — the manager has been asked to edit again');
+      setRejectOpen(false);
+      setRejectNote('');
+      ['sop', 'sops', 'sops-all', 'sops-live', 'all-sops-dash', 'sop-versions', 'sops-pending-ack', 'sops-pending-ack-dash', 'ack']
+        .forEach(k => queryClient.invalidateQueries({ queryKey: [k] }));
+    },
+    onError: (e) => {
+      toast.error(e?.message || 'Could not update the SOP');
       queryClient.invalidateQueries({ queryKey: ['sop', id] });
-      queryClient.invalidateQueries({ queryKey: ['sops'] });
-      queryClient.invalidateQueries({ queryKey: ['sop-versions'] });
-      queryClient.invalidateQueries({ queryKey: ['sops-pending-ack'] });
     },
   });
 
@@ -89,13 +110,19 @@ export default function SOPDetail() {
     },
   });
 
+  // SOPs are never deleted: archiving hides them from staff; managers and above can still open them.
+  const archiveMutation = useMutation({
+    mutationFn: (archive) => archive ? manageSop('archive', { id }) : base44.entities.SOP.update(id, { status: 'draft' }),
+    onSuccess: (_, archive) => {
+      toast.success(archive ? 'SOP archived' : 'SOP restored as a draft');
+      ['sop', 'sops', 'sops-all', 'sops-live', 'all-sops-dash', 'draft-sops', 'sops-pending-ack', 'sops-pending-ack-dash']
+        .forEach(k => queryClient.invalidateQueries({ queryKey: [k] }));
+    },
+    onError: (e) => toast.error('Could not update the SOP: ' + (e?.message || 'unknown error')),
+  });
+
   const verifyMutation = useMutation({
-    mutationFn: () => base44.entities.SOP.update(id, {
-      last_verified_by: user.email,
-      last_verified_by_name: displayName(user),
-      last_verified_at: new Date().toISOString(),
-      verification_due_date: format(addDays(new Date(), 90), 'yyyy-MM-dd'),
-    }),
+    mutationFn: () => manageSop('verify', { id }),
     onSuccess: () => {
       toast.success('SOP verified! Next verification set for 90 days out.');
       queryClient.invalidateQueries({ queryKey: ['sop', id] });
@@ -104,9 +131,7 @@ export default function SOPDetail() {
   });
 
   const postponeVerificationMutation = useMutation({
-    mutationFn: () => base44.entities.SOP.update(id, {
-      verification_due_date: format(addDays(new Date(), 90), 'yyyy-MM-dd'),
-    }),
+    mutationFn: () => manageSop('postpone', { id }),
     onSuccess: () => {
       toast.success('Verification postponed 90 days.');
       queryClient.invalidateQueries({ queryKey: ['sop', id] });
@@ -114,11 +139,12 @@ export default function SOPDetail() {
     },
   });
 
-  if (isLoading) {
+  if (isLoading || userLoading) {
     return <div className="flex items-center justify-center py-20"><div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" /></div>;
   }
 
-  if (!sop) {
+  // Staff can only open live SOPs (drafts and archived SOPs are for managers and above).
+  if (!sop || (!canManage && !isLive(sop))) {
     return (
       <div className="text-center py-20">
         <p className="text-slate-500">SOP not found</p>
@@ -162,7 +188,7 @@ export default function SOPDetail() {
 
   // Verification
   const verificationDaysLeft = sop.verification_due_date
-    ? differenceInDays(parseISO(sop.verification_due_date), new Date())
+    ? daysFromToday(sop.verification_due_date)
     : null;
   const verificationOverdue = verificationDaysLeft !== null && verificationDaysLeft < 0;
   const verificationSoon = verificationDaysLeft !== null && verificationDaysLeft <= 7 && verificationDaysLeft >= 0;
@@ -176,7 +202,12 @@ export default function SOPDetail() {
   const needsVerification = !sop.last_verified_at || verificationOverdue || verificationSoon;
 
   // Display instructions (prefer structured field, fallback to legacy content)
-  const displayInstructions = sop.instructions || sop.content;
+  const displayInstructions = sopBody(sop);
+  const pState = pendingState(sop);
+  const pendingFields = getPendingFields(sop);
+  const reAck = isReAck(myAcks, sop);
+  const ackOverdue = isAckOverdue(sop);
+  const relatedSops = (sop.related_sop_ids || []).map(rid => liveSops.find(x => x.id === rid)).filter(Boolean);
 
   const teamNames = applicableTeams.map(t => t.name);
 
@@ -218,6 +249,17 @@ export default function SOPDetail() {
               <Button variant="outline" className="gap-2"><History className="w-4 h-4" /> History</Button>
             </Link>
           )}
+          {canApprove && (sop.status === 'archived' || sop.status === 'draft' || isLive(sop)) && (
+            <Button
+              variant="outline"
+              className="gap-2"
+              disabled={archiveMutation.isPending}
+              onClick={() => archiveMutation.mutate(sop.status !== 'archived')}
+            >
+              {sop.status === 'archived' ? <ArchiveRestore className="w-4 h-4" /> : <Archive className="w-4 h-4" />}
+              {sop.status === 'archived' ? 'Restore' : 'Archive'}
+            </Button>
+          )}
           <SOPQRCode sop={sop} />
           {canManage && (
             <Link to={createPageUrl('SOPEditor') + `?id=${sop.id}`}>
@@ -231,8 +273,10 @@ export default function SOPDetail() {
       <Card className="border-0 shadow-sm mb-4">
         <CardContent className="p-8">
           <div className="flex items-center gap-3 mb-3">
-            <StatusBadge status={canApprove ? sop.status : (sop.status === 'pending_approval' ? 'published' : sop.status)} />
+            <StatusBadge status={sop.status === 'pending_approval' ? 'published' : sop.status} />
             <span className="text-sm text-slate-400">Version {sop.version || 1}</span>
+            {canManage && pState === 'submitted' && <span className="text-xs font-semibold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">Edit pending review</span>}
+            {canManage && pState === 'changes_requested' && <span className="text-xs font-semibold bg-red-100 text-red-700 px-2 py-0.5 rounded-full">Changes requested</span>}
           </div>
 
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight mb-4">{sop.title}</h1>
@@ -266,6 +310,15 @@ export default function SOPDetail() {
         </CardContent>
       </Card>
 
+      {sop.status === 'archived' && (
+        <Card className="border-0 shadow-sm mb-4 border-l-4 border-l-slate-400">
+          <CardContent className="p-4 flex items-center gap-2">
+            <Archive className="w-4 h-4 text-slate-500" />
+            <p className="text-sm text-slate-700">This SOP is archived and hidden from staff. {canApprove ? 'Restore it to bring it back as a draft.' : 'An admin can restore it.'}</p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Verification Banner */}
       {(verificationOverdue || verificationSoon) && canVerify && (
         <Card className={`border-0 shadow-sm mb-4 border-l-4 ${verificationOverdue ? 'border-l-red-500' : 'border-l-amber-400'}`}>
@@ -293,7 +346,7 @@ export default function SOPDetail() {
           <CardContent className="p-4 flex items-center justify-between gap-4">
             <div className="flex items-center gap-2 text-sm text-slate-500">
               <CalendarCheck className="w-4 h-4 text-emerald-600" />
-              <span>Next verification due: <strong>{new Date(sop.verification_due_date + 'T12:00:00').toLocaleDateString()}</strong></span>
+              <span>Next verification due: <strong>{formatDate(sop.verification_due_date)}</strong></span>
               {sop.last_verified_by_name && <span className="text-slate-400">· Last verified by {sop.last_verified_by_name}</span>}
             </div>
             {canVerify && (
@@ -305,6 +358,93 @@ export default function SOPDetail() {
           </CardContent>
         </Card>
       )}
+
+      {/* Pending edit — the live version shown below stays visible until an admin approves */}
+      {pState === 'submitted' && canApprove && (
+        <Card className="border-0 shadow-sm border-l-4 border-l-amber-500 mb-4">
+          <CardContent className="p-6">
+            <div className="flex items-start gap-3 mb-4">
+              <ShieldAlert className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="font-semibold text-amber-900">Pending edit awaiting your approval</p>
+                <p className="text-sm text-amber-700">
+                  Submitted by <strong>{sop.pending_submitted_by_name || 'a manager'}</strong>
+                  {sop.pending_submitted_at ? ` on ${formatDate(sop.pending_submitted_at)}` : ''}
+                  {sop.pending_change_summary ? ` — "${sop.pending_change_summary}"` : ''}
+                </p>
+                <p className="text-xs text-amber-700 mt-1">Staff keep seeing the current version (v{sop.version || 1}) until you approve. Approving publishes v{(sop.version || 1) + 1}.</p>
+              </div>
+            </div>
+            <div className="bg-amber-50 rounded-lg p-4 mb-4">
+              <SOPChangeDiff current={{ ...sop, instructions: sopBody(sop) }} proposed={pendingFields} />
+            </div>
+            <div className="flex gap-3 justify-end">
+              <Button variant="outline" onClick={() => setRejectOpen(true)} disabled={approveMutation.isPending} className="gap-2 border-red-200 text-red-700 hover:bg-red-50">
+                <XCircle className="w-4 h-4" /> Request Changes
+              </Button>
+              <Button onClick={() => approveMutation.mutate({ approve: true })} disabled={approveMutation.isPending} className="bg-emerald-600 hover:bg-emerald-700 gap-2">
+                {approveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                Approve & Publish v{(sop.version || 1) + 1}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {pState === 'submitted' && !canApprove && canManage && (
+        <Card className="border-0 shadow-sm border-l-4 border-l-amber-400 mb-4">
+          <CardContent className="p-4 flex items-center gap-2">
+            <ShieldAlert className="w-4 h-4 text-amber-600" />
+            <p className="text-sm text-amber-800">
+              {sop.pending_submitted_by === user?.email ? 'Your edit is' : `An edit by ${sop.pending_submitted_by_name || 'another manager'} is`} awaiting admin approval. The version below stays live until it is approved.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {pState === 'changes_requested' && canManage && (
+        <Card className="border-0 shadow-sm border-l-4 border-l-red-500 mb-4">
+          <CardContent className="p-5">
+            <div className="flex items-start gap-3">
+              <ShieldAlert className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="font-semibold text-red-900">Changes requested{sop.pending_reviewed_by_name ? ` by ${sop.pending_reviewed_by_name}` : ''}</p>
+                {sop.pending_review_note && <p className="text-sm text-red-800 mt-1 whitespace-pre-wrap">"{sop.pending_review_note}"</p>}
+                <p className="text-xs text-red-700 mt-1">
+                  {sop.pending_submitted_by === user?.email || !sop.pending_submitted_by
+                    ? 'Edit and resubmit your changes. The current version stays live in the meantime.'
+                    : `Waiting for ${sop.pending_submitted_by_name || 'the manager'} to edit and resubmit.`}
+                </p>
+              </div>
+              {(sop.pending_submitted_by === user?.email || !sop.pending_submitted_by) && (
+                <Link to={createPageUrl('SOPEditor') + `?id=${sop.id}`}>
+                  <Button size="sm" className="bg-red-600 hover:bg-red-700 gap-1"><Pencil className="w-3.5 h-3.5" /> Edit &amp; resubmit</Button>
+                </Link>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Request changes</DialogTitle>
+            <DialogDescription>The live version stays published. The manager will see your note and can edit and resubmit.</DialogDescription>
+          </DialogHeader>
+          <Textarea value={rejectNote} onChange={e => setRejectNote(e.target.value)} rows={4} placeholder="What needs to change before this can be approved?" />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectOpen(false)}>Cancel</Button>
+            <Button
+              onClick={() => approveMutation.mutate({ approve: false, note: rejectNote.trim() })}
+              disabled={approveMutation.isPending || !rejectNote.trim()}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {approveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null} Send back
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Purpose */}
       {sop.purpose && (
@@ -351,7 +491,7 @@ export default function SOPDetail() {
         <CardContent className="p-8">
           <h2 className="text-base font-semibold text-slate-800 mb-4 flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-indigo-500" /> Step-by-Step Instructions</h2>
           <div className="prose prose-slate max-w-none prose-headings:font-semibold prose-a:text-indigo-600"
-            dangerouslySetInnerHTML={{ __html: sanitizeHtml(displayInstructions) || '<p class="text-slate-400 italic">No instructions added yet.</p>' }} />
+            dangerouslySetInnerHTML={{ __html: displayInstructions ? sanitizeHtml(displayInstructions) : '<p class="text-slate-400 italic">No instructions added yet.</p>' }} />
         </CardContent>
       </Card>
 
@@ -368,37 +508,15 @@ export default function SOPDetail() {
         </Card>
       )}
 
-      {/* Pending approval banner */}
-      {sop.status === 'pending_approval' && sop.pending_content && canApprove && (
-        <Card className="border-0 shadow-sm border-l-4 border-l-amber-500 mb-4">
+      {relatedSops.length > 0 && (
+        <Card className="border-0 shadow-sm mb-4">
           <CardContent className="p-6">
-            <div className="flex items-start gap-3 mb-4">
-              <ShieldAlert className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
-              <div className="flex-1">
-                <p className="font-semibold text-amber-900">Pending Manager Edit — Awaiting Approval</p>
-                <p className="text-sm text-amber-700">Submitted by <strong>{sop.pending_submitted_by_name}</strong>{sop.pending_change_summary ? ` — "${sop.pending_change_summary}"` : ''}</p>
-              </div>
-            </div>
-            <div className="prose prose-sm prose-slate max-w-none bg-amber-50 rounded-lg p-4 mb-4 max-h-60 overflow-y-auto" dangerouslySetInnerHTML={{ __html: sanitizeHtml(sop.pending_content) }} />
-            <div className="flex gap-3 justify-end">
-              <Button variant="outline" onClick={() => approveMutation.mutate(false)} disabled={approveMutation.isPending} className="gap-2 border-red-200 text-red-700 hover:bg-red-50">
-                <XCircle className="w-4 h-4" /> Reject
-              </Button>
-              <Button onClick={() => approveMutation.mutate(true)} disabled={approveMutation.isPending} className="bg-emerald-600 hover:bg-emerald-700 gap-2">
-                {approveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                Approve & Publish
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {sop.status === 'pending_approval' && !canApprove && (
-        <Card className="border-0 shadow-sm border-l-4 border-l-amber-400 mb-4">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <ShieldAlert className="w-4 h-4 text-amber-600" />
-              <p className="text-sm text-amber-800">This SOP has a pending edit awaiting admin approval.</p>
+            <h2 className="text-base font-semibold text-slate-800 mb-3 flex items-center gap-2"><Link2 className="w-4 h-4 text-indigo-500" /> Related SOPs</h2>
+            <div className="flex flex-wrap gap-2">
+              {relatedSops.map(r => (
+                <Link key={r.id} to={createPageUrl('SOPDetail') + `?id=${r.id}`}
+                  className="px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 text-sm font-medium hover:bg-indigo-100">{r.title}</Link>
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -411,8 +529,8 @@ export default function SOPDetail() {
             {!myCurrentAck ? (
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-semibold text-slate-900">Acknowledgement Required</p>
-                  <p className="text-sm text-slate-500">Please confirm you have read and understood this SOP</p>
+                  <p className="font-semibold text-slate-900">{reAck ? `Updated to v${sop.version} — Please Re-acknowledge` : 'Acknowledgement Required'}</p>
+                  <p className="text-sm text-slate-500">{reAck ? 'This SOP changed since you last acknowledged it. Please read the new version and confirm.' : 'Please confirm you have read and understood this SOP'}</p>
                 </div>
                 <Button onClick={() => ackMutation.mutate()} disabled={ackMutation.isPending} className="bg-emerald-600 hover:bg-emerald-700 gap-2">
                   {ackMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
@@ -436,6 +554,7 @@ export default function SOPDetail() {
             <div className="flex items-center gap-2 mb-4">
               <Users className="w-4 h-4 text-slate-600" />
               <p className="font-semibold text-slate-800">Acknowledgement Status — v{sop.version}</p>
+              {ackOverdue && notAcknowledged.length > 0 && <span className="text-xs font-semibold bg-red-100 text-red-700 px-2 py-0.5 rounded-full">Overdue</span>}
               <span className="ml-auto text-xs text-slate-500">{acknowledged.length}/{scopedUsers.length} read</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

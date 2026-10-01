@@ -7,7 +7,7 @@ import { escapeHtml } from '@/lib/sanitize';
 
 export default function SOPQRCode({ sop }) {
   const printRef = useRef();
-  const sopUrl = `${window.location.origin}${window.location.pathname}#/SOPDetail?id=${sop.id}`;
+  const sopUrl = `${window.location.origin}/SOPDetail?id=${sop.id}`;
 
   const handlePrint = () => {
     const printWindow = window.open('', '_blank');

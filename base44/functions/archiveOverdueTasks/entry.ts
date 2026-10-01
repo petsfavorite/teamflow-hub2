@@ -1,13 +1,15 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 import { requireAdminOnly } from '../../shared/auth.ts';
+import { localScheduleGate } from '../../shared/localSchedule.ts';
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const { error: authError } = await requireAdminOnly(base44);
     if (authError) return authError;
-    const settings = await base44.asServiceRole.entities.AppSettings.filter({ key: 'global' });
-    const tz = settings[0]?.global_timezone || 'America/New_York';
+    // Runs only at local midnight (see shared/localSchedule.ts)
+    const { tz, skip } = await localScheduleGate(base44, req, 0);
+    if (skip) return skip;
     const today = new Date().toLocaleDateString('en-CA', { timeZone: tz });
 
     // Fetch pending and in_progress tasks separately to avoid missing any due to list limits
@@ -19,7 +21,10 @@ Deno.serve(async (req) => {
     const overdue = [...pending, ...inProgress].filter(t =>
       t.due_date &&
       t.due_date < today &&
-      (t.recurrence_type === 'once' || !t.recurrence_type)
+      (t.recurrence_type === 'once' || !t.recurrence_type) &&
+      // Copies spawned by a recurring task stay open (and overdue) until the next occurrence is
+      // due; generateRecurringTasks archives them as not done at that moment.
+      !t.recurring_task_id
     );
 
     if (overdue.length === 0) return Response.json({ archived: 0 });
@@ -38,7 +43,7 @@ Deno.serve(async (req) => {
         assigned_teams: task.assigned_teams || [],
         outcome: 'expired',
         closed_by: 'system',
-        closed_by_name: 'Auto-expired (past due date)',
+        closed_by_name: 'Not completed (auto-closed at midnight)',
         closed_at: new Date().toISOString(),
         completion_notes: task.completion_notes || null,
       });

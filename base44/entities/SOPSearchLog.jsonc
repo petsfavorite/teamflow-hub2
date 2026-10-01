@@ -1,50 +1,36 @@
 {
-  "name": "SOPVersion",
+  "name": "SOPSearchLog",
   "type": "object",
   "properties": {
-    "sop_id": {
+    "question": {
       "type": "string"
     },
-    "version_number": {
-      "type": "number"
+    "answered": {
+      "type": "boolean",
+      "description": "False when the SOP Assistant could not find a procedure that covers the question"
     },
-    "title": {
-      "type": "string"
-    },
-    "content": {
-      "type": "string"
-    },
-    "summary": {
-      "type": "string"
-    },
-    "tags": {
+    "matched_sop_ids": {
       "type": "array",
       "items": {
         "type": "string"
       }
     },
-    "category": {
+    "user_email": {
       "type": "string"
     },
-    "snapshot": {
-      "type": "object",
-      "description": "All editable SOP fields as of this version (used for restore)"
-    },
-    "change_summary": {
-      "type": "string",
-      "description": "What changed in this version"
-    },
-    "created_by_name": {
+    "user_name": {
       "type": "string"
     }
   },
   "required": [
-    "sop_id",
-    "version_number"
+    "question"
   ],
   "rls": {
     "create": {
       "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
         {
           "user_condition": {
             "role": "manager"
@@ -62,8 +48,7 @@
         }
       ]
     },
-    "read": null,
-    "update": {
+    "read": {
       "$or": [
         {
           "created_by_id": "{{user.id}}"
@@ -73,6 +58,20 @@
             "role": "manager"
           }
         },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "super_admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
         {
           "user_condition": {
             "role": "admin"
@@ -87,14 +86,6 @@
     },
     "delete": {
       "$or": [
-        {
-          "created_by_id": "{{user.id}}"
-        },
-        {
-          "user_condition": {
-            "role": "manager"
-          }
-        },
         {
           "user_condition": {
             "role": "admin"

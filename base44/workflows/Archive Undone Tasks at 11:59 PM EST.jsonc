@@ -1,13 +1,13 @@
 {
   "name": "Archive Undone Tasks at 11:59 PM EST",
-  "description": "Every day at 11:59 PM EST, removes incomplete tasks due today from checked-in pets and logs them as 'Not Done' in activity log",
+  "description": "Every day at 11:59 PM app time (fires at 03:59 and 04:59 UTC; the function only acts when it is 11 PM locally, so daylight saving is handled), removes incomplete tasks due today from checked-in pets and logs them as 'Not Done' in activity log",
   "trigger": {
     "condition": null,
     "config": {
       "trigger_type": "scheduled",
       "events": [],
       "schedule_mode": "recurring",
-      "cron_expression": "59 4 * * *",
+      "cron_expression": "59 3,4 * * *",
       "one_time_date": null,
       "timezone": "UTC",
       "interval_value": null,
