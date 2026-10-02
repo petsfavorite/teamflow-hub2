@@ -48,7 +48,7 @@ const adminNavItems = [
     { name: 'ChecklistHistory', icon: History, label: 'Checklist History' },
     { name: 'Analytics', icon: BarChart2, label: 'Analytics' },
     { name: 'FetchCallData', icon: FileSpreadsheet, label: 'Fetch Call Data', superAdminOnly: true },
-    { name: 'DevChecklist', icon: ClipboardList, label: 'Dev Checklist', superAdminOnly: true },
+
     { name: 'DataExport', icon: Download, label: 'Data Export', superAdminOnly: true },
     { name: 'AccessControl', icon: Lock, label: 'Access Control', adminOnly: true },
 ];

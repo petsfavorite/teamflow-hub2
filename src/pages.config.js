@@ -57,7 +57,7 @@ import ChecklistEditor from './pages/ChecklistEditor';
 import ChecklistHistory from './pages/ChecklistHistory';
 import Checklists from './pages/Checklists';
 import Dashboard from './pages/Dashboard';
-import DevChecklist from './pages/DevChecklist';
+
 import EmergencySOPs from './pages/EmergencySOPs';
 import ExternalLinks from './pages/ExternalLinks';
 import FetchCallData from './pages/FetchCallData';
@@ -90,7 +90,7 @@ export const PAGES = {
     "ChecklistHistory": ChecklistHistory,
     "Checklists": Checklists,
     "Dashboard": Dashboard,
-    "DevChecklist": DevChecklist,
+
     "EmergencySOPs": EmergencySOPs,
     "ExternalLinks": ExternalLinks,
     "FetchCallData": FetchCallData,
