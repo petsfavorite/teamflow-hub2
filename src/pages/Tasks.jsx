@@ -165,31 +165,12 @@ export default function Tasks() {
   const displayTasks = tab === 'mine' ? myTasks : tab === 'all' ? allTasks : completedTasks;
 
   const setStatus = async (task, status) => {
-    // Only record history once the status change has actually saved.
     try {
-      await updateMutation.mutateAsync({ id: task.id, data: { status } });
+      await base44.functions.invoke('updateTaskStatus', { task_id: task.id, status });
+      toast.success(status === 'completed' ? 'Task completed' : 'Task updated');
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
     } catch {
-      return; // updateMutation's onError already showed the message
-    }
-    // Write to TaskHistory when closing a task
-    if (status === 'completed' || status === 'cancelled') {
-      base44.entities.TaskHistory.create({
-        task_id: task.id,
-        task_title: task.title,
-        task_description: task.description || null,
-        priority: task.priority || 'medium',
-        due_date: task.due_date || null,
-        assigned_to_emails: task.assigned_to_emails || [],
-        assigned_to_names: task.assigned_to_names || [],
-        assigned_teams: task.assigned_teams || [],
-        outcome: status,
-        closed_by: user?.email || 'unknown',
-        closed_by_name: getUserDisplayName(user) || 'Unknown',
-        closed_at: new Date().toISOString(),
-        completion_notes: task.completion_notes || null,
-      }).catch(() => {
-        toast.error('Failed to record task history');
-      });
+      toast.error('Could not update the task. Please try again.');
     }
   };
 
