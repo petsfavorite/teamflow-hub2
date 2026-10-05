@@ -25,6 +25,10 @@
     "caller_phone": {
       "type": "string"
     },
+    "dialed_number": {
+      "type": "string",
+      "description": "The phone number that was dialed. For inbound calls, this is the clinic line the caller reached."
+    },
     "caller_name": {
       "type": "string"
     },

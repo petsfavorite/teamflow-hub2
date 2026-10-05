@@ -185,12 +185,15 @@ Deno.serve(async (req) => {
 
       const name = direction === "inbound" ? log.caller_name : log.callee_name;
       const number = direction === "inbound" ? log.caller_number : (log.callee_number || log.callee_did_number);
+      // For inbound calls, the callee number is the clinic line the caller dialed.
+      const dialedNumber = direction === "inbound" ? (log.callee_number || log.callee_did_number || null) : null;
       toCreate.push({
         zoom_meeting_id: callId,
         call_date: new Date(log.date_time).toISOString(),
         call_duration_seconds: duration,
         call_direction: direction,
         caller_phone: number ? String(number).trim() : null,
+        dialed_number: dialedNumber ? String(dialedNumber).trim() : null,
         caller_name: name ? String(name).trim() : null,
         transcript: transcript || null,
         zoom_recording_id: log.recording_id ? String(log.recording_id) : null,

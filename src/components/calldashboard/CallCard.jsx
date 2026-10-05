@@ -35,6 +35,12 @@ export default function CallCard({ call, onClick, nameMap = {} }) {
               <div>
                 <p className="text-sm font-semibold text-slate-900 truncate">{call.caller_name || call.caller_phone || "Unknown Caller"}</p>
                 {call.caller_phone && call.caller_name && <p className="text-xs text-slate-400">{call.caller_phone}</p>}
+                {call.call_direction === "inbound" && call.dialed_number && (
+                  <p className="text-xs text-slate-400 flex items-center gap-1">
+                    <PhoneIncoming className="w-3 h-3 text-emerald-400" />
+                    <span>Dialed: {call.dialed_number}</span>
+                  </p>
+                )}
                 {call.missed_call && (
                   <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-50 mt-1.5 w-fit">
                     <PhoneMissed className="w-3 h-3 text-rose-400" />

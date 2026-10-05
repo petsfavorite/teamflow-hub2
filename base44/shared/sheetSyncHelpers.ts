@@ -109,6 +109,9 @@ export function buildCallRecord(raw, cols, rowIndex, callId) {
   const nameRaw = call_direction === "inbound" ? String(raw[cols.colFromName] || "") : String(raw[cols.colToName] || "");
   const caller_phone = (phoneRaw && phoneRaw.toLowerCase() !== "anonymous") ? phoneRaw.trim() : null;
   const caller_name = nameRaw.trim() || null;
+  // For inbound calls, the "to" number is the clinic line the caller dialed.
+  const dialedRaw = call_direction === "inbound" ? String(raw[cols.colToPhone] || "") : "";
+  const dialed_number = (dialedRaw && dialedRaw.toLowerCase() !== "anonymous") ? dialedRaw.trim() || null : null;
 
   const recording_url = extractRecordingUrl(raw[cols.colRecording]);
   const call_duration_seconds = cols.colDuration >= 0 ? parseDurationSeconds(raw[cols.colDuration]) : null;
@@ -122,6 +125,7 @@ export function buildCallRecord(raw, cols, rowIndex, callId) {
     call_direction,
     call_duration_seconds,
     caller_phone,
+    dialed_number,
     caller_name,
     transcript: transcript || null,
     recording_url,

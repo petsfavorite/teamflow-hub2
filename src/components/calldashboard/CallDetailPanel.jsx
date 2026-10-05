@@ -91,6 +91,9 @@ export default function CallDetailPanel({ call, open, onClose, onUpdate, isAdmin
         <div className="space-y-5 pt-2">
           <div className="grid grid-cols-2 gap-3">
             <MetaItem icon={call.call_direction === "outbound" ? PhoneOutgoing : PhoneIncoming} label={call.call_direction === "outbound" ? "Outgoing Call" : "Incoming Call"} value={call.caller_name || call.caller_phone || "Unknown"} iconClass={call.call_direction === "outbound" ? "text-blue-400" : "text-emerald-400"} />
+            {call.call_direction === "inbound" && call.dialed_number && (
+              <MetaItem icon={PhoneIncoming} label="Dialed Number" value={call.dialed_number} iconClass="text-emerald-400" />
+            )}
             <div className="space-y-0.5">
               <div className="flex items-center gap-1 text-xs text-slate-400"><User className="w-3 h-3" />Team Member</div>
               {isAdmin ? (
