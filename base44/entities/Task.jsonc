@@ -178,6 +178,9 @@
           "created_by_id": "{{user.id}}"
         },
         {
+          "data.assigned_to_emails": "{{user.email}}"
+        },
+        {
           "user_condition": {
             "role": "manager"
           }
