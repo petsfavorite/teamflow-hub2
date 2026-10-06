@@ -5,6 +5,16 @@ import { requireAdminOnly } from '../../shared/auth.ts';
 // Daily operations summary email for managers and above.
 // Managers see only checklists/tasks scoped to their teams; admins see everything.
 // Incidents, maintenance, SOPs, and pending approvals are shown to all recipients.
+//
+// Some recipients stopped receiving the app's built-in email (suppression on the
+// receiving side, not an app-side issue). For those addresses, send via the
+// connected Gmail account instead; everyone else keeps the built-in SendEmail path.
+const GMAIL_RECIPIENTS = new Set([
+  'drcaroline@petsfavoritevet.com',
+  'jen@petsfavoritevet.com',
+  'nevadaperkins2018@gmail.com',
+]);
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -95,12 +105,17 @@ Deno.serve(async (req) => {
           pendingChecklists,
         });
 
-        await base44.asServiceRole.integrations.Core.SendEmail({
-          to: recipient.email,
-          subject: `Daily Operations Summary — ${todayStr}`,
-          html,
-          from_name: "Pet's Favorite Hub",
-        });
+        const subject = `Daily Operations Summary — ${todayStr}`;
+        if (GMAIL_RECIPIENTS.has(recipient.email)) {
+          await sendViaGmail(base44, recipient.email, subject, html);
+        } else {
+          await base44.asServiceRole.integrations.Core.SendEmail({
+            to: recipient.email,
+            subject,
+            html,
+            from_name: "Pet's Favorite Hub",
+          });
+        }
         sent++;
       } catch (e) {
         errors++;
@@ -310,4 +325,74 @@ ${sections}
 <hr style="border:none;border-top:1px solid #e7e5e4;margin:24px 0;">
 <p style="font-size:12px;color:#a8a29e;">This is an automated daily summary from Pet's Favorite Hub.</p>
 </body></html>`;
+}
+
+// --- Gmail send path (for recipients not receiving the built-in email) ---
+
+let _gmailConn = null;
+
+async function getGmailConnection(base44) {
+  if (_gmailConn) return _gmailConn;
+  const { accessToken } = await base44.asServiceRole.connectors.getConnection('gmail');
+  let fromAddress = null;
+  try {
+    const profileRes = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/profile', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (profileRes.ok) {
+      const profile = await profileRes.json();
+      fromAddress = profile.emailAddress;
+    }
+  } catch { /* ignore — Gmail will use the account default */ }
+  _gmailConn = { token: accessToken, fromAddress };
+  return _gmailConn;
+}
+
+function encodeHeader(value) {
+  if (/^[\x00-\x7F]*$/.test(value)) return value;
+  const bytes = new TextEncoder().encode(value);
+  let bin = '';
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return `=?UTF-8?B?${btoa(bin)}?=`;
+}
+
+function base64UrlEncode(str) {
+  const bytes = new TextEncoder().encode(str);
+  let bin = '';
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function buildRawMime(fromAddress, to, subject, html) {
+  const from = fromAddress
+    ? `"Pet's Favorite Hub" <${fromAddress}>`
+    : `"Pet's Favorite Hub"`;
+  const raw = [
+    `From: ${from}`,
+    `To: ${to}`,
+    `Subject: ${encodeHeader(subject)}`,
+    'MIME-Version: 1.0',
+    'Content-Type: text/html; charset=utf-8',
+    'Content-Transfer-Encoding: base64',
+    '',
+    base64UrlEncode(html),
+  ].join('\r\n');
+  return base64UrlEncode(raw);
+}
+
+async function sendViaGmail(base44, to, subject, html) {
+  const { token, fromAddress } = await getGmailConnection(base44);
+  const raw = buildRawMime(fromAddress, to, subject, html);
+  const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ raw }),
+  });
+  if (!res.ok) {
+    const detail = await res.text();
+    throw new Error(`Gmail send failed (${res.status}): ${detail}`);
+  }
 }
