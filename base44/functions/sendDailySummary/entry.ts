@@ -27,7 +27,10 @@ Deno.serve(async (req) => {
       base44.asServiceRole.entities.User.list('full_name', 5000),
       base44.asServiceRole.entities.Team.list(),
       base44.asServiceRole.entities.ChecklistTemplate.filter({ status: 'active' }),
-      base44.asServiceRole.entities.Task.filter({ status: { $in: ['pending', 'in_progress'] } }),
+      // Exclude recurring template definitions (daily/weekly/monthly schedules) — they stay
+      // "pending" forever and are never "completed" themselves; only their spawned instances are.
+      // Their instances have recurrence_type 'once' and are included normally.
+      base44.asServiceRole.entities.Task.filter({ status: { $in: ['pending', 'in_progress'] }, recurrence_type: { $nin: ['daily', 'weekdays', 'specific_days', 'monthly', 'every_x_months', 'annually', 'manual'] } }),
       base44.asServiceRole.entities.IncidentReport.filter({ status: { $in: ['open', 'under_review'] } }),
       base44.asServiceRole.entities.IncidentReport.filter({ created_date: { $gte: startOfTodayIso } }),
       base44.asServiceRole.entities.MaintenanceRequest.filter({ status: { $ne: 'completed' } }),
