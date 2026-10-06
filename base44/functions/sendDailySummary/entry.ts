@@ -104,9 +104,11 @@ Deno.serve(async (req) => {
         sent++;
       } catch (e) {
         errors++;
+        console.error(`Daily summary failed for ${recipient.email}: ${e?.message || e}`);
       }
     }
 
+    console.log(`Daily summary finished: ${sent} sent, ${errors} failed, recipients: ${recipients.map(r => r.email).join(', ')}`);
     return Response.json({ success: true, sent, errors });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
