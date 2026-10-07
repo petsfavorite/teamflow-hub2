@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { hashPin } from '../../shared/crypto.ts';
 import { findPinOwner } from '../../shared/pinUniqueness.ts';
+import { sendViaGmail } from '../../shared/gmailSend.ts';
 
 // Secure invite flow — replaces frontend PendingInvite creation.
 // Only admins/super_admins can call this. Validates email, generates a PIN,
@@ -90,12 +91,12 @@ Deno.serve(async (req) => {
 
     // Send welcome email WITHOUT the PIN — admin shares the PIN via a secure channel
     try {
-      await base44.integrations.Core.SendEmail({
-        to: email,
-        subject: "You're invited to join our team!",
-        body: `Hello${firstName ? ' ' + firstName : ''},\n\nYou've been invited to join our team. Please contact your manager to receive your session PIN and complete your setup.\n\nWelcome aboard!`,
-        from_name: "Pet's Favorite Hub",
-      });
+      await sendViaGmail(
+        base44,
+        email,
+        "You're invited to join our team!",
+        `Hello${firstName ? ' ' + firstName : ''},\n\nYou've been invited to join our team. Please contact your manager to receive your session PIN and complete your setup.\n\nWelcome aboard!`,
+      );
     } catch (_emailErr) {
       // Email may fail if user not yet in system — that's OK
     }

@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
+import { sendViaGmail } from '../../shared/gmailSend.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -24,12 +25,7 @@ You've been invited to join our team. Please contact your manager to receive you
 
 Welcome aboard!`;
 
-    await base44.integrations.Core.SendEmail({
-      to: email,
-      subject,
-      body,
-      from_name: "Pet's Favorite Hub",
-    });
+    await sendViaGmail(base44, email, subject, body);
 
     return Response.json({ success: true });
   } catch (error) {
