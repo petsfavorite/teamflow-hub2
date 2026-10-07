@@ -288,7 +288,7 @@ function buildEmail(p) {
     sections += listStart();
     for (const s of sopsDueSoon) {
       const isOverdue = s.verification_due_date < todayStr;
-      sections += `<li style="margin-bottom:4px;${isOverdue ? 'color:#dc2626;' : ''}\"><strong>${esc(s.title)}</strong> — ${isOverdue ? 'OVERDUE — was due' : 'due'} ${esc(s.verification_due_date)}${s.category ? ` (${esc(s.category)})` : ''}</li>`;
+      sections += `<li style="margin-bottom:4px;${isOverdue ? 'color:#dc2626;' : ''}\">><strong>${esc(s.title)}</strong> — ${isOverdue ? 'OVERDUE — was due' : 'due'} ${esc(s.verification_due_date)}${s.category ? ` (${esc(s.category)})` : ''}</li>`;
     }
     sections += `</ul>`;
   }
@@ -356,11 +356,19 @@ function encodeHeader(value) {
   return `=?UTF-8?B?${btoa(bin)}?=`;
 }
 
-function base64UrlEncode(str) {
+function base64Encode(str) {
   const bytes = new TextEncoder().encode(str);
   let bin = '';
   for (const b of bytes) bin += String.fromCharCode(b);
-  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return btoa(bin);
+}
+
+function base64UrlEncode(str) {
+  return base64Encode(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function wrapLines(str, width = 76) {
+  return str.match(new RegExp(`.{1,${width}}`, 'g')).join('\r\n');
 }
 
 function buildRawMime(fromAddress, to, subject, html) {
@@ -375,7 +383,7 @@ function buildRawMime(fromAddress, to, subject, html) {
     'Content-Type: text/html; charset=utf-8',
     'Content-Transfer-Encoding: base64',
     '',
-    base64UrlEncode(html),
+    wrapLines(base64Encode(html)),
   ].join('\r\n');
   return base64UrlEncode(raw);
 }
