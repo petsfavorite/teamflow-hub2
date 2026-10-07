@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 import { hashPin, isPinHashed } from '../../shared/crypto.ts';
+import { findPinOwner } from '../../shared/pinUniqueness.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -68,10 +69,12 @@ Deno.serve(async (req) => {
         return Response.json({ error: 'PIN must be exactly 6 digits' }, { status: 400 });
       }
       // Hash the PIN before storing — never persist plaintext PINs.
-      // Uniqueness can't be checked by filtering on the raw PIN (hashes are
-      // salted per-email), and uniqueness isn't a security requirement since
-      // each user can only unlock their own session, so the check is dropped.
       if (pin) {
+        // Enforce PIN uniqueness across all users and pending invites.
+        const owner = await findPinOwner(base44, pin, targetUser.email);
+        if (owner) {
+          return Response.json({ error: `That PIN is already in use${owner.name ? ` by ${owner.name}` : ''}. Please choose a different 6-digit PIN.` }, { status: 409 });
+        }
         updates.pin = await hashPin(pin, targetUser.email);
       } else {
         updates.pin = null;

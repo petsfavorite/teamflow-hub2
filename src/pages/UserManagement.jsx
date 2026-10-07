@@ -751,16 +751,27 @@ export default function UserManagement() {
                 }
 
                 if (hasChanges) {
-                  await base44.functions.invoke('updateUserProfile', payload);
-                  queryClient.invalidateQueries({ queryKey: ['all-users'] });
-                  // Invalidate team queries so other pages (e.g. Checklists) reflect
-                  // the membership change immediately without needing a remount.
-                  queryClient.invalidateQueries({ queryKey: ['teams-list'] });
-                  queryClient.invalidateQueries({ queryKey: ['teams'] });
-                  queryClient.invalidateQueries({ queryKey: ['teams-mgmt'] });
-                  toast.success('User updated');
+                  try {
+                    await base44.functions.invoke('updateUserProfile', payload);
+                    queryClient.invalidateQueries({ queryKey: ['all-users'] });
+                    // Invalidate team queries so other pages (e.g. Checklists) reflect
+                    // the membership change immediately without needing a remount.
+                    queryClient.invalidateQueries({ queryKey: ['teams-list'] });
+                    queryClient.invalidateQueries({ queryKey: ['teams'] });
+                    queryClient.invalidateQueries({ queryKey: ['teams-mgmt'] });
+                    toast.success('User updated');
+                    setEditingUser(null);
+                  } catch (e) {
+                    const errMsg = e?.response?.data?.error || e?.message || 'Unknown error';
+                    if (/PIN|pin/i.test(errMsg)) {
+                      setPinError(errMsg);
+                    } else {
+                      toast.error(`Failed to update user: ${errMsg}`);
+                    }
+                  }
+                } else {
+                  setEditingUser(null);
                 }
-                setEditingUser(null);
               }}
               disabled={!!pinError}
               className="bg-indigo-600 hover:bg-indigo-700 gap-2"

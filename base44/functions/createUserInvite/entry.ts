@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { hashPin } from '../../shared/crypto.ts';
+import { findPinOwner } from '../../shared/pinUniqueness.ts';
 
 // Secure invite flow — replaces frontend PendingInvite creation.
 // Only admins/super_admins can call this. Validates email, generates a PIN,
@@ -34,11 +35,26 @@ Deno.serve(async (req) => {
     // Generate or validate 6-digit PIN
     let finalPin = pin;
     if (!finalPin) {
-      const randVal = crypto.getRandomValues(new Uint32Array(1))[0];
-      finalPin = (100000 + (randVal % 900000)).toString();
-    }
-    if (!/^\d{6}$/.test(finalPin)) {
-      return Response.json({ error: 'PIN must be exactly 6 digits' }, { status: 400 });
+      // Auto-generate, retrying if the generated PIN is already in use
+      for (let attempt = 0; attempt < 10; attempt++) {
+        const randVal = crypto.getRandomValues(new Uint32Array(1))[0];
+        finalPin = (100000 + (randVal % 900000)).toString();
+        const owner = await findPinOwner(base44, finalPin, email);
+        if (!owner) break;
+        finalPin = '';
+      }
+      if (!finalPin) {
+        return Response.json({ error: 'Could not generate a unique PIN. Please choose one manually.' }, { status: 500 });
+      }
+    } else {
+      if (!/^\d{6}$/.test(finalPin)) {
+        return Response.json({ error: 'PIN must be exactly 6 digits' }, { status: 400 });
+      }
+      // Enforce PIN uniqueness — reject duplicates with a clear message
+      const owner = await findPinOwner(base44, finalPin, email);
+      if (owner) {
+        return Response.json({ error: `That PIN is already in use${owner.name ? ` by ${owner.name}` : ''}. Please choose a different 6-digit PIN.` }, { status: 409 });
+      }
     }
 
     // Hash the PIN before storing — never store or transmit plaintext PINs
