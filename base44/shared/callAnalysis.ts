@@ -52,7 +52,17 @@ export async function analyzeCall(transcript, callDirection, userList, openai, p
   const bookingPrompt = prompts.ai_booking_prompt || DEFAULT_BOOKING_PROMPT;
   const bookingOfferedPrompt = prompts.ai_booking_offered_prompt || DEFAULT_BOOKING_OFFERED_PROMPT;
   const missedCallPrompt = prompts.ai_missed_call_prompt || DEFAULT_MISSED_CALL_PROMPT;
-  const callTopicPrompt = prompts.ai_call_topic_prompt || DEFAULT_CALL_TOPIC_PROMPT;
+  const callTopicPromptRaw = prompts.ai_call_topic_prompt || DEFAULT_CALL_TOPIC_PROMPT;
+  // Inject admin-configured extra keywords into the call-topic prompt
+  const kennelKw = (prompts.kennel_keywords || []).filter(Boolean);
+  const vetKw = (prompts.veterinary_keywords || []).filter(Boolean);
+  let callTopicPrompt = callTopicPromptRaw;
+  if (kennelKw.length || vetKw.length) {
+    const extras = [];
+    if (kennelKw.length) extras.push(`Additional KENNEL keywords to treat as kennel-related: ${kennelKw.join(", ")}`);
+    if (vetKw.length) extras.push(`Additional VETERINARY keywords to treat as veterinary-related: ${vetKw.join(", ")}`);
+    callTopicPrompt = `${callTopicPromptRaw}\n${extras.join("\n")}`;
+  }
 
   const teamEntries = userList.map(u => `"${u.full_name}"`).join("\n");
 

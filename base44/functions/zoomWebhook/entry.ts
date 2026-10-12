@@ -159,6 +159,8 @@ Deno.serve(async (req) => {
       ai_caller_type_prompt: cdOpts.ai_caller_type_prompt || null,
       ai_booking_prompt: cdOpts.ai_booking_prompt || null,
       ai_call_topic_prompt: cdOpts.ai_call_topic_prompt || null,
+      kennel_keywords: cdOpts.kennel_keywords || null,
+      veterinary_keywords: cdOpts.veterinary_keywords || null,
     };
     const bookingOfferedPrompt = cdOpts.ai_booking_offered_prompt || null;
     const extraAliases = buildExtraAliases(cdOpts.name_aliases);

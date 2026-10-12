@@ -34,6 +34,8 @@ Deno.serve(async (req) => {
       ai_booking_offered_prompt: cdOpts.ai_booking_offered_prompt || null,
       ai_missed_call_prompt: cdOpts.ai_missed_call_prompt || null,
       ai_call_topic_prompt: cdOpts.ai_call_topic_prompt || null,
+      kennel_keywords: cdOpts.kennel_keywords || null,
+      veterinary_keywords: cdOpts.veterinary_keywords || null,
     };
     const extraAliases = buildExtraAliases(cdOpts.name_aliases);
 

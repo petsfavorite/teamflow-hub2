@@ -78,6 +78,20 @@
           "type": "string",
           "description": "Instructions for the AI on how to classify the call topic (kennel, veterinary, both, or neither)"
         },
+        "kennel_keywords": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Extra keywords that signal a call is kennel-related, injected into the call-topic AI prompt"
+        },
+        "veterinary_keywords": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Extra keywords that signal a call is veterinary-related, injected into the call-topic AI prompt"
+        },
         "name_aliases": {
           "type": "array",
           "items": {

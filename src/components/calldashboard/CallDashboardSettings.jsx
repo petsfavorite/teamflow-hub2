@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Save, Loader2, Sparkles, Users, MessageSquare } from "lucide-react";
+import { Plus, Trash2, Save, Loader2, Sparkles, Users, MessageSquare, RefreshCw } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useCurrentUser } from "@/components/hooks/useCurrentUser";
 
@@ -161,7 +161,11 @@ export default function CallDashboardSettings({ open, onClose, users = [] }) {
   const [bookingOfferedPrompt, setBookingOfferedPrompt] = useState("");
   const [missedCallPrompt, setMissedCallPrompt] = useState("");
   const [callTopicPrompt, setCallTopicPrompt] = useState("");
+  const [kennelKeywords, setKennelKeywords] = useState("");
+  const [vetKeywords, setVetKeywords] = useState("");
   const [nameAliases, setNameAliases] = useState([]);
+  const [reanalyzing, setReanalyzing] = useState(false);
+  const [reanalyzeProgress, setReanalyzeProgress] = useState(null);
   const { user } = useCurrentUser();
   const isAdmin = user && ["admin", "super_admin"].includes(user.role);
 
@@ -182,6 +186,8 @@ export default function CallDashboardSettings({ open, onClose, users = [] }) {
         setBookingOfferedPrompt(cdOpts.ai_booking_offered_prompt || DEFAULT_BOOKING_OFFERED_PROMPT);
         setMissedCallPrompt(cdOpts.ai_missed_call_prompt || DEFAULT_MISSED_CALL_PROMPT);
         setCallTopicPrompt(cdOpts.ai_call_topic_prompt || DEFAULT_CALL_TOPIC_PROMPT);
+        setKennelKeywords((cdOpts.kennel_keywords || []).join("\n"));
+        setVetKeywords((cdOpts.veterinary_keywords || []).join("\n"));
         setNameAliases(cdOpts.name_aliases || []);
       } else {
         setSettingsId(null);
@@ -191,13 +197,14 @@ export default function CallDashboardSettings({ open, onClose, users = [] }) {
         setBookingOfferedPrompt(DEFAULT_BOOKING_OFFERED_PROMPT);
         setMissedCallPrompt(DEFAULT_MISSED_CALL_PROMPT);
         setCallTopicPrompt(DEFAULT_CALL_TOPIC_PROMPT);
+        setKennelKeywords("");
+        setVetKeywords("");
         setNameAliases([]);
       }
     });
   }, [open]);
 
-  const handleSave = async () => {
-    setSaving(true);
+  const persistSettings = async () => {
     // Managers can only edit name aliases — preserve existing admin-only fields
     const existing = await base44.entities.AppSettings.filter({ key: "global" });
     const existingOpts = existing?.[0]?.call_dashboard_options || {};
@@ -212,6 +219,8 @@ export default function CallDashboardSettings({ open, onClose, users = [] }) {
         ai_booking_offered_prompt: isAdmin ? bookingOfferedPrompt : (existingOpts.ai_booking_offered_prompt || ""),
         ai_missed_call_prompt: isAdmin ? missedCallPrompt : (existingOpts.ai_missed_call_prompt || ""),
         ai_call_topic_prompt: isAdmin ? callTopicPrompt : (existingOpts.ai_call_topic_prompt || ""),
+        kennel_keywords: isAdmin ? kennelKeywords.split("\n").map(s => s.trim()).filter(Boolean) : (existingOpts.kennel_keywords || []),
+        veterinary_keywords: isAdmin ? vetKeywords.split("\n").map(s => s.trim()).filter(Boolean) : (existingOpts.veterinary_keywords || []),
         name_aliases: nameAliases,
       },
     };
@@ -221,8 +230,39 @@ export default function CallDashboardSettings({ open, onClose, users = [] }) {
       const rec = await base44.entities.AppSettings.create(data);
       setSettingsId(rec.id);
     }
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    await persistSettings();
     setSaving(false);
     onClose();
+  };
+
+  // Re-run AI analysis on every call with a transcript, in chunks, using the
+  // latest saved prompts + keywords. Saves settings first so new keywords apply.
+  const handleReanalyze = async () => {
+    setReanalyzing(true);
+    setReanalyzeProgress({ updated: 0, total: null, done: false });
+    await persistSettings();
+    let offset = 0;
+    let totalUpdated = 0;
+    let totalWith = null;
+    try {
+      while (true) {
+        const res = await base44.functions.invoke("rerunCallAnalysis", { offset, chunkSize: 25 });
+        const d = res?.data || res || {};
+        totalUpdated += d.updated || 0;
+        totalWith = d.totalWithTranscripts ?? totalWith;
+        setReanalyzeProgress({ updated: totalUpdated, total: totalWith, remaining: d.remaining, done: d.done, errors: d.errors });
+        if (d.done) break;
+        offset = d.nextOffset ?? offset + 25;
+        if (offset > (totalWith || 100000)) break; // safety
+      }
+    } catch (e) {
+      setReanalyzeProgress({ error: e.message || "Re-analysis failed" });
+    }
+    setReanalyzing(false);
   };
 
   const update = (field, val) => setOptions(prev => ({ ...prev, [field]: val }));
@@ -306,6 +346,46 @@ export default function CallDashboardSettings({ open, onClose, users = [] }) {
                       className="min-h-[80px] text-sm"
                     />
                     {!callTopicPrompt && <p className="text-xs text-slate-400 italic">Using default prompt</p>}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-slate-600">Kennel Keywords</Label>
+                    <p className="text-xs text-slate-500">Extra words or phrases that signal a call is kennel-related. One per line. These are added to the AI prompt on top of the defaults (boarding, play camp, baths, evaluations, etc.).</p>
+                    <Textarea
+                      placeholder={"e.g.\novernight\ndrop-off\nplay session\nkennel cough"}
+                      value={kennelKeywords}
+                      onChange={(e) => setKennelKeywords(e.target.value)}
+                      className="min-h-[70px] text-sm"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-slate-600">Veterinary Keywords</Label>
+                    <p className="text-xs text-slate-500">Extra words or phrases that signal a call is veterinary-related. One per line. Added to the AI prompt on top of the defaults (appointments, meds, refills, vaccines, surgeries, dentals, bloodwork, etc.).</p>
+                    <Textarea
+                      placeholder={"e.g.\nspay\nneuter\nrabies\nheartworm"}
+                      value={vetKeywords}
+                      onChange={(e) => setVetKeywords(e.target.value)}
+                      className="min-h-[70px] text-sm"
+                    />
+                  </div>
+
+                  <div className="space-y-2 rounded-lg border border-slate-200 p-3 bg-slate-50">
+                    <Label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                      <RefreshCw className={`w-3.5 h-3.5 ${reanalyzing ? "animate-spin" : ""}`} /> Re-analyze All Calls
+                    </Label>
+                    <p className="text-xs text-slate-500">Re-runs the AI on every call that has a transcript, using the current prompts and keywords above (saves your changes first). This is how you backfill the Call Topic on older calls.</p>
+                    <Button type="button" size="sm" onClick={handleReanalyze} disabled={reanalyzing} className="gap-2">
+                      {reanalyzing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                      {reanalyzing ? "Re-analyzing…" : "Re-analyze All Calls"}
+                    </Button>
+                    {reanalyzeProgress && !reanalyzeProgress.error && (
+                      <p className="text-xs text-slate-600">
+                        {reanalyzing ? "Processing" : "Done"} — {reanalyzeProgress.updated} call{reanalyzeProgress.updated !== 1 ? "s" : ""} updated{reanalyzeProgress.total != null ? ` of ${reanalyzeProgress.total} with transcripts` : ""}.
+                        {reanalyzeProgress.errors?.length ? ` (${reanalyzeProgress.errors.length} error${reanalyzeProgress.errors.length !== 1 ? "s" : ""})` : ""}
+                      </p>
+                    )}
+                    {reanalyzeProgress?.error && <p className="text-xs text-rose-600">{reanalyzeProgress.error}</p>}
                   </div>
                 </div>
               )}
