@@ -74,6 +74,10 @@
           "type": "string",
           "description": "Instructions for the AI on how to determine if a booking was offered for missed bookings"
         },
+        "ai_call_topic_prompt": {
+          "type": "string",
+          "description": "Instructions for the AI on how to classify the call topic (kennel, veterinary, both, or neither)"
+        },
         "name_aliases": {
           "type": "array",
           "items": {

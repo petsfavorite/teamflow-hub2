@@ -158,6 +158,7 @@ Deno.serve(async (req) => {
     const aiPrompts = {
       ai_caller_type_prompt: cdOpts.ai_caller_type_prompt || null,
       ai_booking_prompt: cdOpts.ai_booking_prompt || null,
+      ai_call_topic_prompt: cdOpts.ai_call_topic_prompt || null,
     };
     const bookingOfferedPrompt = cdOpts.ai_booking_offered_prompt || null;
     const extraAliases = buildExtraAliases(cdOpts.name_aliases);
@@ -229,6 +230,7 @@ Deno.serve(async (req) => {
       transcript,
       transcript_summary: analysis.transcript_summary || null,
       caller_type: missed_call ? "not_applicable" : (analysis.caller_type || "not_applicable"),
+      call_topic: analysis.call_topic || null,
       caller_intent: missed_call ? null : (analysis.caller_intent || null),
       bookable: missed_call ? "no" : (analysis.bookable || "unclear"),
       booking_outcome: analysis.booking_outcome || "appt_not_booked",

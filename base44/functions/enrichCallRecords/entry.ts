@@ -33,6 +33,7 @@ Deno.serve(async (req) => {
       ai_booking_prompt: cdOpts.ai_booking_prompt || null,
       ai_booking_offered_prompt: cdOpts.ai_booking_offered_prompt || null,
       ai_missed_call_prompt: cdOpts.ai_missed_call_prompt || null,
+      ai_call_topic_prompt: cdOpts.ai_call_topic_prompt || null,
     };
     const extraAliases = buildExtraAliases(cdOpts.name_aliases);
 
@@ -80,6 +81,7 @@ Deno.serve(async (req) => {
       try {
         let team_member = null;
         let caller_type = "not_applicable";
+        let call_topic = null;
         let booking_outcome = "appt_not_booked";
         let caller_name = record.caller_name || null;
         let caller_intent = null;
@@ -96,6 +98,7 @@ Deno.serve(async (req) => {
           team_member = strOrNull(analysis.team_member);
           if (!caller_name) caller_name = strOrNull(analysis.caller_name);
           caller_type = analysis.caller_type || "not_applicable";
+          call_topic = analysis.call_topic || null;
           caller_intent = strOrNull(analysis.caller_intent);
           bookable = analysis.bookable || "unclear";
           booking_outcome = analysis.booking_outcome || "appt_not_booked";
@@ -129,6 +132,7 @@ Deno.serve(async (req) => {
           team_member,
           caller_name,
           caller_type,
+          call_topic,
           caller_intent,
           bookable,
           booking_outcome,

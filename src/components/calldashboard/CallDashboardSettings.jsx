@@ -48,6 +48,13 @@ const DEFAULT_MISSED_CALL_PROMPT = `Determine if this INBOUND call was a "missed
 - false: a staff member answered and had a conversation (even briefly)
 Outbound calls are NEVER missed calls.`;
 
+const DEFAULT_CALL_TOPIC_PROMPT = `Classify which side of the business this call relates to:
+- "kennel": boarding, play camp / daycare, group play, behavioral evaluations, baths, enrichment, kennel reservations or check-in/check-out
+- "veterinary": appointments, medication, prescription refills, vaccines, surgeries, dentals, bloodwork, lab work, exams, euthanasia
+- "both": the call clearly covers kennel AND veterinary services in the same conversation
+- "neither": not a client service call — solicitor / marketer (e.g. Google Ads), vendor, wrong number, personal call for staff, donation request, school drive, survey, etc.
+If the call mentions a specific kennel service AND a specific veterinary service, use "both". When in doubt, prefer the side with the most substantive discussion.`;
+
 function OptionList({ title, items, onChange }) {
   const addItem = () => onChange([...items, { value: "", label: "" }]);
   const removeItem = (i) => onChange(items.filter((_, idx) => idx !== i));
@@ -153,6 +160,7 @@ export default function CallDashboardSettings({ open, onClose, users = [] }) {
   const [bookingPrompt, setBookingPrompt] = useState("");
   const [bookingOfferedPrompt, setBookingOfferedPrompt] = useState("");
   const [missedCallPrompt, setMissedCallPrompt] = useState("");
+  const [callTopicPrompt, setCallTopicPrompt] = useState("");
   const [nameAliases, setNameAliases] = useState([]);
   const { user } = useCurrentUser();
   const isAdmin = user && ["admin", "super_admin"].includes(user.role);
@@ -173,6 +181,7 @@ export default function CallDashboardSettings({ open, onClose, users = [] }) {
         setBookingPrompt(cdOpts.ai_booking_prompt || DEFAULT_BOOKING_PROMPT);
         setBookingOfferedPrompt(cdOpts.ai_booking_offered_prompt || DEFAULT_BOOKING_OFFERED_PROMPT);
         setMissedCallPrompt(cdOpts.ai_missed_call_prompt || DEFAULT_MISSED_CALL_PROMPT);
+        setCallTopicPrompt(cdOpts.ai_call_topic_prompt || DEFAULT_CALL_TOPIC_PROMPT);
         setNameAliases(cdOpts.name_aliases || []);
       } else {
         setSettingsId(null);
@@ -181,6 +190,7 @@ export default function CallDashboardSettings({ open, onClose, users = [] }) {
         setBookingPrompt(DEFAULT_BOOKING_PROMPT);
         setBookingOfferedPrompt(DEFAULT_BOOKING_OFFERED_PROMPT);
         setMissedCallPrompt(DEFAULT_MISSED_CALL_PROMPT);
+        setCallTopicPrompt(DEFAULT_CALL_TOPIC_PROMPT);
         setNameAliases([]);
       }
     });
@@ -201,6 +211,7 @@ export default function CallDashboardSettings({ open, onClose, users = [] }) {
         ai_booking_prompt: isAdmin ? bookingPrompt : (existingOpts.ai_booking_prompt || ""),
         ai_booking_offered_prompt: isAdmin ? bookingOfferedPrompt : (existingOpts.ai_booking_offered_prompt || ""),
         ai_missed_call_prompt: isAdmin ? missedCallPrompt : (existingOpts.ai_missed_call_prompt || ""),
+        ai_call_topic_prompt: isAdmin ? callTopicPrompt : (existingOpts.ai_call_topic_prompt || ""),
         name_aliases: nameAliases,
       },
     };
@@ -283,6 +294,18 @@ export default function CallDashboardSettings({ open, onClose, users = [] }) {
                       className="min-h-[80px] text-sm"
                     />
                     {!missedCallPrompt && <p className="text-xs text-slate-400 italic">Using default prompt</p>}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-slate-600">Call Topic (Kennel / Veterinary)</Label>
+                    <p className="text-xs text-slate-500">How the AI decides whether a call relates to the kennel (boarding, play camp, baths), veterinary (appointments, meds, vaccines, surgeries), both, or neither (solicitors, donations, wrong numbers).</p>
+                    <Textarea
+                      placeholder={DEFAULT_CALL_TOPIC_PROMPT}
+                      value={callTopicPrompt}
+                      onChange={(e) => setCallTopicPrompt(e.target.value)}
+                      className="min-h-[80px] text-sm"
+                    />
+                    {!callTopicPrompt && <p className="text-xs text-slate-400 italic">Using default prompt</p>}
                   </div>
                 </div>
               )}

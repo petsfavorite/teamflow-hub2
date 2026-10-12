@@ -52,6 +52,16 @@ export default function DashboardFilters({ filters, onChange, staffList, nameMap
           <SelectItem value="not_missed">Not Missed</SelectItem>
         </SelectContent>
       </Select>
+      <Select value={filters.callTopic} onValueChange={(v) => update("callTopic", v)}>
+        <SelectTrigger className="w-[160px] border-slate-200"><SelectValue placeholder="Topic" /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Topics</SelectItem>
+          <SelectItem value="kennel">Kennel</SelectItem>
+          <SelectItem value="veterinary">Veterinary</SelectItem>
+          <SelectItem value="both">Kennel + Vet</SelectItem>
+          <SelectItem value="neither">Neither</SelectItem>
+        </SelectContent>
+      </Select>
     </div>
   );
 }

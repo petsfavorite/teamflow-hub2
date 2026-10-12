@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PhoneIncoming, PhoneOutgoing, Clock, User, FileText, MessageSquare, CalendarCheck, ChevronDown, Headphones, CheckCircle2, XCircle } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import CallerTypeBadge from "./CallerTypeBadge";
+import CallTopicBadge, { TOPIC_CONFIG } from "./CallTopicBadge";
 import { base44 } from "@/api/base44Client";
 import { cn } from "@/lib/utils";
 import { isSafeUrl } from "@/lib/sanitize";
@@ -30,6 +31,7 @@ export default function CallDetailPanel({ call, open, onClose, onUpdate, isAdmin
   const [teamMember, setTeamMember] = useState(call?.team_member || "");
   const [callerType, setCallerType] = useState(call?.caller_type || "");
   const [bookingOutcome, setBookingOutcome] = useState(call?.booking_outcome || "");
+  const [callTopic, setCallTopic] = useState(call?.call_topic || "");
   const [missedCall, setMissedCall] = useState(call?.missed_call || false);
   const [clinicClosed, setClinicClosed] = useState(call?.clinic_closed || false);
   const [saving, setSaving] = useState(false);
@@ -49,6 +51,7 @@ export default function CallDetailPanel({ call, open, onClose, onUpdate, isAdmin
       setTeamMember(call.team_member || "");
       setCallerType(call.caller_type || "");
       setBookingOutcome(call.booking_outcome || "");
+      setCallTopic(call.call_topic || "");
       setMissedCall(call.missed_call || false);
       setClinicClosed(call.clinic_closed || false);
     }
@@ -148,6 +151,23 @@ export default function CallDetailPanel({ call, open, onClose, onUpdate, isAdmin
                 {callerType === "returning_client" && <Badge className="bg-emerald-100 text-emerald-700">Returning Client</Badge>}
                 {callerType === "not_applicable" && <Badge variant="outline">Not a Client</Badge>}
               </div>
+            )}
+          </div>}
+
+          {!missedCall && <div className="space-y-1.5">
+            <p className="text-xs font-medium uppercase tracking-wider text-slate-400">Call Topic</p>
+            {isAdmin ? (
+              <Select value={callTopic} onValueChange={(value) => { setCallTopic(value); handleUpdate({ call_topic: value || null }); }}>
+                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="kennel">Kennel</SelectItem>
+                  <SelectItem value="veterinary">Veterinary</SelectItem>
+                  <SelectItem value="both">Kennel + Vet</SelectItem>
+                  <SelectItem value="neither">Neither</SelectItem>
+                </SelectContent>
+              </Select>
+            ) : (
+              <div>{callTopic ? <CallTopicBadge topic={callTopic} /> : <span className="text-sm text-slate-500">Not set</span>}</div>
             )}
           </div>}
 

@@ -55,6 +55,16 @@
         "not_applicable"
       ]
     },
+    "call_topic": {
+      "type": "string",
+      "enum": [
+        "kennel",
+        "veterinary",
+        "both",
+        "neither"
+      ],
+      "description": "Which side of the business the call related to: kennel (boarding/play camp/baths/evaluations), veterinary (appointments/medication/refills/vaccines/surgeries/dentals/bloodwork), both, or neither (solicitors, donations, wrong numbers, etc.)"
+    },
     "caller_intent": {
       "type": "string"
     },

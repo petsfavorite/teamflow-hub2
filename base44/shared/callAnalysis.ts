@@ -22,6 +22,13 @@ export const DEFAULT_MISSED_CALL_PROMPT = `Determine if this INBOUND call was a 
 - false: a staff member answered and had a conversation (even briefly)
 Outbound calls are NEVER missed calls.`;
 
+export const DEFAULT_CALL_TOPIC_PROMPT = `Classify which side of the business this call relates to:
+- "kennel": boarding, play camp / daycare, group play, behavioral evaluations, baths, enrichment, kennel reservations or check-in/check-out
+- "veterinary": appointments, medication, prescription refills, vaccines, surgeries, dentals, bloodwork, lab work, exams, euthanasia
+- "both": the call clearly covers kennel AND veterinary services in the same conversation
+- "neither": not a client service call — solicitor / marketer (e.g. Google Ads), vendor, wrong number, personal call for staff, donation request, school drive, survey, etc.
+If the call mentions a specific kennel service AND a specific veterinary service, use "both". When in doubt, prefer the side with the most substantive discussion.`;
+
 // Convert name_aliases from AppSettings [{alias, full_name}] into the
 // {lowercase_alias: lowercase_first_name} format used by fuzzyMatchUser.
 export function buildExtraAliases(nameAliases) {
@@ -45,6 +52,7 @@ export async function analyzeCall(transcript, callDirection, userList, openai, p
   const bookingPrompt = prompts.ai_booking_prompt || DEFAULT_BOOKING_PROMPT;
   const bookingOfferedPrompt = prompts.ai_booking_offered_prompt || DEFAULT_BOOKING_OFFERED_PROMPT;
   const missedCallPrompt = prompts.ai_missed_call_prompt || DEFAULT_MISSED_CALL_PROMPT;
+  const callTopicPrompt = prompts.ai_call_topic_prompt || DEFAULT_CALL_TOPIC_PROMPT;
 
   const teamEntries = userList.map(u => `"${u.full_name}"`).join("\n");
 
@@ -64,6 +72,8 @@ Return a JSON object with these fields:
 - caller_phone: string or null
 - caller_type: "potential_client" | "returning_client" | "not_applicable"
   ${callerTypePrompt}
+- call_topic: "kennel" | "veterinary" | "both" | "neither"
+  ${callTopicPrompt}
 - caller_intent: string (1-sentence summary of why they called)
 - bookable: "yes" | "no" | "unclear"
 - booking_outcome: "appt_booked" | "appt_not_booked" | "appt_not_needed"

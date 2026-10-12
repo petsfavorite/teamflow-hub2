@@ -1,6 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { PhoneIncoming, PhoneOutgoing, Clock, User, ChevronRight, PhoneMissed, Headphones } from "lucide-react";
 import CallerTypeBadge from "./CallerTypeBadge";
+import CallTopicBadge from "./CallTopicBadge";
 import BookingStatus from "./BookingStatus";
 import { cn } from "@/lib/utils";
 import { getAppTimezone } from '@/lib/timezone';
@@ -69,6 +70,7 @@ export default function CallCard({ call, onClick, nameMap = {} }) {
               {call.missed_call ? null : call.call_direction === "outbound" && (call.has_transcript === false || (call.has_transcript == null && (!call.transcript || !call.transcript.trim() || call.transcript === "No transcript"))) ? null : (
                 <>
                   <CallerTypeBadge type={call.caller_type} />
+                  <CallTopicBadge topic={call.call_topic} />
                   <BookingStatus bookable={call.bookable} wasBooked={call.was_booked} bookedDate={call.booked_date} bookingOutcome={call.booking_outcome} bookingOffered={call.booking_offered} callerType={call.caller_type} />
                 </>
               )}

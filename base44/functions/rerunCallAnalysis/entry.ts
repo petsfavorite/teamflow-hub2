@@ -24,6 +24,7 @@ Deno.serve(async (req) => {
       ai_booking_prompt: cdOpts.ai_booking_prompt || null,
       ai_booking_offered_prompt: cdOpts.ai_booking_offered_prompt || null,
       ai_missed_call_prompt: cdOpts.ai_missed_call_prompt || null,
+      ai_call_topic_prompt: cdOpts.ai_call_topic_prompt || null,
     };
     const extraAliases = buildExtraAliases(cdOpts.name_aliases);
 
@@ -77,12 +78,14 @@ Deno.serve(async (req) => {
 
         const caller_name = analysis.caller_name || record.caller_name || null;
         const caller_type = analysis.caller_type || "not_applicable";
+        const call_topic = analysis.call_topic || null;
         const booking_outcome = analysis.booking_outcome || "appt_not_booked";
 
         await base44.asServiceRole.entities.CallRecord.update(record.id, {
           team_member,
           caller_name,
           caller_type,
+          call_topic,
           caller_intent: analysis.caller_intent || null,
           bookable: analysis.bookable || "unclear",
           booking_outcome,
