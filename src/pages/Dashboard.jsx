@@ -144,6 +144,8 @@ export default function Dashboard() {
     }
   });
 
+  const myTeamIds = teams.filter((t) => t.member_emails?.includes(user?.email)).map((t) => t.id);
+
   const verificationDueSops = allSOPs.filter((sop) => {
     if (!sop.verification_due_date || !isLive(sop)) return false;
     const daysLeft = daysFromToday(sop.verification_due_date);
@@ -191,7 +193,6 @@ export default function Dashboard() {
   const today = todayStr();
   const now = new Date();
   const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
-  const myTeamIds = teams.filter((t) => t.member_emails?.includes(user?.email)).map((t) => t.id);
 
   // For regular users: tasks/checklists due in ~1 hour (yellow)
   const urgentTasks = tasks.filter((t) => {
