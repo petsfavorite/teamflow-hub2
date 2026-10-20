@@ -93,6 +93,19 @@ export const AuthProvider = ({ children }) => {
       setIsLoadingAuth(true);
       let currentUser = await base44.auth.me();
 
+      // No user means the session could not be verified — send them to sign in
+      // rather than leaving them on an empty, unusable app.
+      if (!currentUser) {
+        setUser(null);
+        setIsAuthenticated(false);
+        setAuthError({
+          type: 'auth_required',
+          message: 'Authentication required'
+        });
+        setIsLoadingAuth(false);
+        return;
+      }
+
       // Block archived users from accessing the app
       if (currentUser.is_archived) {
         setUser(null);
@@ -145,13 +158,12 @@ export const AuthProvider = ({ children }) => {
       setIsLoadingAuth(false);
       setIsAuthenticated(false);
       
-      // If user auth fails, it might be an expired token
-      if (error.status === 401 || error.status === 403) {
-        setAuthError({
-          type: 'auth_required',
-          message: 'Authentication required'
-        });
-      }
+      // A failed check means the session cannot be confirmed. Send them to sign in
+      // rather than leaving them on an empty app with no explanation.
+      setAuthError({
+        type: 'auth_required',
+        message: 'Authentication required'
+      });
     }
   };
 
