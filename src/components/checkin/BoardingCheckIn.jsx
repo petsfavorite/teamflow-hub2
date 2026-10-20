@@ -8,6 +8,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Trash2 } from "lucide-react";
 import moment from 'moment';
+import { base44 } from '@/api/base44Client';
+import { getCbdChews, formatChews, CBD_CHEW_GUIDE } from '@/lib/cbdDosing';
 
 export default function BoardingCheckIn({ pet, visit, onConfirm, onCancel, editMode }) {
      const existingTasks = visit?.scheduled_tasks || [];
@@ -26,7 +28,9 @@ export default function BoardingCheckIn({ pet, visit, onConfirm, onCancel, editM
      const [addFeedingEnrichment, setAddFeedingEnrichment] = useState(hasTaskType('Give Feeding Enrichment Toy'));
      const [addDentalChew, setAddDentalChew] = useState(hasTaskType('Give Daily Dental Chew'));
      const [addBath, setAddBath] = useState(hasTaskType('Schedule Bath'));
-    const inferMealTimesFromFrequency = (freq) => {
+     const [weight, setWeight] = useState(pet?.weight != null ? String(pet.weight) : '');
+     const cbdChewsLabel = formatChews(getCbdChews(pet?.species, weight));
+     const inferMealTimesFromFrequency = (freq) => {
         const f = (freq || '').toLowerCase();
         const isTwice = f.includes('twice') || f.includes('bid') || (f.includes('am') && f.includes('pm'));
         const isPmOnly = !isTwice && (f.includes('pm') || f.includes('dinner') || f.includes('evening'));
@@ -91,11 +95,16 @@ export default function BoardingCheckIn({ pet, visit, onConfirm, onCancel, editM
 
 
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!checkoutDate) {
         alert('Please select a checkout date');
+        return;
+    }
+
+    if ((addCBDChews || addCBDStorming) && !cbdChewsLabel) {
+        alert("Please enter the pet's weight so the CBD chew dose can be calculated");
         return;
     }
 
@@ -301,7 +310,7 @@ export default function BoardingCheckIn({ pet, visit, onConfirm, onCancel, editM
                     completed: false,
                     completed_at: null,
                     medication_name: 'CBD Chews',
-                    notes: `With ${mealName}`
+                    notes: `Give ${cbdChewsLabel} with ${mealName}`
                 });
                 d.add(1, 'day');
             }
@@ -433,7 +442,8 @@ export default function BoardingCheckIn({ pet, visit, onConfirm, onCancel, editM
                 date: d.format('YYYY-MM-DD'),
                 is_template: true,
                 completed: false,
-                completed_at: null
+                completed_at: null,
+                notes: `Give ${cbdChewsLabel} of CBD if needed for storms`
             });
             d.add(1, 'day');
         }
@@ -489,7 +499,7 @@ export default function BoardingCheckIn({ pet, visit, onConfirm, onCancel, editM
         }
     }
         
-    onConfirm({
+    await onConfirm({
         visit_type: 'boarding',
         scheduled_checkout_date: checkoutDate,
         feeding_frequency: feedingFrequency,
@@ -498,6 +508,12 @@ export default function BoardingCheckIn({ pet, visit, onConfirm, onCancel, editM
         what_was_brought: whatWasBrought,
         visit_medications: visitMedications
     });
+
+    // Keep the weight on the pet's profile so future visits reuse it.
+    const weightLbs = Number(weight);
+    if (pet?.id && weightLbs > 0 && weightLbs !== Number(pet.weight)) {
+        await base44.entities.Pet.update(pet.id, { weight: weightLbs });
+    }
     };
 
     return (
@@ -609,6 +625,31 @@ export default function BoardingCheckIn({ pet, visit, onConfirm, onCancel, editM
                                  Add CBD if Storming
                              </Label>
                          </div>
+                         {(addCBDChews || addCBDStorming) && (
+                             <div className="p-3 bg-[#82bb32]/10 rounded-xl space-y-2">
+                                 <div className="flex items-center gap-3 flex-wrap">
+                                     <Label htmlFor="petweight" className="text-xs font-medium">
+                                         Weight (lbs){pet.species === 'Dog' ? ' *' : ''}
+                                     </Label>
+                                     <Input
+                                         id="petweight"
+                                         type="number"
+                                         min="0"
+                                         step="0.1"
+                                         value={weight}
+                                         onChange={(e) => setWeight(e.target.value)}
+                                         placeholder="e.g. 45"
+                                         className="rounded-xl h-8 w-28 text-sm"
+                                     />
+                                     {cbdChewsLabel && (
+                                         <span className="text-xs font-semibold text-stone-700">
+                                             Dose: {cbdChewsLabel}
+                                         </span>
+                                     )}
+                                 </div>
+                                 <p className="text-[11px] text-stone-500">{CBD_CHEW_GUIDE}</p>
+                             </div>
+                         )}
                          <div className="flex items-center space-x-2">
                              <Checkbox 
                                  id="probioticDiarrhea" 
@@ -749,9 +790,9 @@ export default function BoardingCheckIn({ pet, visit, onConfirm, onCancel, editM
                             <li>• Clean kennel (daily, no set time — except check-in and checkout day)</li>
                             <li>• Feeding: {feedingFrequency === 'Just Breakfast' && 'Breakfast at 9 AM'} {feedingFrequency === 'Just Dinner' && 'Dinner at 5:30 PM'} {feedingFrequency === 'Two Meals' && 'Breakfast at 9 AM & Dinner at 5:30 PM'} {feedingFrequency === 'Three Meals' && 'Breakfast at 9 AM, Lunch at 12 PM & Dinner at 5:30 PM'}</li>
                             {pet.medications?.length > 0 && <li>• Medications as scheduled</li>}
-                            {addCBDChews && <li>• Twice Daily CBD (with each meal)</li>}
+                            {addCBDChews && <li>• {cbdChewsLabel ? `Give ${cbdChewsLabel} of CBD with each meal` : 'CBD with each meal'} (twice daily)</li>}
                             {addProbiotic && <li>• Daily Probiotic (with each meal)</li>}
-                            {addCBDStorming && <li>• CBD if needed for storms (daily, no set time)</li>}
+                            {addCBDStorming && <li>• {cbdChewsLabel ? `Give ${cbdChewsLabel} of CBD if needed for storms` : 'CBD if needed for storms'} (daily, no set time)</li>}
                             {addProbioticDiarrhea && <li>• Probiotic if Diarrhea Seen (daily, no set time)</li>}
                             {addFeedingEnrichment && <li>• Give Feeding Enrichment Toy (with dinner, 5:30 PM daily)</li>}
                             {addDentalChew && <li>• Give Daily Dental Chew (with dinner, 5:30 PM daily)</li>}

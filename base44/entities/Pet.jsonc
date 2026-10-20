@@ -34,6 +34,10 @@
       "format": "date",
       "description": "Pet's date of birth"
     },
+    "weight": {
+      "type": "number",
+      "description": "Weight in pounds \u2014 used to calculate the CBD chew dose"
+    },
     "group_play": {
       "type": "string",
       "enum": [

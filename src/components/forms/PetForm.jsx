@@ -266,6 +266,19 @@ export default function PetForm({ pet, onSave, onCancel, onDelete, isLoading }) 
                                     />
                                 </div>
                                 <div className="space-y-2">
+                                    <Label>Weight (lbs)</Label>
+                                    <Input
+                                        type="number"
+                                        min="0"
+                                        step="0.1"
+                                        value={formData.weight ?? ''}
+                                        onChange={(e) => handleChange('weight', e.target.value === '' ? null : Number(e.target.value))}
+                                        placeholder="e.g., 45"
+                                        className="rounded-xl"
+                                    />
+                                    <p className="text-xs text-stone-500">Used to calculate the CBD chew dose at check-in.</p>
+                                </div>
+                                <div className="space-y-2">
                                      <Label>Group Play</Label>
                                     <Select value={formData.group_play} onValueChange={(v) => handleChange('group_play', v)}>
                                         <SelectTrigger className="rounded-xl">
