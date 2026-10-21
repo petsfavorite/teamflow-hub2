@@ -21,7 +21,7 @@ export function getStaySummary(pet, visit) {
     const perDose = chewValue(getCbdChews(pet?.species, pet?.weight));
     const cbdChews = perDose ? round2(cbdDoses * perDose) : null;
     const probioticDoses = done.filter(isProbioticTask).length;
-    const bathDone = done.some((t) => t.type === 'Schedule Bath');
+    const bathDone = done.some((t) => t.type === 'Schedule Bath' || t.type === 'Bath');
 
     const rows = [{ label: 'Nights of Boarding', value: String(nights) }];
     if (cbdDoses > 0) {
