@@ -23,6 +23,14 @@ export default async function(req: Request): Promise<Response> {
     const creatorName = type === 'incident' ? record.reported_by_name : record.requested_by_name;
     const assignedEmails: string[] = record.assigned_to_emails || [];
     const title = record.title;
+    // Only managers+ or people tied to this record (creator / assignee) may trigger its emails.
+    const isStaffLead = ['manager', 'admin', 'super_admin'].includes(user.role);
+    const isInvolved = creatorEmail === user.email
+      || assignedEmails.includes(user.email)
+      || record.assigned_to === user.email;
+    if (!isStaffLead && !isInvolved) {
+      return Response.json({ error: 'Forbidden' }, { status: 403 });
+    }
     const label = type === 'incident' ? 'incident report' : 'maintenance request';
     const actorName = user.full_name || user.email;
 

@@ -62,14 +62,15 @@ export default function UserManagement() {
 
   const deleteUserMutation = useMutation({
     mutationFn: async ({ u, reassignToEmail }) => {
-      // Reassign open items to the chosen person (or auto-pick if none chosen) before deleting
+      // The server reassigns open items to the chosen person (or auto-picks one) and then deletes the
+      // user, enforcing the role hierarchy
       await base44.functions.invoke('reassignOnDelete', {
         deleted_user_email: u.email,
         deleted_user_role: u.role || 'user',
         team_ids: u.team_ids || [],
         reassign_to_email: reassignToEmail || null,
+        delete_user: true,
       });
-      return base44.entities.User.delete(u.id);
     },
     onSuccess: () => {
       toast.success('User deleted and items reassigned');
@@ -684,7 +685,7 @@ export default function UserManagement() {
               </div>
             )}
 
-            {(isSuperAdmin || isAdmin || isManager) && teams.length > 0 && (
+            {(isSuperAdmin || isAdmin || (isManager && (editingUser?.role === 'user' || !editingUser?.role))) && teams.length > 0 && (
               <div className="space-y-2">
                 <Label>Teams</Label>
                 <div className="space-y-2 max-h-48 overflow-y-auto">

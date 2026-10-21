@@ -7,7 +7,7 @@ Deno.serve(async (req) => {
     return Response.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const { deleted_user_email, team_ids, reassign_to_email, preview } = await req.json();
+  const { deleted_user_email, team_ids, reassign_to_email, preview, delete_user } = await req.json();
 
   const displayName = (u: any) => `${u?.first_name || ''} ${u?.last_name || ''}`.trim() || u?.full_name || u?.email || '';
 
@@ -22,6 +22,17 @@ Deno.serve(async (req) => {
   }
   if (deleted_user_role === 'admin' && caller.role === 'admin') {
     return Response.json({ error: 'Admins cannot remove other admins' }, { status: 403 });
+  }
+  if (delete_user) {
+    if (!target) {
+      return Response.json({ error: 'User not found' }, { status: 404 });
+    }
+    if (target.id === caller.id) {
+      return Response.json({ error: 'You cannot delete your own account' }, { status: 400 });
+    }
+    if (deleted_user_role === 'super_admin') {
+      return Response.json({ error: 'Super admins cannot be deleted' }, { status: 403 });
+    }
   }
 
   // Candidate assignees (admins/managers or same-team managers)
@@ -101,7 +112,8 @@ Deno.serve(async (req) => {
   }
 
   if (!primary) {
-    return Response.json({ reassigned: 0, message: 'No suitable assignees found; user removed from teams.' });
+    if (delete_user) await base44.asServiceRole.entities.User.delete(target.id);
+    return Response.json({ reassigned: 0, deleted: !!delete_user, message: 'No suitable assignees found; user removed from teams.' });
   }
 
   const deletedName = displayName(target);
@@ -179,8 +191,11 @@ Deno.serve(async (req) => {
     reassigned++;
   }
 
+  if (delete_user) await base44.asServiceRole.entities.User.delete(target.id);
+
   return Response.json({
     reassigned,
+    deleted: !!delete_user,
     assigned_to: primary.email,
     message: `Reassigned ${reassigned} items to ${primary.full_name || primary.email}`
   });
