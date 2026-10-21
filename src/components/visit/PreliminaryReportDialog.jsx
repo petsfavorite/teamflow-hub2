@@ -3,12 +3,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FileText } from "lucide-react";
 import moment from "moment";
+import { getStaySummary } from "@/lib/visitSummary";
 
 export default function PreliminaryReportDialog({ pet, visit, open, onClose }) {
     if (!pet || !visit) return null;
 
     const duration = moment().diff(moment(visit.check_in_time), 'hours', true);
     const completedTasks = visit.scheduled_tasks?.filter(t => t.completed) || [];
+    const staySummary = getStaySummary(pet, visit);
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
@@ -22,6 +24,21 @@ export default function PreliminaryReportDialog({ pet, visit, open, onClose }) {
 
                 <ScrollArea className="flex-1 overflow-y-auto pr-2">
                     <div className="space-y-5 py-2">
+                        {/* Stay Summary — very top of the boarding report */}
+                        {visit.visit_type === 'boarding' && (
+                            <div className="bg-[#82bb32]/10 border border-[#82bb32]/30 rounded-xl p-4">
+                                <h3 className="font-semibold text-stone-700 mb-3 text-sm">Stay Summary</h3>
+                                <div className="grid grid-cols-2 gap-2 text-sm">
+                                    {staySummary.rows.map((row) => (
+                                        <div key={row.label}>
+                                            <span className="text-stone-500">{row.label}:</span>{' '}
+                                            <strong>{row.value}</strong>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                         {/* Visit Info */}
                         <div className="bg-stone-50 rounded-xl p-4">
                             <h3 className="font-semibold text-stone-700 mb-3 text-sm">Visit Details</h3>

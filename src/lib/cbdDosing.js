@@ -24,6 +24,16 @@ export function getCbdChews(species, weight) {
     return CBD_CHEW_RANGES.find(r => lbs <= r.maxWeight)?.chews ?? null;
 }
 
+// The fraction strings above, as numbers, so doses can be totalled.
+const CHEW_VALUES = { '1/4': 0.25, '1/2': 0.5, '1': 1, '2': 2, '3': 3, '4': 4 };
+
+/**
+ * Numeric chews per dose for a dose string, or null if it can't be totalled.
+ */
+export function chewValue(chews) {
+    return chews in CHEW_VALUES ? CHEW_VALUES[chews] : null;
+}
+
 /**
  * "1/4 chew", "1 chew", "2 chews"
  */

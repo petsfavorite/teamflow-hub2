@@ -1,5 +1,6 @@
 import { jsPDF } from 'jspdf';
 import moment from 'moment';
+import { getStaySummary } from '@/lib/visitSummary';
 
 // Builds the visit report as real PDF text (not a screenshot), so long visits
 // paginate cleanly, use little memory, and the text stays searchable.
@@ -72,6 +73,25 @@ export function buildVisitReportPdf(pet, visit) {
         y += 5;
     };
 
+    // Shaded block used for the headline facts at the top of a boarding report.
+    const summaryBox = (title, lines) => {
+        const lineH = 4.6;
+        const boxH = 12 + lines.length * lineH;
+        ensureSpace(boxH + 6);
+        pdf.setFillColor(250, 250, 249);
+        pdf.rect(MARGIN, y, contentW, boxH, 'F');
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(9);
+        pdf.setTextColor(120, 113, 108);
+        pdf.text(clean(title.toUpperCase()), MARGIN + 4, y + 6);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(10.5);
+        pdf.setTextColor(40, 40, 40);
+        let ty = y + 12.5;
+        lines.forEach(line => { pdf.text(clean(line), MARGIN + 4, ty); ty += lineH; });
+        y += boxH + 7;
+    };
+
     const checkIn = moment(visit.check_in_time);
     const checkOut = moment();
     const hours = checkOut.diff(checkIn, 'hours', true);
@@ -82,6 +102,11 @@ export function buildVisitReportPdf(pet, visit) {
     pdf.setLineWidth(0.6);
     pdf.line(MARGIN, y, MARGIN + contentW, y);
     y += 6;
+
+    // Stay Summary sits at the very top of a boarding report.
+    if (visit.visit_type === 'boarding') {
+        summaryBox('Stay Summary', getStaySummary(pet, visit).rows.map(r => `${r.label}: ${r.value}`));
+    }
 
     text(pet.name, { size: 15, bold: true, gap: 0.5 });
     text([pet.breed, pet.gender].filter(Boolean).join(' - '), { size: 10, color: [87, 83, 78], gap: 0.5 });
