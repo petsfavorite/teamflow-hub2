@@ -56,9 +56,13 @@ export default function CallDashboard() {
     };
   }, [syncInfo]);
 
+  // Managers can't list app users directly, so go through the staff list function.
   const { data: users = [] } = useQuery({
     queryKey: ["allUsers"],
-    queryFn: () => base44.entities.User.list(),
+    queryFn: async () => {
+      const res = await base44.functions.invoke("listUsers", {});
+      return res.data?.users || [];
+    },
   });
 
   const staffList = useMemo(() => [...new Set(calls.map(c => c.team_member).filter(Boolean))].sort(), [calls]);
