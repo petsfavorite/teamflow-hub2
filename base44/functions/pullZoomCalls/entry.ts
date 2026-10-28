@@ -12,7 +12,7 @@ import { zoomCallFacts, zoomMissedVerdict } from '../../shared/zoomMissed.ts';
 // different ID format). Each run looks back 3 days, so an outage heals itself.
 
 const LOOKBACK_DAYS = 3;
-const MIN_INBOUND_SECONDS = 10;  // an incoming caller on the line under 10s counts for nothing
+const MIN_INBOUND_SECONDS = 30;  // an incoming caller on the line under 30s counts for nothing
 const MIN_DURATION_SECONDS = 30; // outbound floor
 const MIN_AGE_MINUTES = 15;      // give the sheet path / Zoom transcript a head start
 const MAX_NEW_PER_RUN = 25;      // keep each run inside the function time limit
@@ -94,11 +94,12 @@ function classify(log) {
   };
 }
 
+// Open hours: Mon–Fri 7 AM–7 PM, Sat/Sun 8 AM–6 PM (Eastern).
 function isBusinessHoursET() {
   const et = new Date().toLocaleString("en-US", { timeZone: "America/New_York", weekday: "short", hour: "numeric", hour12: false });
-  const isWeekday = !/^(Sat|Sun)/.test(et);
+  const isWeekend = /^(Sat|Sun)/.test(et);
   const hour = parseInt(et.replace(/\D/g, ""), 10);
-  return isWeekday && hour >= 9 && hour < 17;
+  return isWeekend ? (hour >= 8 && hour < 18) : (hour >= 7 && hour < 19);
 }
 
 Deno.serve(async (req) => {
@@ -178,7 +179,7 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // An incoming call where the caller was on the line for less than 10 seconds
+      // An incoming call where the caller was on the line for less than 30 seconds
       // counts for nothing anywhere in the app (answered or not), so it is never
       // imported. Zoom reports the caller's time on the line as talk_time.
       const talkSeconds = Number(log.talk_time ?? duration);

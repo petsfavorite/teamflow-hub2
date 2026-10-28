@@ -1,6 +1,15 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { aiNotesIndicatesMissed } from '../../shared/staffMatching.ts';
+import { isMissedCall } from '../../shared/zoomMissed.ts';
 
+// Re-applies the app's one missed-call definition to every stored call record.
+//
+// An inbound call is missed when no team member spoke with the caller:
+//   1. nobody answered, or
+//   2. only the call queue / auto receptionist answered, or
+//   3. the caller left a voicemail.
+//
+// Outbound calls are never missed. Run this after the definition changes.
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -9,40 +18,44 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const all = await base44.asServiceRole.entities.CallRecord.list('-call_date', 5000);
-    // New logic: missed call = inbound where no team member spoke
-    // Case 1: should be missed but isn't (inbound, no team_member, not flagged or has stale fields)
-    const shouldBeMissed = all.filter(c =>
-      c.call_direction === 'inbound' &&
-      (!c.team_member || aiNotesIndicatesMissed(c.ai_notes)) &&
-      (
-        !c.missed_call ||
-        c.caller_intent !== null ||
-        c.caller_type !== 'not_applicable' ||
-        c.bookable !== 'no'
-      )
-    );
-    // Case 2: should NOT be missed but is (inbound, has team_member, flagged as missed)
-    const shouldNotBeMissed = all.filter(c =>
-      c.call_direction === 'inbound' &&
-      c.team_member &&
-      c.missed_call &&
-      !aiNotesIndicatesMissed(c.ai_notes)
-    );
+    // Whole history is kept for 90 days; walk it day by day so no read cap drops records.
+    const all = [];
+    const dayMs = 86400000;
+    const today = new Date();
+    for (let d = 0; d <= 91; d++) {
+      const dayStart = new Date(today.getTime() - d * dayMs);
+      const dayEnd = new Date(dayStart.getTime() + dayMs);
+      const batch = await base44.asServiceRole.entities.CallRecord.filter(
+        { call_date: { $gte: dayStart.toISOString(), $lt: dayEnd.toISOString() } },
+        '-call_date', 1000
+      );
+      all.push(...batch);
+    }
+
+    const changes = [];
+    for (const c of all) {
+      const missed = isMissedCall({
+        callDirection: c.call_direction,
+        zoomVerdict: c.missed_call === true ? true : null,
+        queueOnly: c.queue_answered_only === true,
+        aiSaysMissed: aiNotesIndicatesMissed(c.ai_notes),
+        teamMember: c.team_member || null,
+      });
+      if (missed !== !!c.missed_call) changes.push({ id: c.id, missed_call: missed });
+    }
 
     let updated = 0;
-    for (const c of shouldBeMissed) {
-      await base44.asServiceRole.entities.CallRecord.update(c.id, { missed_call: true, team_member: null, caller_intent: null, caller_type: "not_applicable", bookable: "no" });
-      updated++;
-      await new Promise(r => setTimeout(r, 150));
-    }
-    for (const c of shouldNotBeMissed) {
-      await base44.asServiceRole.entities.CallRecord.update(c.id, { missed_call: false });
-      updated++;
-      await new Promise(r => setTimeout(r, 150));
+    for (let i = 0; i < changes.length; i += 500) {
+      await base44.asServiceRole.entities.CallRecord.bulkUpdate(changes.slice(i, i + 500));
+      updated += Math.min(500, changes.length - i);
     }
 
-    return Response.json({ updated, flaggedMissed: shouldBeMissed.length, unflagged: shouldNotBeMissed.length, total: all.length });
+    return Response.json({
+      total: all.length,
+      nowMissed: changes.filter(c => c.missed_call).length,
+      nowAnswered: changes.filter(c => !c.missed_call).length,
+      updated,
+    });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
