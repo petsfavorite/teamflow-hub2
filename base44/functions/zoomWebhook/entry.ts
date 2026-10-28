@@ -1,7 +1,8 @@
 import { createHmac } from 'node:crypto';
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import OpenAI from 'npm:openai';
-import { fuzzyMatchUser, aiNotesIndicatesMissed } from '../../shared/staffMatching.ts';
+import { fuzzyMatchUser } from '../../shared/staffMatching.ts';
+import { isMissedCall } from '../../shared/zoomMissed.ts';
 import { analyzeCall, checkBookingOffered, buildExtraAliases } from '../../shared/callAnalysis.ts';
 import { timingSafeEqual } from '../../shared/crypto.ts';
 
@@ -84,7 +85,7 @@ async function getSheetName(spreadsheetId, accessToken) {
 }
 
 // ── Main webhook handler ──────────────────────────────────────────────────────
-Deno.serve(async (req) => {
+export default async function(req) {
   try {
     const bodyText = await req.text();
     let body;
@@ -213,11 +214,10 @@ Deno.serve(async (req) => {
     const sheetRowNumber = await appendToSheet({ rowValues, sheetName }, sheetsToken, spreadsheetId);
     console.log(`[INFO] Appended to sheet row: ${sheetRowNumber}`);
 
-    // Missed call: inbound where no team member spoke (no one at the clinic answered),
-    // or the AI explicitly flagged it as a missed call in ai_notes.
-    const aiSaysMissed = aiNotesIndicatesMissed(analysis.ai_notes);
     const teamMember = fuzzyMatchUser(analysis.team_member, userList, extraAliases);
-    const missed_call = callDirection === "inbound" && (!teamMember || aiSaysMissed);
+    // Speech content, not the queue label or a name match, decides the result.
+    const live_team_member_spoke = analysis.live_team_member_spoke ?? null;
+    const missed_call = isMissedCall({ callDirection, liveTeamMemberSpoke: live_team_member_spoke, teamMember });
 
     // Save CallRecord to DB
     const zoom_meeting_id = sheetRowNumber ? `sheet_row_${sheetRowNumber}` : meetingId;
@@ -241,6 +241,8 @@ Deno.serve(async (req) => {
       booking_offered: missed_call ? null : booking_offered,
       ai_notes: analysis.ai_notes || null,
       missed_call,
+      ...(typeof live_team_member_spoke === 'boolean' ? { live_team_member_spoke } : {}),
+      ai_enriched: true,
       status: "pending_review",
     });
 
@@ -250,4 +252,4 @@ Deno.serve(async (req) => {
     // Always return 200 to Zoom so it doesn't retry
     return Response.json({ received: true, error: error.message });
   }
-});
+}

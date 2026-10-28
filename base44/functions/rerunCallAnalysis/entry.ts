@@ -2,12 +2,14 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.30';
 import OpenAI from 'npm:openai';
 import { fuzzyMatchUser } from '../../shared/staffMatching.ts';
 import { analyzeCall, buildExtraAliases } from '../../shared/callAnalysis.ts';
+import { isMissedCall } from '../../shared/zoomMissed.ts';
 
+// Live-speech rules: content overrides queue labels and staff-directory matching.
 // Re-runs AI analysis on existing CallRecords that have transcripts,
 // using the latest configurable prompts from AppSettings.
 // Processes in chunks to avoid timeouts. Pass { offset, chunkSize } in the body.
 
-Deno.serve(async (req) => {
+export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
@@ -34,11 +36,14 @@ Deno.serve(async (req) => {
     const openai = new OpenAI({ apiKey: Deno.env.get("OPENAI_API_KEY") });
 
     const body = req.method === 'POST' ? await req.json().catch(() => ({})) : {};
-    const offset = body.offset || 0;
-    const chunkSize = body.chunkSize || 25;
+    const offset = Math.max(0, Number(body.offset) || 0);
+    const chunkSize = Math.max(1, Math.min(50, Number(body.chunkSize) || 25));
+    if (body.recordIds !== undefined && (!Array.isArray(body.recordIds) || body.recordIds.length > 50 || body.recordIds.some(id => typeof id !== 'string' || !/^[a-f0-9]{24}$/.test(id)))) return Response.json({ error: 'Invalid recordIds' }, { status: 400 });
 
     // Get all call records that have transcripts
-    const allRecords = await base44.asServiceRole.entities.CallRecord.list('-created_date', 2000);
+    const allRecords = body.recordIds
+      ? await base44.asServiceRole.entities.CallRecord.filter({ id: { $in: body.recordIds } }, '-created_date', 50)
+      : await base44.asServiceRole.entities.CallRecord.list('-created_date', 2000);
     let withTranscripts = allRecords.filter(r => r.transcript && r.transcript.trim());
 
     // Optional date filter (YYYY-MM-DD) — only process calls from that calendar day
@@ -64,12 +69,12 @@ Deno.serve(async (req) => {
           team_member = fuzzyMatchUser(analysis.team_member, userList, extraAliases);
         }
 
-        // Missed call: trust AI determination
-        const ai_missed_call = analysis.missed_call === true;
-        const missed_call = record.call_direction === "inbound" && (
-          ai_missed_call ||
-          (!record.transcript && record.call_duration_seconds !== null && record.call_duration_seconds < 30)
-        );
+        const live_team_member_spoke = analysis.live_team_member_spoke ?? record.live_team_member_spoke ?? null;
+        const missed_call = isMissedCall({
+          callDirection: record.call_direction, liveTeamMemberSpoke: live_team_member_spoke,
+          zoomVerdict: record.missed_call === true ? true : null,
+          queueOnly: record.queue_answered_only === true, teamMember: team_member,
+        });
         if (missed_call) team_member = null;
 
         // Booking offered (only for missed bookings, not missed calls)
@@ -95,6 +100,7 @@ Deno.serve(async (req) => {
           booked_date: analysis.booked_date || null,
           booking_offered,
           missed_call,
+          ...(typeof live_team_member_spoke === 'boolean' ? { live_team_member_spoke } : {}),
           transcript_summary: analysis.transcript_summary || null,
           ai_notes: analysis.ai_notes || null,
         });
@@ -118,4 +124,4 @@ Deno.serve(async (req) => {
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
-});
+}

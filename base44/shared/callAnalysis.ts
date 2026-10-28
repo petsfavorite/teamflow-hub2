@@ -1,5 +1,5 @@
-// Shared AI call-analysis logic used by scheduledSheetSync, rerunCallAnalysis, and zoomWebhook.
-// Uses configurable prompts from AppSettings.call_dashboard_options.
+// Shared AI call-analysis logic used by all transcript-analysis paths.
+import { LIVE_STAFF_RULES, hasUsableTranscript } from './callSpeech.ts';
 
 export const DEFAULT_CALLER_TYPE_PROMPT = `Classify the CALLER (the external person, NOT the staff member) as one of:
 - "potential_client": a new inquiry from someone who has not used the facility before
@@ -17,13 +17,7 @@ export const DEFAULT_BOOKING_OFFERED_PROMPT = `For calls where a booking was NOT
 - true: staff suggested a specific time/date or asked if the caller wanted to book, but the caller declined or did not commit
 - false: no appointment was offered, the caller hung up before booking was discussed, or it was a voicemail/missed call`;
 
-export const DEFAULT_MISSED_CALL_PROMPT = `Determine if this INBOUND call was a "missed call" — a call no team member personally answered:
-- true when NO team member spoke with the caller. This includes:
-  * the call was never answered at all — the caller hung up or gave up waiting;
-  * ONLY the phone system answered — a call queue greeting, hold music, auto receptionist or IVR — and no team member ever picked up;
-  * the caller left a voicemail (even if a recording or greeting is all that is heard).
-- false when a team member answered and spoke with the caller, even briefly (for example "thanks for calling, can you hold?").
-Outbound calls are NEVER missed calls.`;
+export const DEFAULT_MISSED_CALL_PROMPT = `${LIVE_STAFF_RULES}\nAn inbound call is missed exactly when live_team_member_spoke is false. Any live team-member speech means answered. Outbound calls are NEVER missed calls.`;
 
 export const DEFAULT_CALL_TOPIC_PROMPT = `Classify which side of the business this call relates to:
 - "kennel": boarding, play camp / daycare, group play, behavioral evaluations, baths, enrichment, kennel reservations or check-in/check-out
@@ -50,7 +44,7 @@ export function buildExtraAliases(nameAliases) {
 // including missed_call and booking_offered (no separate API calls needed).
 // prompts: { ai_caller_type_prompt?, ai_booking_prompt?, ai_booking_offered_prompt?, ai_missed_call_prompt? }
 export async function analyzeCall(transcript, callDirection, userList, openai, prompts = {}) {
-  if (!transcript || !transcript.trim()) return {};
+  if (!hasUsableTranscript(transcript)) return {};
   const callerTypePrompt = prompts.ai_caller_type_prompt || DEFAULT_CALLER_TYPE_PROMPT;
   const bookingPrompt = prompts.ai_booking_prompt || DEFAULT_BOOKING_PROMPT;
   const bookingOfferedPrompt = prompts.ai_booking_offered_prompt || DEFAULT_BOOKING_OFFERED_PROMPT;
@@ -95,8 +89,12 @@ Return a JSON object with these fields:
   ${bookingOfferedPrompt}
   (Only meaningful when booking_outcome is "appt_not_booked"; set to false otherwise.)
 - booked_date: "YYYY-MM-DDTHH:MM:00" if appt_booked, else null
+- live_team_member_spoke: boolean or null
+  ${LIVE_STAFF_RULES}
+  This evidence is INDEPENDENT of team_member attribution. A missing, blocked, or unmatched staff name never means nobody spoke. If false, team_member MUST be null, including names in recorded greetings.
 - missed_call: boolean
   ${missedCallPrompt}
+  The live_team_member_spoke rule above is authoritative if any other instructions conflict.
 - transcript_summary: 2-3 sentence summary
 - ai_notes: brief flags or follow-up notes
 
@@ -104,10 +102,15 @@ Return ONLY valid JSON, no markdown.`;
 
   const response = await openai.chat.completions.create({
     model: "gpt-4o-mini",
-    messages: [{ role: "user", content: prompt }],
+    temperature: 0,
+    messages: [{ role: "system", content: LIVE_STAFF_RULES }, { role: "user", content: prompt }],
     response_format: { type: "json_object" }
-  });
-  return JSON.parse(response.choices[0].message.content);
+  }, { timeout: 60000 });
+  const analysis = JSON.parse(response.choices[0].message.content);
+  if (![true, false, null].includes(analysis.live_team_member_spoke)) throw new Error('Missing live staff speech verdict');
+  analysis.missed_call = callDirection === 'inbound' && analysis.live_team_member_spoke === false;
+  if (analysis.live_team_member_spoke === false) analysis.team_member = null;
+  return analysis;
 }
 
 // Legacy: kept for backward compatibility with zoomWebhook or other callers.

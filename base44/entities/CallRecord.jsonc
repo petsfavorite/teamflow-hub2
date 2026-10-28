@@ -98,12 +98,16 @@
     "missed_call": {
       "type": "boolean",
       "default": false,
-      "description": "True when no team member answered the call (nobody picked up, only the call queue answered, or the caller left a voicemail)"
+      "description": "Inbound call with no live team-member speech: silence, caller-only speech, or only recorded queue/voicemail greetings. Any live staff speech means answered."
+    },
+    "live_team_member_spoke": {
+      "type": "boolean",
+      "description": "Transcript evidence that a real team member spoke live, independently of whether their name is known or matched. Omitted when speech cannot be established."
     },
     "queue_answered_only": {
       "type": "boolean",
       "default": false,
-      "description": "Zoom shows the call queue answered this inbound call but not a team member's own extension. The transcript analysis decides whether a person actually spoke, so the call is treated as missed unless a team member is found."
+      "description": "Zoom routed/answered through an automated account rather than identifying a user extension. This is routing evidence only; live team-member speech overrides it."
     },
     "clinic_closed": {
       "type": "boolean",

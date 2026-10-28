@@ -6,6 +6,7 @@ import { sendCallLogErrorEmail } from '../../shared/callLogErrorNotify.ts';
 import { requireAdminOnly } from '../../shared/auth.ts';
 import { isMissedCall } from '../../shared/zoomMissed.ts';
 
+// Live-speech rules: content overrides queue labels and staff-directory matching.
 // AI ENRICHER — picks up CallRecords with ai_enriched=false and runs
 // transcript analysis on a small batch per invocation to avoid timeouts.
 // The scheduled workflow calls this every 10 minutes; each run processes up to 15 records.
@@ -19,7 +20,7 @@ const MAX_ATTEMPTS = 5;
 // A call with no transcript this young is probably still waiting on Zoom's transcript.
 const TRANSCRIPT_GRACE_MS = 2 * 60 * 60 * 1000;
 
-Deno.serve(async (req) => {
+export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
     const { error: authError } = await requireAdminOnly(base44);
@@ -43,9 +44,11 @@ Deno.serve(async (req) => {
     const userList = await base44.asServiceRole.entities.User.list('-created_date', 500);
     const openai = new OpenAI({ apiKey: Deno.env.get("OPENAI_API_KEY") });
 
-    // Fetch pending (non-enriched) records, oldest first
+    const body = await req.json().catch(() => ({}));
+    if (body.recordIds !== undefined && (!Array.isArray(body.recordIds) || body.recordIds.length > MAX_PER_RUN || body.recordIds.some(id => typeof id !== 'string' || !/^[a-f0-9]{24}$/.test(id)))) return Response.json({ error: 'Invalid recordIds' }, { status: 400 });
+    // Optional bounded record selection also supports targeted retries.
     const fetched = await base44.asServiceRole.entities.CallRecord.filter(
-      { ai_enriched: false },
+      body.recordIds ? { id: { $in: body.recordIds } } : { ai_enriched: false },
       "created_date",
       FETCH_LIMIT
     );
@@ -93,7 +96,8 @@ Deno.serve(async (req) => {
         let ai_notes = null;
         let booked_date = null;
         let booking_offered = false;
-        let ai_missed_call = false;
+        let ai_missed_call = null;
+        let live_team_member_spoke = record.live_team_member_spoke ?? null;
 
         if (record.transcript && record.transcript.trim()) {
           const analysis = await analyzeCall(record.transcript, record.call_direction, userList, openai, aiPrompts);
@@ -108,7 +112,8 @@ Deno.serve(async (req) => {
           booked_date = analysis.booked_date || null;
           transcript_summary = strOrNull(analysis.transcript_summary);
           ai_notes = strOrNull(analysis.ai_notes);
-          ai_missed_call = analysis.missed_call === true;
+          live_team_member_spoke = analysis.live_team_member_spoke ?? null;
+          ai_missed_call = typeof live_team_member_spoke === 'boolean' ? !live_team_member_spoke : null;
           if (booking_outcome === "appt_not_booked" && !ai_missed_call) {
             booking_offered = analysis.booking_offered === true;
           }
@@ -118,7 +123,7 @@ Deno.serve(async (req) => {
             team_member = fuzzyMatchUser(team_member, userList, extraAliases);
           }
         } else {
-          // No transcript — use duration as a missed-call proxy
+          // Missing transcript is not evidence of silence; keep the imported verdict.
           skipped++;
         }
 
@@ -127,6 +132,7 @@ Deno.serve(async (req) => {
         // a queue call with no team member in it is a missed call.
         const missed_call = isMissedCall({
           callDirection: record.call_direction,
+          liveTeamMemberSpoke: live_team_member_spoke,
           zoomVerdict: record.missed_call === true ? true : null,
           queueOnly: record.queue_answered_only === true,
           aiSaysMissed: ai_missed_call,
@@ -145,6 +151,7 @@ Deno.serve(async (req) => {
           booked_date,
           booking_offered,
           missed_call,
+          ...(typeof live_team_member_spoke === 'boolean' ? { live_team_member_spoke } : {}),
           transcript_summary,
           ai_notes,
           ai_enriched: true,
@@ -189,4 +196,4 @@ Deno.serve(async (req) => {
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
-});
+}

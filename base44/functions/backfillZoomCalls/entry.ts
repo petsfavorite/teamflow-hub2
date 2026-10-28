@@ -1,6 +1,8 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import OpenAI from 'npm:openai';
 import { requireAdminOnly } from '../../shared/auth.ts';
+import { analyzeCall } from '../../shared/callAnalysis.ts';
+import { isMissedCall, zoomMissedVerdict } from '../../shared/zoomMissed.ts';
 
 // ── Zoom OAuth token ──────────────────────────────────────────────────────────
 async function getZoomToken() {
@@ -148,76 +150,6 @@ function resolveStaffName(rawName, userList) {
   return null;
 }
 
-// ── AI analysis ───────────────────────────────────────────────────────────────
-async function analyzeTranscript(transcript, callDirection, isMissedCall, openai, userList) {
-  const staffLines = userList.map(u => `"${u.full_name}"`).join(", ");
-  const aliasLines = Object.entries(NICKNAME_ALIASES)
-    .map(([nick, first]) => {
-      const user = userList.find(u => u.full_name.toLowerCase().split(" ")[0] === first);
-      return user ? `  "${nick}" → "${user.full_name}"` : null;
-    })
-    .filter(Boolean)
-    .join("\n");
-
-  const prompt = `You are an AI analyzing a phone call transcript for a veterinary clinic / pet boarding / doggie daycare facility.
-
-TRANSCRIPT:
-${transcript}
-
-CALL DIRECTION: ${callDirection}
-MISSED CALL (not answered): ${isMissedCall ? "YES" : "NO"}
-
-KNOWN STAFF MEMBERS (ONLY valid values for team_member):
-${staffLines}
-
-MISSED CALL RULES (if MISSED CALL is YES):
-- team_member = null (no one answered)
-- caller_intent = null (do not guess intent from a voicemail/ringless call)
-- caller_type = "not_applicable"
-- bookable = "no"
-
-TEAM MEMBER ATTRIBUTION RULES:
-- For INBOUND calls: identify which staff member ANSWERED the call using the first name they say.
-  Staff often only say their first name. Use these nickname mappings:
-${aliasLines}
-  Never assign Caroline/Dr. Cofer — she is the vet mentioned by callers, not the answerer.
-- For OUTBOUND calls: identify which staff member MADE the call (the staff caller, not the receiver) using the first name they say when introducing themselves. Use the same nickname mappings. Never assign Caroline/Dr. Cofer.
-- Only assign a name if they actually state their name and you are at least 90% confident. If they do not say their name, return null. If unsure but a name is spoken, return the first name only as a string and we will resolve it. Never return "Please Check".
-
-CALLER TYPE LOGIC:
-- For INBOUND calls: classify the CALLER (the external person calling in).
-- For OUTBOUND calls: classify the RECEIVER (the external person being called), NOT the staff member.
-- "returning_client": mentions being here before or has an established history
-- "potential_client": wants boarding, daycare, or vet services, no prior relationship
-- "not_applicable": sales call, exotic/wildlife/livestock species, calling from another clinic, or voicemail/missed call
-
-EXTRACTION RULES:
-- If you are NOT 95%+ confident about a value, use "Unsure" (for strings) or null (for optional fields)
-- For phone numbers: extract explicit digits only, do not guess
-
-Return JSON with these fields:
-- team_member: string | null (exact match from KNOWN STAFF MEMBERS, or a first name if uncertain — we will resolve it)
-- caller_name: string | "Unsure" | null
-- caller_phone: string | null
-- callee_phone: string | null
-- caller_type: "potential_client" | "returning_client" | "not_applicable" | "Unsure"
-- caller_intent: string (1-sentence summary)
-- bookable: "yes" | "no" | "unclear" | "Unsure"
-- booking_outcome: "appt_booked" | "appt_not_booked" | "appt_not_needed" | "Unsure"
-- booked_date: "YYYY-MM-DDTHH:MM:00" | null
-- appointment_offered: boolean
-- transcript_summary: string (2-3 sentences, or "Unclear" if unintelligible)
-- ai_notes: string | null
-
-Return ONLY valid JSON, no markdown.`;
-
-  const response = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [{ role: "user", content: prompt }],
-    response_format: { type: "json_object" }
-  });
-  return JSON.parse(response.choices[0].message.content);
-}
 
 // ── Append row to Google Sheet ────────────────────────────────────────────────
 async function appendToSheet(rowValues, sheetName, accessToken, spreadsheetId) {
@@ -247,7 +179,7 @@ async function getSheetName(spreadsheetId, accessToken) {
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
-Deno.serve(async (req) => {
+export default async function(req) {
   try {
     console.log("[DEBUG] Starting backfillZoomCalls");
     const base44 = createClientFromRequest(req);
@@ -259,6 +191,7 @@ Deno.serve(async (req) => {
     const from       = body.from       || new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     const to         = body.to         || new Date().toISOString().slice(0, 10);
     const batchSize  = body.batch_size || 5;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) return Response.json({ error: 'Invalid date range' }, { status: 400 });
 
     console.log(`[INFO] Backfilling Zoom recordings from ${from} to ${to}, batch_size=${batchSize}`);
 
@@ -313,8 +246,7 @@ Deno.serve(async (req) => {
         const startTime     = callLog.date_time || new Date().toISOString();
         const duration      = callLog.duration || 0;
         const callerName    = callLog.caller_name || null;
-        // "not_answered" result = missed call
-        const isMissedCall  = callLog.result === "not_answered" || (!callLog.result && duration === 0 && !callLog.recording_id);
+        const zoomVerdict = zoomMissedVerdict(callLog);
         const recording_url = callLog.recording_id ? `https://zoom.us/recording/download/${callLog.recording_id}` : null;
 
         // Download transcript
@@ -329,8 +261,10 @@ Deno.serve(async (req) => {
           console.warn(`[WARN] Could not download/transcribe recording ${callLog.recording_id}: ${transcriptErr.message}`);
         }
 
-        const analysisInput = transcript || `CALL METADATA ONLY - No transcript available.\nCaller: ${callerName || callFromNumber || "Unknown"}\nDirection: ${callDirection}\nDuration: ${duration}s\nMissed Call: ${isMissedCall}\nCallee: ${callToNumber || "Unknown"}`;
-        const analysis = await analyzeTranscript(analysisInput, callDirection, isMissedCall, openai, userList);
+        const analysis = await analyzeCall(transcript, callDirection, userList, openai);
+        // Speech content, not the queue label or a name match, decides the result.
+        const live_team_member_spoke = analysis.live_team_member_spoke ?? null;
+        const missed_call = isMissedCall({ callDirection, liveTeamMemberSpoke: live_team_member_spoke, zoomVerdict });
 
         // Use call log phone numbers, fallback to AI extraction
         const finalCallerPhone = callFromNumber || analysis.caller_phone || null;
@@ -354,7 +288,7 @@ Deno.serve(async (req) => {
         const sheetRowNumber = await appendToSheet(rowValues, sheetName, sheetsToken, spreadsheetId);
 
         // Resolve team member to a valid app user full name
-        const resolvedTeamMember = isMissedCall ? null : resolveStaffName(analysis.team_member, userList);
+        const resolvedTeamMember = missed_call ? null : resolveStaffName(analysis.team_member, userList);
 
         // Save to DB — always use the real Zoom call ID for dedup
         await base44.asServiceRole.entities.CallRecord.create({
@@ -374,7 +308,9 @@ Deno.serve(async (req) => {
           booking_outcome: analysis.booking_outcome || "appt_not_booked",
           was_booked: analysis.booking_outcome === "appt_booked",
           booked_date: analysis.booked_date || null,
-          missed_call: isMissedCall,
+          missed_call,
+          ...(typeof live_team_member_spoke === 'boolean' ? { live_team_member_spoke } : {}),
+          ai_enriched: !!transcript,
           ai_notes: analysis.ai_notes || null,
           status: "pending_review",
         });
@@ -404,4 +340,4 @@ Deno.serve(async (req) => {
     console.error("[ERROR]", errorMsg);
     return Response.json({ error: errorMsg }, { status: 500 });
   }
-});
+}

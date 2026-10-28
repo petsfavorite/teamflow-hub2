@@ -1,62 +1,54 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
-import { aiNotesIndicatesMissed } from '../../shared/staffMatching.ts';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
+import OpenAI from 'npm:openai';
+import { secrets } from 'base44:runtime';
+import { classifyCallSpeech } from '../../shared/callSpeech.ts';
 import { isMissedCall } from '../../shared/zoomMissed.ts';
+import { requireAdminOnly } from '../../shared/auth.ts';
 
-// Re-applies the app's one missed-call definition to every stored call record.
-//
-// An inbound call is missed when no team member spoke with the caller:
-//   1. nobody answered, or
-//   2. only the call queue / auto receptionist answered, or
-//   3. the caller left a voicemail.
-//
-// Outbound calls are never missed. Run this after the definition changes.
-Deno.serve(async (req) => {
+// Rebuild only speech evidence and missed flags, never bookings or review status.
+// Fifty records per run, with complete structured speech results for every call.
+// Repeated calls work through history newest first.
+export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
-      return Response.json({ error: 'Forbidden' }, { status: 403 });
+    const { error } = await requireAdminOnly(base44);
+    if (error) return error;
+    const body = await req.json().catch(() => ({}));
+    if (body.recordIds !== undefined && (!Array.isArray(body.recordIds) || body.recordIds.length > 50 || body.recordIds.some(id => typeof id !== 'string' || !/^[a-f0-9]{24}$/.test(id)))) {
+      return Response.json({ error: 'recordIds must contain up to 50 valid ids' }, { status: 400 });
     }
-
-    // Whole history is kept for 90 days; walk it day by day so no read cap drops records.
-    const all = [];
-    const dayMs = 86400000;
-    const today = new Date();
-    for (let d = 0; d <= 91; d++) {
-      const dayStart = new Date(today.getTime() - d * dayMs);
-      const dayEnd = new Date(dayStart.getTime() + dayMs);
-      const batch = await base44.asServiceRole.entities.CallRecord.filter(
-        { call_date: { $gte: dayStart.toISOString(), $lt: dayEnd.toISOString() } },
-        '-call_date', 1000
-      );
-      all.push(...batch);
-    }
-
+    const query = body.recordIds ? { id: { $in: body.recordIds } } : {
+      call_direction: 'inbound', call_duration_seconds: { $gte: 30 },
+      call_date: { $gte: new Date(Date.now() - 92 * 86400000).toISOString() },
+      live_team_member_spoke: { $exists: false },
+      transcript: { $exists: true, $nin: [null, '', 'No transcript', 'No transcript available'] },
+    };
+    const page = await base44.entities.CallRecord.filter(query, { sort: '-call_date', limit: 50, cursor: body.cursor || undefined });
+    const records = page.items;
+    const openai = new OpenAI({ apiKey: secrets.get('OPENAI_API_KEY'), maxRetries: 0 });
+    const verdicts = await classifyCallSpeech(records.filter(r => r.call_direction === 'inbound'), openai);
     const changes = [];
-    for (const c of all) {
-      const missed = isMissedCall({
-        callDirection: c.call_direction,
-        zoomVerdict: c.missed_call === true ? true : null,
-        queueOnly: c.queue_answered_only === true,
-        aiSaysMissed: aiNotesIndicatesMissed(c.ai_notes),
-        teamMember: c.team_member || null,
-      });
-      if (missed !== !!c.missed_call) changes.push({ id: c.id, missed_call: missed });
+    for (const record of records) {
+      const speech = verdicts.find(v => v.id === record.id)?.live_team_member_spoke;
+      if (record.call_direction === 'outbound') {
+        if (record.missed_call) changes.push({ id: record.id, missed_call: false });
+      } else if (typeof speech === 'boolean') {
+        changes.push({ id: record.id, live_team_member_spoke: speech,
+          missed_call: isMissedCall({ callDirection: record.call_direction, liveTeamMemberSpoke: speech }),
+          ...(!speech ? { team_member: null } : {}),
+        });
+      }
     }
-
-    let updated = 0;
-    for (let i = 0; i < changes.length; i += 500) {
-      await base44.asServiceRole.entities.CallRecord.bulkUpdate(changes.slice(i, i + 500));
-      updated += Math.min(500, changes.length - i);
-    }
-
-    return Response.json({
-      total: all.length,
-      nowMissed: changes.filter(c => c.missed_call).length,
-      nowAnswered: changes.filter(c => !c.missed_call).length,
-      updated,
+    if (body.dryRun !== true && changes.length) await base44.entities.CallRecord.bulkUpdate(changes);
+    const unresolved = records.filter(r => !changes.some(c => c.id === r.id) && r.call_direction === 'inbound').map(r => r.id);
+    return Response.json({ scanned: records.length, updated: body.dryRun === true ? 0 : changes.length,
+      changedFlags: changes.filter(c => c.missed_call !== !!records.find(r => r.id === c.id)?.missed_call).length,
+      nowMissed: changes.filter(c => c.missed_call).length, nowAnswered: changes.filter(c => !c.missed_call).length,
+      remaining: await base44.entities.CallRecord.count(query), nextCursor: page.next_cursor || null,
+      hasMore: page.has_more, unresolved, dryRun: body.dryRun === true,
+      ...(body.recordIds ? { speechVerdicts: verdicts } : {}),
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
-});
+}

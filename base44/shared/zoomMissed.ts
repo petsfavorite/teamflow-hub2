@@ -13,7 +13,7 @@
 const norm = (v) => String(v || "").toLowerCase().replace(/[\s_]/g, "");
 
 const NO_ANSWER_RESULTS = [
-  "noanswer", "unanswered", "missed", "abandoned", "cancel", "busy", "rejected", "blocked", "callfailed",
+  "noanswer", "notanswered", "unanswered", "missed", "abandoned", "cancel", "busy", "rejected", "blocked", "callfailed",
 ];
 
 // Owners that are automation, never a person.
@@ -29,7 +29,7 @@ export function zoomCallFacts(log) {
   const answeredAt = log?.answer_start_time || log?.answer_time || null;
   const talkSeconds = Number(log?.talk_time ?? log?.duration ?? 0);
   const noAnswer = NO_ANSWER_RESULTS.some((r) => result.includes(r)) || (!answeredAt && talkSeconds <= 0);
-  const answeredByTeamMember = ownerType === "user";
+  const answeredByTeamMember = ownerType === "user" && !voicemail && !noAnswer;
   const queueOnly = !answeredByTeamMember && !voicemail && !noAnswer && NON_HUMAN_OWNERS.includes(ownerType);
   return { direction, voicemail, noAnswer, answeredByTeamMember, queueOnly, talkSeconds };
 }
@@ -45,17 +45,20 @@ export function zoomMissedVerdict(log) {
   return null;
 }
 
-// Final call after Zoom facts and transcript analysis are both known.
+// Direct speech evidence outranks routing, old flags, names, and free-form notes.
 export function isMissedCall({
   callDirection,
+  liveTeamMemberSpoke = null,
   zoomVerdict = null,
   queueOnly = false,
-  aiSaysMissed = false,
+  aiSaysMissed = null,
   teamMember = null,
 }) {
   if (norm(callDirection).startsWith("out")) return false;
-  if (teamMember) return false;          // a team member spoke with the caller
-  if (zoomVerdict === true) return true; // no answer / voicemail, straight from Zoom
-  if (aiSaysMissed) return true;
-  return queueOnly;                      // only the queue answered, no team member did
+  if (typeof liveTeamMemberSpoke === "boolean") return !liveTeamMemberSpoke;
+  if (typeof aiSaysMissed === "boolean") return aiSaysMissed;
+  // Fallback only while transcript evidence is unavailable.
+  if (teamMember && !/^(please check|unknown|support staff|staff|call queue|voicemail)$/i.test(teamMember.trim())) return false;
+  if (typeof zoomVerdict === "boolean") return zoomVerdict;
+  return queueOnly;
 }
