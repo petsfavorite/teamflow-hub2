@@ -62,14 +62,7 @@
     "read": {
       "$or": [
         {
-          "user_condition": {
-            "role": "user"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "manager"
-          }
+          "data.access.email": "{{user.email}}"
         },
         {
           "user_condition": {
@@ -79,11 +72,6 @@
         {
           "user_condition": {
             "role": "super_admin"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "general_account"
           }
         }
       ]
