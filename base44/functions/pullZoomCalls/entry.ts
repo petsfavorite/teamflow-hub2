@@ -12,7 +12,8 @@ import { zoomCallFacts, zoomMissedVerdict } from '../../shared/zoomMissed.ts';
 // different ID format). Each run looks back 3 days, so an outage heals itself.
 
 const LOOKBACK_DAYS = 3;
-const MIN_DURATION_SECONDS = 30;
+const MIN_INBOUND_SECONDS = 10;  // an incoming caller on the line under 10s counts for nothing
+const MIN_DURATION_SECONDS = 30; // outbound floor
 const MIN_AGE_MINUTES = 15;      // give the sheet path / Zoom transcript a head start
 const MAX_NEW_PER_RUN = 25;      // keep each run inside the function time limit
 const MAX_TRANSCRIPT_RETRIES = 10;
@@ -177,9 +178,12 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // A missed call is often 0 seconds long — those are exactly the calls the
-      // dashboard must show, so never drop them for being short.
-      if (duration < MIN_DURATION_SECONDS && !missed) continue;       // too short to matter
+      // An incoming call where the caller was on the line for less than 10 seconds
+      // counts for nothing anywhere in the app (answered or not), so it is never
+      // imported. Zoom reports the caller's time on the line as talk_time.
+      const talkSeconds = Number(log.talk_time ?? duration);
+      if (direction === "inbound" && talkSeconds < MIN_INBOUND_SECONDS) continue;
+      if (direction !== "inbound" && duration < MIN_DURATION_SECONDS) continue; // too short to matter
       if (now - t < MIN_AGE_MINUTES * 60000) continue;                // too fresh, next run
       if (alreadyImportedByOtherId(t, direction, phone)) { skipped++; continue; }
       if (toCreate.length >= MAX_NEW_PER_RUN) continue;               // rest go next run

@@ -14,6 +14,7 @@ import CallerTypeChart from "@/components/calldashboard/CallerTypeChart";
 import DashboardFilters from "@/components/calldashboard/DashboardFilters";
 import useCallHistory from "@/components/calldashboard/useCallHistory";
 import { getAppTimezone } from '@/lib/timezone';
+import { isCountableCall } from '@/lib/callDuration';
 
 export default function CallDashboard() {
   const [selectedCall, setSelectedCall] = useState(null);
@@ -78,7 +79,7 @@ export default function CallDashboard() {
     return map;
   }, [users]);
 
-  const validDurationCalls = useMemo(() => calls.filter(c => c.call_duration_seconds != null && c.call_duration_seconds >= 30), [calls]);
+  const validDurationCalls = useMemo(() => calls.filter(isCountableCall), [calls]);
 
   const dateFilteredCalls = useMemo(() => {
     if (!dateStart && !dateEnd) return validDurationCalls;

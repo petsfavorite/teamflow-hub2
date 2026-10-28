@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import moment from "moment-timezone";
 import { base44 } from "@/api/base44Client";
 import { getAppTimezone } from '@/lib/timezone';
+import { isCountableCall, MIN_INBOUND_SECONDS } from '@/lib/callDuration';
 
 const SUMMARY_FIELDS = ["id", "call_date", "call_duration_seconds", "call_direction", "caller_phone", "caller_name", "team_member", "caller_type", "caller_intent", "transcript_summary", "recording_url", "bookable", "booking_outcome", "was_booked", "booked_date", "booking_offered", "missed_call", "clinic_closed", "status"];
 
@@ -17,7 +18,7 @@ export default function useCallHistory(start, end) {
       if (from > to) return [];
       const query = {
         call_date: { $gte: from, $lte: to },
-        call_duration_seconds: { $gte: 30 },
+        call_duration_seconds: { $gte: MIN_INBOUND_SECONDS },
       };
       const loadPages = async (filter, fields) => {
         const records = [];
@@ -37,7 +38,7 @@ export default function useCallHistory(start, end) {
         } while (cursor);
         return records;
       };
-      const records = await loadPages(query, SUMMARY_FIELDS);
+      const records = (await loadPages(query, SUMMARY_FIELDS)).filter(isCountableCall);
       // Preserve the existing outgoing-call badges without downloading transcripts.
       const withoutTranscript = await loadPages({
         ...query, call_direction: "outbound",
