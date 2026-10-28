@@ -34,6 +34,16 @@ export function zoomCallFacts(log) {
   return { direction, voicemail, noAnswer, answeredByTeamMember, queueOnly, talkSeconds };
 }
 
+// Unanswered calls have zero connected duration even after a long queue wait.
+// Include that wait for the 30-second floor; keep answered/outbound durations unchanged.
+export function zoomCallDurationSeconds(log) {
+  const seconds = value => Math.max(0, Number(value) || 0);
+  const connected = seconds(log?.duration);
+  return zoomMissedVerdict(log) === true
+    ? connected + seconds(log?.waiting_time)
+    : connected;
+}
+
 // true  = definitely missed (nobody answered, or voicemail)
 // false = a team member's own extension answered
 // null  = Zoom cannot tell (only the queue answered) — the transcript decides

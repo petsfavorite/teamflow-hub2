@@ -187,13 +187,13 @@ Deno.serve(async (req) => {
         { call_date: { $gte: recentFloor } }, "-call_date", 3000
       );
       recentFingerprints = recent.map(r => ({
-        t: new Date(r.call_date).getTime(), dir: r.call_direction, phone: digits(r.caller_phone),
+        t: new Date(r.call_date).getTime(), dir: r.call_direction, phone: digits(r.caller_phone), missed: r.missed_call,
       }));
     }
     const seenElsewhere = (rec) => {
       const t = new Date(rec.call_date).getTime();
       const phone = digits(rec.caller_phone);
-      return recentFingerprints.some(f => f.dir === rec.call_direction && f.phone === phone && Math.abs(f.t - t) <= 3 * 60000);
+      return recentFingerprints.some(f => !f.missed && f.dir === rec.call_direction && f.phone === phone && Math.abs(f.t - t) <= 3 * 60000);
     };
 
     let imported = 0;

@@ -21,7 +21,10 @@ const FIELDS = [
   "missed_call", "clinic_closed", "status",
 ];
 
-async function loadAllRecords(base44, floorDate) {
+async function loadAllRecords(base44, floorDate, recordIds) {
+  if (recordIds) {
+    return (await base44.entities.CallRecord.filter({ id: { $in: recordIds } }, { limit: 50, fields: FIELDS })).items;
+  }
   const records = [];
   for (let d = 0; d <= LOOKBACK_DAYS; d++) {
     const dayStart = new Date(floorDate.getTime() + d * 86400000);
@@ -49,8 +52,12 @@ export default async function(req) {
       return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
 
+    const { recordIds } = await req.json().catch(() => ({}));
+    if (recordIds !== undefined && (!Array.isArray(recordIds) || recordIds.length > 50 || recordIds.some(id => typeof id !== 'string' || !/^[a-f0-9]{24}$/.test(id)))) {
+      return Response.json({ error: 'recordIds must contain up to 50 valid ids' }, { status: 400 });
+    }
     const floorDate = new Date(Date.now() - LOOKBACK_DAYS * 86400000);
-    const records = await loadAllRecords(base44, floorDate);
+    const records = await loadAllRecords(base44, floorDate, recordIds);
 
     // Pass 1: group by real zoom_meeting_id.
     const byId = new Map();
@@ -79,7 +86,7 @@ export default async function(req) {
     }
 
     // Pass 2: fingerprint dedup on the surviving records (reload to reflect pass 1).
-    const survivors = await loadAllRecords(base44, floorDate);
+    const survivors = await loadAllRecords(base44, floorDate, recordIds);
 
     const mergedFps = [];
     const used = new Set();

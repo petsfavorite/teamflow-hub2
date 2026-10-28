@@ -90,10 +90,17 @@ export function fingerprint(r) {
     t: new Date(r.call_date).getTime(),
     dir: r.call_direction,
     phone: digits(r.caller_phone),
+    zoomId: r.zoom_meeting_id,
+    missed: r.missed_call,
   };
 }
 
 export function sameFingerprint(a, b) {
+  // A missed attempt followed by a callback is not a duplicate.
+  if (typeof a.missed === 'boolean' && typeof b.missed === 'boolean' && a.missed !== b.missed) return false;
+  // Different Zoom log UUIDs identify separate attempts, even seconds apart.
+  const isLogId = id => /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(String(id || ''));
+  if (isLogId(a.zoomId) && isLogId(b.zoomId) && a.zoomId !== b.zoomId) return false;
   return a.dir === b.dir && a.phone === b.phone && a.phone.length >= 7 &&
     Math.abs(a.t - b.t) <= 3 * 60000;
 }
