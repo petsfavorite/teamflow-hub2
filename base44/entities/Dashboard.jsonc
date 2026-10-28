@@ -1,0 +1,120 @@
+{
+  "name": "Dashboard",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Dashboard name shown in the list"
+    },
+    "url": {
+      "type": "string",
+      "description": "Link to the dashboard (e.g. a Google Sheet)"
+    },
+    "description": {
+      "type": "string"
+    },
+    "order": {
+      "type": "number",
+      "default": 0,
+      "description": "Display order in the list"
+    },
+    "access": {
+      "type": "array",
+      "description": "Users who have been granted access to this dashboard",
+      "items": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "granted_at": {
+            "type": "string"
+          },
+          "granted_by": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "name",
+    "url"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "super_admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "manager"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "super_admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "general_account"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "super_admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "super_admin"
+          }
+        }
+      ]
+    }
+  }
+}

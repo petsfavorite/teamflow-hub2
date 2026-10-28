@@ -10,7 +10,8 @@ import { LayoutGrid, Users, LogIn, Settings, Menu, X,
     Download,
     BookMarked,
     Lock,
-    FolderTree
+    FolderTree,
+    LineChart
 } from 'lucide-react';
 import { useCurrentUser } from './components/hooks/useCurrentUser';
 import { base44 } from '@/api/base44Client';
@@ -42,6 +43,7 @@ const mainNavItems = [
 ];
 
 const adminNavItems = [
+    { name: 'Dashboards', icon: LineChart, label: 'Dashboards' },
     { name: 'UserManagement', icon: Users, label: 'Users' },
     { name: 'SOPsUnderConstruction', icon: BookOpen, label: 'SOPs Under Construction' },
     { name: 'SOPCategories', icon: FolderTree, label: 'SOP Categories' },

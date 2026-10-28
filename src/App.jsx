@@ -17,6 +17,7 @@ import DataExport from './pages/DataExport';
 import TrainingManuals from './pages/TrainingManuals';
 import AccessControl from './pages/AccessControl';
 import SOPCategories from './pages/SOPCategories';
+import Dashboards from './pages/Dashboards';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -95,6 +96,11 @@ const AuthenticatedApp = () => {
       <Route path="/SOPCategories" element={
         <LayoutWrapper currentPageName="SOPCategories">
           <SOPCategories />
+        </LayoutWrapper>
+      } />
+      <Route path="/Dashboards" element={
+        <LayoutWrapper currentPageName="Dashboards">
+          <Dashboards />
         </LayoutWrapper>
       } />
       <Route path="*" element={<PageNotFound />} />
