@@ -21,11 +21,16 @@ export default function Dashboards() {
     },
   });
 
-  // Admin / Super Admin see every dashboard; everyone else sees only what they were granted.
+  // Admin / Super Admin see every dashboard; everyone else sees what they were granted
+  // or whatever is opened up to their role.
   const canManage = user?.role === "admin" || user?.role === "super_admin";
   const visible = canManage
     ? dashboards
-    : dashboards.filter((d) => (d.access || []).some((a) => a.email === user?.email));
+    : dashboards.filter(
+        (d) =>
+          (d.access || []).some((a) => a.email === user?.email) ||
+          (d.visible_roles || []).includes(user?.role)
+      );
 
   if (loading || isLoading) {
     return (

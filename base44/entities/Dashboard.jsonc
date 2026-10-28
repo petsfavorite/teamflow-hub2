@@ -18,6 +18,13 @@
       "default": 0,
       "description": "Display order in the list"
     },
+    "visible_roles": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Roles that can always see this dashboard (e.g. manager, admin, super_admin). Admins and super admins see every dashboard regardless."
+    },
     "access": {
       "type": "array",
       "description": "Users who have been granted access to this dashboard",
@@ -63,6 +70,9 @@
       "$or": [
         {
           "data.access.email": "{{user.email}}"
+        },
+        {
+          "data.visible_roles": "{{user.role}}"
         },
         {
           "user_condition": {
