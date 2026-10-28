@@ -22,9 +22,30 @@ export default async function(req: Request): Promise<Response> {
     const creatorEmail = type === 'incident' ? record.reported_by : record.requested_by;
     const creatorName = type === 'incident' ? record.reported_by_name : record.requested_by_name;
     const assignedEmails: string[] = record.assigned_to_emails || [];
+
+    // The service-role fetch above bypasses entity RLS, so mirror the read rules here:
+    // only the creator, assigned staff, or a manager/admin/super_admin may act on a record.
+    const PRIVILEGED_ROLES = ['manager', 'admin', 'super_admin'];
+    const isPrivileged = PRIVILEGED_ROLES.includes(user.role || '');
+    const isCreator = !!creatorEmail && creatorEmail === user.email;
+    const isAssigned = assignedEmails.includes(user.email) || record.assigned_to === user.email;
+    if (!isPrivileged && !isCreator && !isAssigned) {
+      return Response.json({ error: 'Forbidden' }, { status: 403 });
+    }
+    // Re-assigning is a management action (the UI only offers it to managers+), and it also
+    // keeps this endpoint from being used to probe which addresses are registered users.
+    if (action === 'assign' && !isPrivileged) {
+      return Response.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const title = record.title;
     const label = type === 'incident' ? 'incident report' : 'maintenance request';
     const actorName = user.full_name || user.email;
+
+    // Cap and clean caller-supplied free text so it cannot push oversized or control-character content
+    const safeNote = typeof noteText === 'string'
+      ? noteText.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '').trim().slice(0, 2000)
+      : '';
 
     // Helper: find admins/managers on the creator's team
     const getTeamAdminManagers = async (excludeEmail: string): Promise<{ email: string; name: string }[]> => {
@@ -57,7 +78,9 @@ export default async function(req: Request): Promise<Response> {
       bodyText = `A new ${label} "${title}" has been filed by ${creatorName || creatorEmail}.\n\nPlease review and acknowledge it in the app.`;
     } else if (action === 'assign') {
       // On assignment: notify newly assigned users (not the actor)
-      const newEmails = (newAssigneeEmails || []).filter((e: string) => e !== user.email);
+      const newEmails = (Array.isArray(newAssigneeEmails) ? newAssigneeEmails : [])
+        .filter((e: any) => typeof e === 'string' && e.length > 0 && e !== user.email)
+        .slice(0, 50);
       if (newEmails.length > 0) {
         const users = await base44.asServiceRole.entities.User.filter({ email: { $in: newEmails } });
         recipients = users.map((u: any) => ({ email: u.email, name: u.full_name || u.email }));
@@ -76,7 +99,7 @@ export default async function(req: Request): Promise<Response> {
         recipients = await getTeamAdminManagers(user.email);
       }
       subject = `New note on ${label}: ${title}`;
-      bodyText = `${actorName} added a note to the ${label} "${title}":\n\n${noteText || ''}\n\nPlease review and acknowledge it in the app.`;
+      bodyText = `${actorName} added a note to the ${label} "${title}":\n\n${safeNote}\n\nPlease review and acknowledge it in the app.`;
     }
 
     // Send emails
@@ -94,7 +117,8 @@ export default async function(req: Request): Promise<Response> {
       }
     }
 
-    return Response.json({ sent, recipients: recipients.map((r) => r.email) });
+    // Only a count — the participant addresses belong to the record, not to the caller
+    return Response.json({ sent, recipientCount: recipients.length });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
