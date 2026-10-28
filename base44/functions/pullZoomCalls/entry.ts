@@ -117,6 +117,9 @@ export default async function(req) {
     return Response.json({ error: 'recordIds must contain up to 50 valid ids' }, { status: 400 });
   }
   const dryRun = body.dryRun === true;
+  // Historical repair: import only unanswered calls (never in the sheet) for a date range.
+  const missedOnly = body.missedOnly === true;
+  const NEW_CAP = missedOnly ? 400 : MAX_NEW_PER_RUN;
   try {
     let zoomToken;
     try {
@@ -153,10 +156,14 @@ export default async function(req) {
     } while (cursor);
     const byId = new Map(existing.map(r => [String(r.zoom_meeting_id), r]));
     const existingFingerprints = existing.map(r => ({
-      t: new Date(r.call_date).getTime(), dir: r.call_direction, phone: digits(r.caller_phone), missed: r.missed_call,
+      t: new Date(r.call_date).getTime(), dir: r.call_direction, phone: digits(r.caller_phone), missed: r.missed_call, dur: Number(r.call_duration_seconds || 0),
     }));
     const alreadyImportedByOtherId = (t, dir, phone) =>
       existingFingerprints.some(f => !f.missed && f.dir === dir && f.phone === phone && Math.abs(f.t - t) <= 3 * 60000);
+    // Unanswered calls use a tighter window plus a matching duration, so a different call from the same number is never mistaken for this one.
+    const missedAlreadyStored = (t, phone, duration) =>
+      existingFingerprints.some(f => f.phone === phone && f.t === t) ||
+      existingFingerprints.some(f => f.phone === phone && Math.abs(f.t - t) <= 60000 && Math.abs(f.dur - duration) <= 5);
 
     // Oldest first, so a backlog is worked through in order across runs.
     logs.sort((a, b) => new Date(a.date_time) - new Date(b.date_time));
@@ -176,6 +183,7 @@ export default async function(req) {
       const duration = zoomCallDurationSeconds(log);
       const { direction, missed, queueAnsweredOnly } = classify(log);
       const phone = digits(direction === "inbound" ? log.caller_number : (log.callee_number || log.callee_did_number));
+      if (missedOnly && !missed) continue;
 
       const have = byId.get(callId);
       if (have) {
@@ -202,13 +210,14 @@ export default async function(req) {
       if (body.recordIds) continue; // Targeted repairs never import unrelated calls.
       if (direction === 'inbound' && duration < MIN_INBOUND_SECONDS) continue;
       if (direction !== 'inbound' && duration < MIN_DURATION_SECONDS) continue;
-      if (now - t < MIN_AGE_MINUTES * 60000) continue;
+      if (!missedOnly && now - t < MIN_AGE_MINUTES * 60000) continue;
       // A missed attempt is distinct from a later answered retry by the same caller.
       if (!missed && alreadyImportedByOtherId(t, direction, phone)) { skipped++; continue; }
-      if (toCreate.length >= MAX_NEW_PER_RUN) { remaining++; continue; }
+      if (missed && missedAlreadyStored(t, phone, duration)) { skipped++; continue; }
+      if (toCreate.length >= NEW_CAP) { remaining++; continue; }
 
       let transcript = null;
-      try { if (!dryRun) transcript = await fetchTranscript(log.recording_id, zoomToken); }
+      try { if (!dryRun && !missedOnly) transcript = await fetchTranscript(log.recording_id, zoomToken); }
       catch (err) { errors.push(`transcript ${callId}: ${err.message}`); }   // still import without it
 
       const name = direction === "inbound" ? log.caller_name : log.callee_name;
