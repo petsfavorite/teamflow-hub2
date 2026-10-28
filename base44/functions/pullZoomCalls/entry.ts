@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { sendCallLogErrorEmail } from '../../shared/callLogErrorNotify.ts';
 import { requireAdminOnly } from '../../shared/auth.ts';
+import { zoomCallFacts, zoomMissedVerdict } from '../../shared/zoomMissed.ts';
 
 // ZOOM DIRECT PULL — imports Zoom Phone calls straight from Zoom's API into CallRecord,
 // with no Google Sheet in the middle. Like scheduledSheetSync it does NO AI work: records
@@ -80,14 +81,16 @@ async function fetchTranscript(recordingId, zoomToken) {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const digits = (s) => String(s || "").replace(/\D/g, "").slice(-10);
 
+// Missed-call facts come from shared/zoomMissed so the Zoom pull, the transcript
+// analysis and the dashboard all agree on one definition.
 function classify(log) {
-  const direction = String(log.direction || "").toLowerCase().startsWith("out") ? "outbound" : "inbound";
-  const result = String(log.result || log.call_result || "").toLowerCase();
-  const answered = /answer|connect/.test(result) && !/not[_ ]?answer|no answer/.test(result);
-  const voicemail = /voicemail/.test(result) || log.has_voicemail === true;
-  // An inbound call nobody answered (abandoned, hang up, missed, voicemail) is a missed call.
-  const missed = direction === "inbound" && (!answered || voicemail);
-  return { direction, missed };
+  const facts = zoomCallFacts(log);
+  const verdict = zoomMissedVerdict(log);
+  return {
+    direction: facts.direction,
+    missed: verdict === true,             // nobody answered, or a voicemail was left
+    queueAnsweredOnly: facts.queueOnly,   // the queue answered — the transcript decides if a person did
+  };
 }
 
 function isBusinessHoursET() {
@@ -154,7 +157,7 @@ Deno.serve(async (req) => {
       if (!callId || !log.date_time) continue;
       const t = new Date(log.date_time).getTime();
       const duration = Number(log.duration || 0);
-      const { direction, missed } = classify(log);
+      const { direction, missed, queueAnsweredOnly } = classify(log);
       const phone = digits(direction === "inbound" ? log.caller_number : (log.callee_number || log.callee_did_number));
 
       const have = byId.get(callId);
@@ -174,7 +177,9 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      if (duration < MIN_DURATION_SECONDS) continue;                  // too short to matter
+      // A missed call is often 0 seconds long — those are exactly the calls the
+      // dashboard must show, so never drop them for being short.
+      if (duration < MIN_DURATION_SECONDS && !missed) continue;       // too short to matter
       if (now - t < MIN_AGE_MINUTES * 60000) continue;                // too fresh, next run
       if (alreadyImportedByOtherId(t, direction, phone)) { skipped++; continue; }
       if (toCreate.length >= MAX_NEW_PER_RUN) continue;               // rest go next run
@@ -200,6 +205,7 @@ Deno.serve(async (req) => {
         // Replaced with the Google Drive link once archiveCallRecordings saves the audio.
         recording_url: log.recording_id ? `https://zoom.us/recording/download/${log.recording_id}` : null,
         missed_call: missed,
+        queue_answered_only: queueAnsweredOnly,
         status: "pending_review",
         ai_enriched: false,
       });

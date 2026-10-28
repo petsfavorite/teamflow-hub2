@@ -4,6 +4,7 @@ import { fuzzyMatchUser } from '../../shared/staffMatching.ts';
 import { analyzeCall, buildExtraAliases } from '../../shared/callAnalysis.ts';
 import { sendCallLogErrorEmail } from '../../shared/callLogErrorNotify.ts';
 import { requireAdminOnly } from '../../shared/auth.ts';
+import { isMissedCall } from '../../shared/zoomMissed.ts';
 
 // AI ENRICHER — picks up CallRecords with ai_enriched=false and runs
 // transcript analysis on a small batch per invocation to avoid timeouts.
@@ -121,14 +122,16 @@ Deno.serve(async (req) => {
           skipped++;
         }
 
-        // Missed call determination
-        // record.missed_call may already be true from Zoom's own call result (unanswered / voicemail).
-        const missed_call = record.call_direction === "inbound" && (
-          record.missed_call === true ||
-          ai_missed_call ||
-          (!record.transcript && record.call_duration_seconds !== null && record.call_duration_seconds < 30)
-        );
-        if (missed_call) team_member = null;
+        // Missed call determination — Zoom's own verdict plus what the transcript shows.
+        // A team member who spoke with the caller always means the call was answered;
+        // a queue call with no team member in it is a missed call.
+        const missed_call = isMissedCall({
+          callDirection: record.call_direction,
+          zoomVerdict: record.missed_call === true ? true : null,
+          queueOnly: record.queue_answered_only === true,
+          aiSaysMissed: ai_missed_call,
+          teamMember: team_member,
+        });
 
         await base44.asServiceRole.entities.CallRecord.update(record.id, {
           team_member,

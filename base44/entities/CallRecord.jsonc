@@ -98,7 +98,12 @@
     "missed_call": {
       "type": "boolean",
       "default": false,
-      "description": "True if no one at the clinic answered this call"
+      "description": "True when no team member answered the call (nobody picked up, only the call queue answered, or the caller left a voicemail)"
+    },
+    "queue_answered_only": {
+      "type": "boolean",
+      "default": false,
+      "description": "Zoom shows the call queue answered this inbound call but not a team member's own extension. The transcript analysis decides whether a person actually spoke, so the call is treated as missed unless a team member is found."
     },
     "clinic_closed": {
       "type": "boolean",

@@ -17,9 +17,12 @@ export const DEFAULT_BOOKING_OFFERED_PROMPT = `For calls where a booking was NOT
 - true: staff suggested a specific time/date or asked if the caller wanted to book, but the caller declined or did not commit
 - false: no appointment was offered, the caller hung up before booking was discussed, or it was a voicemail/missed call`;
 
-export const DEFAULT_MISSED_CALL_PROMPT = `Determine if this INBOUND call was a "missed call" — no one at the clinic answered:
-- true: the call went to voicemail, no staff member spoke, or the caller hung up before anyone answered
-- false: a staff member answered and had a conversation (even briefly)
+export const DEFAULT_MISSED_CALL_PROMPT = `Determine if this INBOUND call was a "missed call" — a call no team member personally answered:
+- true when NO team member spoke with the caller. This includes:
+  * the call was never answered at all — the caller hung up or gave up waiting;
+  * ONLY the phone system answered — a call queue greeting, hold music, auto receptionist or IVR — and no team member ever picked up;
+  * the caller left a voicemail (even if a recording or greeting is all that is heard).
+- false when a team member answered and spoke with the caller, even briefly (for example "thanks for calling, can you hold?").
 Outbound calls are NEVER missed calls.`;
 
 export const DEFAULT_CALL_TOPIC_PROMPT = `Classify which side of the business this call relates to:
