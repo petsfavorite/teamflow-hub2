@@ -21,7 +21,7 @@ export default async function(req) {
       call_direction: 'inbound', call_duration_seconds: { $gte: 30 },
       call_date: { $gte: new Date(Date.now() - 92 * 86400000).toISOString() },
       live_team_member_spoke: { $exists: false },
-      transcript: { $exists: true, $nin: [null, '', 'No transcript', 'No transcript available'] },
+      transcript: { $exists: true, $nin: [null, '', 'No transcript', 'No transcript available', '#ERROR!'] },
     };
     const page = await base44.entities.CallRecord.filter(query, { sort: '-call_date', limit: 50, cursor: body.cursor || undefined });
     const records = page.items;
