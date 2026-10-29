@@ -18,7 +18,7 @@ export default async function(req) {
       return Response.json({ error: 'recordIds must contain up to 50 valid ids' }, { status: 400 });
     }
     const query = body.recordIds ? { id: { $in: body.recordIds } } : {
-      call_direction: 'inbound', call_duration_seconds: { $gte: 15 },
+      call_direction: 'inbound',
       call_date: { $gte: new Date(Date.now() - 92 * 86400000).toISOString() },
       live_team_member_spoke: { $exists: false },
       transcript: { $exists: true, $nin: [null, '', 'No transcript', 'No transcript available', '#ERROR!'] },
