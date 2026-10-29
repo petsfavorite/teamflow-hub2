@@ -14,7 +14,7 @@ import CallerTypeChart from "@/components/calldashboard/CallerTypeChart";
 import DashboardFilters from "@/components/calldashboard/DashboardFilters";
 import useCallHistory from "@/components/calldashboard/useCallHistory";
 import { getAppTimezone } from '@/lib/timezone';
-import { isCountableCall } from '@/lib/callDuration';
+import { isCountableCall, isClinicOpen } from '@/lib/callDuration';
 
 export default function CallDashboard() {
   const [selectedCall, setSelectedCall] = useState(null);
@@ -79,7 +79,7 @@ export default function CallDashboard() {
     return map;
   }, [users]);
 
-  const validDurationCalls = useMemo(() => calls.filter(isCountableCall), [calls]);
+  const validDurationCalls = useMemo(() => calls.filter(c => isCountableCall(c, getAppTimezone())), [calls]);
 
   const dateFilteredCalls = useMemo(() => {
     if (!dateStart && !dateEnd) return validDurationCalls;
@@ -126,11 +126,7 @@ export default function CallDashboard() {
     const missed = filteredCalls.filter(c => c.missed_call).length;
     const missedWhenOpen = filteredCalls.filter(c => {
       if (!c.missed_call || c.clinic_closed) return false;
-      const m = moment(c.call_date).tz(getAppTimezone());
-      const day = m.day();
-      const hour = m.hour();
-      const isWeekend = day === 0 || day === 6;
-      return isWeekend ? (hour >= 8 && hour < 18) : (hour >= 7 && hour < 19);
+      return isClinicOpen(c.call_date, getAppTimezone());
     }).length;
     const bookingRate = bookableTotal > 0 ? Math.round((booked / bookableTotal) * 100) : 0;
     return { total, booked, bookable: bookableTotal, missedBookings, potential, bookingRate, missed, missedWhenOpen, inboundTotal: inboundCalls.length };
