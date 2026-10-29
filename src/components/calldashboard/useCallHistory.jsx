@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import moment from "moment-timezone";
 import { base44 } from "@/api/base44Client";
 import { getAppTimezone } from '@/lib/timezone';
-import { isCountableCall } from '@/lib/callDuration';
+import { isCountableCall, MIN_INBOUND_SECONDS, MIN_OUTBOUND_SECONDS } from '@/lib/callDuration';
 
 const SUMMARY_FIELDS = ["id", "call_date", "call_duration_seconds", "call_direction", "caller_phone", "caller_name", "team_member", "caller_type", "caller_intent", "transcript_summary", "recording_url", "bookable", "booking_outcome", "was_booked", "booked_date", "booking_offered", "missed_call", "clinic_closed", "status"];
 
@@ -13,7 +13,7 @@ export default function useCallHistory(start, end) {
   const from = start && start.toISOString() > earliest ? start.toISOString() : earliest;
   const to = end && end.toISOString() < latest ? end.toISOString() : latest;
   return useQuery({
-    queryKey: ["callRecords", from, to],
+    queryKey: ["callRecords", from, to, MIN_INBOUND_SECONDS],
     queryFn: async ({ signal }) => {
       if (from > to) return [];
       const tz = getAppTimezone();
@@ -22,7 +22,7 @@ export default function useCallHistory(start, end) {
       const query = {
         call_date: { $gte: from, $lte: to },
         $or: [
-          { call_duration_seconds: { $gte: 30 } },
+          { call_duration_seconds: { $gte: MIN_INBOUND_SECONDS } },
           { missed_call: true },
         ],
       };
@@ -49,7 +49,7 @@ export default function useCallHistory(start, end) {
       const withoutTranscript = await loadPages({
         call_date: { $gte: from, $lte: to },
         call_direction: "outbound",
-        call_duration_seconds: { $gte: 30 },
+        call_duration_seconds: { $gte: MIN_OUTBOUND_SECONDS },
         $or: [{ transcript: null }, { transcript: "No transcript" }, { transcript: { $regex: "^\\s*$" } }],
       }, ["id"]);
       const missingIds = new Set(withoutTranscript.map(c => c.id));

@@ -10,8 +10,8 @@
 import moment from "moment-timezone";
 import { getAppTimezone } from "@/lib/timezone";
 
-export const MIN_INBOUND_SECONDS = 30;
-export const MIN_OUTBOUND_SECONDS = 30;
+export const MIN_INBOUND_SECONDS = 15;
+export const MIN_OUTBOUND_SECONDS = 15;
 
 // Clinic business hours (America/New_York): Mon–Fri 7am–7pm, Sat/Sun 8am–6pm.
 export function isClinicOpen(date, timezone = getAppTimezone()) {
