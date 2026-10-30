@@ -465,6 +465,10 @@ export default function Checklists() {
             start_date: data.start_date || null,
             is_active: true,
           });
+          // Spawn today's instance now so the checklist shows immediately instead of
+          // waiting up to an hour for the next scheduled run. Idempotent (dedups by
+          // schedule + due date); same-day past-due times are skipped by the job itself.
+          await base44.functions.invoke('checklistRecurrence', {}).catch(() => {});
         }
       } else {
         // Editing an existing RecurringChecklist schedule — only updates the schedule, never touches active instances

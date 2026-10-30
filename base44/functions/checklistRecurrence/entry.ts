@@ -1,10 +1,14 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
-import { requireAdminOnly } from '../../shared/auth.ts';
+import { requireAdmin } from '../../shared/auth.ts';
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { error: authError } = await requireAdminOnly(base44);
+    // Managers can assign recurring checklists, so they may also trigger an immediate
+    // spawn of today's instances right after assigning — otherwise a new assignment
+    // wouldn't appear until the next hourly scheduled run (and same-day past-due
+    // times would be skipped entirely). The job is idempotent (dedups by schedule+date).
+    const { error: authError } = await requireAdmin(base44);
     if (authError) return authError;
     const now = new Date();
 
