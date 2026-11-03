@@ -7,8 +7,9 @@ import {
     Dialog, DialogContent, DialogHeader, DialogTitle 
 } from "@/components/ui/dialog";
 import { 
-    Dog, Search, Plus, RefreshCw
+    Dog, Search, Plus, RefreshCw, Download
 } from "lucide-react";
+import { exportPetsAlertsCsv } from '@/lib/exportAlertsCsv';
 import { AnimatePresence } from "framer-motion";
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -120,6 +121,15 @@ export default function Pets() {
                             <span>📦 Archive</span>
                         </Button>
                     )}
+                    <Button 
+                        variant="outline"
+                        onClick={() => exportPetsAlertsCsv(pets)}
+                        className="rounded-xl border-stone-200"
+                        title="Download pets with check-in alerts as CSV"
+                    >
+                        <Download className="w-4 h-4 mr-2" />
+                        Export Alerts
+                    </Button>
                     <Button 
                         onClick={() => setShowAddDialog(true)}
                         className="rounded-xl bg-[#82bb32] hover:bg-[#82bb32]/90"
