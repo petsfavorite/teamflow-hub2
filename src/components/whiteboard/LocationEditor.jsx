@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { MapPin } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { toast } from '@/components/ui/use-toast';
+import { buildLocationChangeEntry } from '@/lib/locationLog';
 
 export default function LocationEditor({ visit, onSaved, className = '' }) {
     const [editing, setEditing] = useState(false);
@@ -9,6 +10,11 @@ export default function LocationEditor({ visit, onSaved, className = '' }) {
     const inputRef = useRef(null);
     const savingRef = useRef(false);
     const cancelledRef = useRef(false);
+    const [currentUser, setCurrentUser] = useState(null);
+
+    useEffect(() => {
+        base44.auth.me().then(setCurrentUser).catch(() => {});
+    }, []);
 
     useEffect(() => {
         setValue(visit?.location || '');
@@ -31,7 +37,11 @@ export default function LocationEditor({ visit, onSaved, className = '' }) {
         if (trimmed === (visit?.location || '')) return;
         savingRef.current = true;
         try {
-            await base44.entities.Visit.update(visit.id, { location: trimmed });
+            const entry = buildLocationChangeEntry(visit?.location, trimmed, currentUser);
+            await base44.entities.Visit.update(visit.id, {
+                location: trimmed,
+                care_log: [...(visit?.care_log || []), entry],
+            });
             onSaved?.(trimmed);
         } catch (err) {
             console.error('Location save failed', err);

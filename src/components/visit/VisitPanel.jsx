@@ -3,6 +3,7 @@ import PreliminaryReportDialog from './PreliminaryReportDialog';
 import EditCheckInDialog from './EditCheckInDialog';
 import { base44 } from "@/api/base44Client";
 import { getUserDisplayName } from "@/lib/utils";
+import { buildLocationChangeEntry } from "@/lib/locationLog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -142,7 +143,11 @@ export default function VisitPanel({ pet, visit, onUpdateVisit, onClose, onCheck
     };
 
     const handleLocationBlur = () => {
-        onUpdateVisit({ ...visit, location: locationInput });
+        const trimmed = locationInput.slice(0, 10);
+        setLocationInput(trimmed);
+        if (trimmed === (visit?.location || '')) return;
+        const entry = buildLocationChangeEntry(visit?.location, trimmed, currentUser);
+        onUpdateVisit({ ...visit, location: trimmed, care_log: [...(visit.care_log || []), entry] });
     };
 
     const handleCompleteTask = (taskIndex) => {
