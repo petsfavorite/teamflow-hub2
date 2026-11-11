@@ -27,6 +27,8 @@ Deno.serve(async (req) => {
     const todayStr = now.toLocaleDateString('en-CA', { timeZone: tz });
     const startOfTodayIso = moment.tz(todayStr + 'T00:00:00', tz).toISOString();
     const seventyTwoHoursAgoIso = new Date(now.getTime() - 72 * 60 * 60 * 1000).toISOString();
+    // Checklists stop appearing in the daily email once they're more than 2 days overdue.
+    const twoDaysAgoStr = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000).toLocaleDateString('en-CA', { timeZone: tz });
     const sevenDaysFromNowStr = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('en-CA', { timeZone: tz });
 
     const [
@@ -52,7 +54,7 @@ Deno.serve(async (req) => {
 
     // Categorize checklists: due today, overdue, or no due date (skip future-dated)
     const dueTodayChecklists = activeChecklists.filter(c => c.due_date === todayStr);
-    const overdueChecklists = activeChecklists.filter(c => c.due_date && c.due_date < todayStr);
+    const overdueChecklists = activeChecklists.filter(c => c.due_date && c.due_date < todayStr && c.due_date >= twoDaysAgoStr);
     const noDateChecklists = activeChecklists.filter(c => !c.due_date);
 
     // Categorize tasks the same way
